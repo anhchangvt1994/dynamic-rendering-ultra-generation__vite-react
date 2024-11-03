@@ -25,7 +25,7 @@ import {
 } from '../utils/FormatUrl.uws'
 import ISRGenerator from '../utils/ISRGenerator.next'
 import ISSRHandler from '../utils/ISRHandler.worker'
-import { handleResultAfterISRGenerator } from './utils'
+import { handleInvalidUrl, handleResultAfterISRGenerator } from './utils'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
@@ -138,6 +138,14 @@ const puppeteerSSRService = (async () => {
 				})
 		}
 		_app.get('/*', async function (res, req) {
+			// if (req.getUrl().startsWith('/api')) {
+			// 	return res.writeStatus('404').end('Not Found!', true)
+			// }
+			handleInvalidUrl(res, req)
+
+			// NOTE - Check if static will send static file
+			if (res.writableEnded) return
+
 			DetectStaticMiddle(res, req)
 
 			// NOTE - Check if static will send static file
@@ -158,15 +166,30 @@ const puppeteerSSRService = (async () => {
 			DetectLocaleMiddle(res, req)
 
 			const botInfo: IBotInfo = res.cookies?.botInfo
+
+			// NOTE - Check redirect or not
+			const isRedirect = DetectRedirectMiddle(res, req)
+
+			/**
+			 * NOTE
+			 * - We need crawl page although this request is not a bot
+			 * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
+			 */
+			if (
+				(res.writableEnded && botInfo.isBot) ||
+				(isRedirect && req.getHeader('accept') !== 'application/json')
+			)
+				return
+
 			const { enableToCrawl, enableToCache } = (() => {
+				const url = getUrl(res, req)
 				let enableToCrawl = ServerConfig.crawl.enable
 				let enableToCache = enableToCrawl && ServerConfig.crawl.cache.enable
 
 				const crawlOptionPerRoute =
 					ServerConfig.crawl.routes[req.getUrl()] ||
 					ServerConfig.crawl.routes[res.urlForCrawler] ||
-					ServerConfig.crawl.custom?.(req.getUrl()) ||
-					ServerConfig.crawl.custom?.(res.urlForCrawler)
+					ServerConfig.crawl.custom?.(url)
 
 				if (crawlOptionPerRoute) {
 					enableToCrawl = crawlOptionPerRoute.enable
@@ -187,20 +210,6 @@ const puppeteerSSRService = (async () => {
 			) {
 				return res.writeStatus('403').end('403 Forbidden', true)
 			}
-
-			// NOTE - Check redirect or not
-			const isRedirect = DetectRedirectMiddle(res, req)
-
-			/**
-			 * NOTE
-			 * - We need crawl page although this request is not a bot
-			 * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
-			 */
-			if (
-				(res.writableEnded && botInfo.isBot) ||
-				(isRedirect && req.getHeader('accept') !== 'application/json')
-			)
-				return
 
 			// NOTE - Detect DeviceInfo
 			DetectDeviceMiddle(res, req)

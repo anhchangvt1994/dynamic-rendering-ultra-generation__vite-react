@@ -21,11 +21,19 @@ export const convertUrlHeaderToQueryString = (
 		botInfoStringify = JSON.stringify(res.cookies?.botInfo)
 	}
 
+	const deviceInfo = res.cookies?.deviceInfo ?? {}
+	const deviceType =
+		ServerConfig.crawl.content === 'all' ||
+		ServerConfig.crawl.content.includes(deviceInfo.type)
+			? deviceInfo.type
+			: ServerConfig.crawl.content[0]
+
 	const deviceInfoStringify = JSON.stringify({
 		...(res.cookies?.deviceInfo ?? {}),
-		isMobile: ServerConfig.crawl.content === 'mobile',
-		type: ServerConfig.crawl.content,
+		isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+		type: deviceType,
 	})
+
 	const localeInfoStringify = JSON.stringify(res.cookies?.localeInfo)
 	const environmentInfoStringify = JSON.stringify(res.cookies?.environmentInfo)
 
@@ -42,7 +50,7 @@ export const getUrl = (res: HttpResponse, req: HttpRequest) => {
 	const pathname = res.urlForCrawler
 
 	return (
-		req.getQuery('urlTesting') ||
+		(PROCESS_ENV.ENABLE_URL_TESTING ? req.getQuery('urlTesting') : '') ||
 		req.getQuery('url') ||
 		PROCESS_ENV.BASE_URL + pathname
 	).trim()

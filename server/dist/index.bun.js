@@ -47,8 +47,11 @@ var _DetectStaticExtensionbun2 = _interopRequireDefault(
 	_DetectStaticExtensionbun
 )
 var _InitEnv = require('./utils/InitEnv')
+var _PathHandler = require('./utils/PathHandler')
 
 require('events').EventEmitter.setMaxListeners(200)
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
 const cleanResourceWithCondition = async () => {
 	if (_InitEnv.ENV_MODE === 'development') {
@@ -63,7 +66,7 @@ const cleanResourceWithCondition = async () => {
 
 		return Promise.all([
 			deleteResource(browsersPath),
-			deleteResource(_constants.pagesPath),
+			deleteResource(pagesPath),
 		])
 	}
 }

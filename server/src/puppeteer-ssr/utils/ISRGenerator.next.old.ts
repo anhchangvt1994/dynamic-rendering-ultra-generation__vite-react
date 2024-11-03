@@ -108,7 +108,7 @@ const SSRGenerator = async ({
 		if (ServerConfig.crawl.routes[pathname]?.cache.renewTime !== 'infinite') {
 			const renewTime =
 				((ServerConfig.crawl.routes[pathname]?.cache.renewTime ||
-					ServerConfig.crawl.custom?.(pathname)?.cache.renewTime ||
+					ServerConfig.crawl.custom?.(ISRHandlerParams.url)?.cache.renewTime ||
 					ServerConfig.crawl.cache.renewTime) as number) * 1000
 
 			if (
@@ -238,7 +238,11 @@ const SSRGenerator = async ({
 				) {
 					if (ISRHandlerParams.forceToCrawl) {
 						// NOTE - update create time
-						await cacheManager.remove(ISRHandlerParams.url)
+						try {
+							await cacheManager.remove(ISRHandlerParams.url)
+						} catch (err) {
+							Console.error(err)
+						}
 						cacheManager.get()
 					} else {
 						totalRequestsToCrawl++

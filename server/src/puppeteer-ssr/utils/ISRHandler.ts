@@ -363,7 +363,9 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 				Console.log('ISRHandler line 297:')
 				Console.log('Crawler is fail!')
 				Console.error(err)
-				cacheManager.remove(url, { force: true })
+				cacheManager.remove(url, { force: true }).catch((err) => {
+					Console.error(err)
+				})
 				safePage()?.close()
 				browser.emit('closePage', url)
 				if (!isMainThread) {
@@ -434,30 +436,33 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 		).optimize
 
 		const enableShallowOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('shallow')) &&
+			optimizeOption === 'shallow' &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableDeepOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('deep')) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
+			optimizeOption === 'deep' && enableOptimizeAndCompressIfRemoteCrawlerFail
+
+		const enableLowOptimize =
+			optimizeOption === 'low' && enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableScriptOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
+			typeof optimizeOption !== 'string' &&
 			optimizeOption.includes('script') &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableStyleOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
+			typeof optimizeOption !== 'string' &&
 			optimizeOption.includes('style') &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
-		const enableToCompress =
-			(ServerConfig.crawl.routes[pathname]?.compress ||
-				ServerConfig.crawl.custom?.(pathname)?.compress ||
-				ServerConfig.crawl.compress) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
+		const enableToCompress = (() => {
+			const options =
+				crawlCustomOption ??
+				ServerConfig.crawl.routes[pathname] ??
+				ServerConfig.crawl
+
+			return options.compress && enableOptimizeAndCompressIfRemoteCrawlerFail
+		})()
 
 		let isRaw = false
 		try {
@@ -488,7 +493,9 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			isRaw,
 		})
 	} else {
-		cacheManager.remove(url, { force: true })
+		cacheManager.remove(url, { force: true }).catch((err) => {
+			Console.error(err)
+		})
 		return {
 			status,
 			html: status === 404 ? 'Page not found!' : html,

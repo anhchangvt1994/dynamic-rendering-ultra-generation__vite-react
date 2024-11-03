@@ -1,12 +1,15 @@
 'use strict'
 Object.defineProperty(exports, '__esModule', { value: true })
 var _constants = require('../../constants')
+var _InitEnv = require('../InitEnv')
 
 var _utils = require('./utils')
 
 let isFirstInitCompleted = false
 
 const CleanerService = async (force = false) => {
+	if (_InitEnv.ENV_MODE === 'development') return
+
 	if (isFirstInitCompleted && !force) return
 
 	// NOTE - Browser Cleaner

@@ -18,15 +18,18 @@ import {
 	compressContent,
 	shallowOptimizeContent,
 	deepOptimizeContent,
+	lowOptimizeContent,
 	scriptOptimizeContent,
 	styleOptimizeContent,
 } from '../OptimizeHtml.worker/utils'
+import { getInternalHTML, getInternalScript } from './utils/utils'
 
 interface IISRHandlerParam {
 	startGenerating: number
 	hasCache: boolean
 	url: string
 	wsEndpoint: string
+	baseUrl: string
 }
 
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
@@ -83,18 +86,29 @@ const fetchData = async (
 } // fetchData
 
 const waitResponse = (() => {
-	const firstWaitingDuration =
-		BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 1500 : 500
-	const defaultRequestWaitingDuration =
-		BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 500 : 500
-	const requestServedFromCacheDuration =
-		BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 500 : 500
-	const requestFailDuration =
-		BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 500 : 500
-	const maximumTimeout =
-		BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 20000 : 20000
-
 	return async (page: Page, url: string, duration: number) => {
+		const pathname = new URL(url).pathname
+
+		const crawlSpeedOption = (
+			ServerConfig.crawl.custom?.(url) ??
+			ServerConfig.crawl.routes[pathname] ??
+			ServerConfig.crawl
+		).speed
+
+		const commonWaitingDuration = crawlSpeedOption / 10
+		const waitUntil = commonWaitingDuration <= 800 ? 'load' : 'domcontentloaded'
+
+		const firstWaitingDuration =
+			BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+		const defaultRequestWaitingDuration =
+			BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+		const requestServedFromCacheDuration =
+			BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+		const requestFailDuration =
+			BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+		const maximumTimeout =
+			BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? 20000 : 20000
+
 		// console.log(url.split('?')[0])
 		let hasRedirected = false
 		const safePage = _getSafePage(page)
@@ -112,9 +126,9 @@ const waitResponse = (() => {
 				// WorkerPool.workerEmit('waitResponse_00')
 				const result = await new Promise<any>((resolveAfterPageLoad) => {
 					safePage()
-						?.goto(url.split('?')[0], {
+						?.goto(url, {
 							// waitUntil: 'networkidle2',
-							waitUntil: 'load',
+							waitUntil,
 							timeout: 30000,
 						})
 						.then((res) => {
@@ -215,7 +229,7 @@ const gapDurationDefault = 1500
 const ISRHandler = async (params: IISRHandlerParam) => {
 	if (!params) return
 
-	const { hasCache, url, wsEndpoint } = params
+	const { hasCache, url, wsEndpoint, baseUrl } = params
 
 	const startGenerating = Date.now()
 	if (_getRestOfDuration(startGenerating, gapDurationDefault) <= 0) return
@@ -308,8 +322,15 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 				return
 			}
 
+			const deviceInfo = JSON.parse(specialInfo.deviceInfo)
+
 			try {
 				await Promise.all([
+					safePage()?.setUserAgent(
+						deviceInfo.isMobile
+							? 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+							: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+					),
 					safePage()?.waitForNetworkIdle({ idleTime: 150 }),
 					safePage()?.setCacheEnabled(false),
 					safePage()?.setRequestInterception(true),
@@ -323,19 +344,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					}),
 				])
 
-				// await safePage()?.waitForNetworkIdle({ idleTime: 150 })
-				// await safePage()?.setCacheEnabled(false)
-				// await safePage()?.setRequestInterception(true)
-				// await safePage()?.setViewport({
-				// 	width: WINDOW_VIEWPORT_WIDTH,
-				// 	height: WINDOW_VIEWPORT_HEIGHT,
-				// })
-				// await safePage()?.setExtraHTTPHeaders({
-				// 	...specialInfo,
-				// 	service: 'puppeteer',
-				// })
-
-				safePage()?.on('request', (req) => {
+				safePage()?.on('request', async (req) => {
 					const resourceType = req.resourceType()
 
 					if (resourceType === 'stylesheet') {
@@ -349,7 +358,61 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					) {
 						req.abort()
 					} else {
-						req.continue()
+						const reqUrl = req.url()
+
+						if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
+							const urlInfo = new URL(reqUrl)
+							const pointsTo = ServerConfig.routes?.[urlInfo.pathname]?.pointsTo
+
+							if (!pointsTo || pointsTo.startsWith(baseUrl)) {
+								getInternalHTML({ url: reqUrl })
+									.then((result) => {
+										if (!result)
+											req.respond({
+												body: 'File not found',
+												status: 404,
+												contentType: 'text/html',
+											})
+										else
+											req.respond({
+												body: result.body,
+												status: result.status,
+												contentType: 'text/html',
+											})
+									})
+									.catch((err) => {
+										Console.error(err)
+										req.continue()
+									})
+							} else {
+								req.continue()
+							}
+						} else if (
+							resourceType === 'script' &&
+							reqUrl.startsWith(baseUrl)
+						) {
+							getInternalScript({ url: reqUrl })
+								.then((result) => {
+									if (!result)
+										req.respond({
+											body: 'File not found',
+											status: 404,
+											contentType: 'application/javascript',
+										})
+									else
+										req.respond({
+											body: result.body,
+											status: result.status,
+											contentType: 'application/javascript',
+										})
+								})
+								.catch((err) => {
+									Console.error(err)
+									req.continue()
+								})
+						} else {
+							req.continue()
+						}
 					}
 				})
 
@@ -372,7 +435,9 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 				Console.log('ISRHandler line 297:')
 				Console.log('Crawler is fail!')
 				Console.error(err)
-				cacheManager.remove(url)
+				cacheManager.remove(url).catch((err) => {
+					Console.error(err)
+				})
 				safePage()?.close()
 				if (params.hasCache) {
 					cacheManager.rename({
@@ -385,23 +450,25 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 				}
 			}
 
-			try {
-				html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
-				safePage()?.close()
-			} catch (err) {
-				Console.log('ISRHandler line 315:')
-				Console.error(err)
-				safePage()?.close()
-				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+			if (CACHEABLE_STATUS_CODE[status]) {
+				try {
+					html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
+					safePage()?.close()
+				} catch (err) {
+					Console.log('ISRHandler line 315:')
+					Console.error(err)
+					safePage()?.close()
+					if (params.hasCache) {
+						cacheManager.rename({
+							url,
+						})
+					}
+
+					return
 				}
 
-				return
+				status = html && regexNotFoundPageID.test(html) ? 404 : 200
 			}
-
-			status = html && regexNotFoundPageID.test(html) ? 404 : 200
 		}
 	}
 
@@ -409,10 +476,12 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 
 	let result: ISSRResult
 	if (CACHEABLE_STATUS_CODE[status]) {
-		WorkerPool.workerEmit({
-			name: 'html',
-			value: html,
-		})
+		if (cacheManager.getStatus() !== 'renew') {
+			WorkerPool.workerEmit({
+				name: 'html',
+				value: html,
+			})
+		}
 
 		const pathname = new URL(url).pathname
 
@@ -424,25 +493,27 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			ServerConfig.crawl
 		).optimize
 
-		const enableShallowOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('shallow')) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
-
-		const enableDeepOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('deep')) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
-
 		const enableScriptOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
-			optimizeOption.includes('script') &&
+			optimizeOption &&
+			(typeof optimizeOption === 'string' ||
+				optimizeOption.includes('script')) &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableStyleOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
-			optimizeOption.includes('style') &&
+			optimizeOption &&
+			(typeof optimizeOption === 'string' ||
+				optimizeOption.includes('style')) &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
+
+		const enableShallowOptimize =
+			optimizeOption === 'shallow' &&
+			enableOptimizeAndCompressIfRemoteCrawlerFail
+
+		const enableDeepOptimize =
+			optimizeOption === 'deep' && enableOptimizeAndCompressIfRemoteCrawlerFail
+
+		const enableLowOptimize =
+			optimizeOption === 'low' && enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableToCompress = (() => {
 			const options =
@@ -466,16 +537,31 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 
 			if (enableStyleOptimize) html = await styleOptimizeContent(html)
 
-			if (enableShallowOptimize) html = await shallowOptimizeContent(html)
-
-			if (enableToCompress) html = await compressContent(html)
+			if (enableLowOptimize || enableShallowOptimize || enableDeepOptimize)
+				html = await lowOptimizeContent(html)
 
 			WorkerPool.workerEmit({
 				name: 'html',
 				value: html,
 			})
 
-			if (enableDeepOptimize) html = await deepOptimizeContent(html)
+			if (enableShallowOptimize || enableDeepOptimize)
+				html = await shallowOptimizeContent(html)
+
+			WorkerPool.workerEmit({
+				name: 'html',
+				value: html,
+			})
+
+			if (enableToCompress) html = await compressContent(html)
+
+			if (enableDeepOptimize) {
+				WorkerPool.workerEmit({
+					name: 'html',
+					value: html,
+				})
+				html = await deepOptimizeContent(html)
+			}
 			// console.log('finish optimize and compress: ', url.split('?')[0])
 			// console.log('-------')
 		} catch (err) {
@@ -494,7 +580,9 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			isRaw,
 		})
 	} else {
-		cacheManager.remove(url)
+		cacheManager.remove(url).catch((err) => {
+			Console.error(err)
+		})
 		return {
 			status,
 			html: status === 404 ? 'Page not found!' : html,

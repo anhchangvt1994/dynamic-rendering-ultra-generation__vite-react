@@ -163,7 +163,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 						'access',
 						(_12) => _12.custom,
 						'optionalCall',
-						(_13) => _13(pathname),
+						(_13) => _13(ISRHandlerParams.url),
 						'optionalAccess',
 						(_14) => _14.cache,
 						'access',
@@ -303,7 +303,11 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 				) {
 					if (ISRHandlerParams.forceToCrawl) {
 						// NOTE - update create time
-						await cacheManager.remove(ISRHandlerParams.url)
+						try {
+							await cacheManager.remove(ISRHandlerParams.url)
+						} catch (err) {
+							_ConsoleHandler2.default.error(err)
+						}
 						cacheManager.get()
 					} else {
 						totalRequestsToCrawl++

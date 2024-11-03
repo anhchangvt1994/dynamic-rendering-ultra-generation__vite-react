@@ -3,6 +3,13 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
 	return obj && obj.__esModule ? obj : { default: obj }
 }
+function _nullishCoalesce(lhs, rhsFn) {
+	if (lhs != null) {
+		return lhs
+	} else {
+		return rhsFn()
+	}
+}
 function _optionalChain(ops) {
 	let lastAccessLHS = undefined
 	let value = ops[0]
@@ -25,11 +32,13 @@ function _optionalChain(ops) {
 	return value
 }
 var _zlib = require('zlib')
-var _constants = require('../../../constants')
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+var _PathHandler = require('../../../utils/PathHandler')
 
 var _utils = require('../CacheManager/utils')
+
+const dataPath = _PathHandler.getDataPath.call(void 0)
 
 const fetchData = async (input, init) => {
 	if (!input) {
@@ -37,70 +46,90 @@ const fetchData = async (input, init) => {
 		return { status: 500, data: {}, message: 'URL is required' }
 	}
 
-	try {
-		const response = await fetch(input, {
-			...(init || {}),
-		})
-			.then(async (res) => {
-				const data = await new Promise(async (resolve) => {
-					let tmpData
-					const buffer = await res.clone().arrayBuffer()
+	const response = await new Promise(async (rootResolve) => {
+		const timeout = _nullishCoalesce(
+			_optionalChain([init, 'optionalAccess', (_) => _.timeout]),
+			() => 10000
+		)
+		if (timeout !== 'infinite') {
+			var responseTimeout = setTimeout(() => {
+				rootResolve({
+					status: 408,
+					message: 'Request Timeout',
+					data: {},
+				})
+			}, timeout)
+		}
 
-					try {
-						tmpData = _optionalChain([
-							_zlib.brotliDecompressSync.call(void 0, buffer),
-							'optionalAccess',
-							(_) => _.toString,
-							'call',
-							(_2) => _2(),
-						])
-					} catch (e) {}
+		try {
+			const response = await fetch(input, {
+				...(init || {}),
+			})
+				.then(async (res) => {
+					if (responseTimeout) clearTimeout(responseTimeout)
+					const data = await new Promise(async (resolve) => {
+						let tmpData
+						const buffer = await res.clone().arrayBuffer()
 
-					if (!tmpData)
 						try {
 							tmpData = _optionalChain([
-								_zlib.gunzipSync.call(void 0, buffer),
+								_zlib.brotliDecompressSync.call(void 0, buffer),
 								'optionalAccess',
-								(_3) => _3.toString,
+								(_2) => _2.toString,
 								'call',
-								(_4) => _4(),
+								(_3) => _3(),
 							])
-						} catch (e2) {}
+						} catch (e) {}
 
-					if (!tmpData) {
-						const text = await res.clone().text()
+						if (!tmpData)
+							try {
+								tmpData = _optionalChain([
+									_zlib.gunzipSync.call(void 0, buffer),
+									'optionalAccess',
+									(_4) => _4.toString,
+									'call',
+									(_5) => _5(),
+								])
+							} catch (e2) {}
 
-						try {
-							tmpData = JSON.parse(text)
-						} catch (error) {
-							tmpData = {}
-						}
-					} else JSON.parse(tmpData)
+						if (!tmpData) {
+							const text = await res.clone().text()
 
-					resolve(tmpData)
+							try {
+								tmpData = JSON.parse(text)
+							} catch (error) {
+								tmpData = {}
+							}
+						} else JSON.parse(tmpData)
+
+						resolve(tmpData)
+					})
+
+					return {
+						status: res.status,
+						message: res.statusText,
+						cookies: res.headers.getSetCookie(),
+						data,
+					}
+				})
+				.catch((err) => {
+					if (responseTimeout) clearTimeout(responseTimeout)
+					if (err.name !== 'AbortError') _ConsoleHandler2.default.error(err)
+					return {
+						status: 500,
+						data: {},
+						message: 'Server Error',
+					}
 				})
 
-				return {
-					status: res.status,
-					message: res.statusText,
-					cookies: res.headers.getSetCookie(),
-					data,
-				}
-			})
-			.catch((err) => {
-				if (err.name !== 'AbortError') _ConsoleHandler2.default.log(err)
-				return {
-					status: 500,
-					data: {},
-					message: 'Server Error',
-				}
-			})
+			rootResolve(response)
+		} catch (error) {
+			_ConsoleHandler2.default.error(error)
+			rootResolve({ status: 500, data: {}, message: 'Server Error' })
+		}
+	})
 
-		return response
-	} catch (error) {
-		_ConsoleHandler2.default.error(error)
-		return { status: 500, data: {}, message: 'Server Error' }
-	}
+	return response
 }
 exports.fetchData = fetchData // fetchData
 
@@ -110,22 +139,11 @@ const refreshData = async (cacheKeyList) => {
 	const arrRefreshData = []
 
 	for (const cacheKeyItem of cacheKeyList) {
-		const apiCache = await _utils.get.call(
-			void 0,
-			_constants.dataPath,
-			cacheKeyItem,
-			'br'
-		)
+		const apiCache = await _utils.get.call(void 0, dataPath, cacheKeyItem, 'br')
 
 		if (!apiCache || !apiCache.cache || !apiCache.url) continue
 
-		_utils.updateStatus.call(
-			void 0,
-			_constants.dataPath,
-			cacheKeyItem,
-			'br',
-			'fetch'
-		)
+		_utils.updateStatus.call(void 0, dataPath, cacheKeyItem, 'br', 'fetch')
 
 		arrRefreshData.push(
 			new Promise(async (res) => {
@@ -148,7 +166,7 @@ const refreshData = async (cacheKeyList) => {
 							!cacheResult ||
 							cacheResult.status !== 200
 						if (enableToSetCache) {
-							_utils.set.call(void 0, _constants.dataPath, cacheKeyItem, 'br', {
+							_utils.set.call(void 0, dataPath, cacheKeyItem, 'br', {
 								url: apiCache.url,
 								method: apiCache.method,
 								body: apiCache.body,

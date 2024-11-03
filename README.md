@@ -14,8 +14,8 @@ IF so, I think this project can help you. All you need to do is know how to use 
 Specifically, the system will transform your client side rendering project so that it can be SEO without you having to do anything. In addition, the system will help you optimize all light-house scores to the highest possible level, and you don’t have to do anything either. You haven’t been pressured to optimize the light-house score yet, have you? apply quickly, still in time
 
 NOTE
-- You can read detail about advanced structure of Vite + React + TS project in this [repository](https://github.com/anhchangvt1994/vite-project--template-react-ts).
-- You can read detail about router, suspense and some common utilities in this [repository](https://github.com/anhchangvt1994/vite-project--template-react-ts__react-router).
+- You can read detail about advanced structure of Vite + VueJS + TS project in this [repository](https://github.com/anhchangvt1994/vite-project--template-vue-ts).
+- You can read detail about router, suspense and some common utilities in this [repository](https://github.com/anhchangvt1994/vite-project--template-vue-ts__vue-router).
 
 ## Table of contents
 

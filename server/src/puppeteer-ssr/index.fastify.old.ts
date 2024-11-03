@@ -88,12 +88,17 @@ const puppeteerSSRService = (async () => {
 				const cookies = getCookieFromResponse(res)
 				const botInfo: IBotInfo = cookies?.['BotInfo']
 				const { enableToCrawl, enableToCache } = (() => {
+					const url = convertUrlHeaderToQueryString(
+						getUrl(req),
+						res as any,
+						!botInfo.isBot
+					)
 					let enableToCrawl = ServerConfig.crawl.enable
 					let enableToCache = enableToCrawl && ServerConfig.crawl.cache.enable
 
 					const crawlOptionPerRoute =
 						ServerConfig.crawl.routes[pathname] ||
-						ServerConfig.crawl.custom?.(pathname)
+						ServerConfig.crawl.custom?.(url)
 
 					if (crawlOptionPerRoute) {
 						enableToCrawl = crawlOptionPerRoute.enable

@@ -1,14 +1,6 @@
 import Chromium from '@sparticuz/chromium-min'
 import path from 'path'
-import {
-	dataPath,
-	pagesPath,
-	resourceExtension,
-	SERVER_LESS,
-	storePath,
-	userDataPath,
-	workerManagerPath,
-} from '../../constants'
+import { resourceExtension, SERVER_LESS } from '../../constants'
 import {
 	canUseLinuxChromium,
 	chromiumPath,
@@ -16,8 +8,20 @@ import {
 import { getStore, setStore } from '../../store'
 import Console from '../ConsoleHandler'
 import { PROCESS_ENV } from '../InitEnv'
+import {
+	getDataPath,
+	getPagesPath,
+	getStorePath,
+	getUserDataPath,
+	getWorkerManagerPath,
+} from '../PathHandler'
 import WorkerManager from '../WorkerManager'
-import ServerConfig from '../../server.config'
+
+const pagesPath = getPagesPath()
+const dataPath = getDataPath()
+const storePath = getStorePath()
+const userDataPath = getUserDataPath()
+const workerManagerPath = getWorkerManagerPath()
 
 const { isMainThread } = require('worker_threads')
 
@@ -26,7 +30,7 @@ const workerManager = (() => {
 	return WorkerManager.init(
 		path.resolve(
 			__dirname,
-			`./FollowResource.worker/index.${resourceExtension}`
+			`../FollowResource.worker/index.${resourceExtension}`
 		),
 		{
 			minWorkers: 1,
@@ -43,7 +47,13 @@ const workerManager = (() => {
 
 export const cleanBrowsers = (() => {
 	let executablePath: string
-	return async (expiredTime = PROCESS_ENV.RESET_RESOURCE ? 0 : 1) => {
+	return async (
+		expiredTime = PROCESS_ENV.RESET_RESOURCE
+			? 0
+			: process.env.MODE === 'development'
+			? 0
+			: 60
+	) => {
 		if (!isMainThread || process.env.DISABLE_INTERNAL_CRAWLER || !workerManager)
 			return
 
@@ -91,9 +101,6 @@ export const cleanBrowsers = (() => {
 			setTimeout(() => {
 				cleanBrowsers(5)
 			}, 300000)
-
-		if (process.env.MODE === 'development') cleanBrowsers?.(0)
-		else cleanBrowsers?.(360)
 	}
 })() // cleanBrowsers
 
@@ -182,10 +189,14 @@ export const cleanOther = (() => {
 			const freePool = await workerManager.getFreePool()
 			const pool = freePool.pool
 
-			return pool.exec('deleteResource', [path]).finally(() => {
-				freePool.terminate({
-					force: true,
-				})
+			try {
+				pool.exec('deleteResource', [path])
+			} catch (err) {
+				Console.error(err)
+			}
+
+			freePool.terminate({
+				force: true,
 			})
 		}
 

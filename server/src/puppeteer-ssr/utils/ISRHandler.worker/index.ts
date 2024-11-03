@@ -6,6 +6,7 @@ import BrowserManager from '../BrowserManager'
 import CacheManager from '../CacheManager.worker/utils'
 import { type IISRHandlerWorkerParam } from './types'
 import ServerConfig from '../../../server.config'
+import { PROCESS_ENV } from '../../../utils/InitEnv'
 const { parentPort, isMainThread } = require('worker_threads')
 
 const workerManager = WorkerManager.init(
@@ -30,8 +31,16 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 
 	if (!wsEndpoint && !ServerConfig.crawler) return
 
+	const pathname = new URL(params.url).pathname
+
+	const crawlSpeedOption = (
+		ServerConfig.crawl.custom?.(params.url) ??
+		ServerConfig.crawl.routes[pathname] ??
+		ServerConfig.crawl
+	).speed
+
 	const freePool = await workerManager.getFreePool({
-		delay: 500,
+		delay: crawlSpeedOption / 20,
 	})
 
 	const pool = freePool.pool
@@ -61,6 +70,7 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 					[
 						{
 							...params,
+							baseUrl: PROCESS_ENV.BASE_URL,
 							wsEndpoint,
 						},
 					],
@@ -101,7 +111,9 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 	}
 
 	if (!result || result.status !== 200) {
-		cacheManager.remove(params.url)
+		cacheManager.remove(params.url).catch((err) => {
+			Console.error(err)
+		})
 	}
 
 	freePool.terminate({

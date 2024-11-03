@@ -28,7 +28,9 @@ const getUrl = (url) => {
 	if (!url) return ''
 
 	return (
-		url.searchParams.urlTesting ||
+		(_InitEnv.PROCESS_ENV.ENABLE_URL_TESTING
+			? url.searchParams.urlTesting
+			: '') ||
 		(_InitEnv.PROCESS_ENV.BASE_URL
 			? _InitEnv.PROCESS_ENV.BASE_URL + url.pathname
 			: url.href)

@@ -539,7 +539,9 @@ const ISRHandler = async (params) => {
 				_ConsoleHandler2.default.log('ISRHandler line 297:')
 				_ConsoleHandler2.default.log('Crawler is fail!')
 				_ConsoleHandler2.default.error(err)
-				cacheManager.remove(url, { force: true })
+				cacheManager.remove(url, { force: true }).catch((err) => {
+					_ConsoleHandler2.default.error(err)
+				})
 				_optionalChain([
 					safePage,
 					'call',
@@ -655,50 +657,36 @@ const ISRHandler = async (params) => {
 		).optimize
 
 		const enableShallowOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('shallow')) &&
+			optimizeOption === 'shallow' &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableDeepOptimize =
-			(optimizeOption === 'all' || optimizeOption.includes('deep')) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
+			optimizeOption === 'deep' && enableOptimizeAndCompressIfRemoteCrawlerFail
+
+		const enableLowOptimize =
+			optimizeOption === 'low' && enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableScriptOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
+			typeof optimizeOption !== 'string' &&
 			optimizeOption.includes('script') &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
 		const enableStyleOptimize =
-			optimizeOption !== 'all' &&
-			!optimizeOption.includes('shallow') &&
+			typeof optimizeOption !== 'string' &&
 			optimizeOption.includes('style') &&
 			enableOptimizeAndCompressIfRemoteCrawlerFail
 
-		const enableToCompress =
-			(_optionalChain([
-				_serverconfig2.default,
-				'access',
-				(_64) => _64.crawl,
-				'access',
-				(_65) => _65.routes,
-				'access',
-				(_66) => _66[pathname],
-				'optionalAccess',
-				(_67) => _67.compress,
-			]) ||
-				_optionalChain([
-					_serverconfig2.default,
-					'access',
-					(_68) => _68.crawl,
-					'access',
-					(_69) => _69.custom,
-					'optionalCall',
-					(_70) => _70(pathname),
-					'optionalAccess',
-					(_71) => _71.compress,
-				]) ||
-				_serverconfig2.default.crawl.compress) &&
-			enableOptimizeAndCompressIfRemoteCrawlerFail
+		const enableToCompress = (() => {
+			const options = _nullishCoalesce(
+				_nullishCoalesce(
+					crawlCustomOption,
+					() => _serverconfig2.default.crawl.routes[pathname]
+				),
+				() => _serverconfig2.default.crawl
+			)
+
+			return options.compress && enableOptimizeAndCompressIfRemoteCrawlerFail
+		})()
 
 		let isRaw = false
 		try {
@@ -740,7 +728,9 @@ const ISRHandler = async (params) => {
 			isRaw,
 		})
 	} else {
-		cacheManager.remove(url, { force: true })
+		cacheManager.remove(url, { force: true }).catch((err) => {
+			_ConsoleHandler2.default.error(err)
+		})
 		return {
 			status,
 			html: status === 404 ? 'Page not found!' : html,

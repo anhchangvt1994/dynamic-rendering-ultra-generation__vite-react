@@ -1,20 +1,23 @@
 import fs from 'fs'
 import path from 'path'
-import { pagesPath } from '../../../constants'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
+import { getPagesPath } from '../../../utils/PathHandler'
 import { ISSRResult } from '../../types'
 import {
 	ICacheSetParams,
-	getKey as getCacheKey,
-	getFileInfo,
 	get as getCache,
-	set as setCache,
-	renew as renewCache,
+	getKey as getCacheKey,
+	getStatus as getCacheStatus,
+	getFileInfo,
+	isExist as isCacheExist,
 	remove as removeCache,
 	rename as renameCache,
-	isExist,
+	renew as renewCache,
+	set as setCache,
 } from '../Cache.worker/utils'
+
+const pagesPath = getPagesPath()
 
 const maintainFile = path.resolve(__dirname, '../../../maintain.html')
 
@@ -25,13 +28,13 @@ const CacheManager = (url: string) => {
 		ServerConfig.crawl.enable &&
 		(ServerConfig.crawl.routes[pathname] === undefined ||
 			ServerConfig.crawl.routes[pathname].enable ||
-			ServerConfig.crawl.custom?.(pathname) === undefined ||
-			ServerConfig.crawl.custom?.(pathname)?.enable) &&
+			ServerConfig.crawl.custom?.(url) === undefined ||
+			ServerConfig.crawl.custom?.(url)?.enable) &&
 		ServerConfig.crawl.cache.enable &&
 		(ServerConfig.crawl.routes[pathname] === undefined ||
 			ServerConfig.crawl.routes[pathname].cache.enable ||
-			ServerConfig.crawl.custom?.(pathname) === undefined ||
-			ServerConfig.crawl.custom?.(pathname)?.cache.enable)
+			ServerConfig.crawl.custom?.(url) === undefined ||
+			ServerConfig.crawl.custom?.(url)?.cache.enable)
 
 	const get = async () => {
 		if (!enableToCache)
@@ -164,9 +167,18 @@ const CacheManager = (url: string) => {
 		}
 	} // rename
 
+	const getStatus = () => {
+		return getCacheStatus(url)
+	} // getStatus
+
+	const isExist = () => {
+		return isCacheExist(url)
+	} // isExist
+
 	return {
 		achieve,
 		get,
+		getStatus,
 		set,
 		renew,
 		remove,

@@ -24,10 +24,14 @@ export const REDIRECT_INFO: IRedirectInfoItem[] = [
 
 // NOTE - Declare redirect middleware
 export const REDIRECT_INJECTION = (
-	redirectResult,
+	redirectResult: IRedirectResult,
 	req,
 	res
 ): IRedirectResult => {
+	// NOTE - Check Redirect for common case
+	redirectResult.path = redirectResult.path.replace(/\/{2,}/, '/')
+
+	// NOTE - Check redirect for locale case
 	const enableLocale =
 		ServerConfig.locale.enable &&
 		Boolean(
@@ -46,6 +50,14 @@ export const REDIRECT_INJECTION = (
 					: localeCodeValidationResult.status
 			redirectResult.path = localeCodeValidationResult.path
 		}
+	}
+
+	if (
+		redirectResult.status === 200 &&
+		redirectResult.path !== '' &&
+		redirectResult.originPath !== redirectResult.path
+	) {
+		redirectResult.status = 301
 	}
 
 	return redirectResult

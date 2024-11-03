@@ -37,6 +37,9 @@ var _WorkerManager = require('../../../utils/WorkerManager')
 var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 
 var _utils = require('../Cache.worker/utils')
+var _PathHandler = require('../../../utils/PathHandler')
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
 const workerManager = _WorkerManager2.default.init(
 	_path2.default.resolve(
@@ -66,7 +69,7 @@ const CacheManager = (url) => {
 				'access',
 				(_2) => _2.custom,
 				'optionalCall',
-				(_3) => _3(pathname),
+				(_3) => _3(url),
 			]) === undefined ||
 			_optionalChain([
 				_serverconfig2.default,
@@ -75,7 +78,7 @@ const CacheManager = (url) => {
 				'access',
 				(_5) => _5.custom,
 				'optionalCall',
-				(_6) => _6(pathname),
+				(_6) => _6(url),
 				'optionalAccess',
 				(_7) => _7.enable,
 			])) &&
@@ -89,7 +92,7 @@ const CacheManager = (url) => {
 				'access',
 				(_9) => _9.custom,
 				'optionalCall',
-				(_10) => _10(pathname),
+				(_10) => _10(url),
 			]) === undefined ||
 			_optionalChain([
 				_serverconfig2.default,
@@ -98,7 +101,7 @@ const CacheManager = (url) => {
 				'access',
 				(_12) => _12.custom,
 				'optionalCall',
-				(_13) => _13(pathname),
+				(_13) => _13(url),
 				'optionalAccess',
 				(_14) => _14.cache,
 				'access',
@@ -143,17 +146,17 @@ const CacheManager = (url) => {
 		}
 
 		const key = _utils.getKey.call(void 0, url)
-		let file = `${_constants.pagesPath}/${key}.br`
+		let file = `${pagesPath}/${key}.br`
 		let isRaw = false
 
 		switch (true) {
 			case _fs2.default.existsSync(file):
 				break
-			case _fs2.default.existsSync(`${_constants.pagesPath}/${key}.renew.br`):
-				file = `${_constants.pagesPath}/${key}.renew.br`
+			case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
+				file = `${pagesPath}/${key}.renew.br`
 				break
 			default:
-				file = `${_constants.pagesPath}/${key}.raw.br`
+				file = `${pagesPath}/${key}.raw.br`
 				isRaw = true
 				break
 		}
@@ -268,14 +271,23 @@ const CacheManager = (url) => {
 		})
 	} // rename
 
+	const getStatus = () => {
+		return _utils.getStatus.call(void 0, url)
+	} // getStatus
+
+	const isExist = () => {
+		return _utils.isExist.call(void 0, url)
+	} // isExist
+
 	return {
 		achieve,
 		get,
+		getStatus,
 		set,
 		renew,
 		remove,
 		rename,
-		isExist: _utils.isExist,
+		isExist,
 	}
 }
 

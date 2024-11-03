@@ -4,13 +4,10 @@ import { POWER_LEVEL, POWER_LEVEL_LIST } from '../../../constants'
 import { ENV, PROCESS_ENV } from '../../../utils/InitEnv'
 import {
 	regexFullOptimizeBody,
-	regexHalfOptimizeBody,
 	regexHandleAttrsHtmlTag,
 	regexHandleAttrsImageTag,
 	regexHandleAttrsInteractiveTag,
-	regexRemoveClassAndStyleAttrs,
-	regexRemoveIconTagFirst,
-	regexRemoveIconTagSecond,
+	regexLowOptimize,
 	regexRemoveScriptTag,
 	regexRemoveSpecialTag,
 	regexRemoveStyleTag,
@@ -208,15 +205,42 @@ export const optimizeContent = async (
 	}
 } // optimizeContent
 
+export const scriptOptimizeContent = async (html: string) => {
+	if (!html) return html
+
+	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+
+	html = html.replace(regexRemoveScriptTag, '')
+
+	return html
+} // scriptOptimizeContent
+
+export const styleOptimizeContent = async (html) => {
+	if (!html) return html
+
+	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+
+	html = html.replace(regexRemoveStyleTag, '')
+
+	return html
+} // styleOptimizeContent
+
+export const lowOptimizeContent = async (html) => {
+	if (!html) return html
+
+	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+
+	html = html.replace(regexLowOptimize, '')
+
+	return html
+} // lowOptimizeContent
+
 export const shallowOptimizeContent = async (html: string) => {
 	if (!html) return html
 
 	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
 
 	html = html
-		// .replace(regexRemoveScriptTag, '')
-		// .replace(regexRemoveSpecialTag, '')
-		// .replace(regexRemoveIconTagFirst, '')
 		.replace(regexShallowOptimize, '')
 		.replace(regexHandleAttrsHtmlTag, (match, tag, curAttrs) => {
 			let newAttrs = curAttrs
@@ -300,114 +324,90 @@ export const deepOptimizeContent = async (html: string) => {
 
 	let tmpHTML = html
 	try {
-		tmpHTML = tmpHTML
-			// .replace(regexHalfOptimizeBody, '')
-			// .replace(regexRemoveIconTagSecond, '')
-			.replace(
-				regexHandleAttrsInteractiveTag,
-				(math, tag, curAttrs, negative, content, endTag) => {
-					let newAttrs = curAttrs.trim()
-					let newTag = tag
-					let tmpEndTag = tag === 'input' ? '' : endTag === tag ? endTag : tag
-					let tmpContent = content
-					let result
+		tmpHTML = tmpHTML.replace(
+			regexHandleAttrsInteractiveTag,
+			(math, tag, curAttrs, negative, content, endTag) => {
+				let newAttrs = curAttrs.trim()
+				let newTag = tag
+				let tmpEndTag = tag === 'input' ? '' : endTag === tag ? endTag : tag
+				let tmpContent = content
+				let result
 
-					switch (true) {
-						case newTag === 'a':
-							const href = /href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g.exec(
-								curAttrs
-							)?.groups?.href
-							tmpContent = tmpContent.replace(
-								/[Cc]lick here|[Cc]lick this|[Gg]o|[Hh]ere|[Tt]his|[Ss]tart|[Rr]ight here|[Mm]ore|[Ll]earn more/g,
-								''
-							)
+				switch (true) {
+					case newTag === 'a':
+						const href = /href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g.exec(curAttrs)
+							?.groups?.href
+						tmpContent = tmpContent.replace(
+							/[Cc]lick here|[Cc]lick this|[Gg]o|[Hh]ere|[Tt]his|[Ss]tart|[Rr]ight here|[Mm]ore|[Ll]earn more/g,
+							''
+						)
 
-							const tmpContentWithTrim = tmpContent
-								.replace(/([\n]|<!--(\s[^>]+)*-->)/g, '')
-								.trim()
+						const tmpContentWithTrim = tmpContent
+							.replace(/([\n]|<!--(\s[^>]+)*-->)/g, '')
+							.trim()
 
-							if (!tmpContentWithTrim.replace(/<[^>]*>/g, ''))
-								tmpContent = `${tmpContentWithTrim} ${href}`
+						if (!tmpContentWithTrim.replace(/<[^>]*>/g, ''))
+							tmpContent = `${tmpContentWithTrim} ${href}`
 
-							if (curAttrs.includes('aria-label=')) {
-								const ariaLabel =
-									/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g.exec(
-										curAttrs
-									)?.groups?.ariaLabel
+						if (curAttrs.includes('aria-label=')) {
+							const ariaLabel =
+								/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g.exec(
+									curAttrs
+								)?.groups?.ariaLabel
 
-								if (ariaLabel !== tmpContent)
-									newAttrs = curAttrs.replace(
-										/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
-										''
-									)
-							}
+							if (ariaLabel !== tmpContent)
+								newAttrs = curAttrs.replace(
+									/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
+									''
+								)
+						}
 
-							break
-						case newTag === 'button':
-							const tmpContentWithoutHTMLTags = tmpContent
-								.replace(/<[^>]*>|[\n]/g, '')
-								.trim()
+						break
+					case newTag === 'button':
+						const tmpContentWithoutHTMLTags = tmpContent
+							.replace(/<[^>]*>|[\n]/g, '')
+							.trim()
 
-							if (!tmpContentWithoutHTMLTags) return ''
-							if (!curAttrs.includes('type='))
-								newAttrs = `type="button" ${newAttrs}`
+						if (!tmpContentWithoutHTMLTags) return ''
+						if (!curAttrs.includes('type='))
+							newAttrs = `type="button" ${newAttrs}`
 
-							if (curAttrs.includes('aria-label=')) {
-								const ariaLabel =
-									/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g.exec(
-										curAttrs
-									)?.groups?.ariaLabel
+						if (curAttrs.includes('aria-label=')) {
+							const ariaLabel =
+								/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g.exec(
+									curAttrs
+								)?.groups?.ariaLabel
 
-								tmpContent = ariaLabel
-							} else {
-								newAttrs = `aria-label="${tmpContentWithoutHTMLTags}" ${newAttrs}`
-								tmpContent = tmpContentWithoutHTMLTags
-							}
-							break
-						case newTag === 'input' &&
-							/type=['"](button|submit)['"]/g.test(curAttrs) &&
-							!/value(\s|$)|value=['"]{2}/g.test(curAttrs):
-							return ''
-						case newTag === 'input' &&
-							/id=("|'|)(.*?)("|'|)+(\s|$)/g.test(newAttrs):
-							const id = /id=("|'|)(?<id>.*?)("|'|)+(\s|$)/g.test(newAttrs)
-							result = `<label for=${id}><${newTag} ${newAttrs}>${tmpContent}</${tmpEndTag}>`
-							break
-						default:
-							break
-					}
-
-					result =
-						result || tmpEndTag
-							? `<${newTag} ${newAttrs} ${negative}>${tmpContent}</${tmpEndTag}>`
-							: `<${newTag} ${negative} ${newAttrs}>`
-
-					return result
+							tmpContent = ariaLabel
+						} else {
+							newAttrs = `aria-label="${tmpContentWithoutHTMLTags}" ${newAttrs}`
+							tmpContent = tmpContentWithoutHTMLTags
+						}
+						break
+					case newTag === 'input' &&
+						/type=['"](button|submit)['"]/g.test(curAttrs) &&
+						!/value(\s|$)|value=['"]{2}/g.test(curAttrs):
+						return ''
+					case newTag === 'input' &&
+						/id=("|'|)(.*?)("|'|)+(\s|$)/g.test(newAttrs):
+						const id = /id=("|'|)(?<id>.*?)("|'|)+(\s|$)/g.test(newAttrs)
+						result = `<label for=${id}><${newTag} ${newAttrs}>${tmpContent}</${tmpEndTag}>`
+						break
+					default:
+						break
 				}
-			)
+
+				result =
+					result || tmpEndTag
+						? `<${newTag} ${newAttrs} ${negative}>${tmpContent}</${tmpEndTag}>`
+						: `<${newTag} ${negative} ${newAttrs}>`
+
+				return result
+			}
+		)
 	} catch (err) {
 		return html
 	}
 
 	return tmpHTML
 } // deepOptimizeContent
-
-export const scriptOptimizeContent = async (html: string) => {
-	if (!html) return html
-
-	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
-
-	html = html.replace(regexRemoveScriptTag, '')
-
-	return html
-} // scriptOptimizeContent
-
-export const styleOptimizeContent = async (html) => {
-	if (!html) return html
-
-	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
-
-	html = html.replace(regexRemoveStyleTag, '')
-
-	return html
-} // styleOptimizeContent

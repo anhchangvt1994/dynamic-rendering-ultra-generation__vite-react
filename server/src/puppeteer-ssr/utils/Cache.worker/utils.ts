@@ -1,13 +1,12 @@
+import crypto from 'crypto'
 import fs from 'fs'
-import Console from '../../../utils/ConsoleHandler'
-import { pagesPath } from '../../../constants'
 import path from 'path'
 import { brotliCompressSync } from 'zlib'
+import Console from '../../../utils/ConsoleHandler'
 import { ISSRResult } from '../../types'
-import {
-	// decryptCrawlerKeyCache,
-	encryptCrawlerKeyCache,
-} from '../../../utils/CryptoHandler'
+import { getPagesPath } from '../../../utils/PathHandler'
+
+const pagesPath = getPagesPath()
 
 export interface ICacheSetParams {
 	html: string
@@ -27,6 +26,7 @@ export type IFileInfo =
 if (!fs.existsSync(pagesPath)) {
 	try {
 		fs.mkdirSync(pagesPath)
+		fs.mkdirSync(`${pagesPath}/info`)
 	} catch (err) {
 		Console.error(err)
 	}
@@ -36,22 +36,19 @@ if (!fs.existsSync(pagesPath)) {
 // 	/^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
 export const regexKeyConverter =
 	/www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
+export const regexKeyConverterWithoutLocaleInfo =
+	/www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)/g
 
 export const getKey = (url) => {
-	if (!url) {
-		Console.error('Need provide "url" param!')
-		return
-	}
+	if (!url) return
 
 	url = url
 		.replace('/?', '?')
-		.replace(regexKeyConverter, '')
-		.replace(/\?(?:\&|)$/g, '')
+		.replace(regexKeyConverterWithoutLocaleInfo, '')
+		.replace(/,"os":"([^&]*)"/, '')
+		.replace(/(\?|\&)$/, '')
 
-	const urlEncrypted = encryptCrawlerKeyCache(url)
-	// const urlDecrypted = decryptCrawlerKeyCache(urlEncrypted)
-
-	return urlEncrypted
+	return crypto.createHash('md5').update(url).digest('hex')
 } // getKey
 
 export const getFileInfo = async (file: string): Promise<IFileInfo> => {
@@ -151,7 +148,17 @@ export const get = async (
 		Console.log(`Create file ${file}`)
 
 		try {
-			fs.writeFileSync(file, '')
+			await Promise.all([
+				fs.writeFileSync(file, ''),
+				fs.writeFileSync(
+					`${pagesPath}/info/${key}.txt`,
+					url
+						.replace('/?', '?')
+						.replace(regexKeyConverterWithoutLocaleInfo, '')
+						.replace(/,"os":"([^&]*)"/, '')
+						.replace(/(\?|\&)$/, '')
+				),
+			])
 			Console.log(`File ${key}.br has been created.`)
 
 			const curTime = new Date()
@@ -239,14 +246,12 @@ export const set = async (
 				fs.renameSync(`${pagesPath}/${key}.renew.br`, file)
 			} catch (err) {
 				Console.error(err)
-				return
 			}
 		else if (fs.existsSync(`${pagesPath}/${key}.raw.br`))
 			try {
 				fs.renameSync(`${pagesPath}/${key}.raw.br`, file)
 			} catch (err) {
 				Console.error(err)
-				return
 			}
 	}
 
@@ -261,7 +266,6 @@ export const set = async (
 			Console.log(`File ${file} was updated!`)
 		} catch (err) {
 			Console.error(err)
-			return
 		}
 	}
 
@@ -299,14 +303,13 @@ export const renew = async (url) => {
 			fs.renameSync(curFile, file)
 		} catch (err) {
 			Console.error(err)
-			return
 		}
 	}
 
 	return hasRenew
 } // renew
 
-export const remove = (url: string) => {
+export const remove = async (url: string) => {
 	if (!url) return Console.log('Url can not empty!')
 	const key = getKey(url)
 
@@ -326,15 +329,20 @@ export const remove = (url: string) => {
 	if (!curFile) return
 
 	try {
-		fs.unlinkSync(curFile)
+		await Promise.all([
+			fs.unlinkSync(curFile),
+			fs.unlinkSync(`${pagesPath}/info/${key}.txt`),
+		])
 	} catch (err) {
-		console.error(err)
-		throw err
+		Console.error(err)
 	}
 } // remove
 
 export const rename = (params: { url: string; type?: 'raw' | 'renew' }) => {
-	if (!params || !params.url) return Console.log('Url can not empty!')
+	if (!params || !params.url) {
+		Console.log('Url can not empty!')
+		return
+	}
 
 	const key = getKey(params.url)
 	const file = `${pagesPath}/${key}${params.type ? '.' + params.type : ''}.br`
@@ -359,7 +367,6 @@ export const rename = (params: { url: string; type?: 'raw' | 'renew' }) => {
 			fs.renameSync(curFile, file)
 		} catch (err) {
 			Console.error(err)
-			return
 		}
 	}
 } // rename
@@ -378,3 +385,23 @@ export const isExist = (url: string) => {
 		fs.existsSync(`${pagesPath}/${key}.renew.br`)
 	)
 } // isExist
+
+export const getStatus = (
+	url: string
+): ('raw' | 'renew' | 'ok') | undefined => {
+	if (!url) {
+		Console.log('Url can not empty!')
+		return
+	}
+
+	const key = getKey(url)
+
+	switch (true) {
+		case fs.existsSync(`${pagesPath}/${key}.raw.br`):
+			return 'raw'
+		case fs.existsSync(`${pagesPath}/${key}.renew.br`):
+			return 'renew'
+		default:
+			return 'ok'
+	}
+} // getStatus

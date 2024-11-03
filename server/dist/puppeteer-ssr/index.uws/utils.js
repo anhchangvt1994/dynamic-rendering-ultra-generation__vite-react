@@ -10,6 +10,10 @@ var _zlib = require('zlib')
 var _constants = require('../../constants')
 var _constants3 = require('../constants')
 
+var _ConsoleHandler = require('../../utils/ConsoleHandler')
+var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+var _InitEnv = require('../../utils/InitEnv')
+
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
 const _setCookie = (res) => {
@@ -154,4 +158,42 @@ const handleResultAfterISRGenerator = (res, params) => {
 			.end('504 Gateway Timeout', true)
 	}
 }
-exports.handleResultAfterISRGenerator = handleResultAfterISRGenerator
+exports.handleResultAfterISRGenerator = handleResultAfterISRGenerator // handleResultAfterISRGenerator
+
+const handleInvalidUrl = (res, req) => {
+	if (!res) {
+		_ConsoleHandler2.default.log('Need provide `res` param!')
+		return
+	}
+
+	if (!req) {
+		_ConsoleHandler2.default.log('Need provide `req` param!')
+		return
+	}
+
+	const baseUrl = `${
+		req.getHeader('x-forwarded-proto')
+			? req.getHeader('x-forwarded-proto')
+			: _InitEnv.PROCESS_ENV.IS_SERVER
+			? 'https'
+			: 'http'
+	}://${req.getHeader('host')}`
+	const url = req.getUrl()
+	const urlLower = url.toLowerCase()
+
+	switch (true) {
+		case url.startsWith('/api') ||
+			/^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
+				baseUrl
+			) ||
+			/\/(wordpress|laravel|wp-includes|php|.env|server.config|[A-Za-z0-9-]+\.(yml))/.test(
+				urlLower
+			):
+			res.writableEnded = true
+			res.writeStatus('404').end('Not Found!', true)
+			break
+		default:
+			res.writableEnded = false
+	}
+}
+exports.handleInvalidUrl = handleInvalidUrl // handleInvalidUrl

@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import { dataPath, resourceExtension, storePath } from '../../../constants'
+import { resourceExtension } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
+import { getDataPath, getStorePath } from '../../../utils/PathHandler'
 import WorkerManager from '../../../utils/WorkerManager'
 import {
 	IGetCacheOptionsParam,
@@ -9,6 +10,9 @@ import {
 	ISetCacheOptionsParam,
 	IStatus,
 } from './types'
+
+const dataPath = getDataPath()
+const storePath = getStorePath()
 
 const workerManager = WorkerManager.init(
 	path.resolve(__dirname, `./worker.${resourceExtension}`),

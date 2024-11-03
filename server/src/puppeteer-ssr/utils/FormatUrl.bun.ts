@@ -26,7 +26,7 @@ export const getUrl = (url) => {
 	if (!url) return ''
 
 	return (
-		url.searchParams.urlTesting ||
+		(PROCESS_ENV.ENABLE_URL_TESTING ? url.searchParams.urlTesting : '') ||
 		(PROCESS_ENV.BASE_URL ? PROCESS_ENV.BASE_URL + url.pathname : url.href)
 	).trim()
 } // getUrl

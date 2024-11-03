@@ -3,85 +3,9 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
 	return obj && obj.__esModule ? obj : { default: obj }
 }
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
 var _serverconfig = require('./server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('./utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _InitEnv = require('./utils/InitEnv')
-
-const pagesPath = _InitEnv.PROCESS_ENV.IS_SERVER
-	? (() => {
-			if (_serverconfig2.default.crawl.cache.path) {
-				if (_fs2.default.existsSync(_serverconfig2.default.crawl.cache.path))
-					return _serverconfig2.default.crawl.cache.path
-				else {
-					try {
-						_fs2.default.mkdirSync(_serverconfig2.default.crawl.cache.path)
-
-						return _serverconfig2.default.crawl.cache.path
-					} catch (err) {
-						_ConsoleHandler2.default.error(err.message)
-					}
-				}
-			}
-
-			const tmpPath = '/tmp'
-			if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/pages'
-
-			return _path2.default.resolve(
-				__dirname,
-				'./puppeteer-ssr/utils/Cache.worker/pages'
-			)
-	  })()
-	: _path2.default.resolve(
-			__dirname,
-			'./puppeteer-ssr/utils/Cache.worker/pages'
-	  )
-exports.pagesPath = pagesPath
-
-const dataPath = _InitEnv.PROCESS_ENV.IS_SERVER
-	? (() => {
-			const tmpPath = '/tmp'
-			if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/data'
-
-			return _path2.default.resolve(__dirname, './api/utils/CacheManager/data')
-	  })()
-	: _path2.default.resolve(__dirname, './api/utils/CacheManager/data')
-exports.dataPath = dataPath
-
-const storePath = _InitEnv.PROCESS_ENV.IS_SERVER
-	? (() => {
-			const tmpPath = '/tmp'
-			if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/store'
-
-			return _path2.default.resolve(__dirname, './api/utils/CacheManager/store')
-	  })()
-	: _path2.default.resolve(__dirname, './api/utils/CacheManager/store')
-exports.storePath = storePath
-
-const userDataPath = _InitEnv.PROCESS_ENV.IS_SERVER
-	? (() => {
-			const tmpPath = '/tmp'
-			if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/browsers'
-
-			return _path2.default.resolve(__dirname, './puppeteer-ssr/browsers')
-	  })()
-	: _path2.default.resolve(__dirname, './puppeteer-ssr/browsers')
-exports.userDataPath = userDataPath
-
-const workerManagerPath = _InitEnv.PROCESS_ENV.IS_SERVER
-	? (() => {
-			const tmpPath = '/tmp'
-			if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/WorkerManager'
-
-			return _path2.default.resolve(__dirname, './utils/WorkerManager')
-	  })()
-	: _path2.default.resolve(__dirname, './puppeteer-ssr/browsers')
-exports.workerManagerPath = workerManagerPath
 
 const resourceExtension = _InitEnv.PROCESS_ENV.IS_SERVER ? 'js' : 'ts'
 exports.resourceExtension = resourceExtension

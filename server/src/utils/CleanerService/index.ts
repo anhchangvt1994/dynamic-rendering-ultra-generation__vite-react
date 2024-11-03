@@ -1,4 +1,5 @@
 import { SERVER_LESS } from '../../constants'
+import { ENV_MODE } from '../InitEnv'
 import {
 	cleanAPIDataCache,
 	cleanAPIStoreCache,
@@ -10,6 +11,8 @@ import {
 let isFirstInitCompleted = false
 
 const CleanerService = async (force = false) => {
+	if (ENV_MODE === 'development') return
+
 	if (isFirstInitCompleted && !force) return
 
 	// NOTE - Browser Cleaner

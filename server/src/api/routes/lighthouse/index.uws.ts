@@ -5,9 +5,20 @@ import { ILighthouseResponse, IPageSpeedCategories } from './types'
 import { getPageSpeedUrl } from './worker'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { TARGET_OPTIMAL_URL } from './constants'
+import ServerConfig from '../../../server.config'
 
-const limitRequest = 2
+const limitRequest = ServerConfig.crawl.limit
 let totalRequests = 0
+const resetTotalRequestTimeout = (() => {
+	let timeout: NodeJS.Timeout
+
+	return () => {
+		if (timeout) clearTimeout(timeout)
+		timeout = setTimeout(() => {
+			totalRequests = 0
+		}, 50000)
+	}
+})()
 
 const apiLighthouse = (() => {
 	let _app: TemplatedApp
@@ -19,11 +30,12 @@ const apiLighthouse = (() => {
 				return
 			}
 
+			resetTotalRequestTimeout()
 			totalRequests++
 
 			res.onAborted(() => {
 				res.writableEnded = true
-				totalRequests--
+				totalRequests = totalRequests > 0 ? totalRequests - 1 : 0
 				Console.log('Request aborted')
 			})
 
@@ -78,11 +90,12 @@ const apiLighthouse = (() => {
 						'User-Agent':
 							'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/118.0.0.0 Safari/537.36',
 					},
+					timeout: 'infinite',
 				})
 
 				if (result.status !== 200) {
 					if (!res.writableEnded) {
-						totalRequests--
+						totalRequests = totalRequests > 0 ? totalRequests - 1 : 0
 						res.cork(() => {
 							const statusMessage = result.message || 'Internal Server Error'
 							res
@@ -98,7 +111,10 @@ const apiLighthouse = (() => {
 					const lighthouseResult = await Promise.all<any>([
 						new Promise((res) => {
 							fetchData(
-								`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${urlParam}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`
+								`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${urlParam}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`,
+								{
+									timeout: 'infinite',
+								}
 							)
 								.then((response) => {
 									if (response.status === 200) {
@@ -111,7 +127,10 @@ const apiLighthouse = (() => {
 						}),
 						new Promise((res) => {
 							fetchData(
-								`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${requestUrl}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`
+								`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${requestUrl}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`,
+								{
+									timeout: 'infinite',
+								}
 							)
 								.then((response) => {
 									if (response.status === 200) {
@@ -184,7 +203,7 @@ const apiLighthouse = (() => {
 						return tmpLighthouseResponse
 					})()
 
-					totalRequests--
+					totalRequests = totalRequests > 0 ? totalRequests - 1 : 0
 
 					if (!res.writableEnded) {
 						res.cork(() => {

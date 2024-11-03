@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import fs from 'fs'
 import { brotliCompressSync, brotliDecompressSync } from 'zlib'
-import { dataPath, storePath } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
+import { getDataPath, getStorePath } from '../../../utils/PathHandler'
 import {
 	ICacheResult,
 	IFileInfo,
@@ -11,6 +11,9 @@ import {
 	ISetCacheOptionsParam,
 	IStatus,
 } from './types'
+
+const dataPath = getDataPath()
+const storePath = getStorePath()
 
 if (!fs.existsSync(dataPath)) {
 	fs.mkdirSync(dataPath)
@@ -175,10 +178,8 @@ export const get = async (
 				status: status || options.autoCreateIfEmpty.status,
 			}
 		} catch (err) {
-			if (err) {
-				Console.error(err)
-				return
-			}
+			Console.error(err)
+			return
 		}
 	}
 
@@ -323,8 +324,7 @@ export const remove = (
 	try {
 		fs.unlinkSync(file)
 	} catch (err) {
-		console.error(err)
-		throw err
+		Console.error(err)
 	}
 } // remove
 

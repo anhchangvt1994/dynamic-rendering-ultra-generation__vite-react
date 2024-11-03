@@ -58,36 +58,53 @@ const convertUrlHeaderToQueryString = (url, res, simulateBot = false) => {
 		)
 	}
 
+	const deviceInfo = _nullishCoalesce(
+		_optionalChain([
+			res,
+			'access',
+			(_3) => _3.cookies,
+			'optionalAccess',
+			(_4) => _4.deviceInfo,
+		]),
+		() => ({})
+	)
+	const deviceType =
+		_serverconfig2.default.crawl.content === 'all' ||
+		_serverconfig2.default.crawl.content.includes(deviceInfo.type)
+			? deviceInfo.type
+			: _serverconfig2.default.crawl.content[0]
+
 	const deviceInfoStringify = JSON.stringify({
 		..._nullishCoalesce(
 			_optionalChain([
 				res,
 				'access',
-				(_3) => _3.cookies,
+				(_5) => _5.cookies,
 				'optionalAccess',
-				(_4) => _4.deviceInfo,
+				(_6) => _6.deviceInfo,
 			]),
 			() => ({})
 		),
-		isMobile: _serverconfig2.default.crawl.content === 'mobile',
-		type: _serverconfig2.default.crawl.content,
+		isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+		type: deviceType,
 	})
+
 	const localeInfoStringify = JSON.stringify(
 		_optionalChain([
 			res,
 			'access',
-			(_5) => _5.cookies,
+			(_7) => _7.cookies,
 			'optionalAccess',
-			(_6) => _6.localeInfo,
+			(_8) => _8.localeInfo,
 		])
 	)
 	const environmentInfoStringify = JSON.stringify(
 		_optionalChain([
 			res,
 			'access',
-			(_7) => _7.cookies,
+			(_9) => _9.cookies,
 			'optionalAccess',
-			(_8) => _8.environmentInfo,
+			(_10) => _10.environmentInfo,
 		])
 	)
 
@@ -105,7 +122,9 @@ const getUrl = (res, req) => {
 	const pathname = res.urlForCrawler
 
 	return (
-		req.getQuery('urlTesting') ||
+		(_InitEnv.PROCESS_ENV.ENABLE_URL_TESTING
+			? req.getQuery('urlTesting')
+			: '') ||
 		req.getQuery('url') ||
 		_InitEnv.PROCESS_ENV.BASE_URL + pathname
 	).trim()

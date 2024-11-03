@@ -1,6 +1,6 @@
 import { brotliDecompressSync, gunzipSync } from 'zlib'
-import { dataPath } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
+import { getDataPath } from '../../../utils/PathHandler'
 import { ICacheResult } from '../CacheManager/types'
 import {
 	get as getDataCache,
@@ -8,9 +8,15 @@ import {
 	updateStatus as updateDataCacheStatus,
 } from '../CacheManager/utils'
 
+const dataPath = getDataPath()
+
 export const fetchData = async (
 	input: RequestInfo | URL,
-	init?: RequestInit | undefined
+	init?:
+		| (RequestInit & {
+				timeout?: number | 'infinite'
+		  })
+		| undefined
 ): Promise<{
 	status: number
 	data: any
@@ -22,58 +28,80 @@ export const fetchData = async (
 		return { status: 500, data: {}, message: 'URL is required' }
 	}
 
-	try {
-		const response = await fetch(input, {
-			...(init || {}),
-		})
-			.then(async (res) => {
-				const data = await new Promise(async (resolve) => {
-					let tmpData
-					const buffer = await res.clone().arrayBuffer()
+	const response = await new Promise<{
+		status: number
+		data: any
+		cookies?: string[]
+		message?: string
+	}>(async (rootResolve) => {
+		const timeout = init?.timeout ?? 10000
+		if (timeout !== 'infinite') {
+			var responseTimeout: NodeJS.Timeout = setTimeout(() => {
+				rootResolve({
+					status: 408,
+					message: 'Request Timeout',
+					data: {},
+				})
+			}, timeout)
+		}
 
-					try {
-						tmpData = brotliDecompressSync(buffer)?.toString()
-					} catch {}
+		try {
+			const response = await fetch(input, {
+				...(init || {}),
+			})
+				.then(async (res) => {
+					if (responseTimeout) clearTimeout(responseTimeout)
+					const data = await new Promise(async (resolve) => {
+						let tmpData
+						const buffer = await res.clone().arrayBuffer()
 
-					if (!tmpData)
 						try {
-							tmpData = gunzipSync(buffer)?.toString()
+							tmpData = brotliDecompressSync(buffer)?.toString()
 						} catch {}
 
-					if (!tmpData) {
-						const text = await res.clone().text()
+						if (!tmpData)
+							try {
+								tmpData = gunzipSync(buffer)?.toString()
+							} catch {}
 
-						try {
-							tmpData = JSON.parse(text)
-						} catch (error) {
-							tmpData = {}
-						}
-					} else JSON.parse(tmpData)
+						if (!tmpData) {
+							const text = await res.clone().text()
 
-					resolve(tmpData)
+							try {
+								tmpData = JSON.parse(text)
+							} catch (error) {
+								tmpData = {}
+							}
+						} else JSON.parse(tmpData)
+
+						resolve(tmpData)
+					})
+
+					return {
+						status: res.status,
+						message: res.statusText,
+						cookies: res.headers.getSetCookie(),
+						data,
+					}
+				})
+				.catch((err) => {
+					if (responseTimeout) clearTimeout(responseTimeout)
+					if (err.name !== 'AbortError') Console.error(err)
+					return {
+						status: 500,
+						data: {},
+						message: 'Server Error',
+					}
 				})
 
-				return {
-					status: res.status,
-					message: res.statusText,
-					cookies: res.headers.getSetCookie(),
-					data,
-				}
-			})
-			.catch((err) => {
-				if (err.name !== 'AbortError') Console.log(err)
-				return {
-					status: 500,
-					data: {},
-					message: 'Server Error',
-				}
-			})
+			rootResolve(response)
+		} catch (error) {
+			Console.error(error)
+			rootResolve({ status: 500, data: {}, message: 'Server Error' })
+		}
+	})
 
-		return response
-	} catch (error) {
-		Console.error(error)
-		return { status: 500, data: {}, message: 'Server Error' }
-	}
+	return response
 } // fetchData
 
 export const refreshData = async (cacheKeyList: string[]) => {

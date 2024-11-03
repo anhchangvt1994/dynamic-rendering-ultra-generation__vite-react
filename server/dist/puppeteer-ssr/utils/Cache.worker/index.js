@@ -13,6 +13,7 @@ _workerpool2.default.worker({
 	remove: _utils.remove,
 	rename: _utils.rename,
 	isExist: _utils.isExist,
+	getStatus: _utils.getStatus,
 	finish: () => {
 		return 'finish'
 	},

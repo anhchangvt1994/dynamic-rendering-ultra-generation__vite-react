@@ -60,7 +60,16 @@ const apiService = (async () => {
 
 			if (!apiInfo) return res.status(500).send('Internal Server Error')
 
-			const requestInfo = JSON.parse(decode(apiInfo.requestInfo || ''))
+			const requestInfo = (() => {
+				let result
+				try {
+					result = JSON.parse(decode(apiInfo.requestInfo || ''))
+				} catch (err) {
+					Console.error(err)
+				}
+
+				return result
+			})()
 
 			if (!requestInfo || !requestInfo.baseUrl || !requestInfo.endpoint)
 				return res.status(500).send('Internal Server Error')
@@ -131,7 +140,9 @@ const apiService = (async () => {
 			// NOTE - Handle Post request Body
 			const body = req.body as BodyInit | undefined | null
 
-			const enableCache = requestInfo.cacheKey && requestInfo.expiredTime > 0
+			const enableCache =
+				requestInfo.cacheKey &&
+				(requestInfo.expiredTime > 0 || requestInfo.expiredTime === 'infinite')
 
 			// NOTE - Handle API Store
 			// NOTE - when enableStore, system will store it, but when the client set enableStore to false, system have to remove it. So we must recalculate in each
@@ -168,14 +179,16 @@ const apiService = (async () => {
 				if (apiCache) {
 					const curTime = Date.now()
 					if (
+						requestInfo.expiredTime !== 'infinite' &&
 						curTime - new Date(apiCache.requestedAt).getTime() >=
-						requestInfo.expiredTime
+							requestInfo.expiredTime
 					) {
 						removeDataCache(requestInfo.cacheKey)
 					} else {
 						if (
-							(curTime - new Date(apiCache.updatedAt).getTime() >=
-								requestInfo.renewTime ||
+							((requestInfo.renewTime !== 'infinite' &&
+								curTime - new Date(apiCache.updatedAt).getTime() >=
+									requestInfo.renewTime) ||
 								!apiCache.cache ||
 								apiCache.cache.status !== 200) &&
 							apiCache.status !== 'fetch'

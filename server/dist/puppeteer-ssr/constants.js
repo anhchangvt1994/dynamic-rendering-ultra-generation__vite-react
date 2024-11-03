@@ -1,12 +1,10 @@
 'use strict'
 Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
 var _constants = require('../constants')
 var _InitEnv = require('../utils/InitEnv')
-var _serverconfig = require('../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
+var _PathHandler = require('../utils/PathHandler')
+
+const userDataPath = _PathHandler.getUserDataPath.call(void 0)
 
 // NOTE - Browser Options
 const WINDOW_VIEWPORT_WIDTH = 1920
@@ -14,12 +12,7 @@ exports.WINDOW_VIEWPORT_WIDTH = WINDOW_VIEWPORT_WIDTH
 // export const WINDOW_VIEWPORT_HEIGHT = 2160
 const WINDOW_VIEWPORT_HEIGHT = 99999
 exports.WINDOW_VIEWPORT_HEIGHT = WINDOW_VIEWPORT_HEIGHT
-const _userAgent =
-	_serverconfig2.default.crawl.content === 'desktop'
-		? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
-		: 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 const optionArgs = [
-	`--user-agent=${_userAgent}`,
 	'--no-sandbox',
 	'--disable-setuid-sandbox',
 	`--window-size=${exports.WINDOW_VIEWPORT_WIDTH},${exports.WINDOW_VIEWPORT_HEIGHT}`,
@@ -85,7 +78,7 @@ const defaultBrowserOptions = {
 		width: exports.WINDOW_VIEWPORT_WIDTH,
 		height: exports.WINDOW_VIEWPORT_HEIGHT,
 	},
-	userDataDir: `${_constants.userDataPath}/user_data`,
+	userDataDir: `${userDataPath}/user_data`,
 	args: exports.optionArgs,
 	protocolTimeout: 240000, // NOTE - Handle for error protocol timeout (can test adidas site to got detail of this issue)
 	ignoreDefaultArgs: false,
@@ -98,18 +91,24 @@ const regexRemoveScriptTag =
 	/(<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*>(.|[\r\n])*?<\/script>|<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*\/>)|(<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>))|<iframe\s+(?:[^>]*?\s+)?((src|id)=["']?[^"]*\b((partytown|insider-worker)(?:-[a-z]+)?)\b[^"]*["']|\bvideo\b)?[^>]*>(?:[^<]*|<(?!\/iframe>))*<\/iframe>/g
 exports.regexRemoveScriptTag = regexRemoveScriptTag
 const regexRemoveStyleTag =
-	/(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>))|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)/g
+	/(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>)|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*))/g
 exports.regexRemoveStyleTag = regexRemoveStyleTag
+// const regexRemoveDivTag =
+// 	/<div(>|[\s\S](?!only-dev)[\s\S]*?(>))[\s\S]*?<\/div>(?:[\s\S]*?|$)/g
+// export const regexRemoveDivTag: RegExp = /(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g
+const regexLowOptimize =
+	/(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)/g
+exports.regexLowOptimize = regexLowOptimize
+const regexShallowOptimize =
+	/<img\s+(?=.*alt=["']?.*?\b(icon(-\w*)*(?:-[a-z]+)?)\b.*?["']?.*?(\/|)?)(?:.*?\/?>)|<img\s+(?=.*class=["']?.*?\b(fa-|material-icons|icon(-\w*)|ri-).*?["']?.*?(\/|)?)(?:.*?\/?>)|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=.*(for=["']?.*?["']?).*?(\/|)?)(?:.*?\/?>)|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g
+exports.regexShallowOptimize = regexShallowOptimize
+
 const regexRemoveSpecialTag =
 	/(<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>))|<iframe\s+(?:[^>]*?\s+)?((src|id)=["']?[^"]*\b((partytown|insider-worker)(?:-[a-z]+)?)\b[^"]*["']|\bvideo\b)?[^>]*>(?:[^<]*|<(?!\/iframe>))*<\/iframe>|(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>))/g
 exports.regexRemoveSpecialTag = regexRemoveSpecialTag
 const regexFullOptimizeBody =
 	/<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=.*(for=["']?.*?["']?).*?(\/|)?)(?:.*?\/?>)|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|<img\s+(?=.*class=["']?.*?\b(fa-|material-icons|icon(-\w*)|ri-).*?["']?.*?(\/|)?)(?:.*?\/?>)|<img\s+(?=.*alt=["']?.*?\b(icon(-\w*)*(?:-[a-z]+)?)\b.*?["']?.*?(\/|)?)(?:.*?\/?>)|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g
 exports.regexFullOptimizeBody = regexFullOptimizeBody
-// const regexRemoveDivTag =
-// 	/<div(>|[\s\S](?!only-dev)[\s\S]*?(>))[\s\S]*?<\/div>(?:[\s\S]*?|$)/g
-// export const regexRemoveDivTag: RegExp =
-// 	/(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g
 const regexRemoveIconTagFirst =
 	/<img\s+(?=.*alt=["']?.*?\b(icon(-\w*)*(?:-[a-z]+)?)\b.*?["']?.*?(\/|)?)(?:.*?\/?>)/g
 exports.regexRemoveIconTagFirst = regexRemoveIconTagFirst
@@ -134,11 +133,6 @@ exports.regexHandleAttrsInteractiveTag = regexHandleAttrsInteractiveTag
 const regexQueryStringSpecialInfo =
 	/botInfo=(?<botInfo>[^&]*)&deviceInfo=(?<deviceInfo>[^&]*)&localeInfo=(?<localeInfo>[^&]*)&environmentInfo=(?<environmentInfo>[^&]*)/
 exports.regexQueryStringSpecialInfo = regexQueryStringSpecialInfo
-
-// NOTE - shallow optimize
-const regexShallowOptimize =
-	/(<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*>(.|[\r\n])*?<\/script>|<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*\/>)|(<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>))|<iframe\s+(?:[^>]*?\s+)?((src|id)=["']?[^"]*\b((partytown|insider-worker)(?:-[a-z]+)?)\b[^"]*["']|\bvideo\b)?[^>]*>(?:[^<]*|<(?!\/iframe>))*<\/iframe>|(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>))|<img\s+(?=.*alt=["']?.*?\b(icon(-\w*)*(?:-[a-z]+)?)\b.*?["']?.*?(\/|)?)(?:.*?\/?>)|<img\s+(?=.*class=["']?.*?\b(fa-|material-icons|icon(-\w*)|ri-).*?["']?.*?(\/|)?)(?:.*?\/?>)|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=.*(for=["']?.*?["']?).*?(\/|)?)(?:.*?\/?>)|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)/g
-exports.regexShallowOptimize = regexShallowOptimize
 
 const MAX_WORKERS = _InitEnv.PROCESS_ENV.MAX_WORKERS
 	? Number(_InitEnv.PROCESS_ENV.MAX_WORKERS)
@@ -169,7 +163,7 @@ const CACHEABLE_STATUS_CODE = { 200: true, 302: true }
 exports.CACHEABLE_STATUS_CODE = CACHEABLE_STATUS_CODE
 
 const chromiumPath =
-	'https://github.com/Sparticuz/chromium/releases/download/v127.0.0/chromium-v127.0.0-pack.tar'
+	'https://github.com/Sparticuz/chromium/releases/download/v130.0.0/chromium-v130.0.0-pack.tar'
 exports.chromiumPath = chromiumPath
 
 const canUseLinuxChromium =
@@ -185,3 +179,5 @@ exports.puppeteer = puppeteer
 
 const DISABLE_SSR_CACHE = Boolean(_InitEnv.PROCESS_ENV.DISABLE_SSR_CACHE)
 exports.DISABLE_SSR_CACHE = DISABLE_SSR_CACHE
+const PM2_PROCESS_NAME = 'puppeteer-ssr'
+exports.PM2_PROCESS_NAME = PM2_PROCESS_NAME

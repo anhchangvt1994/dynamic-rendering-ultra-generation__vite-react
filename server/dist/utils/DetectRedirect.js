@@ -52,7 +52,8 @@ const DetectRedirect = (req, res) => {
 	redirectResult.path = (() => {
 		const query = urlInfo.searchParams
 
-		if (query.get('urlTesting')) return redirectResult.path
+		if (_InitEnv.PROCESS_ENV.ENABLE_URL_TESTING && query.get('urlTesting'))
+			return redirectResult.path
 
 		const redirectPath = /\/$/.test(redirectResult.path)
 			? redirectResult.path.slice(0, -1)

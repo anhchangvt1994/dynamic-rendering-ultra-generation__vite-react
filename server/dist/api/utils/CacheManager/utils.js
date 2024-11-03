@@ -36,16 +36,19 @@ var _crypto2 = _interopRequireDefault(_crypto)
 var _fs = require('fs')
 var _fs2 = _interopRequireDefault(_fs)
 var _zlib = require('zlib')
-var _constants = require('../../../constants')
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+var _PathHandler = require('../../../utils/PathHandler')
 
-if (!_fs2.default.existsSync(_constants.dataPath)) {
-	_fs2.default.mkdirSync(_constants.dataPath)
+const dataPath = _PathHandler.getDataPath.call(void 0)
+const storePath = _PathHandler.getStorePath.call(void 0)
+
+if (!_fs2.default.existsSync(dataPath)) {
+	_fs2.default.mkdirSync(dataPath)
 }
 
-if (!_fs2.default.existsSync(_constants.storePath)) {
-	_fs2.default.mkdirSync(_constants.storePath)
+if (!_fs2.default.existsSync(storePath)) {
+	_fs2.default.mkdirSync(storePath)
 }
 
 const regexKeyConverter =
@@ -198,10 +201,8 @@ const get = async (directory, key, extension, options) => {
 				status: status || options.autoCreateIfEmpty.status,
 			}
 		} catch (err) {
-			if (err) {
-				_ConsoleHandler2.default.error(err)
-				return
-			}
+			_ConsoleHandler2.default.error(err)
+			return
 		}
 	}
 
@@ -350,8 +351,7 @@ const remove = (directory, key, extension) => {
 	try {
 		_fs2.default.unlinkSync(file)
 	} catch (err) {
-		console.error(err)
-		throw err
+		_ConsoleHandler2.default.error(err)
 	}
 }
 exports.remove = remove // remove
@@ -360,13 +360,7 @@ const getData = async (key, options) => {
 	let result
 
 	try {
-		result = await exports.get.call(
-			void 0,
-			_constants.dataPath,
-			key,
-			'br',
-			options
-		)
+		result = await exports.get.call(void 0, dataPath, key, 'br', options)
 
 		if (result && result.status === 200) {
 			result.data = _fs2.default.readFileSync(result.response)
@@ -383,13 +377,7 @@ const getStore = async (key, options) => {
 	let result
 
 	try {
-		result = await exports.get.call(
-			void 0,
-			_constants.storePath,
-			key,
-			'json',
-			options
-		)
+		result = await exports.get.call(void 0, storePath, key, 'json', options)
 
 		if (result && result.status === 200) {
 			const tmpData = _fs2.default.readFileSync(result.response)
@@ -409,7 +397,7 @@ const setData = async (key, content, options) => {
 	try {
 		result = await exports.set.call(
 			void 0,
-			_constants.dataPath,
+			dataPath,
 			key,
 			'br',
 			content,
@@ -427,16 +415,9 @@ const setStore = async (key, content) => {
 	let result
 
 	try {
-		result = await exports.set.call(
-			void 0,
-			_constants.storePath,
-			key,
-			'json',
-			content,
-			{
-				isCompress: false,
-			}
-		)
+		result = await exports.set.call(void 0, storePath, key, 'json', content, {
+			isCompress: false,
+		})
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
 	}
@@ -449,7 +430,7 @@ const removeData = async (key) => {
 	let result
 
 	try {
-		result = await exports.remove.call(void 0, _constants.dataPath, key, 'br')
+		result = await exports.remove.call(void 0, dataPath, key, 'br')
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
 	}
@@ -462,12 +443,7 @@ const removeStore = async (key) => {
 	let result
 
 	try {
-		result = await exports.remove.call(
-			void 0,
-			_constants.storePath,
-			key,
-			'json'
-		)
+		result = await exports.remove.call(void 0, storePath, key, 'json')
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
 	}
@@ -478,7 +454,7 @@ exports.removeStore = removeStore // removeStore
 
 const updateDataStatus = async (key, newStatus) => {
 	try {
-		exports.updateStatus.call(void 0, _constants.dataPath, key, 'br', newStatus)
+		exports.updateStatus.call(void 0, dataPath, key, 'br', newStatus)
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
 	}

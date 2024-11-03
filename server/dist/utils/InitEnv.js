@@ -93,6 +93,12 @@ const PROCESS_ENV = (() => {
 			: ['true', '1'].includes(
 					(process.env.DISABLE_OPTIMIZE || '').toLowerCase()
 			  )
+	tmpProcessEnv.ENABLE_URL_TESTING =
+		process.env.ENABLE_URL_TESTING === undefined
+			? false
+			: ['true', '1'].includes(
+					(process.env.ENABLE_URL_TESTING || '').toLowerCase()
+			  )
 
 	return tmpProcessEnv
 })()

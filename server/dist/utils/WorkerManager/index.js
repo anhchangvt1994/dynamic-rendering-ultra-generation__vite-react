@@ -27,11 +27,12 @@ function _optionalChain(ops) {
 var _workerpool = require('workerpool')
 var _workerpool2 = _interopRequireDefault(_workerpool)
 
-var _constants = require('../../constants')
 var _ConsoleHandler = require('../ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _FileHandler = require('../FileHandler')
+var _PathHandler = require('../PathHandler')
 const { workerData } = require('worker_threads')
+const workerManagerPath = _PathHandler.getWorkerManagerPath.call(void 0)
 
 const workerOrder =
 	_optionalChain([workerData, 'optionalAccess', (_) => _.order]) || 0
@@ -76,14 +77,14 @@ const WorkerManager = (() => {
 							tmpCounter = Number(
 								_FileHandler.getTextData.call(
 									void 0,
-									`${_constants.workerManagerPath}/counter.txt`
+									`${workerManagerPath}/counter.txt`
 								) || 0
 							)
 							tmpCounter++
 
 							_FileHandler.setTextData.call(
 								void 0,
-								`${_constants.workerManagerPath}/counter.txt`,
+								`${workerManagerPath}/counter.txt`,
 								tmpCounter.toString()
 							)
 							res(tmpCounter)
@@ -105,14 +106,14 @@ const WorkerManager = (() => {
 							tmpCounter = Number(
 								_FileHandler.getTextData.call(
 									void 0,
-									`${_constants.workerManagerPath}/counter.txt`
+									`${workerManagerPath}/counter.txt`
 								) || 0
 							)
 							tmpCounter = tmpCounter ? tmpCounter - 1 : 0
 
 							_FileHandler.setTextData.call(
 								void 0,
-								`${_constants.workerManagerPath}/counter.txt`,
+								`${workerManagerPath}/counter.txt`,
 								tmpCounter.toString()
 							)
 							res(tmpCounter)
@@ -151,11 +152,18 @@ const WorkerManager = (() => {
 									await Promise.all(promiseTaskList)
 								}
 
-								const handleTerminate = () => {
-									if (!pool.stats().activeTasks) {
+								let terminateWaitingCounter = 0
+
+								const handleTerminate = (force = false) => {
+									if (force || !pool.stats().activeTasks) {
 										pool.terminate(options.force)
 									} else {
-										timeout = setTimeout(handleTerminate, 5000)
+										if (terminateWaitingCounter < 1) {
+											timeout = setTimeout(handleTerminate, 5000)
+											terminateWaitingCounter++
+										} else {
+											handleTerminate(true)
+										}
 									}
 								}
 
@@ -183,7 +191,7 @@ const WorkerManager = (() => {
 					const counter = await _getCounterIncreased()
 
 					if (options.delay) {
-						const duration = options.delay * (counter - 1)
+						const duration = options.delay * (counter ? counter - 1 : counter)
 
 						await new Promise((res) => setTimeout(res, duration))
 

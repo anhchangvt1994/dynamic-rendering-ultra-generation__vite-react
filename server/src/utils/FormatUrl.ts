@@ -23,10 +23,17 @@ export const convertUrlHeaderToQueryString = (
 		botInfoStringify = JSON.stringify(cookies?.['BotInfo'])
 	}
 
+	const deviceInfo = cookies?.['DeviceInfo'] ?? {}
+	const deviceType =
+		ServerConfig.crawl.content === 'all' ||
+		ServerConfig.crawl.content.includes(deviceInfo.type)
+			? deviceInfo.type
+			: ServerConfig.crawl.content[0]
+
 	const deviceInfoStringify = JSON.stringify({
 		...(cookies?.['DeviceInfo'] ?? {}),
-		isMobile: ServerConfig.crawl.content === 'mobile',
-		type: ServerConfig.crawl.content,
+		isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+		type: deviceType,
 	})
 	const localeInfoStringify = JSON.stringify(cookies?.['LocaleInfo'])
 	const environmentInfoStringify = JSON.stringify(cookies?.['EnvironmentInfo'])
@@ -42,7 +49,7 @@ export const getUrl = (req) => {
 	if (!req) return ''
 
 	return (
-		req.query.urlTesting ||
+		(PROCESS_ENV.ENABLE_URL_TESTING ? req.query.urlTesting : '') ||
 		(PROCESS_ENV.BASE_URL
 			? PROCESS_ENV.BASE_URL + req.originalUrl
 			: req.protocol + '://' + req.get('host') + req.originalUrl)

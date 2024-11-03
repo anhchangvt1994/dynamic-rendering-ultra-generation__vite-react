@@ -1,9 +1,10 @@
 import WorkerPool from 'workerpool'
 import Pool from 'workerpool/src/Pool'
-import { workerManagerPath } from '../../constants'
 import Console from '../ConsoleHandler'
 import { getTextData, setTextData } from '../FileHandler'
+import { getWorkerManagerPath } from '../PathHandler'
 const { workerData } = require('worker_threads')
+const workerManagerPath = getWorkerManagerPath()
 
 interface IInitOptions {
 	minWorkers: number
@@ -138,11 +139,18 @@ const WorkerManager = (() => {
 									await Promise.all(promiseTaskList)
 								}
 
-								const handleTerminate = () => {
-									if (!pool.stats().activeTasks) {
+								let terminateWaitingCounter = 0
+
+								const handleTerminate = (force = false) => {
+									if (force || !pool.stats().activeTasks) {
 										pool.terminate(options.force)
 									} else {
-										timeout = setTimeout(handleTerminate, 5000)
+										if (terminateWaitingCounter < 1) {
+											timeout = setTimeout(handleTerminate, 5000)
+											terminateWaitingCounter++
+										} else {
+											handleTerminate(true)
+										}
 									}
 								}
 
@@ -172,7 +180,8 @@ const WorkerManager = (() => {
 					const counter = await _getCounterIncreased()
 
 					if (options.delay) {
-						const duration = (options.delay as number) * (counter - 1)
+						const duration =
+							(options.delay as number) * (counter ? counter - 1 : counter)
 
 						await new Promise((res) => setTimeout(res, duration))
 

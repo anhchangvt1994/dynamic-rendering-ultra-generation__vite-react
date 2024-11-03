@@ -4,7 +4,7 @@ import chokidar from 'chokidar'
 import { Elysia } from 'elysia'
 import path from 'path'
 import { findFreePort, getPort, setPort } from '../../config/utils/PortHandler'
-import { pagesPath, resourceExtension } from './constants'
+import { resourceExtension } from './constants'
 import puppeteerSSRService from './puppeteer-ssr/index.bun'
 import Console from './utils/ConsoleHandler'
 import detectBot from './utils/DetectBot.bun'
@@ -12,8 +12,11 @@ import detectDevice from './utils/DetectDevice.bun'
 import DetectRedirect from './utils/DetectRedirect.bun'
 import detectStaticExtension from './utils/DetectStaticExtension.bun'
 import { ENV, ENV_MODE, PROCESS_ENV } from './utils/InitEnv'
+import { getPagesPath } from './utils/PathHandler'
 
 require('events').EventEmitter.setMaxListeners(200)
+
+const pagesPath = getPagesPath()
 
 const cleanResourceWithCondition = async () => {
 	if (ENV_MODE === 'development') {

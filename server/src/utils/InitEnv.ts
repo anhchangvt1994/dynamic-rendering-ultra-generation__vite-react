@@ -43,6 +43,7 @@ interface IProcessENV {
 	DISABLE_DEEP_OPTIMIZE: boolean
 	CRAWLER: string
 	CRAWLER_SECRET_KEY: string
+	ENABLE_URL_TESTING: boolean
 	[key: string]: string | boolean | undefined
 }
 
@@ -104,6 +105,12 @@ export const PROCESS_ENV = (() => {
 			? false
 			: ['true', '1'].includes(
 					(process.env.DISABLE_OPTIMIZE || '').toLowerCase()
+			  )
+	tmpProcessEnv.ENABLE_URL_TESTING =
+		process.env.ENABLE_URL_TESTING === undefined
+			? false
+			: ['true', '1'].includes(
+					(process.env.ENABLE_URL_TESTING || '').toLowerCase()
 			  )
 
 	return tmpProcessEnv

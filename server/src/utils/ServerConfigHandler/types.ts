@@ -1,4 +1,5 @@
 export interface IServerConfigOptional {
+	rootCache?: string
 	locale?: {
 		enable: boolean
 		defaultLang?: string | undefined
@@ -14,12 +15,14 @@ export interface IServerConfigOptional {
 			}
 		}
 
-		custom?: (url: string) => Omit<
-			NonNullable<IServerConfigOptional['locale']>,
-			'enable' | 'routes' | 'custom'
-		> & {
-			enable?: boolean
-		}
+		custom?: (url: string) =>
+			| (Omit<
+					NonNullable<IServerConfigOptional['locale']>,
+					'enable' | 'routes' | 'custom'
+			  > & {
+					enable?: boolean
+			  })
+			| void
 	}
 
 	isRemoteCrawler?: boolean
@@ -27,15 +30,18 @@ export interface IServerConfigOptional {
 	crawl?: {
 		enable: boolean
 
-		content?: 'desktop' | 'mobile'
+		limit?: 2 | 3 | 4
 
-		optimize?: 'all' | Array<'shallow' | 'deep' | 'script' | 'style'>
+		speed?: 3000 | 8000 | 15000
+
+		content?: 'all' | Array<'desktop' | 'mobile'>
+
+		optimize?: 'low' | 'shallow' | 'deep' | Array<'script' | 'style'>
 
 		compress?: boolean
 
 		cache?: {
 			enable: boolean
-			path?: string
 			time?: number | 'infinite'
 			renewTime?: number | 'infinite'
 		}
@@ -43,7 +49,7 @@ export interface IServerConfigOptional {
 		routes?: {
 			[key: string]: Omit<
 				NonNullable<IServerConfigOptional['crawl']>,
-				'enable' | 'routes' | 'custom' | 'cache' | 'content'
+				'enable' | 'routes' | 'custom' | 'cache' | 'content' | 'limit'
 			> & {
 				enable?: boolean
 				cache?: Omit<
@@ -58,7 +64,7 @@ export interface IServerConfigOptional {
 		custom?: (url: string) =>
 			| (Omit<
 					NonNullable<IServerConfigOptional['crawl']>,
-					'enable' | 'routes' | 'custom' | 'cache' | 'content'
+					'enable' | 'routes' | 'custom' | 'cache' | 'content' | 'limit'
 			  > & {
 					enable?: boolean
 					cache?: Omit<
@@ -103,12 +109,14 @@ export interface IServerConfig extends IServerConfigOptional {
 			>
 		}
 
-		custom?: (url: string) => Omit<
-			NonNullable<IServerConfig['locale']>,
-			'enable' | 'routes' | 'custom'
-		> & {
-			enable?: boolean
-		}
+		custom?: (url: string) =>
+			| (Omit<
+					NonNullable<IServerConfig['locale']>,
+					'enable' | 'routes' | 'custom'
+			  > & {
+					enable?: boolean
+			  })
+			| undefined
 	}
 
 	isRemoteCrawler: boolean
@@ -116,15 +124,18 @@ export interface IServerConfig extends IServerConfigOptional {
 	crawl: {
 		enable: boolean
 
-		content: 'desktop' | 'mobile'
+		limit: 2 | 3 | 4
 
-		optimize: 'all' | Array<'shallow' | 'deep' | 'script' | 'style'>
+		speed: 3000 | 8000 | 15000
+
+		content: 'all' | Array<'desktop' | 'mobile'>
+
+		optimize: 'low' | 'shallow' | 'deep' | Array<'script' | 'style'>
 
 		compress: boolean
 
 		cache: {
 			enable: boolean
-			path?: string
 			time: number | 'infinite'
 			renewTime: number | 'infinite'
 		}
@@ -132,7 +143,7 @@ export interface IServerConfig extends IServerConfigOptional {
 		routes: {
 			[key: string]: Omit<
 				IServerConfig['crawl'],
-				'routes' | 'custom' | 'cache' | 'content'
+				'routes' | 'custom' | 'cache' | 'content' | 'limit'
 			> & {
 				cache: Omit<IServerConfig['crawl']['cache'], 'path'>
 			}
@@ -141,7 +152,7 @@ export interface IServerConfig extends IServerConfigOptional {
 		custom?: (url: string) =>
 			| (Omit<
 					IServerConfig['crawl'],
-					'routes' | 'custom' | 'cache' | 'content'
+					'routes' | 'custom' | 'cache' | 'content' | 'limit'
 			  > & {
 					cache: Omit<IServerConfig['crawl']['cache'], 'path'>
 					onContentCrawled?: (payload: { html: string }) => string | void

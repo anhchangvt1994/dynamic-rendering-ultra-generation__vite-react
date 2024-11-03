@@ -60,12 +60,6 @@ npm i -g yarn pm2
 git clone https://github.com/<your-project-path>
 cd <your-project-path>
 
-# use it, if your VPS limit sizes of package installed
-# more about issue
-# https://github.com/alixaxel/chrome-aws-lambda/issues/200
-export PUPPETEER_SKIP_DOWNLOAD=true
-export USE_CHROME_AWS_LAMBDA=true
-
 # install project's packages and build
 yarn
 yarn build
@@ -135,43 +129,11 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 <h2 id="setup-project">Setup the project</h2>
 
-- Setup `server/src/index.uws.worker.ts`
-
-This setup will reduce the workers (this workers used to allow handle more requests at the same time). By reducing this workers, will synonymous with the server handles less requests than, but help ignore the `out-off memory` issue.
-
-```typescript
-// server/src/index.uws.worker.ts
-// enable 2 workers (from line 95)
-// This setup just used for the minium hardware VPS
-// - If you have 2 CPU / vCPU, 4GB RAM -> enable 3 workers
-// - If you have 3 CPU / vCPU, 6GB RAM -> enable 4 workers
-// - If you have 4 CPU / vCPU, 6GB RAM or more -> enable 5 workers
-
-const worker1 = new Worker(__filename, {
-  workerData: { order: 1, port: 4040 },
-})
-_createWorkerListener(worker1)
-const worker2 = new Worker(__filename, {
-  workerData: { order: 2, port: 4041 },
-})
-_createWorkerListener(worker2)
-// const worker3 = new Worker(__filename, {
-//   workerData: { order: 3, port: 4042 },
-// })
-// _createWorkerListener(worker3)
-// const worker4 = new Worker(__filename, {
-//   workerData: { order: 4, port: 4043 },
-// })
-// _createWorkerListener(worker4)
-// const worker5 = new Worker(__filename, {
-//   workerData: { order: 5, port: 4044 },
-// })
-```
-
 - Setup `server.config.ts` (If you have nice hardware, please skip it)
 
 ```typescript
 const ServerConfig = defineServerConfig({
+  rootCache: path.resolve(__dirname, '../../../cache'),
   crawl: {
     enable: true,
     ...,
@@ -188,13 +150,6 @@ const ServerConfig = defineServerConfig({
 })
 
 export default ServerConfig
-```
-
-- Setup `ISRGenerator.next.ts` (If you have nice hardware, please skip it)
-
-```typescript
-// change litmiRequestToCrawl from 3 to 2 (line 20)
-const limitRequestToCrawl = 2
 ```
 
 <h2 id="start">Start the project</h2>
@@ -225,10 +180,6 @@ IF you reboot or your system auto start cause any reasons. Maybe you must to go 
 
 ```bash
 cd <your-project-path>
-
-# setup 2 this global environment variables again
-export PUPPETEER_SKIP_DOWNLOAD=true
-export USE_CHROME_AWS_LAMBDA=true
 
 # remove node_modules and install again
 rm -rf node_modules

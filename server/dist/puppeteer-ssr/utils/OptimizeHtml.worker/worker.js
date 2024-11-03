@@ -11,7 +11,10 @@ _workerpool2.default.worker({
 	compressContent: _utils.compressContent,
 	optimizeContent: _utils.optimizeContent,
 	shallowOptimizeContent: _utils.shallowOptimizeContent,
+	scriptOptimizeContent: _utils.scriptOptimizeContent,
+	styleOptimizeContent: _utils.styleOptimizeContent,
 	deepOptimizeContent: _utils.deepOptimizeContent,
+	lowOptimizeContent: _utils.lowOptimizeContent,
 	finish: () => {
 		return 'finish'
 	},

@@ -3,153 +3,127 @@ import { defaultServerConfig } from './constants'
 import { IServerConfig, IServerConfigOptional } from './types'
 
 export const defineServerConfig = (options: IServerConfigOptional) => {
-	const serverConfigDefined = { ...options } as IServerConfig
+	const serverConfig = { ...options } as IServerConfig
 
 	for (const key in defaultServerConfig) {
 		if (key === 'locale') {
-			if (options[key]) {
-				const tmpOptionCastingType = options[key] as IServerConfig['locale']
-				serverConfigDefined[key] = {
-					enable: tmpOptionCastingType.enable,
-					routes: {},
+			if (serverConfig[key]) {
+				const defaultOption = defaultServerConfig[key]
+
+				serverConfig[key] = {
+					...defaultOption,
+					...serverConfig[key],
 				}
 
-				serverConfigDefined[key] = {
-					...serverConfigDefined[key],
-					defaultLang: tmpOptionCastingType.defaultLang,
-					defaultCountry: tmpOptionCastingType.defaultCountry,
-					hideDefaultLocale: tmpOptionCastingType.hideDefaultLocale,
-					routes: tmpOptionCastingType.routes || {},
-					custom: tmpOptionCastingType.custom,
+				const serverLocaleConfigShorten = {
+					enable: serverConfig[key].enable,
+					defaultLang: serverConfig[key].defaultLang,
+					defaultCountry: serverConfig[key].defaultCountry,
+					hideDefaultLocale: serverConfig[key].hideDefaultLocale,
 				}
 
-				for (const localeRouteKey in serverConfigDefined[key].routes) {
-					if (serverConfigDefined[key].routes[localeRouteKey]) {
-						serverConfigDefined[key].routes[localeRouteKey] = {
-							enable:
-								serverConfigDefined[key].routes[localeRouteKey].enable ||
-								serverConfigDefined.locale.enable,
+				for (const localeRouteKey in serverConfig[key].routes) {
+					if (serverConfig[key].routes[localeRouteKey]) {
+						serverConfig[key].routes[localeRouteKey] = {
+							...serverLocaleConfigShorten,
+							...serverConfig[key].routes[localeRouteKey],
 						}
-
-						if (serverConfigDefined[key].routes[localeRouteKey].enable) {
-							serverConfigDefined[key].routes[localeRouteKey] = {
-								...serverConfigDefined[key].routes[localeRouteKey],
-								defaultLang:
-									serverConfigDefined[key].routes[localeRouteKey]?.defaultLang,
-								defaultCountry:
-									serverConfigDefined[key].routes[localeRouteKey]
-										?.defaultCountry,
-								hideDefaultLocale:
-									serverConfigDefined[key].routes[localeRouteKey]
-										?.hideDefaultLocale ?? true,
-							}
-
-							if (serverConfigDefined[key].custom) {
-								const customFunc = serverConfigDefined[key].custom
-								serverConfigDefined[key].custom = (url: string) => {
-									const tmpConfig = customFunc(url)
-
-									return {
-										enable: serverConfigDefined[key].enable,
-										...tmpConfig,
-									}
-								}
-							}
-						}
-					} else
-						serverConfigDefined[key].routes[localeRouteKey] =
-							defaultServerConfig[key]
+					}
 				}
-			} else serverConfigDefined[key] = defaultServerConfig[key]
+
+				if (serverConfig[key].custom) {
+					const customFunc = serverConfig[key].custom
+					serverConfig[key].custom = (url: string) => {
+						if (!url) return
+
+						const tmpConfig = customFunc(url)
+
+						const urlInfo = new URL(url)
+
+						const defaultOptionOfCustom =
+							serverConfig[key].routes[urlInfo.pathname] ||
+							serverLocaleConfigShorten
+
+						return {
+							...defaultOptionOfCustom,
+							...tmpConfig,
+						}
+					}
+				}
+			} else serverConfig[key] = defaultServerConfig[key]
 		} // locale
 
 		if (key === 'crawl') {
 			if (options[key]) {
-				const tmpOptionCastingType = options[key] as IServerConfig['crawl']
-				serverConfigDefined[key] = {
-					enable: tmpOptionCastingType.enable,
-					content:
-						tmpOptionCastingType.content === undefined
-							? defaultServerConfig[key].content
-							: tmpOptionCastingType.content,
-					optimize:
-						tmpOptionCastingType.optimize === undefined
-							? defaultServerConfig[key].optimize
-							: tmpOptionCastingType.optimize,
-					compress:
-						tmpOptionCastingType.compress === undefined
-							? defaultServerConfig[key].compress
-							: Boolean(tmpOptionCastingType.compress) ||
-							  !PROCESS_ENV.DISABLE_COMPRESS,
-					cache:
-						tmpOptionCastingType.cache === undefined
-							? defaultServerConfig[key].cache
-							: {
-									enable: tmpOptionCastingType.cache.enable,
-									path:
-										tmpOptionCastingType.cache.path ||
-										defaultServerConfig[key].cache.path,
-									time:
-										tmpOptionCastingType.cache.time ||
-										defaultServerConfig[key].cache.time,
-									renewTime:
-										tmpOptionCastingType.cache.renewTime ||
-										defaultServerConfig[key].cache.renewTime,
-							  },
-					routes: tmpOptionCastingType.routes || {},
-					custom: tmpOptionCastingType.custom,
+				const defaultOption = defaultServerConfig[key]
+
+				serverConfig[key].cache = {
+					...defaultOption.cache,
+					...serverConfig[key].cache,
 				}
 
-				for (const localeRouteKey in serverConfigDefined[key].routes) {
-					if (serverConfigDefined[key].routes[localeRouteKey]) {
-						serverConfigDefined[key].routes[localeRouteKey] = {
-							enable:
-								serverConfigDefined[key].routes[localeRouteKey].enable ||
-								serverConfigDefined[key].enable,
-							optimize:
-								serverConfigDefined[key].routes[localeRouteKey].optimize ===
-								undefined
-									? defaultServerConfig[key].optimize
-									: serverConfigDefined[key].routes[localeRouteKey].optimize,
-							compress:
-								serverConfigDefined[key].routes[localeRouteKey].compress ==
-								undefined
-									? defaultServerConfig[key].compress
-									: Boolean(
-											serverConfigDefined[key].routes[localeRouteKey].compress
-									  ),
-							cache: {
-								enable:
-									serverConfigDefined[key].routes[localeRouteKey].cache
-										?.enable ?? serverConfigDefined[key].cache.enable,
-								time:
-									serverConfigDefined[key].routes[localeRouteKey].cache?.time ??
-									serverConfigDefined[key].cache.time,
-								renewTime:
-									serverConfigDefined[key].routes[localeRouteKey].cache
-										?.renewTime ?? serverConfigDefined[key].cache.renewTime,
-							},
-						}
-					} else
-						serverConfigDefined[key].routes[localeRouteKey] =
-							defaultServerConfig[key]
+				serverConfig[key] = {
+					...defaultOption,
+					...serverConfig[key],
 				}
-			} else serverConfigDefined[key] = defaultServerConfig[key]
+
+				const serverCrawlConfigShorten = {
+					enable: serverConfig[key].enable,
+					speed: serverConfig[key].speed,
+					content: serverConfig[key].content,
+					optimize: serverConfig[key].optimize,
+					compress: serverConfig[key].compress,
+					cache: serverConfig[key].cache,
+				}
+
+				for (const crawlRouteKey in serverConfig[key].routes) {
+					if (serverConfig[key].routes[crawlRouteKey]) {
+						serverConfig[key].routes[crawlRouteKey].cache = {
+							...serverCrawlConfigShorten.cache,
+							...serverConfig[key].routes[crawlRouteKey].cache,
+						}
+						serverConfig[key].routes[crawlRouteKey] = {
+							...serverCrawlConfigShorten,
+							...serverConfig[key].routes[crawlRouteKey],
+						}
+					}
+				}
+
+				if (serverConfig[key].custom) {
+					const customFunc = serverConfig[key].custom
+					serverConfig[key].custom = (url: string) => {
+						if (!url) return
+
+						const tmpConfig = customFunc(url) || {}
+
+						const urlInfo = new URL(url)
+
+						const defaultOptionOfCustom =
+							serverConfig[key].routes[urlInfo.pathname] ||
+							serverCrawlConfigShorten
+
+						return {
+							...defaultOptionOfCustom,
+							...tmpConfig,
+						}
+					}
+				}
+			} else serverConfig[key] = defaultServerConfig[key]
 		} // crawl
 
 		if (key === 'api') {
 			if (options[key]) {
-				const tmpOptionCastingType = options[key] as IServerConfig['api']
-
-				serverConfigDefined[key] = {
-					list: tmpOptionCastingType.list || defaultServerConfig[key].list,
+				const defaultOption = defaultServerConfig[key]
+				serverConfig[key].list = {
+					...defaultOption.list,
+					...serverConfig[key].list,
 				}
 
-				for (const apiKey in serverConfigDefined[key].list) {
-					if (typeof serverConfigDefined[key].list[apiKey] === 'string') {
-						serverConfigDefined[key].list[apiKey] = {
-							secretKey: serverConfigDefined[key].list[
-								apiKey
+				for (const apiListKey in serverConfig[key].list) {
+					if (typeof serverConfig[key].list[apiListKey] === 'string') {
+						serverConfig[key].list[apiListKey] = {
+							secretKey: serverConfig[key].list[
+								apiListKey
 							] as unknown as string,
 							headerSecretKeyName: 'Authorization',
 						}
@@ -157,33 +131,33 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
 						continue
 					}
 
-					if (!serverConfigDefined[key].list[apiKey].headerSecretKeyName) {
-						serverConfigDefined[key].list[apiKey].headerSecretKeyName =
+					if (!serverConfig[key].list[apiListKey].headerSecretKeyName) {
+						serverConfig[key].list[apiListKey].headerSecretKeyName =
 							'Authorization'
 					}
 				}
-			} else serverConfigDefined[key] = defaultServerConfig[key]
+			} else serverConfig[key] = defaultServerConfig[key]
 		} // api
 	}
 
-	serverConfigDefined.isRemoteCrawler =
+	serverConfig.isRemoteCrawler =
 		PROCESS_ENV.IS_REMOTE_CRAWLER === undefined
-			? serverConfigDefined.isRemoteCrawler === undefined
+			? serverConfig.isRemoteCrawler === undefined
 				? defaultServerConfig.isRemoteCrawler
-				: serverConfigDefined.isRemoteCrawler
+				: serverConfig.isRemoteCrawler
 			: PROCESS_ENV.IS_REMOTE_CRAWLER
 
-	serverConfigDefined.crawler = serverConfigDefined.isRemoteCrawler
+	serverConfig.crawler = serverConfig.isRemoteCrawler
 		? ''
 		: ENV_MODE === 'development'
-		? serverConfigDefined.crawler
-		: PROCESS_ENV.CRAWLER || serverConfigDefined.crawler
+		? serverConfig.crawler
+		: PROCESS_ENV.CRAWLER || serverConfig.crawler
 
-	serverConfigDefined.crawlerSecretKey = serverConfigDefined.isRemoteCrawler
+	serverConfig.crawlerSecretKey = serverConfig.isRemoteCrawler
 		? ''
 		: ENV_MODE === 'development'
-		? serverConfigDefined.crawlerSecretKey
+		? serverConfig.crawlerSecretKey
 		: PROCESS_ENV.CRAWLER_SECRET_KEY || undefined
 
-	return serverConfigDefined as IServerConfig
+	return serverConfig as IServerConfig
 }

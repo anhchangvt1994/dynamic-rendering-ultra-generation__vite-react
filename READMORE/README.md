@@ -81,7 +81,7 @@ Web Scraping for SEO project (React WSC-SEO) is a product designed for ReactJS d
 
 **What is SEO automation ?** You can see the below example (the top frame I use website with WSC-SEO and the bottom is a website without WSC-SEO), all of the scores of website is increase when use WSC-SEO for SEO automation.
 
-![alt text](/src/assets/static/images/readme/tiki-lighthouse.jpg 'Title')
+![alt text](/READMORE/images/tiki-lighthouse.jpg 'Title')
 
 <h3 id="why-use-it">Why use this project ?</h3>
 
@@ -424,11 +424,11 @@ Some environment variables are used for definition during the declaration proces
 - Choose the repository that you need to deploy from VCS (version control software) you connected before.
 - Setup like image below :
 
-![alt text](/src/assets/static/images/readme/deploy-onrender.jpg 'Deploy Render')
+![alt text](/READMORE/images/deploy-onrender.jpg 'Deploy Render')
 
 - Scroll down and choose **Advance** > choose **Add Environment Variable** to setup Environment.
 
-![alt text](/src/assets/static/images/readme/bandwidth-variable.jpg 'Deploy Render')
+![alt text](/READMORE/images/bandwidth-variable.jpg 'Deploy Render')
 
 Because the resource of free paid will have a lowest of power (lowest bandwidth, lowest CPU, lowest capacity, .etc). So that we need to notice for project know about that, project will compute base on that information to ensure the puppeteer SEO automation work well.
 

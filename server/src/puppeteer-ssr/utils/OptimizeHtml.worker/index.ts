@@ -17,6 +17,7 @@ const workerManager = WorkerManager.init(
 		'deepOptimizeContent',
 		'scriptOptimizeContent',
 		'styleOptimizeContent',
+		'lowOptimizeContent',
 	]
 )
 
@@ -86,7 +87,7 @@ export const optimizeContent = async (
 	})
 
 	return result
-} // compressContent
+} // optimizeContent
 
 export const shallowOptimizeContent = async (html: string) => {
 	if (!html) return html
@@ -214,3 +215,34 @@ export const styleOptimizeContent = async (html: string) => {
 
 	return result
 } // styleOptimizeContent
+
+export const lowOptimizeContent = async (html: string) => {
+	if (!html) return html
+
+	const freePool = await workerManager.getFreePool({
+		delay: 500,
+	})
+	const pool = freePool.pool
+	let result
+
+	try {
+		result = await new Promise(async (res) => {
+			const timeout = setTimeout(() => res(html), 5000)
+			const tmpResult = await pool.exec('lowOptimizeContent', [html])
+
+			clearTimeout(timeout)
+
+			res(tmpResult)
+		})
+	} catch (err) {
+		Console.error(err)
+		result = html
+	}
+
+	freePool.terminate({
+		force: true,
+		// delay: 0,
+	})
+
+	return result
+} // lowOptimizeContent

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import { IBotInfo } from '../types'
 import { IRedirectInfoItem, REDIRECT_INFO } from '../app/redirect.config'
+import { PROCESS_ENV } from './InitEnv'
 
 const RedirectHandler = (req: Request, res: Response, next: NextFunction) => {
 	const botInfoStringify = res.getHeader('Bot-Info') as string
@@ -41,7 +42,8 @@ const RedirectHandler = (req: Request, res: Response, next: NextFunction) => {
 		if (statusCode !== 200) return res.redirect(statusCode, redirectUrl)
 
 		const urlChecked = (() => {
-			if (req.query.urlTesting) return req.originalUrl
+			if (PROCESS_ENV.ENABLE_URL_TESTING && req.query.urlTesting)
+				return req.originalUrl
 			let tmpUrl = req.originalUrl
 
 			if (tmpUrl.includes('?')) tmpUrl = req.originalUrl.split('?')[0]

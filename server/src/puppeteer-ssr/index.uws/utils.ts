@@ -1,9 +1,11 @@
 import fs from 'fs'
-import { HttpResponse } from 'uWebSockets.js'
+import { HttpRequest, HttpResponse } from 'uWebSockets.js'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import { COOKIE_EXPIRED } from '../../constants'
 import { CACHEABLE_STATUS_CODE } from '../constants'
 import { ISSRResult } from '../types'
+import Console from '../../utils/ConsoleHandler'
+import { PROCESS_ENV } from '../../utils/InitEnv'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
@@ -152,4 +154,41 @@ export const handleResultAfterISRGenerator = (
 			.writeHeader('Content-Type', 'text/html; charset=utf-8')
 			.end('504 Gateway Timeout', true)
 	}
-}
+} // handleResultAfterISRGenerator
+
+export const handleInvalidUrl = (res: HttpResponse, req: HttpRequest) => {
+	if (!res) {
+		Console.log('Need provide `res` param!')
+		return
+	}
+
+	if (!req) {
+		Console.log('Need provide `req` param!')
+		return
+	}
+
+	const baseUrl = `${
+		req.getHeader('x-forwarded-proto')
+			? req.getHeader('x-forwarded-proto')
+			: PROCESS_ENV.IS_SERVER
+			? 'https'
+			: 'http'
+	}://${req.getHeader('host')}`
+	const url = req.getUrl()
+	const urlLower = url.toLowerCase()
+
+	switch (true) {
+		case url.startsWith('/api') ||
+			/^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
+				baseUrl
+			) ||
+			/\/(wordpress|laravel|wp-includes|php|.env|server.config|[A-Za-z0-9-]+\.(yml))/.test(
+				urlLower
+			):
+			res.writableEnded = true
+			res.writeStatus('404').end('Not Found!', true)
+			break
+		default:
+			res.writableEnded = false
+	}
+} // handleInvalidUrl

@@ -4,11 +4,13 @@ import pm2 from 'pm2'
 import { resourceExtension, resourceDirectory } from '../constants'
 import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
+import { PM2_PROCESS_NAME } from './constants'
 
-const CLUSTER_INSTANCES =
-	PROCESS_ENV.CLUSTER_INSTANCES === 'max'
-		? 0
-		: Number(PROCESS_ENV.CLUSTER_INSTANCES || 2)
+// const CLUSTER_INSTANCES =
+// 	PROCESS_ENV.CLUSTER_INSTANCES === 'max'
+// 		? 0
+// 		: Number(PROCESS_ENV.CLUSTER_INSTANCES || 2)
+const CLUSTER_INSTANCES = 1
 const CLUSTER_KILL_TIMEOUT =
 	PROCESS_ENV.CLUSTER_INSTANCES === 'max' ? 7000 : 2000
 
@@ -34,7 +36,7 @@ pm2.connect(false, (err) => {
 			for (const process of processList) {
 				if (
 					(process.name === 'start-puppeteer-ssr' ||
-						process.name === 'puppeteer-ssr') &&
+						process.name === PM2_PROCESS_NAME) &&
 					process.pm_id !== undefined
 				) {
 					pm2.restart(process.pm_id, function (err) {
@@ -55,7 +57,7 @@ pm2.connect(false, (err) => {
 		if (!hasRestarted) {
 			pm2.start(
 				{
-					name: 'puppeteer-ssr',
+					name: PM2_PROCESS_NAME,
 					script: `server/${resourceDirectory}/index.fastify.${resourceExtension}`,
 					instances: CLUSTER_INSTANCES,
 					exec_mode: CLUSTER_INSTANCES === 1 ? 'fork' : 'cluster',
@@ -80,6 +82,10 @@ pm2.connect(false, (err) => {
 								__dirname,
 								`../../${resourceDirectory}/**/*.${resourceExtension}`
 							),
+							path.resolve(
+								__dirname,
+								`../../${resourceDirectory}/*.${resourceExtension}`
+							),
 						],
 						{
 							ignored: /$^/,
@@ -87,8 +93,12 @@ pm2.connect(false, (err) => {
 						}
 					) // /$^/ is match nothing
 
+					let timeout
 					watcher.on('change', function (files) {
-						pm2.reload('puppeteer-ssr', () => {})
+						if (timeout) clearTimeout(timeout)
+						timeout = setTimeout(() => {
+							pm2.reload(PM2_PROCESS_NAME, () => {})
+						}, 100)
 					})
 				}
 			)

@@ -146,6 +146,10 @@ const puppeteerSSRService = (async () => {
 
 				res
 			) {
+				if (req.url.startsWith('/api')) {
+					return res.status(404).send('Not Found!')
+				}
+
 				const pathname = _optionalChain([
 					req,
 					'access',
@@ -164,6 +168,12 @@ const puppeteerSSRService = (async () => {
 					(_13) => _13['BotInfo'],
 				])
 				const { enableToCrawl, enableToCache } = (() => {
+					const url = _FormatUrl.convertUrlHeaderToQueryString.call(
+						void 0,
+						_FormatUrl.getUrl.call(void 0, req),
+						res,
+						!botInfo.isBot
+					)
 					let enableToCrawl = _serverconfig2.default.crawl.enable
 					let enableToCache =
 						enableToCrawl && _serverconfig2.default.crawl.cache.enable
@@ -177,7 +187,7 @@ const puppeteerSSRService = (async () => {
 							'access',
 							(_15) => _15.custom,
 							'optionalCall',
-							(_16) => _16(pathname),
+							(_16) => _16(url),
 						])
 
 					if (crawlOptionPerRoute) {

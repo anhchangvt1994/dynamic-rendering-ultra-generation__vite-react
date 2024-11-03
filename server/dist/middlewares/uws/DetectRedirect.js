@@ -37,7 +37,7 @@ const DetectRedirectMiddle = (res, req) => {
 				.writeStatus(String(redirectResult.status))
 				.writeHeader(
 					'Location',
-					`${redirectResult.path}${
+					`${redirectResult.path || '/'}${
 						redirectResult.search ? redirectResult.search : ''
 					}`
 				)

@@ -171,6 +171,14 @@ const puppeteerSSRService = (async () => {
 				})
 		}
 		_app.get('/*', async function (res, req) {
+			// if (req.getUrl().startsWith('/api')) {
+			// 	return res.writeStatus('404').end('Not Found!', true)
+			// }
+			_utils3.handleInvalidUrl.call(void 0, res, req)
+
+			// NOTE - Check if static will send static file
+			if (res.writableEnded) return
+
 			_DetectStatic2.default.call(void 0, res, req)
 
 			// NOTE - Check if static will send static file
@@ -197,7 +205,23 @@ const puppeteerSSRService = (async () => {
 				'optionalAccess',
 				(_2) => _2.botInfo,
 			])
+
+			// NOTE - Check redirect or not
+			const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
+
+			/**
+			 * NOTE
+			 * - We need crawl page although this request is not a bot
+			 * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
+			 */
+			if (
+				(res.writableEnded && botInfo.isBot) ||
+				(isRedirect && req.getHeader('accept') !== 'application/json')
+			)
+				return
+
 			const { enableToCrawl, enableToCache } = (() => {
+				const url = _FormatUrluws.getUrl.call(void 0, res, req)
 				let enableToCrawl = _serverconfig2.default.crawl.enable
 				let enableToCache =
 					enableToCrawl && _serverconfig2.default.crawl.cache.enable
@@ -212,16 +236,7 @@ const puppeteerSSRService = (async () => {
 						'access',
 						(_4) => _4.custom,
 						'optionalCall',
-						(_5) => _5(req.getUrl()),
-					]) ||
-					_optionalChain([
-						_serverconfig2.default,
-						'access',
-						(_6) => _6.crawl,
-						'access',
-						(_7) => _7.custom,
-						'optionalCall',
-						(_8) => _8(res.urlForCrawler),
+						(_5) => _5(url),
 					])
 
 				if (crawlOptionPerRoute) {
@@ -244,20 +259,6 @@ const puppeteerSSRService = (async () => {
 			) {
 				return res.writeStatus('403').end('403 Forbidden', true)
 			}
-
-			// NOTE - Check redirect or not
-			const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
-
-			/**
-			 * NOTE
-			 * - We need crawl page although this request is not a bot
-			 * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
-			 */
-			if (
-				(res.writableEnded && botInfo.isBot) ||
-				(isRedirect && req.getHeader('accept') !== 'application/json')
-			)
-				return
 
 			// NOTE - Detect DeviceInfo
 			_DetectDevice2.default.call(void 0, res, req)
@@ -359,11 +360,11 @@ const puppeteerSSRService = (async () => {
 				const pointsTo = _optionalChain([
 					_serverconfig2.default,
 					'access',
-					(_9) => _9.routes,
+					(_6) => _6.routes,
 					'optionalAccess',
-					(_10) => _10[correctPathname],
+					(_7) => _7[correctPathname],
 					'optionalAccess',
-					(_11) => _11.pointsTo,
+					(_8) => _8.pointsTo,
 				])
 
 				if (pointsTo) {
@@ -460,11 +461,11 @@ const puppeteerSSRService = (async () => {
 							const deviceType = _optionalChain([
 								res,
 								'access',
-								(_12) => _12.cookies,
+								(_9) => _9.cookies,
 								'optionalAccess',
-								(_13) => _13.deviceInfo,
+								(_10) => _10.deviceInfo,
 								'optionalAccess',
-								(_14) => _14.type,
+								(_11) => _11.type,
 							])
 
 							tmpStoreKey = _StringHelper.hashCode.call(

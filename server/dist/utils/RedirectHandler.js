@@ -2,6 +2,7 @@
 Object.defineProperty(exports, '__esModule', { value: true })
 
 var _redirectconfig = require('../app/redirect.config')
+var _InitEnv = require('./InitEnv')
 
 const RedirectHandler = (req, res, next) => {
 	const botInfoStringify = res.getHeader('Bot-Info')
@@ -44,7 +45,8 @@ const RedirectHandler = (req, res, next) => {
 		if (statusCode !== 200) return res.redirect(statusCode, redirectUrl)
 
 		const urlChecked = (() => {
-			if (req.query.urlTesting) return req.originalUrl
+			if (_InitEnv.PROCESS_ENV.ENABLE_URL_TESTING && req.query.urlTesting)
+				return req.originalUrl
 			let tmpUrl = req.originalUrl
 
 			if (tmpUrl.includes('?')) tmpUrl = req.originalUrl.split('?')[0]

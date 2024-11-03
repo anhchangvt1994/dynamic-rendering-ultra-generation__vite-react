@@ -103,7 +103,16 @@ const apiService = (async () => {
 			}
 
 			// NOTE - Get the Request information
-			const requestInfo = JSON.parse(decode(apiInfo.requestInfo || ''))
+			const requestInfo = (() => {
+				let result
+				try {
+					result = JSON.parse(decode(apiInfo.requestInfo || ''))
+				} catch (err) {
+					Console.error(err)
+				}
+
+				return result
+			})()
 
 			// NOTE - Response 500 Error if the requestInfo is empty
 			if (
@@ -178,7 +187,10 @@ const apiService = (async () => {
 					}
 				)
 
-				const enableCache = requestInfo.cacheKey && requestInfo.expiredTime > 0
+				const enableCache =
+					requestInfo.cacheKey &&
+					(requestInfo.expiredTime > 0 ||
+						requestInfo.expiredTime === 'infinite')
 
 				// NOTE - Handle API Store
 				// NOTE - when enableStore, system will store it, but when the client set enableStore to false, system have to remove it. So we must recalculate in each
@@ -215,14 +227,16 @@ const apiService = (async () => {
 					if (apiCache) {
 						const curTime = Date.now()
 						if (
+							requestInfo.expiredTime !== 'infinite' &&
 							curTime - new Date(apiCache.requestedAt).getTime() >=
-							requestInfo.expiredTime
+								requestInfo.expiredTime
 						) {
 							removeDataCache(requestInfo.cacheKey)
 						} else {
 							if (
-								(curTime - new Date(apiCache.updatedAt).getTime() >=
-									requestInfo.renewTime ||
+								((requestInfo.renewTime !== 'infinite' &&
+									curTime - new Date(apiCache.updatedAt).getTime() >=
+										requestInfo.renewTime) ||
 									!apiCache.cache ||
 									apiCache.cache.status !== 200) &&
 								apiCache.status !== 'fetch'
@@ -262,8 +276,8 @@ const apiService = (async () => {
 							const data = convertData(cache, contentEncoding)
 
 							if (!res.writableEnded) {
+								res.writableEnded = true
 								res.cork(() => {
-									res.writableEnded = true
 									res
 										.writeStatus(
 											`${cache.status}${
@@ -282,6 +296,7 @@ const apiService = (async () => {
 
 				if (!res.writableEnded) {
 					const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+
 					const fetchAPITarget = fetchData(fetchUrl, {
 						method,
 						headers,
@@ -296,6 +311,7 @@ const apiService = (async () => {
 					} else removeDataCache(requestInfo.cacheKey)
 
 					const result = await fetchAPITarget
+
 					const data = convertData(result, contentEncoding)
 
 					if (enableCache) {
@@ -316,23 +332,28 @@ const apiService = (async () => {
 					}
 
 					if (!res.writAbleEnded) {
-						res.cork(() => {
-							if (result.cookies && result.cookies.length) {
-								for (const cookie of result.cookies) {
-									res.writeHeader('Set-Cookie', cookie)
+						res.writAbleEnded = true
+						try {
+							res.cork(() => {
+								if (result.cookies && result.cookies.length) {
+									for (const cookie of result.cookies) {
+										res.writeHeader('Set-Cookie', cookie)
+									}
 								}
-							}
-							res
-								.writeStatus(
-									`${result.status}${
-										result.message ? ' ' + result.message : ''
-									}`
-								)
-								.writeHeader('Content-Type', 'application/json')
-								.writeHeader('Cache-Control', 'no-store')
-								.writeHeader('Content-Encoding', contentEncoding)
-								.end(data, true)
-						})
+								res
+									.writeStatus(
+										`${result.status}${
+											result.message ? ' ' + result.message : ''
+										}`
+									)
+									.writeHeader('Content-Type', 'application/json')
+									.writeHeader('Cache-Control', 'no-store')
+									.writeHeader('Content-Encoding', contentEncoding)
+									.end(data, true)
+							})
+						} catch (err) {
+							Console.error(err)
+						}
 					}
 				}
 			} // IF !res.writableEnded

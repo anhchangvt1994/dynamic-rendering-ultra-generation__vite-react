@@ -3,10 +3,10 @@ import path from 'path'
 import WorkerPool from 'workerpool'
 
 import { brotliDecompressSync } from 'zlib'
-import Console from '../ConsoleHandler'
-import { deleteResource as deleteResourceWithWorker } from './utils'
-import { decryptCrawlerKeyCache } from '../CryptoHandler'
 import ServerConfig from '../../server.config'
+import Console from '../ConsoleHandler'
+import { getTextData } from '../FileHandler'
+import { deleteResource as deleteResourceWithWorker } from './utils'
 
 type IFileInfo =
 	| {
@@ -18,7 +18,7 @@ type IFileInfo =
 	| undefined
 
 const deleteResource = (path: string) => {
-	return deleteResourceWithWorker(path)
+	deleteResourceWithWorker(path)
 } //  deleteResource
 
 const getFileInfo = async (file: string): Promise<IFileInfo> => {
@@ -122,6 +122,8 @@ const scanToCleanBrowsers = async (
 		for (const file of browserList) {
 			const absolutePath = path.join(dirPath, file)
 
+			if (file === 'wsEndpoint.txt') continue
+
 			if (
 				absolutePath === curUserDataPath ||
 				absolutePath === reserveUserDataPath
@@ -147,31 +149,41 @@ const scanToCleanBrowsers = async (
 
 const scanToCleanPages = (dirPath: string) => {
 	if (fs.existsSync(dirPath)) {
-		const pageList = fs.readdirSync(dirPath)
+		const pageList = fs.readdirSync(`${dirPath}`)
 
 		for (const file of pageList) {
-			const urlInfo = new URL(
-				decryptCrawlerKeyCache(file.split('.')[0]) as string
-			)
+			if (file === 'info') continue
 
-			const expiredTime =
-				process.env.MODE === 'development'
-					? 0
-					: ServerConfig.crawl.routes[urlInfo.pathname].cache.time ||
-					  ServerConfig.crawl.cache.time
+			const infoFilePath = path.join(dirPath, `/info/${file.split('.')[0]}.txt`)
+			const url = getTextData(infoFilePath)
+
+			if (!url) continue
+
+			const urlInfo = new URL(url)
+
+			const cacheOption = (
+				ServerConfig.crawl.custom?.(url) ??
+				ServerConfig.crawl.routes[urlInfo.pathname] ??
+				ServerConfig.crawl
+			).cache
+
+			const expiredTime = cacheOption.time
 
 			if (expiredTime === 'infinite') {
 				continue
 			}
 
-			const absolutePath = path.join(dirPath, file)
+			const cacheFilePath = path.join(dirPath, file)
 			const dirExistTimeInMinutes =
-				(Date.now() - new Date(fs.statSync(absolutePath).atime).getTime()) /
+				(Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
 				1000
 
 			if (dirExistTimeInMinutes >= expiredTime) {
 				try {
-					fs.unlinkSync(absolutePath)
+					Promise.all([
+						fs.unlinkSync(cacheFilePath),
+						fs.unlinkSync(infoFilePath),
+					])
 				} catch (err) {
 					Console.error(err)
 				}

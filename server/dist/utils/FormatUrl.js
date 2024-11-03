@@ -54,19 +54,29 @@ const convertUrlHeaderToQueryString = (url, res, simulateBot = false) => {
 		)
 	}
 
+	const deviceInfo = _nullishCoalesce(
+		_optionalChain([cookies, 'optionalAccess', (_2) => _2['DeviceInfo']]),
+		() => ({})
+	)
+	const deviceType =
+		_serverconfig2.default.crawl.content === 'all' ||
+		_serverconfig2.default.crawl.content.includes(deviceInfo.type)
+			? deviceInfo.type
+			: _serverconfig2.default.crawl.content[0]
+
 	const deviceInfoStringify = JSON.stringify({
 		..._nullishCoalesce(
-			_optionalChain([cookies, 'optionalAccess', (_2) => _2['DeviceInfo']]),
+			_optionalChain([cookies, 'optionalAccess', (_3) => _3['DeviceInfo']]),
 			() => ({})
 		),
-		isMobile: _serverconfig2.default.crawl.content === 'mobile',
-		type: _serverconfig2.default.crawl.content,
+		isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+		type: deviceType,
 	})
 	const localeInfoStringify = JSON.stringify(
-		_optionalChain([cookies, 'optionalAccess', (_3) => _3['LocaleInfo']])
+		_optionalChain([cookies, 'optionalAccess', (_4) => _4['LocaleInfo']])
 	)
 	const environmentInfoStringify = JSON.stringify(
-		_optionalChain([cookies, 'optionalAccess', (_4) => _4['EnvironmentInfo']])
+		_optionalChain([cookies, 'optionalAccess', (_5) => _5['EnvironmentInfo']])
 	)
 
 	let urlFormatted = `${url}${
@@ -81,7 +91,7 @@ const getUrl = (req) => {
 	if (!req) return ''
 
 	return (
-		req.query.urlTesting ||
+		(_InitEnv.PROCESS_ENV.ENABLE_URL_TESTING ? req.query.urlTesting : '') ||
 		(_InitEnv.PROCESS_ENV.BASE_URL
 			? _InitEnv.PROCESS_ENV.BASE_URL + req.originalUrl
 			: req.protocol + '://' + req.get('host') + req.originalUrl)
@@ -98,21 +108,21 @@ const getPathname = (req) => {
 			tmpPathName = _optionalChain([
 				JSON,
 				'access',
-				(_5) => _5.parse,
+				(_6) => _6.parse,
 				'call',
-				(_6) => _6(req.headers['redirect']),
+				(_7) => _7(req.headers['redirect']),
 				'optionalAccess',
-				(_7) => _7.path,
+				(_8) => _8.path,
 			])
 
 		return _optionalChain([
 			tmpPathName || req.url,
 			'optionalAccess',
-			(_8) => _8.split,
+			(_9) => _9.split,
 			'call',
-			(_9) => _9('?'),
+			(_10) => _10('?'),
 			'optionalAccess',
-			(_10) => _10[0],
+			(_11) => _11[0],
 		])
 	})()
 

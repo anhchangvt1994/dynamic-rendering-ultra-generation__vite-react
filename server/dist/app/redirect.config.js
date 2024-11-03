@@ -20,6 +20,10 @@ exports.REDIRECT_INFO = REDIRECT_INFO
 
 // NOTE - Declare redirect middleware
 const REDIRECT_INJECTION = (redirectResult, req, res) => {
+	// NOTE - Check Redirect for common case
+	redirectResult.path = redirectResult.path.replace(/\/{2,}/, '/')
+
+	// NOTE - Check redirect for locale case
 	const enableLocale =
 		_serverconfig2.default.locale.enable &&
 		Boolean(
@@ -42,6 +46,14 @@ const REDIRECT_INJECTION = (redirectResult, req, res) => {
 					: localeCodeValidationResult.status
 			redirectResult.path = localeCodeValidationResult.path
 		}
+	}
+
+	if (
+		redirectResult.status === 200 &&
+		redirectResult.path !== '' &&
+		redirectResult.originPath !== redirectResult.path
+	) {
+		redirectResult.status = 301
 	}
 
 	return redirectResult

@@ -3,6 +3,13 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
 	return obj && obj.__esModule ? obj : { default: obj }
 }
+function _nullishCoalesce(lhs, rhsFn) {
+	if (lhs != null) {
+		return lhs
+	} else {
+		return rhsFn()
+	}
+}
 function _optionalChain(ops) {
 	let lastAccessLHS = undefined
 	let value = ops[0]
@@ -38,6 +45,7 @@ var _utils2 = _interopRequireDefault(_utils)
 
 var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
+var _InitEnv = require('../../../utils/InitEnv')
 const { parentPort, isMainThread } = require('worker_threads')
 
 const workerManager = _WorkerManager2.default.init(
@@ -62,8 +70,26 @@ const ISRHandler = async (params) => {
 
 	if (!wsEndpoint && !_serverconfig2.default.crawler) return
 
+	const pathname = new URL(params.url).pathname
+
+	const crawlSpeedOption = _nullishCoalesce(
+		_nullishCoalesce(
+			_optionalChain([
+				_serverconfig2.default,
+				'access',
+				(_) => _.crawl,
+				'access',
+				(_2) => _2.custom,
+				'optionalCall',
+				(_3) => _3(params.url),
+			]),
+			() => _serverconfig2.default.crawl.routes[pathname]
+		),
+		() => _serverconfig2.default.crawl
+	).speed
+
 	const freePool = await workerManager.getFreePool({
-		delay: 500,
+		delay: crawlSpeedOption / 20,
 	})
 
 	const pool = freePool.pool
@@ -93,6 +119,7 @@ const ISRHandler = async (params) => {
 					[
 						{
 							...params,
+							baseUrl: _InitEnv.PROCESS_ENV.BASE_URL,
 							wsEndpoint,
 						},
 					],
@@ -126,9 +153,9 @@ const ISRHandler = async (params) => {
 	_optionalChain([
 		browser,
 		'optionalAccess',
-		(_) => _.emit,
+		(_4) => _4.emit,
 		'call',
-		(_2) => _2('closePage', url),
+		(_5) => _5('closePage', url),
 	])
 	if (!isMainThread) {
 		parentPort.postMessage({
@@ -139,7 +166,9 @@ const ISRHandler = async (params) => {
 	}
 
 	if (!result || result.status !== 200) {
-		cacheManager.remove(params.url)
+		cacheManager.remove(params.url).catch((err) => {
+			_ConsoleHandler2.default.error(err)
+		})
 	}
 
 	freePool.terminate({
