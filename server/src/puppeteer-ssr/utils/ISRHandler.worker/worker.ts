@@ -540,26 +540,32 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			if (enableLowOptimize || enableShallowOptimize || enableDeepOptimize)
 				html = await lowOptimizeContent(html)
 
-			WorkerPool.workerEmit({
-				name: 'html',
-				value: html,
-			})
-
-			if (enableShallowOptimize || enableDeepOptimize)
-				html = await shallowOptimizeContent(html)
-
-			WorkerPool.workerEmit({
-				name: 'html',
-				value: html,
-			})
-
-			if (enableToCompress) html = await compressContent(html)
-
-			if (enableDeepOptimize) {
+			if (cacheManager.getStatus() !== 'renew') {
 				WorkerPool.workerEmit({
 					name: 'html',
 					value: html,
 				})
+			}
+
+			if (enableShallowOptimize || enableDeepOptimize)
+				html = await shallowOptimizeContent(html)
+
+			if (cacheManager.getStatus() !== 'renew') {
+				WorkerPool.workerEmit({
+					name: 'html',
+					value: html,
+				})
+			}
+
+			if (enableToCompress) html = await compressContent(html)
+
+			if (enableDeepOptimize) {
+				if (cacheManager.getStatus() !== 'renew') {
+					WorkerPool.workerEmit({
+						name: 'html',
+						value: html,
+					})
+				}
 				html = await deepOptimizeContent(html)
 			}
 			// console.log('finish optimize and compress: ', url.split('?')[0])
