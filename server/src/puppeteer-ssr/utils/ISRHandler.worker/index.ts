@@ -110,11 +110,7 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 		})
 	}
 
-	if (cacheManager.getStatus() === 'renew') {
-		cacheManager.rename({
-			url: params.url,
-		})
-	} else if (!result || result.status !== 200) {
+	if (!result || result.status !== 200) {
 		cacheManager.remove(params.url).catch((err) => {
 			Console.error(err)
 		})
