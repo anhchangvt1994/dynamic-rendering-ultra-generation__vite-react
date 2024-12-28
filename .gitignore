@@ -35,6 +35,7 @@ server/resources/*
 server/**/server-info.json
 server/**/user_data*
 server/**/.cache
+server/**/utils/Cache.worker/views/*
 server/**/utils/Cache.worker/pages/*
 server/**/api/utils/CacheManager/data/*
 server/**/api/utils/CacheManager/store/*
