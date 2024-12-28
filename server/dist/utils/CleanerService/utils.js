@@ -5,6 +5,7 @@ function _interopRequireDefault(obj) {
 }
 var _chromiummin = require('@sparticuz/chromium-min')
 var _chromiummin2 = _interopRequireDefault(_chromiummin)
+
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
 var _constants = require('../../constants')
@@ -20,6 +21,7 @@ var _WorkerManager = require('../WorkerManager')
 var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0)
+const viewsPath = _PathHandler.getViewsPath.call(void 0)
 const dataPath = _PathHandler.getDataPath.call(void 0)
 const storePath = _PathHandler.getStorePath.call(void 0)
 const userDataPath = _PathHandler.getUserDataPath.call(void 0)
@@ -41,8 +43,10 @@ const workerManager = (() => {
 		[
 			'scanToCleanBrowsers',
 			'scanToCleanPages',
+			'scanToCleanViews',
 			'scanToCleanAPIDataCache',
 			'deleteResource',
+			'copyResource',
 		]
 	)
 })()
@@ -134,6 +138,98 @@ const cleanPages = (() => {
 	}
 })()
 exports.cleanPages = cleanPages // cleanPages
+
+const cleanViews = (() => {
+	// let cleanViewsTimeout: NodeJS.Timeout
+	// let distFilesChangedTimeout: NodeJS.Timeout
+	// let isDistChanging: boolean = false
+
+	// ;(() => {
+	// 	if (!isMainThread || !workerManager) return
+
+	// try {
+	// 	fs.emptyDirSync(path.resolve(__dirname, '../../../resources'))
+	// 	fs.copySync(
+	// 		path.resolve(__dirname, '../../../../dist'),
+	// 		path.resolve(__dirname, '../../../resources')
+	// 	)
+	// } catch (err) {
+	// 	Console.error(err)
+	// }
+
+	// const watcher = chokidar.watch(
+	// 	[
+	// 		path.resolve(__dirname, '../../../../dist/**/*'),
+	// 		path.resolve(__dirname, '../../../../dist/*'),
+	// 	],
+	// 	{
+	// 		ignored: /$^/,
+	// 		persistent: true,
+	// 	}
+	// ) // /$^/ is match nothing
+
+	// watcher.on('change', function () {
+	// 	if (isDistChanging) return
+	// 	isDistChanging = true
+
+	// 	if (cleanViewsTimeout) {
+	// 		clearTimeout(cleanViewsTimeout)
+	// 	}
+
+	// 	if (distFilesChangedTimeout) {
+	// 		clearTimeout(distFilesChangedTimeout)
+	// 	}
+
+	// 	distFilesChangedTimeout = setTimeout(async () => {
+	// 		const freePool = await workerManager.getFreePool()
+	// 		const pool = freePool.pool
+
+	// 		try {
+	// 			await pool.exec('deleteResource', [viewsPath])
+	// 		} catch (err) {
+	// 			Console.error(err)
+	// 		}
+
+	// 		isDistChanging = false
+	// 		cleanViewsTimeout = setTimeout(() => {
+	// 			cleanViews()
+	// 		}, 300000)
+
+	// 		freePool.terminate({
+	// 			force: true,
+	// 		})
+	// 	}, 1000)
+	// })
+	// })()
+
+	return async (options) => {
+		if (!isMainThread || !workerManager) return
+
+		const freePool = await workerManager.getFreePool()
+		const pool = freePool.pool
+
+		try {
+			options = {
+				forceToClean: false,
+				...options,
+			}
+			await pool.exec('scanToCleanViews', [viewsPath, options])
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
+
+		freePool.terminate({
+			force: true,
+		})
+
+		if (!_constants.SERVER_LESS) {
+			setTimeout(() => {
+				exports.cleanViews.call(void 0)
+			}, 300000)
+		}
+	}
+})()
+exports.cleanViews = cleanViews // cleanViews
 
 const cleanAPIDataCache = (() => {
 	return async () => {

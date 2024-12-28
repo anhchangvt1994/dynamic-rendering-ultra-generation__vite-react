@@ -398,7 +398,13 @@ const puppeteerSSRService = (async () => {
 						}
 					}
 
-					let html = _fs2.default.readFileSync(filePath, 'utf8') || ''
+					let html = ''
+
+					try {
+						html = _fs2.default.readFileSync(filePath, 'utf8')
+					} catch (err) {
+						_ConsoleHandler2.default.error(err)
+					}
 
 					html = html.replace(
 						'</head>',

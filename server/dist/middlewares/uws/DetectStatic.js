@@ -18,6 +18,8 @@ var _DetectStaticExtensionuws2 = _interopRequireDefault(
 	_DetectStaticExtensionuws
 )
 var _InitEnv = require('../../utils/InitEnv')
+var _ConsoleHandler = require('../../utils/ConsoleHandler')
+var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
 const DetectStaticMiddle = (res, req) => {
 	const isStatic = _DetectStaticExtensionuws2.default.call(void 0, req)
@@ -29,14 +31,20 @@ const DetectStaticMiddle = (res, req) => {
 	 */
 
 	if (isStatic && !_serverconfig2.default.isRemoteCrawler) {
-		const staticPath = _path2.default.resolve(
-			__dirname,
-			`../../../../dist/${req.getUrl()}`
+		const staticPath = _fs2.default.existsSync(
+			_path2.default.resolve(__dirname, `../../../resources/${req.getUrl()}`)
 		)
+			? _path2.default.resolve(__dirname, `../../../resources/${req.getUrl()}`)
+			: _path2.default.resolve(__dirname, `../../../../dist/${req.getUrl()}`)
 
 		try {
 			if (_InitEnv.ENV === 'development') {
-				const body = _fs2.default.readFileSync(staticPath)
+				let body
+				try {
+					body = _fs2.default.readFileSync(staticPath)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 				const mimeType = _servestatic2.default.mime.lookup(staticPath)
 				res
 					.writeStatus('200')
@@ -51,7 +59,12 @@ const DetectStaticMiddle = (res, req) => {
 					return ''
 				})()
 				const body = (() => {
-					const content = _fs2.default.readFileSync(staticPath)
+					let content
+					try {
+						content = _fs2.default.readFileSync(staticPath)
+					} catch (err) {
+						_ConsoleHandler2.default.error(err)
+					}
 					const tmpBody =
 						contentEncoding === 'br'
 							? _zlib.brotliCompressSync.call(void 0, content)

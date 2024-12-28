@@ -1,5 +1,7 @@
 export interface IServerConfigOptional {
 	rootCache?: string
+	isRemoteCrawler?: boolean
+
 	locale?: {
 		enable: boolean
 		defaultLang?: string | undefined
@@ -24,8 +26,6 @@ export interface IServerConfigOptional {
 			  })
 			| void
 	}
-
-	isRemoteCrawler?: boolean
 
 	crawl?: {
 		enable: boolean
@@ -75,11 +75,45 @@ export interface IServerConfigOptional {
 			  })
 			| undefined
 	}
+
 	routes?: {
-		[key: string]: {
-			pointsTo?: string
+		preview?:
+			| boolean
+			| {
+					content?: 'all' | Array<'desktop' | 'mobile'>
+					time: number | 'infinite'
+					renewTime: number | 'infinite'
+			  }
+		list?: {
+			[key: string]: {
+				pointsTo?:
+					| string
+					| {
+							url: string
+							content?: 'all' | Array<'desktop' | 'mobile'>
+					  }
+			} & Omit<NonNullable<IServerConfigOptional['routes']>, 'list' | 'custom'>
 		}
+		custom?: (url: string) =>
+			| ({
+					pointsTo?:
+						| string
+						| {
+								url: string
+								content?: 'all' | Array<'desktop' | 'mobile'>
+						  }
+					loader?: {
+						enable?: boolean
+						name: string
+					}
+			  } & Omit<
+					NonNullable<IServerConfigOptional['routes']>,
+					'list' | 'custom'
+			  >)
+			| undefined
+			| void
 	}
+
 	crawler?: string
 	crawlerSecretKey?: string
 
@@ -96,6 +130,9 @@ export interface IServerConfigOptional {
 }
 
 export interface IServerConfig extends IServerConfigOptional {
+	rootCache?: string
+	isRemoteCrawler: boolean
+
 	locale: {
 		enable: boolean
 		defaultLang?: string | undefined
@@ -118,8 +155,6 @@ export interface IServerConfig extends IServerConfigOptional {
 			  })
 			| undefined
 	}
-
-	isRemoteCrawler: boolean
 
 	crawl: {
 		enable: boolean
@@ -157,6 +192,34 @@ export interface IServerConfig extends IServerConfigOptional {
 					cache: Omit<IServerConfig['crawl']['cache'], 'path'>
 					onContentCrawled?: (payload: { html: string }) => string | void
 			  })
+			| undefined
+	}
+
+	routes: {
+		preview?: {
+			content?: 'all' | Array<'desktop' | 'mobile'>
+			time: number | 'infinite'
+			renewTime: number | 'infinite'
+		}
+		list?: {
+			[key: string]: {
+				pointsTo?: {
+					url: string
+					content?: 'all' | Array<'desktop' | 'mobile'>
+				}
+			} & Omit<IServerConfig['routes'], 'list' | 'custom'>
+		}
+		custom?: (url: string) =>
+			| ({
+					pointsTo?: {
+						url: string
+						content?: 'all' | Array<'desktop' | 'mobile'>
+					}
+					loader?: {
+						enable: boolean
+						name: string
+					}
+			  } & Omit<IServerConfig['routes'], 'list' | 'custom'>)
 			| undefined
 	}
 

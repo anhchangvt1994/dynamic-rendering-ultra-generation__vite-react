@@ -31,6 +31,7 @@ config/env/env.json
 
 !server/dist
 config/utils/PortHandler/.env
+server/resources/*
 server/**/server-info.json
 server/**/user_data*
 server/**/.cache

@@ -39,16 +39,30 @@ export const setTextData = (file: string, data: string) => {
 	const filePath = path.dirname(file)
 
 	if (!fs.existsSync(filePath)) {
-		fs.mkdirSync(filePath)
+		try {
+			fs.mkdirSync(filePath)
+		} catch (err) {
+			Console.error(err)
+		}
 	}
 
-	fs.writeFileSync(file, data)
+	try {
+		fs.writeFileSync(file, data)
+	} catch (err) {
+		Console.error(err)
+	}
 } // setTextData
 
 export const getJsonData = (file: string) => {
 	if (!fs.existsSync(file)) return
 
-	const result = fs.readFileSync(file, 'utf8')
+	let result
+
+	try {
+		result = fs.readFileSync(file, 'utf8')
+	} catch (err) {
+		Console.error(err)
+	}
 
 	return result
 } // getJsonData
@@ -56,7 +70,13 @@ export const getJsonData = (file: string) => {
 export const getTextData = (file: string) => {
 	if (!fs.existsSync(file)) return
 
-	const result = fs.readFileSync(file, 'utf8')
+	let result
+
+	try {
+		result = fs.readFileSync(file, 'utf8')
+	} catch (err) {
+		Console.error(err)
+	}
 
 	return result
 } // getTextData

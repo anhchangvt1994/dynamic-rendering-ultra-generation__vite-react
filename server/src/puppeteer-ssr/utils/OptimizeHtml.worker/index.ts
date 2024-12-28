@@ -21,7 +21,10 @@ const workerManager = WorkerManager.init(
 	]
 )
 
-export const compressContent = async (html: string) => {
+export const compressContent = async (
+	html: string,
+	options?: { [key: string]: any }
+) => {
 	if (!html) return html
 
 	const freePool = await workerManager.getFreePool({
@@ -33,7 +36,7 @@ export const compressContent = async (html: string) => {
 	try {
 		result = await new Promise(async (res) => {
 			const timeout = setTimeout(() => res(html), 5000)
-			const tmpResult = await pool.exec('compressContent', [html])
+			const tmpResult = await pool.exec('compressContent', [html, options])
 
 			clearTimeout(timeout)
 

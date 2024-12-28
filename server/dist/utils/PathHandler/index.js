@@ -14,7 +14,7 @@ var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _InitEnv = require('../InitEnv')
 
 const getPagesPath = () => {
-	return _InitEnv.PROCESS_ENV.IS_SERVER
+	const pagesPath = _InitEnv.PROCESS_ENV.IS_SERVER
 		? (() => {
 				let root = '/tmp'
 				if (_serverconfig2.default.rootCache) {
@@ -41,8 +41,60 @@ const getPagesPath = () => {
 				__dirname,
 				'../../puppeteer-ssr/utils/Cache.worker/pages'
 		  )
+
+	if (!_fs2.default.existsSync(pagesPath)) {
+		try {
+			_fs2.default.mkdirSync(pagesPath)
+			_fs2.default.mkdirSync(`${pagesPath}/info`)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
+	}
+
+	return pagesPath
 }
 exports.getPagesPath = getPagesPath // getPagesPath
+
+const getViewsPath = () => {
+	const viewsPath = _InitEnv.PROCESS_ENV.IS_SERVER
+		? (() => {
+				let root = '/tmp'
+				if (_serverconfig2.default.rootCache) {
+					if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
+						root = _serverconfig2.default.rootCache
+					} else {
+						try {
+							_fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+							root = _serverconfig2.default.rootCache
+						} catch (err) {
+							_ConsoleHandler2.default.error(err.message)
+						}
+					}
+				}
+
+				if (_fs2.default.existsSync(root)) return root + '/views'
+
+				return _path2.default.resolve(
+					__dirname,
+					'../../puppeteer-ssr/utils/Cache.worker/views'
+				)
+		  })()
+		: _path2.default.resolve(
+				__dirname,
+				'../../puppeteer-ssr/utils/Cache.worker/views'
+		  )
+
+	if (!_fs2.default.existsSync(viewsPath)) {
+		try {
+			_fs2.default.mkdirSync(viewsPath)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
+	}
+
+	return viewsPath
+}
+exports.getViewsPath = getViewsPath // getViewsPath
 
 const getDataPath = () => {
 	return _InitEnv.PROCESS_ENV.IS_SERVER

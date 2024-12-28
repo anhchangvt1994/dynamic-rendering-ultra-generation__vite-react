@@ -17,6 +17,23 @@ const Content = styled.div`
 	margin-top: 16px;
 `
 
+const NameLabel = styled.p`
+	width: 25%;
+	height: 18px;
+	background: ${rgba(import.meta.env.STYLE_COLOR_DARK, 0.1)};
+	margin-bottom: 8px;
+`
+const ContentLabel = styled.div`
+	width: 100%;
+	height: 16px;
+	margin-bottom: 8px;
+	background: ${rgba(import.meta.env.STYLE_COLOR_DARK, 0.1)};
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+`
+
 export default function ModuleContentSection({
 	src,
 	caption,
@@ -29,8 +46,16 @@ export default function ModuleContentSection({
 	return (
 		<Section>
 			<ImageItem src={src || ''} alt={caption} />
-			<Caption>{caption}</Caption>
-			<Content>{content}</Content>
+			{RenderingInfo.loader ? (
+				<NameLabel style={{ marginBottom: '26px' }} />
+			) : (
+				<Caption>{caption}</Caption>
+			)}
+			{RenderingInfo.loader ? (
+				[<ContentLabel />, <ContentLabel style={{ width: '50%' }} />]
+			) : (
+				<Content>{content}</Content>
+			)}
 		</Section>
 	)
 }

@@ -112,6 +112,8 @@
     "useTitleCase": true,
     "useTransition": true,
     "useUnsignedLetters": true,
-    "ReactNode": true
+    "ReactNode": true,
+    "StyleSheetManager": true,
+    "RenderingInfo": true
   }
 }

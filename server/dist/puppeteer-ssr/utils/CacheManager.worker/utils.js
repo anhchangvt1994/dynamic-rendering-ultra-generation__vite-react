@@ -32,15 +32,12 @@ var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _PathHandler = require('../../../utils/PathHandler')
 
 var _utils = require('../Cache.worker/utils')
 
-const pagesPath = _PathHandler.getPagesPath.call(void 0)
-
 const maintainFile = _path2.default.resolve(__dirname, '../../../maintain.html')
 
-const CacheManager = (url) => {
+const CacheManager = (url, cachePath) => {
 	const pathname = new URL(url).pathname
 
 	const enableToCache =
@@ -109,7 +106,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = await _utils.get.call(void 0, url)
+			result = await _utils.get.call(void 0, url, cachePath)
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -125,17 +122,17 @@ const CacheManager = (url) => {
 		}
 
 		const key = _utils.getKey.call(void 0, url)
-		let file = `${pagesPath}/${key}.br`
+		let file = `${cachePath}/${key}.br`
 		let isRaw = false
 
 		switch (true) {
 			case _fs2.default.existsSync(file):
 				break
-			case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
-				file = `${pagesPath}/${key}.renew.br`
+			case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
+				file = `${cachePath}/${key}.renew.br`
 				break
 			default:
-				file = `${pagesPath}/${key}.raw.br`
+				file = `${cachePath}/${key}.raw.br`
 				isRaw = true
 				break
 		}
@@ -162,7 +159,7 @@ const CacheManager = (url) => {
 		}
 	} // achieve
 
-	const set = async (params) => {
+	const set = async (url, params) => {
 		if (!enableToCache)
 			return {
 				html: params.html,
@@ -173,7 +170,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = _utils.set.call(void 0, params)
+			result = _utils.set.call(void 0, url, cachePath, params)
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -185,7 +182,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = await _utils.renew.call(void 0, url)
+			result = await _utils.renew.call(void 0, url, cachePath)
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -208,28 +205,28 @@ const CacheManager = (url) => {
 		}
 
 		try {
-			await _utils.remove.call(void 0, url)
+			await _utils.remove.call(void 0, url, cachePath)
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
 	} // remove
 
-	const rename = async (params) => {
+	const rename = async (url, params) => {
 		if (!enableToCache) return
 
 		try {
-			await _utils.rename.call(void 0, params)
+			await _utils.rename.call(void 0, url, cachePath, params || {})
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
 	} // rename
 
 	const getStatus = () => {
-		return _utils.getStatus.call(void 0, url)
+		return _utils.getStatus.call(void 0, url, cachePath)
 	} // getStatus
 
 	const isExist = () => {
-		return _utils.isExist.call(void 0, url)
+		return _utils.isExist.call(void 0, url, cachePath)
 	} // isExist
 
 	return {

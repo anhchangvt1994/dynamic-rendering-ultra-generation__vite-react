@@ -1,6 +1,10 @@
-import { Page } from 'puppeteer'
+import { CookieParam, Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
-import { BANDWIDTH_LEVEL, BANDWIDTH_LEVEL_LIST } from '../../../constants'
+import {
+	BANDWIDTH_LEVEL,
+	BANDWIDTH_LEVEL_LIST,
+	COOKIE_EXPIRED,
+} from '../../../constants'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import {
@@ -23,6 +27,11 @@ import {
 	styleOptimizeContent,
 } from '../OptimizeHtml.worker/utils'
 import { getInternalHTML, getInternalScript } from './utils/utils'
+import { getPagesPath } from '../../../utils/PathHandler'
+
+const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
+
+const pagesPath = getPagesPath()
 
 interface IISRHandlerParam {
 	startGenerating: number
@@ -234,7 +243,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 	const startGenerating = Date.now()
 	if (_getRestOfDuration(startGenerating, gapDurationDefault) <= 0) return
 
-	const cacheManager = CacheManager(url)
+	const cacheManager = CacheManager(url, pagesPath)
 
 	let restOfDuration = _getRestOfDuration(startGenerating, gapDurationDefault)
 
@@ -331,6 +340,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 							? 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 							: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
 					),
+					// setCookies,
 					safePage()?.waitForNetworkIdle({ idleTime: 150 }),
 					safePage()?.setCacheEnabled(false),
 					safePage()?.setRequestInterception(true),
@@ -360,9 +370,27 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					} else {
 						const reqUrl = req.url()
 
+						if (resourceType.includes('fetch')) {
+							const urlInfo = new URL(reqUrl)
+							if (!urlInfo.pathname.startsWith('/api')) {
+								return req.respond({
+									status: 200,
+								})
+							}
+						}
+
 						if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
 							const urlInfo = new URL(reqUrl)
-							const pointsTo = ServerConfig.routes?.[urlInfo.pathname]?.pointsTo
+							const pointsTo = (() => {
+								const tmpPointsTo =
+									ServerConfig.routes?.list?.[urlInfo.pathname]?.pointsTo
+
+								if (!tmpPointsTo) return ''
+
+								return typeof tmpPointsTo === 'string'
+									? tmpPointsTo
+									: tmpPointsTo.url
+							})()
 
 							if (!pointsTo || pointsTo.startsWith(baseUrl)) {
 								getInternalHTML({ url: reqUrl })
@@ -373,12 +401,13 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 												status: 404,
 												contentType: 'text/html',
 											})
-										else
+										else {
 											req.respond({
 												body: result.body,
 												status: result.status,
 												contentType: 'text/html',
 											})
+										}
 									})
 									.catch((err) => {
 										Console.error(err)
@@ -440,9 +469,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 				})
 				safePage()?.close()
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return {
@@ -459,9 +486,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					Console.error(err)
 					safePage()?.close()
 					if (params.hasCache) {
-						cacheManager.rename({
-							url,
-						})
+						cacheManager.rename(url)
 					}
 
 					return
@@ -580,9 +605,8 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			// console.log('-------')
 		}
 
-		result = await cacheManager.set({
+		result = await cacheManager.set(url, {
 			html,
-			url,
 			isRaw,
 		})
 	} else {

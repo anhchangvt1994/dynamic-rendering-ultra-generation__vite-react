@@ -48,17 +48,31 @@ const setTextData = (file, data) => {
 	const filePath = _path2.default.dirname(file)
 
 	if (!_fs2.default.existsSync(filePath)) {
-		_fs2.default.mkdirSync(filePath)
+		try {
+			_fs2.default.mkdirSync(filePath)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
 	}
 
-	_fs2.default.writeFileSync(file, data)
+	try {
+		_fs2.default.writeFileSync(file, data)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
 }
 exports.setTextData = setTextData // setTextData
 
 const getJsonData = (file) => {
 	if (!_fs2.default.existsSync(file)) return
 
-	const result = _fs2.default.readFileSync(file, 'utf8')
+	let result
+
+	try {
+		result = _fs2.default.readFileSync(file, 'utf8')
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
 
 	return result
 }
@@ -67,7 +81,13 @@ exports.getJsonData = getJsonData // getJsonData
 const getTextData = (file) => {
 	if (!_fs2.default.existsSync(file)) return
 
-	const result = _fs2.default.readFileSync(file, 'utf8')
+	let result
+
+	try {
+		result = _fs2.default.readFileSync(file, 'utf8')
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
 
 	return result
 }

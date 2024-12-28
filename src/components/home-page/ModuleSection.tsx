@@ -35,6 +35,7 @@ const moduleList: Array<{
 const ModuleCard = styled.div`
 	${ImageOuter} {
 		border-radius: 8px;
+		overflow: hidden;
 		border: 1px solid ${import.meta.env.STYLE_COLOR_DARK};
 		background-color: ${import.meta.env.STYLE_COLOR_WHITE};
 	}

@@ -6,6 +6,7 @@ import {
 	cleanBrowsers,
 	cleanOther,
 	cleanPages,
+	cleanViews,
 } from './utils'
 
 let isFirstInitCompleted = false
@@ -20,6 +21,9 @@ const CleanerService = async (force = false) => {
 
 	// NOTE - Pages Cleaner
 	cleanPages()
+
+	// NOTE - Views Cleaner
+	cleanViews()
 
 	// NOTE - API Data Cache Cleaner
 	cleanAPIDataCache()

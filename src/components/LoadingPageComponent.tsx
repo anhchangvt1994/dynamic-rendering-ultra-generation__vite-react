@@ -56,7 +56,7 @@ const Loading = styled.span`
 
 function Component() {
 	return (
-		<Wrapper>
+		<Wrapper id="loading-page-component--global">
 			<Loading></Loading>
 		</Wrapper>
 	)

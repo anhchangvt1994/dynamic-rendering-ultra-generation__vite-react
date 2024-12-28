@@ -26,7 +26,8 @@ export default defineConfig(async ({ mode }) => {
 	// 	mode === 'development'
 	// 		? (await import('@vitejs/plugin-react-swc')).default
 	// 		: (await import('@vitejs/plugin-react')).default
-	const react = await (await import('@vitejs/plugin-react')).default
+	// const react = await (await import('@vitejs/plugin-react')).default
+	const react = await (await import('@vitejs/plugin-react-swc')).default
 
 	promiseENVWriteFileSync.then(function () {
 		generateDTS({
@@ -151,6 +152,7 @@ export default defineConfig(async ({ mode }) => {
 							'BotInfo',
 							'DeviceInfo',
 							'LocaleInfo',
+							'RenderingInfo',
 						],
 						'store/APIStore.ts': ['getAPIStore'],
 						'utils/ProxyAPIHelper/index.ts': ['ProxyAPI'],
@@ -161,6 +163,7 @@ export default defineConfig(async ({ mode }) => {
 						'styled-components': [
 							['default', 'styled'],
 							'createGlobalStyle',
+							'StyleSheetManager',
 							'keyframes',
 						],
 					},

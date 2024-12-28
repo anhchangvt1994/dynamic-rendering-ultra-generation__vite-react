@@ -34,7 +34,11 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
 		result = await pool.exec('get', [dataPath, key, 'br', options])
 
 		if (result && result.status === 200) {
-			result.data = fs.readFileSync(result.response)
+			try {
+				result.data = fs.readFileSync(result.response)
+			} catch (err) {
+				Console.error(err)
+			}
 		}
 	} catch (err) {
 		Console.error(err)
@@ -59,7 +63,13 @@ export const getStore = async (
 		result = await pool.exec('get', [storePath, key, 'json', options])
 
 		if (result && result.status === 200) {
-			const tmpData = fs.readFileSync(result.response) as unknown as string
+			let tmpData
+			try {
+				tmpData = fs.readFileSync(result.response) as unknown as string
+			} catch (err) {
+				Console.error(err)
+			}
+
 			result.data = tmpData ? JSON.parse(tmpData) : tmpData
 		}
 	} catch (err) {

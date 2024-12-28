@@ -1,4 +1,5 @@
 import fs from 'fs'
+import fsExtra from 'fs-extra'
 import path from 'path'
 import WorkerPool from 'workerpool'
 
@@ -20,6 +21,19 @@ type IFileInfo =
 const deleteResource = (path: string) => {
 	deleteResourceWithWorker(path)
 } //  deleteResource
+
+const copyResource = (
+	path: string,
+	targetPath: string,
+	opts: { [key: string]: any }
+) => {
+	try {
+		fsExtra.emptyDirSync(targetPath)
+		fsExtra.copySync(path, targetPath)
+	} catch (err) {
+		Console.error(err)
+	}
+} // copyResource
 
 const getFileInfo = async (file: string): Promise<IFileInfo> => {
 	if (!file) {
@@ -110,7 +124,13 @@ const scanToCleanBrowsers = async (
 	browserStore
 ) => {
 	if (fs.existsSync(dirPath)) {
-		const browserList = fs.readdirSync(dirPath)
+		let browserList
+
+		try {
+			browserList = fs.readdirSync(dirPath)
+		} catch (err) {
+			Console.error(err)
+		}
 
 		const curUserDataPath = browserStore.userDataPath
 			? path.join('', browserStore.userDataPath)
@@ -149,7 +169,14 @@ const scanToCleanBrowsers = async (
 
 const scanToCleanPages = (dirPath: string) => {
 	if (fs.existsSync(dirPath)) {
-		const pageList = fs.readdirSync(`${dirPath}`)
+		let pageList
+
+		try {
+			pageList = fs.readdirSync(`${dirPath}`)
+		} catch (err) {
+			Console.error(err)
+			return
+		}
 
 		for (const file of pageList) {
 			if (file === 'info') continue
@@ -195,13 +222,60 @@ const scanToCleanPages = (dirPath: string) => {
 	// }
 } // scanToCleanPages
 
+const scanToCleanViews = (
+	dirPath: string,
+	options: {
+		forceToClean?: boolean
+	}
+) => {
+	if (fs.existsSync(dirPath)) {
+		let viewList
+
+		try {
+			viewList = fs.readdirSync(`${dirPath}`)
+		} catch (err) {
+			Console.error(err)
+			return
+		}
+
+		options = {
+			forceToClean: false,
+			...options,
+		}
+
+		for (const file of viewList) {
+			if (file.endsWith('--loader.br')) continue
+
+			const cacheFilePath = path.join(dirPath, file)
+			const dirExistTimeInMinutes =
+				(Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
+				1000
+
+			if (options.forceToClean || dirExistTimeInMinutes >= 300) {
+				try {
+					fs.unlinkSync(cacheFilePath)
+				} catch (err) {
+					Console.error(err)
+				}
+			}
+		}
+	}
+} // scanToCleanViews
+
 const scanToCleanAPIDataCache = async (dirPath: string) => {
 	if (!dirPath) {
 		Console.error('You need to provide dirPath param!')
 		return
 	}
 
-	const apiCacheList = fs.readdirSync(dirPath)
+	let apiCacheList
+
+	try {
+		apiCacheList = fs.readdirSync(dirPath)
+	} catch (err) {
+		Console.error(err)
+		return
+	}
 
 	if (!apiCacheList || !apiCacheList.length) return
 
@@ -240,15 +314,16 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
 						expiredTime
 					) {
 						if (timeout) clearTimeout(timeout)
-						try {
-							fs.unlink(absolutePath, () => {})
-						} catch (err) {
-							Console.error(err)
-						} finally {
+						fs.unlink(absolutePath, (err) => {
+							if (err) {
+								Console.error(err)
+								return
+							}
+
 							timeout = setTimeout(() => {
 								resolve('complete')
 							}, 100)
-						}
+						})
 					}
 				}
 
@@ -271,7 +346,14 @@ const scanToCleanAPIStoreCache = async (dirPath: string) => {
 		return
 	}
 
-	const apiCacheList = fs.readdirSync(dirPath)
+	let apiCacheList
+
+	try {
+		apiCacheList = fs.readdirSync(dirPath)
+	} catch (err) {
+		Console.error(err)
+		return
+	}
 
 	if (!apiCacheList || !apiCacheList.length) return
 
@@ -324,9 +406,11 @@ WorkerPool.worker({
 	checkToCleanFile,
 	scanToCleanBrowsers,
 	scanToCleanPages,
+	scanToCleanViews,
 	scanToCleanAPIDataCache,
 	scanToCleanAPIStoreCache,
 	deleteResource,
+	copyResource,
 	finish: () => {
 		return 'finish'
 	},

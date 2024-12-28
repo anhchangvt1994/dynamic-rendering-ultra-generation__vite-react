@@ -10,7 +10,7 @@
 		"dev": "cross-env ENV=development npm run start-dev",
 		"dev:fastify": "cross-env ENV=development npm run start-dev:fastify",
 		"dev:uws": "cross-env ENV=development npm run start-dev:uws",
-		"build": "npx vite build && npx tsc",
+		"build": "node -r sucrase/register server/src/utils/BeforeBuildHandler.ts && npx vite build && npx tsc && node -r sucrase/register server/src/utils/AfterBuildHandler.ts",
 		"build:esm": "cross-env ESM=true npx vite build && npx tsc",
 		"preview": "cross-env MODE=development ENV=production npm run start-preview",
 		"preview:fastify": "cross-env MODE=development ENV=production npm run start-preview:fastify",
@@ -47,9 +47,9 @@
 	],
 	"dependencies": {
 		"polished": "^4.2.2",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
-		"react-router-dom": "^6.14.1",
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0",
+		"react-router-dom": "^7.0.0",
 		"styled-components": "^6.0.2"
 	},
 	"devDependencies": {

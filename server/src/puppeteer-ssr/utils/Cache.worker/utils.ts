@@ -4,13 +4,13 @@ import path from 'path'
 import { brotliCompressSync } from 'zlib'
 import Console from '../../../utils/ConsoleHandler'
 import { ISSRResult } from '../../types'
-import { getPagesPath } from '../../../utils/PathHandler'
+import ServerConfig from '../../../server.config'
+// import { getPagesPath } from '../../../utils/PathHandler'
 
-const pagesPath = getPagesPath()
+// const pagesPath = getPagesPath()
 
 export interface ICacheSetParams {
 	html: string
-	url: string
 	isRaw?: boolean
 }
 
@@ -23,24 +23,25 @@ export type IFileInfo =
 	  }
 	| undefined
 
-if (!fs.existsSync(pagesPath)) {
-	try {
-		fs.mkdirSync(pagesPath)
-		fs.mkdirSync(`${pagesPath}/info`)
-	} catch (err) {
-		Console.error(err)
-	}
-}
-
 // export const regexKeyConverter =
 // 	/^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
 export const regexKeyConverter =
-	/www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
+	/www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
 export const regexKeyConverterWithoutLocaleInfo =
-	/www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)/g
+	/www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)/g
 
-export const getKey = (url) => {
+export const getKey = (url: string) => {
 	if (!url) return
+
+	const routeCustomInfo = ServerConfig.routes.custom?.(url)
+
+	if (
+		routeCustomInfo &&
+		routeCustomInfo.loader &&
+		routeCustomInfo.loader.enable &&
+		url.includes('renderingInfo={"type":"SSR","loader": true}')
+	)
+		return routeCustomInfo.loader.name + '--loader'
 
 	url = url
 		.replace('/?', '?')
@@ -114,6 +115,7 @@ interface IGetCacheOptionsParam {
 
 export const get = async (
 	url: string,
+	cachePath: string,
 	options?: IGetCacheOptionsParam
 ): Promise<ISSRResult> => {
 	options = options || {
@@ -127,17 +129,17 @@ export const get = async (
 
 	const key = getKey(url)
 
-	let file = `${pagesPath}/${key}.br`
+	let file = `${cachePath}/${key}.br`
 	let isRaw = false
 
 	switch (true) {
 		case fs.existsSync(file):
 			break
-		case fs.existsSync(`${pagesPath}/${key}.renew.br`):
-			file = `${pagesPath}/${key}.renew.br`
+		case fs.existsSync(`${cachePath}/${key}.renew.br`):
+			file = `${cachePath}/${key}.renew.br`
 			break
 		default:
-			file = `${pagesPath}/${key}.raw.br`
+			file = `${cachePath}/${key}.raw.br`
 			isRaw = true
 			break
 	}
@@ -151,7 +153,7 @@ export const get = async (
 			await Promise.all([
 				fs.writeFileSync(file, ''),
 				fs.writeFileSync(
-					`${pagesPath}/info/${key}.txt`,
+					`${cachePath}/info/${key}.txt`,
 					url
 						.replace('/?', '?')
 						.replace(regexKeyConverterWithoutLocaleInfo, '')
@@ -225,9 +227,10 @@ export const get = async (
 } // get
 
 export const set = async (
-	{ html, url, isRaw }: ICacheSetParams = {
+	url: string,
+	cachePath: string,
+	{ html, isRaw }: ICacheSetParams = {
 		html: '',
-		url: '',
 		isRaw: false,
 	}
 ): Promise<ISSRResult> => {
@@ -238,18 +241,18 @@ export const set = async (
 		return
 	}
 
-	const file = `${pagesPath}/${key}${isRaw ? '.raw' : ''}.br`
+	const file = `${cachePath}/${key}${isRaw ? '.raw' : ''}.br`
 
 	if (!isRaw) {
-		if (fs.existsSync(`${pagesPath}/${key}.renew.br`))
+		if (fs.existsSync(`${cachePath}/${key}.renew.br`))
 			try {
-				fs.renameSync(`${pagesPath}/${key}.renew.br`, file)
+				fs.renameSync(`${cachePath}/${key}.renew.br`, file)
 			} catch (err) {
 				Console.error(err)
 			}
-		else if (fs.existsSync(`${pagesPath}/${key}.raw.br`))
+		else if (fs.existsSync(`${cachePath}/${key}.raw.br`))
 			try {
-				fs.renameSync(`${pagesPath}/${key}.raw.br`, file)
+				fs.renameSync(`${cachePath}/${key}.raw.br`, file)
 			} catch (err) {
 				Console.error(err)
 			}
@@ -270,30 +273,30 @@ export const set = async (
 	}
 
 	const result =
-		(await get(url, {
+		(await get(url, cachePath, {
 			autoCreateIfEmpty: false,
 		})) || ({ html, status: 200 } as ISSRResult)
 
 	return result
 } // set
 
-export const renew = async (url) => {
+export const renew = async (url: string, cachePath: string) => {
 	if (!url) return Console.log('Url can not empty!')
 	const key = getKey(url)
 	let hasRenew = true
 
-	const file = `${pagesPath}/${key}.renew.br`
+	const file = `${cachePath}/${key}.renew.br`
 
 	if (!fs.existsSync(file)) {
 		hasRenew = false
 		const curFile = (() => {
-			let tmpCurFile = `${pagesPath}/${key}.br`
+			let tmpCurFile = `${cachePath}/${key}.br`
 
 			switch (true) {
 				case fs.existsSync(tmpCurFile):
 					break
 				default:
-					tmpCurFile = `${pagesPath}/${key}.raw.br`
+					tmpCurFile = `${cachePath}/${key}.raw.br`
 			}
 
 			return tmpCurFile
@@ -309,18 +312,18 @@ export const renew = async (url) => {
 	return hasRenew
 } // renew
 
-export const remove = async (url: string) => {
+export const remove = async (url: string, cachePath: string) => {
 	if (!url) return Console.log('Url can not empty!')
 	const key = getKey(url)
 
 	const curFile = (() => {
 		switch (true) {
-			case fs.existsSync(`${pagesPath}/${key}.raw.br`):
-				return `${pagesPath}/${key}.raw.br`
-			case fs.existsSync(`${pagesPath}/${key}.br`):
-				return `${pagesPath}/${key}.br`
-			case fs.existsSync(`${pagesPath}/${key}.renew.br`):
-				return `${pagesPath}/${key}.renew.br`
+			case fs.existsSync(`${cachePath}/${key}.raw.br`):
+				return `${cachePath}/${key}.raw.br`
+			case fs.existsSync(`${cachePath}/${key}.br`):
+				return `${cachePath}/${key}.br`
+			case fs.existsSync(`${cachePath}/${key}.renew.br`):
+				return `${cachePath}/${key}.renew.br`
 			default:
 				return
 		}
@@ -331,31 +334,35 @@ export const remove = async (url: string) => {
 	try {
 		await Promise.all([
 			fs.unlinkSync(curFile),
-			fs.unlinkSync(`${pagesPath}/info/${key}.txt`),
+			fs.unlinkSync(`${cachePath}/info/${key}.txt`),
 		])
 	} catch (err) {
 		Console.error(err)
 	}
 } // remove
 
-export const rename = (params: { url: string; type?: 'raw' | 'renew' }) => {
-	if (!params || !params.url) {
+export const rename = (
+	url: string,
+	cachePath: string,
+	params: { type?: 'raw' | 'renew' }
+) => {
+	if (!url || !params) {
 		Console.log('Url can not empty!')
 		return
 	}
 
-	const key = getKey(params.url)
-	const file = `${pagesPath}/${key}${params.type ? '.' + params.type : ''}.br`
+	const key = getKey(url)
+	const file = `${cachePath}/${key}${params.type ? '.' + params.type : ''}.br`
 
 	if (!fs.existsSync(file)) {
 		const curFile = (() => {
 			switch (true) {
-				case fs.existsSync(`${pagesPath}/${key}.raw.br`):
-					return `${pagesPath}/${key}.raw.br`
-				case fs.existsSync(`${pagesPath}/${key}.br`):
-					return `${pagesPath}/${key}.br`
-				case fs.existsSync(`${pagesPath}/${key}.renew.br`):
-					return `${pagesPath}/${key}.renew.br`
+				case fs.existsSync(`${cachePath}/${key}.raw.br`):
+					return `${cachePath}/${key}.raw.br`
+				case fs.existsSync(`${cachePath}/${key}.br`):
+					return `${cachePath}/${key}.br`
+				case fs.existsSync(`${cachePath}/${key}.renew.br`):
+					return `${cachePath}/${key}.renew.br`
 				default:
 					return
 			}
@@ -371,7 +378,7 @@ export const rename = (params: { url: string; type?: 'raw' | 'renew' }) => {
 	}
 } // rename
 
-export const isExist = (url: string) => {
+export const isExist = (url: string, cachePath: string) => {
 	if (!url) {
 		Console.log('Url can not empty!')
 		return false
@@ -380,14 +387,15 @@ export const isExist = (url: string) => {
 	const key = getKey(url)
 
 	return (
-		fs.existsSync(`${pagesPath}/${key}.raw.br`) ||
-		fs.existsSync(`${pagesPath}/${key}.br`) ||
-		fs.existsSync(`${pagesPath}/${key}.renew.br`)
+		fs.existsSync(`${cachePath}/${key}.raw.br`) ||
+		fs.existsSync(`${cachePath}/${key}.br`) ||
+		fs.existsSync(`${cachePath}/${key}.renew.br`)
 	)
 } // isExist
 
 export const getStatus = (
-	url: string
+	url: string,
+	cachePath: string
 ): ('raw' | 'renew' | 'ok') | undefined => {
 	if (!url) {
 		Console.log('Url can not empty!')
@@ -397,9 +405,9 @@ export const getStatus = (
 	const key = getKey(url)
 
 	switch (true) {
-		case fs.existsSync(`${pagesPath}/${key}.raw.br`):
+		case fs.existsSync(`${cachePath}/${key}.raw.br`):
 			return 'raw'
-		case fs.existsSync(`${pagesPath}/${key}.renew.br`):
+		case fs.existsSync(`${cachePath}/${key}.renew.br`):
 			return 'renew'
 		default:
 			return 'ok'

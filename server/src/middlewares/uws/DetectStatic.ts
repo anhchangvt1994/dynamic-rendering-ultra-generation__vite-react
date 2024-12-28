@@ -6,6 +6,7 @@ import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../../server.config'
 import detectStaticExtension from '../../utils/DetectStaticExtension.uws'
 import { ENV } from '../../utils/InitEnv'
+import Console from '../../utils/ConsoleHandler'
 
 const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
 	const isStatic = detectStaticExtension(req)
@@ -17,14 +18,20 @@ const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
 	 */
 
 	if (isStatic && !ServerConfig.isRemoteCrawler) {
-		const staticPath = path.resolve(
-			__dirname,
-			`../../../../dist/${req.getUrl()}`
+		const staticPath = fs.existsSync(
+			path.resolve(__dirname, `../../../resources/${req.getUrl()}`)
 		)
+			? path.resolve(__dirname, `../../../resources/${req.getUrl()}`)
+			: path.resolve(__dirname, `../../../../dist/${req.getUrl()}`)
 
 		try {
 			if (ENV === 'development') {
-				const body = fs.readFileSync(staticPath)
+				let body
+				try {
+					body = fs.readFileSync(staticPath)
+				} catch (err) {
+					Console.error(err)
+				}
 				const mimeType = serveStatic.mime.lookup(staticPath)
 				res
 					.writeStatus('200')
@@ -39,7 +46,12 @@ const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
 					return '' as 'br' | 'gzip' | ''
 				})()
 				const body = (() => {
-					const content = fs.readFileSync(staticPath)
+					let content
+					try {
+						content = fs.readFileSync(staticPath)
+					} catch (err) {
+						Console.error(err)
+					}
 					const tmpBody =
 						contentEncoding === 'br'
 							? brotliCompressSync(content)

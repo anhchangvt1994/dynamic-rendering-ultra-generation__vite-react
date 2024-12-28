@@ -22,6 +22,7 @@ const defaultServerConfig = {
 		optimize: ['script'],
 		routes: {},
 	},
+	routes: {},
 	api: {
 		list: {},
 	},

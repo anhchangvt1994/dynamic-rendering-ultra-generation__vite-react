@@ -1,3 +1,3 @@
 export default function ErrorLoadingPageComponent() {
-	return <div>custom được rồi nè</div>
+	return <div id="404-page">Does not have data</div>
 }

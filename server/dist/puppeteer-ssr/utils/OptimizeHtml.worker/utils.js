@@ -28,7 +28,7 @@ var _InitEnv = require('../../../utils/InitEnv')
 
 var _constants3 = require('../../constants')
 
-const compressContent = async (html) => {
+const compressContent = async (html, options) => {
 	if (!html || _InitEnv.PROCESS_ENV.DISABLE_COMPRESS) return html
 	// console.log('start compress')
 	if (Buffer.isBuffer(html))
@@ -36,20 +36,22 @@ const compressContent = async (html) => {
 
 	if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) return html
 
+	options = options || {
+		collapseBooleanAttributes: true,
+		collapseInlineTagWhitespace: true,
+		collapseWhitespace: true,
+		removeAttributeQuotes: true,
+		removeComments: true,
+		removeEmptyAttributes: true,
+		removeEmptyElements: true,
+		useShortDoctype: true,
+	}
+
 	let tmpHTML = html
 
 	if (_InitEnv.ENV !== 'development') {
 		try {
-			tmpHTML = await _htmlminifierterser.minify.call(void 0, tmpHTML, {
-				collapseBooleanAttributes: true,
-				collapseInlineTagWhitespace: true,
-				collapseWhitespace: true,
-				removeAttributeQuotes: true,
-				removeComments: true,
-				removeEmptyAttributes: true,
-				removeEmptyElements: true,
-				useShortDoctype: true,
-			})
+			tmpHTML = await _htmlminifierterser.minify.call(void 0, tmpHTML, options)
 		} catch (err) {
 			return html
 		}

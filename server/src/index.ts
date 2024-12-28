@@ -14,6 +14,7 @@ import detectLocale from './utils/DetectLocale'
 import DetectRedirect from './utils/DetectRedirect'
 import detectStaticExtension from './utils/DetectStaticExtension'
 import { ENV, ENV_MODE, MODE, PROCESS_ENV } from './utils/InitEnv'
+import Console from './utils/ConsoleHandler'
 
 const ServerConfig = require('./server.config')?.default ?? {}
 
@@ -76,13 +77,18 @@ const startServer = async () => {
 									'Content-Encoding': contentEncoding,
 								})
 								const body = (() => {
-									const content = fs.readFileSync(staticPath)
-									const tmpBody =
-										contentEncoding === 'br'
-											? brotliCompressSync(content)
-											: contentEncoding === 'gzip'
-											? gzipSync(content)
-											: content
+									let tmpBody
+									try {
+										const content = fs.readFileSync(staticPath)
+										tmpBody =
+											contentEncoding === 'br'
+												? brotliCompressSync(content)
+												: contentEncoding === 'gzip'
+												? gzipSync(content)
+												: content
+									} catch (err) {
+										Console.error(err)
+									}
 
 									return tmpBody
 								})()

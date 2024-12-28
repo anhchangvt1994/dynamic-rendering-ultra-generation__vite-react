@@ -38,11 +38,14 @@ var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _InitEnv = require('../../utils/InitEnv')
+var _PathHandler = require('../../utils/PathHandler')
 
 var _utils = require('./CacheManager.worker/utils')
 var _utils2 = _interopRequireDefault(_utils)
 var _ISRHandlerworker = require('./ISRHandler.worker')
 var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
 const limitRequestToCrawl = _serverconfig2.default.crawl.limit
 let totalRequestsToCrawl = 0
@@ -95,8 +98,12 @@ const fetchData = async (input, init, reqData) => {
 	}
 } // fetchData
 
-const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
-	const cacheManager = _utils2.default.call(void 0, ISRHandlerParams.url)
+const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
+	const cacheManager = _utils2.default.call(
+		void 0,
+		ISRHandlerParams.url,
+		pagesPath
+	)
 	if (!_InitEnv.PROCESS_ENV.BASE_URL) {
 		_ConsoleHandler2.default.error('Missing base url!')
 		return
@@ -209,9 +216,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 												retryTimes++
 												renew()
 											} else {
-												cacheManager.rename({
-													url: ISRHandlerParams.url,
-												})
+												cacheManager.rename(ISRHandlerParams.url)
 
 												if (ISRHandlerParams.forceToCrawl) {
 													totalRequestsWaitingToCrawl =
@@ -241,7 +246,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 														.next().value
 													waitingToCrawlList.delete(nextCrawlItem.url)
 
-													SSRGenerator({
+													ISRGenerator({
 														isSkipWaiting: true,
 														forceToCrawl: true,
 														...nextCrawlItem,
@@ -274,9 +279,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 												retryTimes++
 												renew()
 											} else {
-												cacheManager.rename({
-													url: ISRHandlerParams.url,
-												})
+												cacheManager.rename(ISRHandlerParams.url)
 
 												if (ISRHandlerParams.forceToCrawl) {
 													totalRequestsWaitingToCrawl =
@@ -306,7 +309,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 														.next().value
 													waitingToCrawlList.delete(nextCrawlItem.url)
 
-													SSRGenerator({
+													ISRGenerator({
 														isSkipWaiting: true,
 														forceToCrawl: true,
 														...nextCrawlItem,
@@ -410,7 +413,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 									const nextCrawlItem = waitingToCrawlList.values().next().value
 									waitingToCrawlList.delete(nextCrawlItem.url)
 
-									SSRGenerator({
+									ISRGenerator({
 										isSkipWaiting: true,
 										forceToCrawl: true,
 										...nextCrawlItem,
@@ -450,7 +453,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 											.next().value
 										waitingToCrawlList.delete(nextCrawlItem.url)
 
-										SSRGenerator({
+										ISRGenerator({
 											isSkipWaiting: true,
 											forceToCrawl: true,
 											...nextCrawlItem,
@@ -501,7 +504,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 			// 					return res(tmpResult)
 			// 				else if (tmpResult.isInit)
 			// 					res(
-			// 						SSRGenerator({
+			// 						ISRGenerator({
 			// 							...ISRHandlerParams,
 			// 							isSkipWaiting: false,
 			// 							forceToCrawl: true,
@@ -536,4 +539,4 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 	return result
 }
 
-exports.default = SSRGenerator
+exports.default = ISRGenerator

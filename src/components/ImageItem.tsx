@@ -26,9 +26,9 @@ export const Outer = styled.div`
 function Component(props) {
 	const [isError, setIsError] = useState(false)
 
-	function onErrorHandler() {
+	const onErrorHandler = useCallback(() => {
 		setIsError(true)
-	}
+	}, [])
 
 	return (
 		<Outer className={isError ? '--is-error' : ''}>

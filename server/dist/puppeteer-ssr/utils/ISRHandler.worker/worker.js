@@ -39,6 +39,7 @@ function _optionalChain(ops) {
 }
 var _workerpool = require('workerpool')
 var _workerpool2 = _interopRequireDefault(_workerpool)
+
 var _constants = require('../../../constants')
 var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
@@ -52,6 +53,11 @@ var _utils2 = _interopRequireDefault(_utils)
 
 var _utils3 = require('../OptimizeHtml.worker/utils')
 var _utils5 = require('./utils/utils')
+var _PathHandler = require('../../../utils/PathHandler')
+
+const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
 	if (!startGenerating) return 0
@@ -355,7 +361,7 @@ const ISRHandler = async (params) => {
 	const startGenerating = Date.now()
 	if (_getRestOfDuration(startGenerating, gapDurationDefault) <= 0) return
 
-	const cacheManager = _utils2.default.call(void 0, url)
+	const cacheManager = _utils2.default.call(void 0, url, pagesPath)
 
 	let restOfDuration = _getRestOfDuration(startGenerating, gapDurationDefault)
 
@@ -479,6 +485,7 @@ const ISRHandler = async (params) => {
 									: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
 							),
 					]),
+					// setCookies,
 					_optionalChain([
 						safePage,
 						'call',
@@ -560,17 +567,36 @@ const ISRHandler = async (params) => {
 							} else {
 								const reqUrl = req.url()
 
+								if (resourceType.includes('fetch')) {
+									const urlInfo = new URL(reqUrl)
+									if (!urlInfo.pathname.startsWith('/api')) {
+										return req.respond({
+											status: 200,
+										})
+									}
+								}
+
 								if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
 									const urlInfo = new URL(reqUrl)
-									const pointsTo = _optionalChain([
-										_serverconfig2.default,
-										'access',
-										(_56) => _56.routes,
-										'optionalAccess',
-										(_57) => _57[urlInfo.pathname],
-										'optionalAccess',
-										(_58) => _58.pointsTo,
-									])
+									const pointsTo = (() => {
+										const tmpPointsTo = _optionalChain([
+											_serverconfig2.default,
+											'access',
+											(_56) => _56.routes,
+											'optionalAccess',
+											(_57) => _57.list,
+											'optionalAccess',
+											(_58) => _58[urlInfo.pathname],
+											'optionalAccess',
+											(_59) => _59.pointsTo,
+										])
+
+										if (!tmpPointsTo) return ''
+
+										return typeof tmpPointsTo === 'string'
+											? tmpPointsTo
+											: tmpPointsTo.url
+									})()
 
 									if (!pointsTo || pointsTo.startsWith(baseUrl)) {
 										_utils5.getInternalHTML
@@ -582,12 +608,13 @@ const ISRHandler = async (params) => {
 														status: 404,
 														contentType: 'text/html',
 													})
-												else
+												else {
 													req.respond({
 														body: result.body,
 														status: result.status,
 														contentType: 'text/html',
 													})
+												}
 											})
 											.catch((err) => {
 												_ConsoleHandler2.default.error(err)
@@ -643,9 +670,9 @@ const ISRHandler = async (params) => {
 						_optionalChain([
 							response,
 							'optionalAccess',
-							(_59) => _59.status,
+							(_60) => _60.status,
 							'optionalCall',
-							(_60) => _60(),
+							(_61) => _61(),
 						]),
 						() => status
 					)
@@ -661,16 +688,14 @@ const ISRHandler = async (params) => {
 				_optionalChain([
 					safePage,
 					'call',
-					(_61) => _61(),
+					(_62) => _62(),
 					'optionalAccess',
-					(_62) => _62.close,
+					(_63) => _63.close,
 					'call',
-					(_63) => _63(),
+					(_64) => _64(),
 				])
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return {
@@ -684,22 +709,22 @@ const ISRHandler = async (params) => {
 						await _optionalChain([
 							safePage,
 							'call',
-							(_64) => _64(),
+							(_65) => _65(),
 							'optionalAccess',
-							(_65) => _65.content,
+							(_66) => _66.content,
 							'call',
-							(_66) => _66(),
+							(_67) => _67(),
 						]),
 						async () => ''
 					) // serialized HTML of page DOM.
 					_optionalChain([
 						safePage,
 						'call',
-						(_67) => _67(),
+						(_68) => _68(),
 						'optionalAccess',
-						(_68) => _68.close,
+						(_69) => _69.close,
 						'call',
-						(_69) => _69(),
+						(_70) => _70(),
 					])
 				} catch (err) {
 					_ConsoleHandler2.default.log('ISRHandler line 315:')
@@ -707,16 +732,14 @@ const ISRHandler = async (params) => {
 					_optionalChain([
 						safePage,
 						'call',
-						(_70) => _70(),
+						(_71) => _71(),
 						'optionalAccess',
-						(_71) => _71.close,
+						(_72) => _72.close,
 						'call',
-						(_72) => _72(),
+						(_73) => _73(),
 					])
 					if (params.hasCache) {
-						cacheManager.rename({
-							url,
-						})
+						cacheManager.rename(url)
 					}
 
 					return
@@ -743,11 +766,11 @@ const ISRHandler = async (params) => {
 		const crawlCustomOption = _optionalChain([
 			_serverconfig2.default,
 			'access',
-			(_73) => _73.crawl,
+			(_74) => _74.crawl,
 			'access',
-			(_74) => _74.custom,
+			(_75) => _75.custom,
 			'optionalCall',
-			(_75) => _75(url),
+			(_76) => _76(url),
 		])
 
 		const optimizeOption = _nullishCoalesce(
@@ -851,9 +874,8 @@ const ISRHandler = async (params) => {
 			// console.log('-------')
 		}
 
-		result = await cacheManager.set({
+		result = await cacheManager.set(url, {
 			html,
-			url,
 			isRaw,
 		})
 	} else {

@@ -35,6 +35,11 @@ export interface ILocaleInfo {
 	area: number
 }
 
+export interface IRenderingInfo {
+	type: 'CSR' | 'SSR' | 'ISR'
+	loader: boolean
+}
+
 export let EnvironmentInfo: IEnvironment
 
 export let BotInfo: IBotInfo
@@ -43,13 +48,19 @@ export let DeviceInfo: IDeviceInfo
 
 export let LocaleInfo: ILocaleInfo
 
+export let RenderingInfo: IRenderingInfo
+
 export const ServerStore = (() => {
+	const urlInfo = new URL(document.URL)
+	const params = new URLSearchParams(urlInfo.searchParams)
 	const html = document.documentElement
+
 	return {
 		init() {
 			if (!EnvironmentInfo) {
 				EnvironmentInfo = (() => {
-					const strInfo = getCookie('EnvironmentInfo')
+					const strInfo =
+						params.get('environmentInfo') || getCookie('EnvironmentInfo')
 
 					return strInfo
 						? JSON.parse(strInfo)
@@ -63,7 +74,7 @@ export const ServerStore = (() => {
 			}
 			if (!BotInfo) {
 				BotInfo = (() => {
-					const strInfo = getCookie('BotInfo')
+					const strInfo = params.get('botInfo') || getCookie('BotInfo')
 
 					return strInfo ? JSON.parse(strInfo) : { isBot: false }
 				})()
@@ -71,7 +82,7 @@ export const ServerStore = (() => {
 			}
 			if (!DeviceInfo) {
 				DeviceInfo = (() => {
-					const strInfo = getCookie('DeviceInfo')
+					const strInfo = params.get('deviceInfo') || getCookie('DeviceInfo')
 
 					return strInfo ? JSON.parse(strInfo) : {}
 				})()
@@ -79,13 +90,24 @@ export const ServerStore = (() => {
 			}
 			if (!LocaleInfo) {
 				LocaleInfo = (() => {
-					const strInfo = getCookie('LocaleInfo')
+					const strInfo = params.get('localeInfo') || getCookie('LocaleInfo')
 
 					const info = strInfo ? JSON.parse(strInfo) : LocaleInfo || {}
 
 					return info
 				})()
 				deleteCookie('LocaleInfo')
+			}
+			if (!RenderingInfo) {
+				RenderingInfo = (() => {
+					const strInfo =
+						params.get('renderingInfo') || getCookie('RenderingInfo')
+
+					return strInfo
+						? { loader: false, ...JSON.parse(strInfo) }
+						: { type: 'CSR', loader: false }
+				})()
+				deleteCookie('RenderingInfo')
 			}
 
 			if (html) {
@@ -98,7 +120,7 @@ export const ServerStore = (() => {
 		reInit: {
 			LocaleInfo: () => {
 				LocaleInfo = (() => {
-					const strInfo = getCookie('LocaleInfo')
+					const strInfo = params.get('localeInfo') || getCookie('LocaleInfo')
 
 					const info = strInfo ? JSON.parse(strInfo) : LocaleInfo
 

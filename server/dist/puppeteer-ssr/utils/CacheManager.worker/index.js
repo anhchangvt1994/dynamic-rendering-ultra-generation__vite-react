@@ -37,9 +37,6 @@ var _WorkerManager = require('../../../utils/WorkerManager')
 var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 
 var _utils = require('../Cache.worker/utils')
-var _PathHandler = require('../../../utils/PathHandler')
-
-const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
 const workerManager = _WorkerManager2.default.init(
 	_path2.default.resolve(
@@ -55,7 +52,7 @@ const workerManager = _WorkerManager2.default.init(
 
 const maintainFile = _path2.default.resolve(__dirname, '../../../maintain.html')
 
-const CacheManager = (url) => {
+const CacheManager = (url, cachePath) => {
 	const pathname = new URL(url).pathname
 
 	const enableToCache =
@@ -126,7 +123,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = await pool.exec('get', [url])
+			result = await pool.exec('get', [url, cachePath])
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -146,17 +143,17 @@ const CacheManager = (url) => {
 		}
 
 		const key = _utils.getKey.call(void 0, url)
-		let file = `${pagesPath}/${key}.br`
+		let file = `${cachePath}/${key}.br`
 		let isRaw = false
 
 		switch (true) {
 			case _fs2.default.existsSync(file):
 				break
-			case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
-				file = `${pagesPath}/${key}.renew.br`
+			case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
+				file = `${cachePath}/${key}.renew.br`
 				break
 			default:
-				file = `${pagesPath}/${key}.raw.br`
+				file = `${cachePath}/${key}.raw.br`
 				isRaw = true
 				break
 		}
@@ -196,7 +193,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = await pool.exec('set', [params])
+			result = await pool.exec('set', [url, cachePath, params])
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -214,7 +211,7 @@ const CacheManager = (url) => {
 		let result
 
 		try {
-			result = await pool.exec('renew', [url])
+			result = await pool.exec('renew', [url, cachePath])
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -244,7 +241,7 @@ const CacheManager = (url) => {
 		const pool = freePool.pool
 
 		try {
-			await pool.exec('remove', [url])
+			await pool.exec('remove', [url, cachePath])
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -254,14 +251,14 @@ const CacheManager = (url) => {
 		})
 	} // remove
 
-	const rename = async (params) => {
-		if (!enableToCache || !params || !params.url) return
+	const rename = async (url, params) => {
+		if (!enableToCache || !url) return
 
 		const freePool = await workerManager.getFreePool()
 		const pool = freePool.pool
 
 		try {
-			await pool.exec('rename', [params])
+			await pool.exec('rename', [url, cachePath, params || {}])
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -272,11 +269,11 @@ const CacheManager = (url) => {
 	} // rename
 
 	const getStatus = () => {
-		return _utils.getStatus.call(void 0, url)
+		return _utils.getStatus.call(void 0, url, cachePath)
 	} // getStatus
 
 	const isExist = () => {
-		return _utils.isExist.call(void 0, url)
+		return _utils.isExist.call(void 0, url, cachePath)
 	} // isExist
 
 	return {

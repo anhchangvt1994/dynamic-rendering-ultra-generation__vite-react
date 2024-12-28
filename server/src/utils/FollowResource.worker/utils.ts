@@ -2,7 +2,7 @@ import fs from 'fs-extra'
 import Console from '../ConsoleHandler'
 
 export const deleteResource = (path: string) => {
-	if (!path || !fs.existsSync(path)) {
+	if (!path || !fs.pathExistsSync(path)) {
 		Console.log('Path can not empty!')
 		return
 	}

@@ -1,4 +1,5 @@
 import Chromium from '@sparticuz/chromium-min'
+import chokidar from 'chokidar'
 import path from 'path'
 import { resourceExtension, SERVER_LESS } from '../../constants'
 import {
@@ -13,11 +14,14 @@ import {
 	getPagesPath,
 	getStorePath,
 	getUserDataPath,
+	getViewsPath,
 	getWorkerManagerPath,
 } from '../PathHandler'
 import WorkerManager from '../WorkerManager'
+import fs from 'fs-extra'
 
 const pagesPath = getPagesPath()
+const viewsPath = getViewsPath()
 const dataPath = getDataPath()
 const storePath = getStorePath()
 const userDataPath = getUserDataPath()
@@ -39,8 +43,10 @@ const workerManager = (() => {
 		[
 			'scanToCleanBrowsers',
 			'scanToCleanPages',
+			'scanToCleanViews',
 			'scanToCleanAPIDataCache',
 			'deleteResource',
+			'copyResource',
 		]
 	)
 })()
@@ -128,6 +134,97 @@ export const cleanPages = (() => {
 		}
 	}
 })() // cleanPages
+
+export const cleanViews = (() => {
+	// let cleanViewsTimeout: NodeJS.Timeout
+	// let distFilesChangedTimeout: NodeJS.Timeout
+	// let isDistChanging: boolean = false
+
+	// ;(() => {
+	// 	if (!isMainThread || !workerManager) return
+
+	// try {
+	// 	fs.emptyDirSync(path.resolve(__dirname, '../../../resources'))
+	// 	fs.copySync(
+	// 		path.resolve(__dirname, '../../../../dist'),
+	// 		path.resolve(__dirname, '../../../resources')
+	// 	)
+	// } catch (err) {
+	// 	Console.error(err)
+	// }
+
+	// const watcher = chokidar.watch(
+	// 	[
+	// 		path.resolve(__dirname, '../../../../dist/**/*'),
+	// 		path.resolve(__dirname, '../../../../dist/*'),
+	// 	],
+	// 	{
+	// 		ignored: /$^/,
+	// 		persistent: true,
+	// 	}
+	// ) // /$^/ is match nothing
+
+	// watcher.on('change', function () {
+	// 	if (isDistChanging) return
+	// 	isDistChanging = true
+
+	// 	if (cleanViewsTimeout) {
+	// 		clearTimeout(cleanViewsTimeout)
+	// 	}
+
+	// 	if (distFilesChangedTimeout) {
+	// 		clearTimeout(distFilesChangedTimeout)
+	// 	}
+
+	// 	distFilesChangedTimeout = setTimeout(async () => {
+	// 		const freePool = await workerManager.getFreePool()
+	// 		const pool = freePool.pool
+
+	// 		try {
+	// 			await pool.exec('deleteResource', [viewsPath])
+	// 		} catch (err) {
+	// 			Console.error(err)
+	// 		}
+
+	// 		isDistChanging = false
+	// 		cleanViewsTimeout = setTimeout(() => {
+	// 			cleanViews()
+	// 		}, 300000)
+
+	// 		freePool.terminate({
+	// 			force: true,
+	// 		})
+	// 	}, 1000)
+	// })
+	// })()
+
+	return async (options?: { forceToClean?: boolean }) => {
+		if (!isMainThread || !workerManager) return
+
+		const freePool = await workerManager.getFreePool()
+		const pool = freePool.pool
+
+		try {
+			options = {
+				forceToClean: false,
+				...options,
+			}
+			await pool.exec('scanToCleanViews', [viewsPath, options])
+		} catch (err) {
+			Console.error(err)
+		}
+
+		freePool.terminate({
+			force: true,
+		})
+
+		if (!SERVER_LESS) {
+			setTimeout(() => {
+				cleanViews()
+			}, 300000)
+		}
+	}
+})() // cleanViews
 
 export const cleanAPIDataCache = (() => {
 	return async () => {

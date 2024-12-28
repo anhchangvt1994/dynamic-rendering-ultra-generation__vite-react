@@ -111,6 +111,138 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
 			} else serverConfig[key] = defaultServerConfig[key]
 		} // crawl
 
+		if (key === 'routes') {
+			if (serverConfig[key]) {
+				const defaultOption = defaultServerConfig[key]
+
+				serverConfig[key] = {
+					...defaultOption,
+					...serverConfig[key],
+				}
+
+				const defaultPreview = {
+					content: ['desktop', 'mobile'],
+					time: 300,
+					renewTime: 120,
+				} as IServerConfig['routes']['preview']
+
+				if (serverConfig[key].preview) {
+					if (typeof serverConfig[key].preview === 'boolean') {
+						serverConfig[key].preview = defaultPreview
+					} else if (!serverConfig[key].preview.content) {
+						serverConfig[key].preview.content = ['desktop', 'mobile']
+					}
+				}
+
+				for (const routeKey in serverConfig[key].list) {
+					if (serverConfig[key].list[routeKey]) {
+						if (serverConfig[key].list[routeKey].pointsTo) {
+							serverConfig[key].list[routeKey] = {
+								pointsTo:
+									typeof serverConfig[key].list[routeKey].pointsTo === 'string'
+										? {
+												url: serverConfig[key].list[routeKey].pointsTo,
+												content: serverConfig[key].preview?.content ?? [
+													'desktop',
+													'mobile',
+												],
+										  }
+										: {
+												content: serverConfig[key].preview?.content ?? [
+													'desktop',
+													'mobile',
+												],
+												...serverConfig[key].list[routeKey].pointsTo,
+										  },
+							}
+						} else if (serverConfig[key].list[routeKey].preview) {
+							serverConfig[key].list[routeKey] = {
+								preview:
+									typeof serverConfig[key].list[routeKey].preview === 'boolean'
+										? serverConfig[key].preview
+										: {
+												...defaultPreview,
+												...serverConfig[key].preview,
+												...serverConfig[key][routeKey].preview,
+										  },
+							}
+						}
+					}
+				}
+
+				if (serverConfig[key].custom) {
+					const customFunc = serverConfig[key].custom
+					serverConfig[key].custom = (url: string) => {
+						if (!url) return
+
+						let tmpConfig = customFunc(url)
+
+						const urlInfo = new URL(url)
+
+						const defaultOptionOfCustom = serverConfig[key].list?.[
+							urlInfo.pathname
+						] ?? {
+							preview: serverConfig[key].preview,
+						}
+
+						if (!tmpConfig) {
+							tmpConfig = defaultOptionOfCustom
+						} else if (tmpConfig.pointsTo) {
+							tmpConfig = {
+								pointsTo:
+									typeof tmpConfig.pointsTo === 'string'
+										? {
+												url: tmpConfig.pointsTo,
+												content: defaultOptionOfCustom.pointsTo?.content ??
+													defaultOptionOfCustom.preview?.content ?? [
+														'desktop',
+														'mobile',
+													],
+										  }
+										: {
+												content: defaultOptionOfCustom.pointsTo?.content ??
+													defaultOptionOfCustom.preview?.content ?? [
+														'desktop',
+														'mobile',
+													],
+												...tmpConfig.pointsTo,
+										  },
+							}
+						} else if (tmpConfig.preview) {
+							tmpConfig =
+								typeof tmpConfig.preview === 'boolean'
+									? {
+											preview: defaultOptionOfCustom.preview,
+									  }
+									: {
+											preview: {
+												content: defaultOptionOfCustom.preview?.content ?? [
+													'desktop',
+													'mobile',
+												],
+												...tmpConfig.preview,
+											},
+									  }
+						} else {
+							tmpConfig = {
+								...defaultOptionOfCustom,
+								...tmpConfig,
+							}
+						}
+
+						if (tmpConfig.loader) {
+							tmpConfig.loader.enable =
+								typeof tmpConfig.loader.enable === 'undefined'
+									? true
+									: tmpConfig.loader.enable
+						}
+
+						return tmpConfig
+					}
+				}
+			} else serverConfig[key] = defaultServerConfig[key]
+		} // routes
+
 		if (key === 'api') {
 			if (options[key]) {
 				const defaultOption = defaultServerConfig[key]

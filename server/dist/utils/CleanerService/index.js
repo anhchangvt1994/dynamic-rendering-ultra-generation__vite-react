@@ -18,6 +18,9 @@ const CleanerService = async (force = false) => {
 	// NOTE - Pages Cleaner
 	_utils.cleanPages.call(void 0)
 
+	// NOTE - Views Cleaner
+	_utils.cleanViews.call(void 0)
+
 	// NOTE - API Data Cache Cleaner
 	_utils.cleanAPIDataCache.call(void 0)
 

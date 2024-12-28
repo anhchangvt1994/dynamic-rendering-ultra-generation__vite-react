@@ -100,7 +100,6 @@ function Layout() {
 			<p>
 				<code>{userInfoState}</code>
 			</p>
-
 			<MainContainer>
 				<Header>
 					<div>

@@ -10,7 +10,13 @@ const browserCachePath = (() => {
 		path = process.env.PUPPETEER_CACHE_DIR
 	else {
 		path = resolve(__dirname, './node_modules/.puppeteer-cache')
-		if (!fs.existsSync(path)) fs.mkdirSync(path)
+		if (!fs.existsSync(path)) {
+			try {
+				fs.mkdirSync(path)
+			} catch (err) {
+				console.error(err)
+			}
+		}
 	}
 
 	return path

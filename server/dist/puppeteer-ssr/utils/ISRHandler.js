@@ -54,6 +54,10 @@ var _utils2 = _interopRequireDefault(_utils)
 
 var _OptimizeHtmlworker = require('./OptimizeHtml.worker')
 var _utils3 = require('./OptimizeHtml.worker/utils')
+var _PathHandler = require('../../utils/PathHandler')
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
+
 const { parentPort, isMainThread } = require('worker_threads')
 
 const browserManager = (() => {
@@ -333,7 +337,7 @@ const ISRHandler = async (params) => {
 	const startGenerating = Date.now()
 	if (_getRestOfDuration(startGenerating, gapDurationDefault) <= 0) return
 
-	const cacheManager = _utils2.default.call(void 0, url)
+	const cacheManager = _utils2.default.call(void 0, url, pagesPath)
 
 	let restOfDuration = _getRestOfDuration(startGenerating, gapDurationDefault)
 
@@ -560,9 +564,7 @@ const ISRHandler = async (params) => {
 					})
 				}
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return {
@@ -621,9 +623,7 @@ const ISRHandler = async (params) => {
 					})
 				}
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return
@@ -722,9 +722,8 @@ const ISRHandler = async (params) => {
 			// console.log('-------')
 		}
 
-		result = await cacheManager.set({
+		result = await cacheManager.set(url, {
 			html,
-			url,
 			isRaw,
 		})
 	} else {

@@ -9,7 +9,7 @@ var _ConsoleHandler = require('../ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
 const deleteResource = (path) => {
-	if (!path || !_fsextra2.default.existsSync(path)) {
+	if (!path || !_fsextra2.default.pathExistsSync(path)) {
 		_ConsoleHandler2.default.log('Path can not empty!')
 		return
 	}

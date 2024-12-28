@@ -286,7 +286,13 @@ const puppeteerSSRService = (async () => {
 						}
 					}
 
-					let html = fs.readFileSync(filePath, 'utf8') || ''
+					let html = ''
+
+					try {
+						html = fs.readFileSync(filePath, 'utf8')
+					} catch (err) {
+						Console.error(err)
+					}
 
 					html = html.replace(
 						'</head>',

@@ -3,6 +3,13 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
 	return obj && obj.__esModule ? obj : { default: obj }
 }
+function _nullishCoalesce(lhs, rhsFn) {
+	if (lhs != null) {
+		return lhs
+	} else {
+		return rhsFn()
+	}
+}
 function _optionalChain(ops) {
 	let lastAccessLHS = undefined
 	let value = ops[0]
@@ -32,6 +39,7 @@ var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _StringHelper = require('../../../../utils/StringHelper')
 
+var _constants = require('../../../constants')
 // import sharp from 'sharp'
 
 const getInternalScript = async (params) => {
@@ -81,6 +89,8 @@ const getInternalHTML = async (params) => {
 		return
 	}
 
+	const { url } = params
+
 	try {
 		const filePath = _path.resolve.call(
 			void 0,
@@ -92,11 +102,58 @@ const getInternalHTML = async (params) => {
 			let tmpStoreKey
 			let tmpAPIStore
 
-			tmpStoreKey = _StringHelper.hashCode.call(void 0, params.url)
+			tmpStoreKey = _StringHelper.hashCode.call(void 0, url)
 
 			tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
 
-			return _optionalChain([tmpAPIStore, 'optionalAccess', (_) => _.data])
+			if (tmpAPIStore) return tmpAPIStore.data
+
+			const specialInfo = _nullishCoalesce(
+				_optionalChain([
+					_constants.regexQueryStringSpecialInfo,
+					'access',
+					(_) => _.exec,
+					'call',
+					(_2) => _2(url),
+					'optionalAccess',
+					(_3) => _3.groups,
+				]),
+				() => ({})
+			)
+
+			const deviceType = (() => {
+				let tmpDeviceType
+				try {
+					tmpDeviceType = _optionalChain([
+						JSON,
+						'access',
+						(_4) => _4.parse,
+						'call',
+						(_5) => _5(specialInfo.deviceInfo),
+						'optionalAccess',
+						(_6) => _6.type,
+					])
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
+
+				return tmpDeviceType
+			})()
+
+			tmpStoreKey = _StringHelper.hashCode.call(
+				void 0,
+				`${url}${
+					url.includes('?') && deviceType
+						? '&device=' + deviceType
+						: '?device=' + deviceType
+				}`
+			)
+
+			tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+
+			if (tmpAPIStore) return tmpAPIStore.data
+
+			return
 		})()
 
 		const WindowAPIStore = {}

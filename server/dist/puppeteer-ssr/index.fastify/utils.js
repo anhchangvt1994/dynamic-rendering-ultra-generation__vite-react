@@ -8,6 +8,9 @@ var _fs2 = _interopRequireDefault(_fs)
 var _zlib = require('zlib')
 var _constants = require('../constants')
 
+var _ConsoleHandler = require('../../utils/ConsoleHandler')
+var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+
 const handleResultAfterISRGenerator = (res, params) => {
 	if (!res) return
 	const { result, enableContentEncoding, contentEncoding } = params
@@ -49,7 +52,13 @@ const handleResultAfterISRGenerator = (res, params) => {
 						? _zlib.gzipSync.call(void 0, result.html)
 						: result.html
 					: (() => {
-							let tmpContent = _fs2.default.readFileSync(result.response)
+							let tmpContent = ''
+
+							try {
+								tmpContent = _fs2.default.readFileSync(result.response)
+							} catch (err) {
+								_ConsoleHandler2.default.error(err)
+							}
 
 							if (contentEncoding === 'br') return tmpContent
 							else if (tmpContent && Buffer.isBuffer(tmpContent))
@@ -65,12 +74,22 @@ const handleResultAfterISRGenerator = (res, params) => {
 							return tmpContent
 					  })()
 			} else if (result.response.indexOf('.br') !== -1) {
-				const content = _fs2.default.readFileSync(result.response)
+				let content
+
+				try {
+					content = _fs2.default.readFileSync(result.response)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 
 				if (content && Buffer.isBuffer(content))
 					tmpBody = _zlib.brotliDecompressSync.call(void 0, content).toString()
 			} else {
-				tmpBody = _fs2.default.readFileSync(result.response)
+				try {
+					tmpBody = _fs2.default.readFileSync(result.response)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 			}
 
 			return tmpBody
@@ -84,19 +103,33 @@ const handleResultAfterISRGenerator = (res, params) => {
 			let tmpBody = ''
 
 			if (enableContentEncoding) {
-				tmpBody = result.html
-					? contentEncoding === 'br'
-						? _zlib.brotliCompressSync.call(void 0, result.html)
-						: contentEncoding === 'gzip'
-						? _zlib.gzipSync.call(void 0, result.html)
-						: result.html
-					: _fs2.default.readFileSync(result.response)
+				try {
+					tmpBody = result.html
+						? contentEncoding === 'br'
+							? _zlib.brotliCompressSync.call(void 0, result.html)
+							: contentEncoding === 'gzip'
+							? _zlib.gzipSync.call(void 0, result.html)
+							: result.html
+						: _fs2.default.readFileSync(result.response)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 			} else if (result.response.indexOf('.br') !== -1) {
-				const content = _fs2.default.readFileSync(result.response)
+				let content
+
+				try {
+					content = _fs2.default.readFileSync(result.response)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 
 				tmpBody = _zlib.brotliDecompressSync.call(void 0, content).toString()
 			} else {
-				tmpBody = _fs2.default.readFileSync(result.response)
+				try {
+					tmpBody = _fs2.default.readFileSync(result.response)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
 			}
 
 			return tmpBody

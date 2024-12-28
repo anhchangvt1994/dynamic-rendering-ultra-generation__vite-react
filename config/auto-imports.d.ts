@@ -16,10 +16,12 @@ declare global {
   const Outlet: typeof import('react-router-dom')['Outlet']
   const ProxyAPI: typeof import('utils/ProxyAPIHelper/index.ts')['ProxyAPI']
   const React: typeof import('react')
+  const RenderingInfo: typeof import('store/ServerStore.ts')['RenderingInfo']
   const Route: typeof import('react-router-dom')['Route']
   const RouterProvider: typeof import('react-router-dom')['RouterProvider']
   const Routes: typeof import('react-router-dom')['Routes']
   const StrictMode: typeof import('react')['StrictMode']
+  const StyleSheetManager: typeof import('styled-components')['StyleSheetManager']
   const Suspense: typeof import('react')['Suspense']
   const componentDidCatch: typeof import('react')['componentDidCatch']
   const createBrowserRouter: typeof import('react-router-dom')['createBrowserRouter']

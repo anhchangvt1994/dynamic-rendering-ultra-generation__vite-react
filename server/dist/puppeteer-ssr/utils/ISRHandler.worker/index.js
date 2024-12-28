@@ -46,6 +46,10 @@ var _utils2 = _interopRequireDefault(_utils)
 var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _InitEnv = require('../../../utils/InitEnv')
+var _PathHandler = require('../../../utils/PathHandler')
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0)
+
 const { parentPort, isMainThread } = require('worker_threads')
 
 const workerManager = _WorkerManager2.default.init(
@@ -95,16 +99,15 @@ const ISRHandler = async (params) => {
 	const pool = freePool.pool
 
 	let result
-	const cacheManager = _utils2.default.call(void 0, params.url)
+	const cacheManager = _utils2.default.call(void 0, params.url, pagesPath)
 
 	try {
 		result = await new Promise(async (res, rej) => {
 			let html
 			const timeout = setTimeout(async () => {
 				if (html) {
-					const tmpResult = await cacheManager.set({
+					const tmpResult = await cacheManager.set(params.url, {
 						html,
-						url: params.url,
 						isRaw: !params.hasCache,
 					})
 

@@ -32,6 +32,8 @@ function _optionalChain(ops) {
 }
 var _fs = require('fs')
 var _fs2 = _interopRequireDefault(_fs)
+var _fsextra = require('fs-extra')
+var _fsextra2 = _interopRequireDefault(_fsextra)
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
 var _workerpool = require('workerpool')
@@ -48,6 +50,15 @@ var _utils = require('./utils')
 const deleteResource = (path) => {
 	_utils.deleteResource.call(void 0, path)
 } //  deleteResource
+
+const copyResource = (path, targetPath, opts) => {
+	try {
+		_fsextra2.default.emptyDirSync(targetPath)
+		_fsextra2.default.copySync(path, targetPath)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
+} // copyResource
 
 const getFileInfo = async (file) => {
 	if (!file) {
@@ -123,7 +134,13 @@ const checkToCleanFile = async (file, { schedule, validRequestAtDuration }) => {
 
 const scanToCleanBrowsers = async (dirPath, expiredTime = 1, browserStore) => {
 	if (_fs2.default.existsSync(dirPath)) {
-		const browserList = _fs2.default.readdirSync(dirPath)
+		let browserList
+
+		try {
+			browserList = _fs2.default.readdirSync(dirPath)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
 
 		const curUserDataPath = browserStore.userDataPath
 			? _path2.default.join('', browserStore.userDataPath)
@@ -163,7 +180,14 @@ const scanToCleanBrowsers = async (dirPath, expiredTime = 1, browserStore) => {
 
 const scanToCleanPages = (dirPath) => {
 	if (_fs2.default.existsSync(dirPath)) {
-		const pageList = _fs2.default.readdirSync(`${dirPath}`)
+		let pageList
+
+		try {
+			pageList = _fs2.default.readdirSync(`${dirPath}`)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+			return
+		}
 
 		for (const file of pageList) {
 			if (file === 'info') continue
@@ -223,13 +247,56 @@ const scanToCleanPages = (dirPath) => {
 	// }
 } // scanToCleanPages
 
+const scanToCleanViews = (dirPath, options) => {
+	if (_fs2.default.existsSync(dirPath)) {
+		let viewList
+
+		try {
+			viewList = _fs2.default.readdirSync(`${dirPath}`)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+			return
+		}
+
+		options = {
+			forceToClean: false,
+			...options,
+		}
+
+		for (const file of viewList) {
+			if (file.endsWith('--loader.br')) continue
+
+			const cacheFilePath = _path2.default.join(dirPath, file)
+			const dirExistTimeInMinutes =
+				(Date.now() -
+					new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
+				1000
+
+			if (options.forceToClean || dirExistTimeInMinutes >= 300) {
+				try {
+					_fs2.default.unlinkSync(cacheFilePath)
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
+			}
+		}
+	}
+} // scanToCleanViews
+
 const scanToCleanAPIDataCache = async (dirPath) => {
 	if (!dirPath) {
 		_ConsoleHandler2.default.error('You need to provide dirPath param!')
 		return
 	}
 
-	const apiCacheList = _fs2.default.readdirSync(dirPath)
+	let apiCacheList
+
+	try {
+		apiCacheList = _fs2.default.readdirSync(dirPath)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+		return
+	}
 
 	if (!apiCacheList || !apiCacheList.length) return
 
@@ -271,15 +338,16 @@ const scanToCleanAPIDataCache = async (dirPath) => {
 						expiredTime
 					) {
 						if (timeout) clearTimeout(timeout)
-						try {
-							_fs2.default.unlink(absolutePath, () => {})
-						} catch (err) {
-							_ConsoleHandler2.default.error(err)
-						} finally {
+						_fs2.default.unlink(absolutePath, (err) => {
+							if (err) {
+								_ConsoleHandler2.default.error(err)
+								return
+							}
+
 							timeout = setTimeout(() => {
 								resolve('complete')
 							}, 100)
-						}
+						})
 					}
 				}
 
@@ -302,7 +370,14 @@ const scanToCleanAPIStoreCache = async (dirPath) => {
 		return
 	}
 
-	const apiCacheList = _fs2.default.readdirSync(dirPath)
+	let apiCacheList
+
+	try {
+		apiCacheList = _fs2.default.readdirSync(dirPath)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+		return
+	}
 
 	if (!apiCacheList || !apiCacheList.length) return
 
@@ -356,9 +431,11 @@ _workerpool2.default.worker({
 	checkToCleanFile,
 	scanToCleanBrowsers,
 	scanToCleanPages,
+	scanToCleanViews,
 	scanToCleanAPIDataCache,
 	scanToCleanAPIStoreCache,
 	deleteResource,
+	copyResource,
 	finish: () => {
 		return 'finish'
 	},

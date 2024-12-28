@@ -17,11 +17,9 @@ import {
 	set as setCache,
 } from '../Cache.worker/utils'
 
-const pagesPath = getPagesPath()
-
 const maintainFile = path.resolve(__dirname, '../../../maintain.html')
 
-const CacheManager = (url: string) => {
+const CacheManager = (url: string, cachePath: string) => {
 	const pathname = new URL(url).pathname
 
 	const enableToCache =
@@ -52,7 +50,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = await getCache(url)
+			result = await getCache(url, cachePath)
 		} catch (err) {
 			Console.error(err)
 		}
@@ -68,17 +66,17 @@ const CacheManager = (url: string) => {
 		}
 
 		const key = getCacheKey(url)
-		let file = `${pagesPath}/${key}.br`
+		let file = `${cachePath}/${key}.br`
 		let isRaw = false
 
 		switch (true) {
 			case fs.existsSync(file):
 				break
-			case fs.existsSync(`${pagesPath}/${key}.renew.br`):
-				file = `${pagesPath}/${key}.renew.br`
+			case fs.existsSync(`${cachePath}/${key}.renew.br`):
+				file = `${cachePath}/${key}.renew.br`
 				break
 			default:
-				file = `${pagesPath}/${key}.raw.br`
+				file = `${cachePath}/${key}.raw.br`
 				isRaw = true
 				break
 		}
@@ -105,7 +103,7 @@ const CacheManager = (url: string) => {
 		}
 	} // achieve
 
-	const set = async (params: ICacheSetParams) => {
+	const set = async (url: string, params: ICacheSetParams) => {
 		if (!enableToCache)
 			return {
 				html: params.html,
@@ -116,7 +114,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = setCache(params)
+			result = setCache(url, cachePath, params)
 		} catch (err) {
 			Console.error(err)
 		}
@@ -128,7 +126,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = await renewCache(url)
+			result = await renewCache(url, cachePath)
 		} catch (err) {
 			Console.error(err)
 		}
@@ -151,28 +149,28 @@ const CacheManager = (url: string) => {
 		}
 
 		try {
-			await removeCache(url)
+			await removeCache(url, cachePath)
 		} catch (err) {
 			Console.error(err)
 		}
 	} // remove
 
-	const rename = async (params: { url: string; type?: 'raw' | 'renew' }) => {
+	const rename = async (url: string, params?: { type?: 'raw' | 'renew' }) => {
 		if (!enableToCache) return
 
 		try {
-			await renameCache(params)
+			await renameCache(url, cachePath, params || {})
 		} catch (err) {
 			Console.error(err)
 		}
 	} // rename
 
 	const getStatus = () => {
-		return getCacheStatus(url)
+		return getCacheStatus(url, cachePath)
 	} // getStatus
 
 	const isExist = () => {
-		return isCacheExist(url)
+		return isCacheExist(url, cachePath)
 	} // isExist
 
 	return {

@@ -7,6 +7,7 @@ import {
 import Console from '../../../../utils/ConsoleHandler'
 import { hashCode } from '../../../../utils/StringHelper'
 import { IGetInternalHTMLParams, IGetInternalScriptParams } from './types'
+import { regexQueryStringSpecialInfo } from '../../../constants'
 // import sharp from 'sharp'
 
 export const getInternalScript = async (
@@ -53,6 +54,8 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
 		return
 	}
 
+	const { url } = params
+
 	try {
 		const filePath = resolve(__dirname, '../../../../../../dist/index.html')
 
@@ -60,11 +63,38 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
 			let tmpStoreKey
 			let tmpAPIStore
 
-			tmpStoreKey = hashCode(params.url)
+			tmpStoreKey = hashCode(url)
 
 			tmpAPIStore = await getStoreCache(tmpStoreKey)
 
-			return tmpAPIStore?.data
+			if (tmpAPIStore) return tmpAPIStore.data
+
+			const specialInfo = regexQueryStringSpecialInfo.exec(url)?.groups ?? {}
+
+			const deviceType = (() => {
+				let tmpDeviceType
+				try {
+					tmpDeviceType = JSON.parse(specialInfo.deviceInfo)?.type
+				} catch (err) {
+					Console.error(err)
+				}
+
+				return tmpDeviceType
+			})()
+
+			tmpStoreKey = hashCode(
+				`${url}${
+					url.includes('?') && deviceType
+						? '&device=' + deviceType
+						: '?device=' + deviceType
+				}`
+			)
+
+			tmpAPIStore = await getStoreCache(tmpStoreKey)
+
+			if (tmpAPIStore) return tmpAPIStore.data
+
+			return
 		})()
 
 		const WindowAPIStore = {}

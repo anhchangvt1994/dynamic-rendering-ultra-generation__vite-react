@@ -56,6 +56,8 @@ var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect)
 var _DetectStaticExtension = require('./utils/DetectStaticExtension')
 var _DetectStaticExtension2 = _interopRequireDefault(_DetectStaticExtension)
 var _InitEnv = require('./utils/InitEnv')
+var _ConsoleHandler = require('./utils/ConsoleHandler')
+var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
 const ServerConfig = _nullishCoalesce(
 	_optionalChain([
@@ -135,13 +137,18 @@ const startServer = async () => {
 									'Content-Encoding': contentEncoding,
 								})
 								const body = (() => {
-									const content = _fs2.default.readFileSync(staticPath)
-									const tmpBody =
-										contentEncoding === 'br'
-											? _zlib.brotliCompressSync.call(void 0, content)
-											: contentEncoding === 'gzip'
-											? _zlib.gzipSync.call(void 0, content)
-											: content
+									let tmpBody
+									try {
+										const content = _fs2.default.readFileSync(staticPath)
+										tmpBody =
+											contentEncoding === 'br'
+												? _zlib.brotliCompressSync.call(void 0, content)
+												: contentEncoding === 'gzip'
+												? _zlib.gzipSync.call(void 0, content)
+												: content
+									} catch (err) {
+										_ConsoleHandler2.default.error(err)
+									}
 
 									return tmpBody
 								})()

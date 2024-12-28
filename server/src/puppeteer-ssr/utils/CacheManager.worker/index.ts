@@ -8,13 +8,10 @@ import { ISSRResult } from '../../types'
 import {
 	ICacheSetParams,
 	getKey as getCacheKey,
+	getStatus as getCacheStatus,
 	getFileInfo,
 	isExist as isCacheExist,
-	getStatus as getCacheStatus,
 } from '../Cache.worker/utils'
-import { getPagesPath } from '../../../utils/PathHandler'
-
-const pagesPath = getPagesPath()
 
 const workerManager = WorkerManager.init(
 	path.resolve(__dirname, `./../Cache.worker/index.${resourceExtension}`),
@@ -27,7 +24,7 @@ const workerManager = WorkerManager.init(
 
 const maintainFile = path.resolve(__dirname, '../../../maintain.html')
 
-const CacheManager = (url: string) => {
+const CacheManager = (url: string, cachePath: string) => {
 	const pathname = new URL(url).pathname
 
 	const enableToCache =
@@ -60,7 +57,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = await pool.exec('get', [url])
+			result = await pool.exec('get', [url, cachePath])
 		} catch (err) {
 			Console.error(err)
 		}
@@ -80,17 +77,17 @@ const CacheManager = (url: string) => {
 		}
 
 		const key = getCacheKey(url)
-		let file = `${pagesPath}/${key}.br`
+		let file = `${cachePath}/${key}.br`
 		let isRaw = false
 
 		switch (true) {
 			case fs.existsSync(file):
 				break
-			case fs.existsSync(`${pagesPath}/${key}.renew.br`):
-				file = `${pagesPath}/${key}.renew.br`
+			case fs.existsSync(`${cachePath}/${key}.renew.br`):
+				file = `${cachePath}/${key}.renew.br`
 				break
 			default:
-				file = `${pagesPath}/${key}.raw.br`
+				file = `${cachePath}/${key}.raw.br`
 				isRaw = true
 				break
 		}
@@ -130,7 +127,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = await pool.exec('set', [params])
+			result = await pool.exec('set', [url, cachePath, params])
 		} catch (err) {
 			Console.error(err)
 		}
@@ -148,7 +145,7 @@ const CacheManager = (url: string) => {
 		let result
 
 		try {
-			result = await pool.exec('renew', [url])
+			result = await pool.exec('renew', [url, cachePath])
 		} catch (err) {
 			Console.error(err)
 		}
@@ -178,7 +175,7 @@ const CacheManager = (url: string) => {
 		const pool = freePool.pool
 
 		try {
-			await pool.exec('remove', [url])
+			await pool.exec('remove', [url, cachePath])
 		} catch (err) {
 			Console.error(err)
 		}
@@ -188,14 +185,14 @@ const CacheManager = (url: string) => {
 		})
 	} // remove
 
-	const rename = async (params: { url: string; type?: 'raw' | 'renew' }) => {
-		if (!enableToCache || !params || !params.url) return
+	const rename = async (url: string, params?: { type?: 'raw' | 'renew' }) => {
+		if (!enableToCache || !url) return
 
 		const freePool = await workerManager.getFreePool()
 		const pool = freePool.pool
 
 		try {
-			await pool.exec('rename', [params])
+			await pool.exec('rename', [url, cachePath, params || {}])
 		} catch (err) {
 			Console.error(err)
 		}
@@ -206,11 +203,11 @@ const CacheManager = (url: string) => {
 	} // rename
 
 	const getStatus = () => {
-		return getCacheStatus(url)
+		return getCacheStatus(url, cachePath)
 	} // getStatus
 
 	const isExist = () => {
-		return isCacheExist(url)
+		return isCacheExist(url, cachePath)
 	} // isExist
 
 	return {

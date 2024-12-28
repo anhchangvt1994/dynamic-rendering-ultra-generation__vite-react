@@ -44,11 +44,19 @@ const dataPath = _PathHandler.getDataPath.call(void 0)
 const storePath = _PathHandler.getStorePath.call(void 0)
 
 if (!_fs2.default.existsSync(dataPath)) {
-	_fs2.default.mkdirSync(dataPath)
+	try {
+		_fs2.default.mkdirSync(dataPath)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
 }
 
 if (!_fs2.default.existsSync(storePath)) {
-	_fs2.default.mkdirSync(storePath)
+	try {
+		_fs2.default.mkdirSync(storePath)
+	} catch (err) {
+		_ConsoleHandler2.default.error(err)
+	}
 }
 
 const regexKeyConverter =
@@ -151,7 +159,13 @@ const updateStatus = (directory, key, extension, newStatus) => {
 		!newStatus || newStatus === 'ready' ? '' : '.' + newStatus
 	}.${extension}`
 
-	if (file !== newFile) _fs2.default.rename(file, newFile, () => {})
+	if (file !== newFile) {
+		_fs2.default.rename(file, newFile, (err) => {
+			if (err) {
+				_ConsoleHandler2.default.error(err)
+			}
+		})
+	}
 }
 exports.updateStatus = updateStatus // updateStatus
 
@@ -232,7 +246,13 @@ const get = async (directory, key, extension, options) => {
 	_ConsoleHandler2.default.log(`File ${file} is ready!`)
 
 	const content = (() => {
-		let tmpContent = _fs2.default.readFileSync(file)
+		let tmpContent = ''
+
+		try {
+			tmpContent = _fs2.default.readFileSync(file)
+		} catch (err) {
+			_ConsoleHandler2.default.error(err)
+		}
 
 		if (extension === 'br') {
 			tmpContent = _zlib.brotliDecompressSync

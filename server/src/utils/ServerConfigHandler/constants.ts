@@ -21,6 +21,7 @@ export const defaultServerConfig: IServerConfig = {
 		optimize: ['script'],
 		routes: {},
 	},
+	routes: {},
 	api: {
 		list: {},
 	},

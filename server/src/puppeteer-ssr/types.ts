@@ -14,3 +14,10 @@ export type ISSRResult =
 			hasRenew?: boolean
 	  }
 	| undefined
+
+export type SSRResult =
+	| {
+			status: number
+			html?: string
+	  }
+	| undefined

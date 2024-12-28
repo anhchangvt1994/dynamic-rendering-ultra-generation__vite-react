@@ -37,7 +37,11 @@ const getData = async (key, options) => {
 		result = await pool.exec('get', [dataPath, key, 'br', options])
 
 		if (result && result.status === 200) {
-			result.data = _fs2.default.readFileSync(result.response)
+			try {
+				result.data = _fs2.default.readFileSync(result.response)
+			} catch (err) {
+				_ConsoleHandler2.default.error(err)
+			}
 		}
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
@@ -60,7 +64,13 @@ const getStore = async (key, options) => {
 		result = await pool.exec('get', [storePath, key, 'json', options])
 
 		if (result && result.status === 200) {
-			const tmpData = _fs2.default.readFileSync(result.response)
+			let tmpData
+			try {
+				tmpData = _fs2.default.readFileSync(result.response)
+			} catch (err) {
+				_ConsoleHandler2.default.error(err)
+			}
+
 			result.data = tmpData ? JSON.parse(tmpData) : tmpData
 		}
 	} catch (err) {

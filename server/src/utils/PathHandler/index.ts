@@ -5,7 +5,7 @@ import Console from '../ConsoleHandler'
 import { PROCESS_ENV } from '../InitEnv'
 
 export const getPagesPath = () => {
-	return PROCESS_ENV.IS_SERVER
+	const pagesPath = PROCESS_ENV.IS_SERVER
 		? (() => {
 				let root = '/tmp'
 				if (ServerConfig.rootCache) {
@@ -29,7 +29,55 @@ export const getPagesPath = () => {
 				)
 		  })()
 		: path.resolve(__dirname, '../../puppeteer-ssr/utils/Cache.worker/pages')
+
+	if (!fs.existsSync(pagesPath)) {
+		try {
+			fs.mkdirSync(pagesPath)
+			fs.mkdirSync(`${pagesPath}/info`)
+		} catch (err) {
+			Console.error(err)
+		}
+	}
+
+	return pagesPath
 } // getPagesPath
+
+export const getViewsPath = () => {
+	const viewsPath = PROCESS_ENV.IS_SERVER
+		? (() => {
+				let root = '/tmp'
+				if (ServerConfig.rootCache) {
+					if (fs.existsSync(ServerConfig.rootCache)) {
+						root = ServerConfig.rootCache
+					} else {
+						try {
+							fs.mkdirSync(ServerConfig.rootCache)
+							root = ServerConfig.rootCache
+						} catch (err) {
+							Console.error(err.message)
+						}
+					}
+				}
+
+				if (fs.existsSync(root)) return root + '/views'
+
+				return path.resolve(
+					__dirname,
+					'../../puppeteer-ssr/utils/Cache.worker/views'
+				)
+		  })()
+		: path.resolve(__dirname, '../../puppeteer-ssr/utils/Cache.worker/views')
+
+	if (!fs.existsSync(viewsPath)) {
+		try {
+			fs.mkdirSync(viewsPath)
+		} catch (err) {
+			Console.error(err)
+		}
+	}
+
+	return viewsPath
+} // getViewsPath
 
 export const getDataPath = () => {
 	return PROCESS_ENV.IS_SERVER

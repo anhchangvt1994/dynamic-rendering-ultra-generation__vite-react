@@ -1,5 +1,33 @@
 'use strict'
 Object.defineProperty(exports, '__esModule', { value: true })
+function _nullishCoalesce(lhs, rhsFn) {
+	if (lhs != null) {
+		return lhs
+	} else {
+		return rhsFn()
+	}
+}
+function _optionalChain(ops) {
+	let lastAccessLHS = undefined
+	let value = ops[0]
+	let i = 1
+	while (i < ops.length) {
+		const op = ops[i]
+		const fn = ops[i + 1]
+		i += 2
+		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
+			return undefined
+		}
+		if (op === 'access' || op === 'optionalAccess') {
+			lastAccessLHS = value
+			value = fn(value)
+		} else if (op === 'call' || op === 'optionalCall') {
+			value = fn((...args) => value.call(lastAccessLHS, ...args))
+			lastAccessLHS = undefined
+		}
+	}
+	return value
+}
 var _InitEnv = require('../InitEnv')
 var _constants = require('./constants')
 
@@ -111,6 +139,199 @@ const defineServerConfig = (options) => {
 				}
 			} else serverConfig[key] = _constants.defaultServerConfig[key]
 		} // crawl
+
+		if (key === 'routes') {
+			if (serverConfig[key]) {
+				const defaultOption = _constants.defaultServerConfig[key]
+
+				serverConfig[key] = {
+					...defaultOption,
+					...serverConfig[key],
+				}
+
+				const defaultPreview = {
+					content: ['desktop', 'mobile'],
+					time: 300,
+					renewTime: 120,
+				}
+
+				if (serverConfig[key].preview) {
+					if (typeof serverConfig[key].preview === 'boolean') {
+						serverConfig[key].preview = defaultPreview
+					} else if (!serverConfig[key].preview.content) {
+						serverConfig[key].preview.content = ['desktop', 'mobile']
+					}
+				}
+
+				for (const routeKey in serverConfig[key].list) {
+					if (serverConfig[key].list[routeKey]) {
+						if (serverConfig[key].list[routeKey].pointsTo) {
+							serverConfig[key].list[routeKey] = {
+								pointsTo:
+									typeof serverConfig[key].list[routeKey].pointsTo === 'string'
+										? {
+												url: serverConfig[key].list[routeKey].pointsTo,
+												content: _nullishCoalesce(
+													_optionalChain([
+														serverConfig,
+														'access',
+														(_) => _[key],
+														'access',
+														(_2) => _2.preview,
+														'optionalAccess',
+														(_3) => _3.content,
+													]),
+													() => ['desktop', 'mobile']
+												),
+										  }
+										: {
+												content: _nullishCoalesce(
+													_optionalChain([
+														serverConfig,
+														'access',
+														(_4) => _4[key],
+														'access',
+														(_5) => _5.preview,
+														'optionalAccess',
+														(_6) => _6.content,
+													]),
+													() => ['desktop', 'mobile']
+												),
+												...serverConfig[key].list[routeKey].pointsTo,
+										  },
+							}
+						} else if (serverConfig[key].list[routeKey].preview) {
+							serverConfig[key].list[routeKey] = {
+								preview:
+									typeof serverConfig[key].list[routeKey].preview === 'boolean'
+										? serverConfig[key].preview
+										: {
+												...defaultPreview,
+												...serverConfig[key].preview,
+												...serverConfig[key][routeKey].preview,
+										  },
+							}
+						}
+					}
+				}
+
+				if (serverConfig[key].custom) {
+					const customFunc = serverConfig[key].custom
+					serverConfig[key].custom = (url) => {
+						if (!url) return
+
+						let tmpConfig = customFunc(url)
+
+						const urlInfo = new URL(url)
+
+						const defaultOptionOfCustom = _nullishCoalesce(
+							_optionalChain([
+								serverConfig,
+								'access',
+								(_7) => _7[key],
+								'access',
+								(_8) => _8.list,
+								'optionalAccess',
+								(_9) => _9[urlInfo.pathname],
+							]),
+							() => ({
+								preview: serverConfig[key].preview,
+							})
+						)
+
+						if (!tmpConfig) {
+							tmpConfig = defaultOptionOfCustom
+						} else if (tmpConfig.pointsTo) {
+							tmpConfig = {
+								pointsTo:
+									typeof tmpConfig.pointsTo === 'string'
+										? {
+												url: tmpConfig.pointsTo,
+												content: _nullishCoalesce(
+													_nullishCoalesce(
+														_optionalChain([
+															defaultOptionOfCustom,
+															'access',
+															(_10) => _10.pointsTo,
+															'optionalAccess',
+															(_11) => _11.content,
+														]),
+														() =>
+															_optionalChain([
+																defaultOptionOfCustom,
+																'access',
+																(_12) => _12.preview,
+																'optionalAccess',
+																(_13) => _13.content,
+															])
+													),
+													() => ['desktop', 'mobile']
+												),
+										  }
+										: {
+												content: _nullishCoalesce(
+													_nullishCoalesce(
+														_optionalChain([
+															defaultOptionOfCustom,
+															'access',
+															(_14) => _14.pointsTo,
+															'optionalAccess',
+															(_15) => _15.content,
+														]),
+														() =>
+															_optionalChain([
+																defaultOptionOfCustom,
+																'access',
+																(_16) => _16.preview,
+																'optionalAccess',
+																(_17) => _17.content,
+															])
+													),
+													() => ['desktop', 'mobile']
+												),
+												...tmpConfig.pointsTo,
+										  },
+							}
+						} else if (tmpConfig.preview) {
+							tmpConfig =
+								typeof tmpConfig.preview === 'boolean'
+									? {
+											preview: defaultOptionOfCustom.preview,
+									  }
+									: {
+											preview: {
+												content: _nullishCoalesce(
+													_optionalChain([
+														defaultOptionOfCustom,
+														'access',
+														(_18) => _18.preview,
+														'optionalAccess',
+														(_19) => _19.content,
+													]),
+													() => ['desktop', 'mobile']
+												),
+												...tmpConfig.preview,
+											},
+									  }
+						} else {
+							tmpConfig = {
+								...defaultOptionOfCustom,
+								...tmpConfig,
+							}
+						}
+
+						if (tmpConfig.loader) {
+							tmpConfig.loader.enable =
+								typeof tmpConfig.loader.enable === 'undefined'
+									? true
+									: tmpConfig.loader.enable
+						}
+
+						return tmpConfig
+					}
+				}
+			} else serverConfig[key] = _constants.defaultServerConfig[key]
+		} // routes
 
 		if (key === 'api') {
 			if (options[key]) {

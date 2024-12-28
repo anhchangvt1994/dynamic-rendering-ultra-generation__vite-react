@@ -21,6 +21,10 @@ import {
 	styleOptimizeContent,
 } from './OptimizeHtml.worker'
 import { compressContent } from './OptimizeHtml.worker/utils'
+import { getPagesPath } from '../../utils/PathHandler'
+
+const pagesPath = getPagesPath()
+
 const { parentPort, isMainThread } = require('worker_threads')
 
 const browserManager = (() => {
@@ -224,7 +228,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 	const startGenerating = Date.now()
 	if (_getRestOfDuration(startGenerating, gapDurationDefault) <= 0) return
 
-	const cacheManager = CacheManager(url)
+	const cacheManager = CacheManager(url, pagesPath)
 
 	let restOfDuration = _getRestOfDuration(startGenerating, gapDurationDefault)
 
@@ -376,9 +380,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					})
 				}
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return {
@@ -410,9 +412,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 					})
 				}
 				if (params.hasCache) {
-					cacheManager.rename({
-						url,
-					})
+					cacheManager.rename(url)
 				}
 
 				return
@@ -487,9 +487,8 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 			// console.log('-------')
 		}
 
-		result = await cacheManager.set({
+		result = await cacheManager.set(url, {
 			html,
-			url,
 			isRaw,
 		})
 	} else {

@@ -7,6 +7,10 @@ import CacheManager from '../CacheManager.worker/utils'
 import { type IISRHandlerWorkerParam } from './types'
 import ServerConfig from '../../../server.config'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
+import { getPagesPath } from '../../../utils/PathHandler'
+
+const pagesPath = getPagesPath()
+
 const { parentPort, isMainThread } = require('worker_threads')
 
 const workerManager = WorkerManager.init(
@@ -46,16 +50,15 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 	const pool = freePool.pool
 
 	let result
-	const cacheManager = CacheManager(params.url)
+	const cacheManager = CacheManager(params.url, pagesPath)
 
 	try {
 		result = await new Promise(async (res, rej) => {
 			let html
 			const timeout = setTimeout(async () => {
 				if (html) {
-					const tmpResult = await cacheManager.set({
+					const tmpResult = await cacheManager.set(params.url, {
 						html,
-						url: params.url,
 						isRaw: !params.hasCache,
 					})
 

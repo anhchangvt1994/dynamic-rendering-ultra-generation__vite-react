@@ -41,30 +41,41 @@ var _zlib = require('zlib')
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
-var _PathHandler = require('../../../utils/PathHandler')
+var _serverconfig = require('../../../server.config')
+var _serverconfig2 = _interopRequireDefault(_serverconfig)
+// import { getPagesPath } from '../../../utils/PathHandler'
 
-const pagesPath = _PathHandler.getPagesPath.call(void 0)
-
-if (!_fs2.default.existsSync(pagesPath)) {
-	try {
-		_fs2.default.mkdirSync(pagesPath)
-		_fs2.default.mkdirSync(`${pagesPath}/info`)
-	} catch (err) {
-		_ConsoleHandler2.default.error(err)
-	}
-}
+// const pagesPath = getPagesPath()
 
 // export const regexKeyConverter =
 // 	/^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
 const regexKeyConverter =
-	/www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
+	/www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
 exports.regexKeyConverter = regexKeyConverter
 const regexKeyConverterWithoutLocaleInfo =
-	/www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)/g
+	/www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)/g
 exports.regexKeyConverterWithoutLocaleInfo = regexKeyConverterWithoutLocaleInfo
 
 const getKey = (url) => {
 	if (!url) return
+
+	const routeCustomInfo = _optionalChain([
+		_serverconfig2.default,
+		'access',
+		(_) => _.routes,
+		'access',
+		(_2) => _2.custom,
+		'optionalCall',
+		(_3) => _3(url),
+	])
+
+	if (
+		routeCustomInfo &&
+		routeCustomInfo.loader &&
+		routeCustomInfo.loader.enable &&
+		url.includes('renderingInfo={"type":"SSR","loader": true}')
+	)
+		return routeCustomInfo.loader.name + '--loader'
 
 	url = url
 		.replace('/?', '?')
@@ -124,7 +135,7 @@ const setRequestTimeInfo = async (file, value) => {
 			fd,
 			value,
 			_nullishCoalesce(
-				_optionalChain([info, 'optionalAccess', (_) => _.updatedAt]),
+				_optionalChain([info, 'optionalAccess', (_4) => _4.updatedAt]),
 				() => new Date()
 			)
 		)
@@ -141,7 +152,7 @@ const maintainFile = _path2.default.resolve(
 	'../../../../maintain.html'
 )
 
-const get = async (url, options) => {
+const get = async (url, cachePath, options) => {
 	options = options || {
 		autoCreateIfEmpty: true,
 	}
@@ -153,17 +164,17 @@ const get = async (url, options) => {
 
 	const key = exports.getKey.call(void 0, url)
 
-	let file = `${pagesPath}/${key}.br`
+	let file = `${cachePath}/${key}.br`
 	let isRaw = false
 
 	switch (true) {
 		case _fs2.default.existsSync(file):
 			break
-		case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
-			file = `${pagesPath}/${key}.renew.br`
+		case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
+			file = `${cachePath}/${key}.renew.br`
 			break
 		default:
-			file = `${pagesPath}/${key}.raw.br`
+			file = `${cachePath}/${key}.raw.br`
 			isRaw = true
 			break
 	}
@@ -177,7 +188,7 @@ const get = async (url, options) => {
 			await Promise.all([
 				_fs2.default.writeFileSync(file, ''),
 				_fs2.default.writeFileSync(
-					`${pagesPath}/info/${key}.txt`,
+					`${cachePath}/info/${key}.txt`,
 					url
 						.replace('/?', '?')
 						.replace(exports.regexKeyConverterWithoutLocaleInfo, '')
@@ -224,15 +235,15 @@ const get = async (url, options) => {
 			response: maintainFile,
 			status: 503,
 			createdAt: _nullishCoalesce(
-				_optionalChain([info, 'optionalAccess', (_2) => _2.createdAt]),
+				_optionalChain([info, 'optionalAccess', (_5) => _5.createdAt]),
 				() => curTime
 			),
 			updatedAt: _nullishCoalesce(
-				_optionalChain([info, 'optionalAccess', (_3) => _3.updatedAt]),
+				_optionalChain([info, 'optionalAccess', (_6) => _6.updatedAt]),
 				() => curTime
 			),
 			requestedAt: _nullishCoalesce(
-				_optionalChain([info, 'optionalAccess', (_4) => _4.requestedAt]),
+				_optionalChain([info, 'optionalAccess', (_7) => _7.requestedAt]),
 				() => curTime
 			),
 			ttRenderMs: 200,
@@ -241,7 +252,7 @@ const get = async (url, options) => {
 				Date.now() -
 					new Date(
 						_nullishCoalesce(
-							_optionalChain([info, 'optionalAccess', (_5) => _5.createdAt]),
+							_optionalChain([info, 'optionalAccess', (_8) => _8.createdAt]),
 							() => curTime
 						)
 					).getTime() >=
@@ -268,9 +279,10 @@ const get = async (url, options) => {
 exports.get = get // get
 
 const set = async (
-	{ html, url, isRaw } = {
+	url,
+	cachePath,
+	{ html, isRaw } = {
 		html: '',
-		url: '',
 		isRaw: false,
 	}
 ) => {
@@ -281,18 +293,18 @@ const set = async (
 		return
 	}
 
-	const file = `${pagesPath}/${key}${isRaw ? '.raw' : ''}.br`
+	const file = `${cachePath}/${key}${isRaw ? '.raw' : ''}.br`
 
 	if (!isRaw) {
-		if (_fs2.default.existsSync(`${pagesPath}/${key}.renew.br`))
+		if (_fs2.default.existsSync(`${cachePath}/${key}.renew.br`))
 			try {
-				_fs2.default.renameSync(`${pagesPath}/${key}.renew.br`, file)
+				_fs2.default.renameSync(`${cachePath}/${key}.renew.br`, file)
 			} catch (err) {
 				_ConsoleHandler2.default.error(err)
 			}
-		else if (_fs2.default.existsSync(`${pagesPath}/${key}.raw.br`))
+		else if (_fs2.default.existsSync(`${cachePath}/${key}.raw.br`))
 			try {
-				_fs2.default.renameSync(`${pagesPath}/${key}.raw.br`, file)
+				_fs2.default.renameSync(`${cachePath}/${key}.raw.br`, file)
 			} catch (err) {
 				_ConsoleHandler2.default.error(err)
 			}
@@ -312,7 +324,7 @@ const set = async (
 		}
 	}
 
-	const result = (await exports.get.call(void 0, url, {
+	const result = (await exports.get.call(void 0, url, cachePath, {
 		autoCreateIfEmpty: false,
 	})) || { html, status: 200 }
 
@@ -320,23 +332,23 @@ const set = async (
 }
 exports.set = set // set
 
-const renew = async (url) => {
+const renew = async (url, cachePath) => {
 	if (!url) return _ConsoleHandler2.default.log('Url can not empty!')
 	const key = exports.getKey.call(void 0, url)
 	let hasRenew = true
 
-	const file = `${pagesPath}/${key}.renew.br`
+	const file = `${cachePath}/${key}.renew.br`
 
 	if (!_fs2.default.existsSync(file)) {
 		hasRenew = false
 		const curFile = (() => {
-			let tmpCurFile = `${pagesPath}/${key}.br`
+			let tmpCurFile = `${cachePath}/${key}.br`
 
 			switch (true) {
 				case _fs2.default.existsSync(tmpCurFile):
 					break
 				default:
-					tmpCurFile = `${pagesPath}/${key}.raw.br`
+					tmpCurFile = `${cachePath}/${key}.raw.br`
 			}
 
 			return tmpCurFile
@@ -353,18 +365,18 @@ const renew = async (url) => {
 }
 exports.renew = renew // renew
 
-const remove = async (url) => {
+const remove = async (url, cachePath) => {
 	if (!url) return _ConsoleHandler2.default.log('Url can not empty!')
 	const key = exports.getKey.call(void 0, url)
 
 	const curFile = (() => {
 		switch (true) {
-			case _fs2.default.existsSync(`${pagesPath}/${key}.raw.br`):
-				return `${pagesPath}/${key}.raw.br`
-			case _fs2.default.existsSync(`${pagesPath}/${key}.br`):
-				return `${pagesPath}/${key}.br`
-			case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
-				return `${pagesPath}/${key}.renew.br`
+			case _fs2.default.existsSync(`${cachePath}/${key}.raw.br`):
+				return `${cachePath}/${key}.raw.br`
+			case _fs2.default.existsSync(`${cachePath}/${key}.br`):
+				return `${cachePath}/${key}.br`
+			case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
+				return `${cachePath}/${key}.renew.br`
 			default:
 				return
 		}
@@ -375,7 +387,7 @@ const remove = async (url) => {
 	try {
 		await Promise.all([
 			_fs2.default.unlinkSync(curFile),
-			_fs2.default.unlinkSync(`${pagesPath}/info/${key}.txt`),
+			_fs2.default.unlinkSync(`${cachePath}/info/${key}.txt`),
 		])
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
@@ -383,24 +395,24 @@ const remove = async (url) => {
 }
 exports.remove = remove // remove
 
-const rename = (params) => {
-	if (!params || !params.url) {
+const rename = (url, cachePath, params) => {
+	if (!url || !params) {
 		_ConsoleHandler2.default.log('Url can not empty!')
 		return
 	}
 
-	const key = exports.getKey.call(void 0, params.url)
-	const file = `${pagesPath}/${key}${params.type ? '.' + params.type : ''}.br`
+	const key = exports.getKey.call(void 0, url)
+	const file = `${cachePath}/${key}${params.type ? '.' + params.type : ''}.br`
 
 	if (!_fs2.default.existsSync(file)) {
 		const curFile = (() => {
 			switch (true) {
-				case _fs2.default.existsSync(`${pagesPath}/${key}.raw.br`):
-					return `${pagesPath}/${key}.raw.br`
-				case _fs2.default.existsSync(`${pagesPath}/${key}.br`):
-					return `${pagesPath}/${key}.br`
-				case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
-					return `${pagesPath}/${key}.renew.br`
+				case _fs2.default.existsSync(`${cachePath}/${key}.raw.br`):
+					return `${cachePath}/${key}.raw.br`
+				case _fs2.default.existsSync(`${cachePath}/${key}.br`):
+					return `${cachePath}/${key}.br`
+				case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
+					return `${cachePath}/${key}.renew.br`
 				default:
 					return
 			}
@@ -417,7 +429,7 @@ const rename = (params) => {
 }
 exports.rename = rename // rename
 
-const isExist = (url) => {
+const isExist = (url, cachePath) => {
 	if (!url) {
 		_ConsoleHandler2.default.log('Url can not empty!')
 		return false
@@ -426,14 +438,14 @@ const isExist = (url) => {
 	const key = exports.getKey.call(void 0, url)
 
 	return (
-		_fs2.default.existsSync(`${pagesPath}/${key}.raw.br`) ||
-		_fs2.default.existsSync(`${pagesPath}/${key}.br`) ||
-		_fs2.default.existsSync(`${pagesPath}/${key}.renew.br`)
+		_fs2.default.existsSync(`${cachePath}/${key}.raw.br`) ||
+		_fs2.default.existsSync(`${cachePath}/${key}.br`) ||
+		_fs2.default.existsSync(`${cachePath}/${key}.renew.br`)
 	)
 }
 exports.isExist = isExist // isExist
 
-const getStatus = (url) => {
+const getStatus = (url, cachePath) => {
 	if (!url) {
 		_ConsoleHandler2.default.log('Url can not empty!')
 		return
@@ -442,9 +454,9 @@ const getStatus = (url) => {
 	const key = exports.getKey.call(void 0, url)
 
 	switch (true) {
-		case _fs2.default.existsSync(`${pagesPath}/${key}.raw.br`):
+		case _fs2.default.existsSync(`${cachePath}/${key}.raw.br`):
 			return 'raw'
-		case _fs2.default.existsSync(`${pagesPath}/${key}.renew.br`):
+		case _fs2.default.existsSync(`${cachePath}/${key}.renew.br`):
 			return 'renew'
 		default:
 			return 'ok'

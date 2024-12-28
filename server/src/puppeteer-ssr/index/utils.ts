@@ -2,6 +2,7 @@ import fs from 'fs'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import { CACHEABLE_STATUS_CODE } from '../constants'
 import { ISSRResult } from '../types'
+import Console from '../../utils/ConsoleHandler'
 
 export const handleResultAfterISRGenerator = (
 	res,
@@ -56,7 +57,13 @@ export const handleResultAfterISRGenerator = (
 						? gzipSync(result.html)
 						: result.html
 					: (() => {
-							let tmpContent: Buffer | string = fs.readFileSync(result.response)
+							let tmpContent: Buffer | string = ''
+
+							try {
+								tmpContent = fs.readFileSync(result.response)
+							} catch (err) {
+								Console.error(err)
+							}
 
 							if (contentEncoding === 'br') return tmpContent
 							else if (tmpContent && Buffer.isBuffer(tmpContent))
@@ -70,12 +77,22 @@ export const handleResultAfterISRGenerator = (
 							return tmpContent
 					  })()
 			} else if (result.response.indexOf('.br') !== -1) {
-				const content = fs.readFileSync(result.response)
+				let content
+
+				try {
+					content = fs.readFileSync(result.response)
+				} catch (err) {
+					Console.error(err)
+				}
 
 				if (content && Buffer.isBuffer(content))
 					tmpBody = brotliDecompressSync(content).toString()
 			} else {
-				tmpBody = fs.readFileSync(result.response)
+				try {
+					tmpBody = fs.readFileSync(result.response)
+				} catch (err) {
+					Console.error(err)
+				}
 			}
 
 			return tmpBody
@@ -88,13 +105,17 @@ export const handleResultAfterISRGenerator = (
 		const body = (() => {
 			let tmpBody
 			if (enableContentEncoding) {
-				tmpBody = result.html
-					? contentEncoding === 'br'
-						? brotliCompressSync(result.html)
-						: contentEncoding === 'gzip'
-						? gzipSync(result.html)
-						: result.html
-					: fs.readFileSync(result.response)
+				try {
+					tmpBody = result.html
+						? contentEncoding === 'br'
+							? brotliCompressSync(result.html)
+							: contentEncoding === 'gzip'
+							? gzipSync(result.html)
+							: result.html
+						: fs.readFileSync(result.response)
+				} catch (err) {
+					Console.error(err)
+				}
 			}
 
 			tmpBody = result.html || `${result.status} Error`

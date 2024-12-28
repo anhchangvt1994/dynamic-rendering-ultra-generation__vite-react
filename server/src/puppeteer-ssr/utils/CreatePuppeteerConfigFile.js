@@ -14,7 +14,6 @@ if (
 	fs.copyFile(puppeteerConfigPath, targetPath, (err) => {
 		if (err) {
 			console.error(err)
-			throw err
 		}
 
 		// console.log(`File ${puppeteerConfigPath} was copied to ${targetPath}`)

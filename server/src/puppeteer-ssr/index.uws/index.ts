@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { HttpResponse, TemplatedApp } from 'uWebSockets.js'
-import { brotliCompressSync, gzipSync } from 'zlib'
+import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import {
 	getData as getDataCache,
 	getStore as getStoreCache,
@@ -24,8 +24,10 @@ import {
 	getUrl,
 } from '../utils/FormatUrl.uws'
 import ISRGenerator from '../utils/ISRGenerator.next'
-import ISSRHandler from '../utils/ISRHandler.worker'
+import ISRHandler from '../utils/ISRHandler.worker'
+import SSRGenerator from '../utils/SSRGenerator.next'
 import { handleInvalidUrl, handleResultAfterISRGenerator } from './utils'
+import { getFileInfo } from '../utils/Cache.worker/utils'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
@@ -94,7 +96,7 @@ const puppeteerSSRService = (async () => {
 							Console.log('Request aborted')
 						})
 
-						const result = await ISSRHandler({
+						const result = await ISRHandler({
 							startGenerating,
 							hasCache: isFirstRequest,
 							url,
@@ -157,7 +159,7 @@ const puppeteerSSRService = (async () => {
 					req.getHeader('x-forwarded-proto')
 						? req.getHeader('x-forwarded-proto')
 						: PROCESS_ENV.IS_SERVER
-						? 'https'
+						? 'http'
 						: 'http'
 				}://${req.getHeader('host')}`
 
@@ -304,7 +306,14 @@ const puppeteerSSRService = (async () => {
 
 			if (!res.writableEnded) {
 				const correctPathname = getPathname(res, req)
-				const pointsTo = ServerConfig.routes?.[correctPathname]?.pointsTo
+				const pointsTo = (() => {
+					const tmpPointsTo =
+						ServerConfig.routes?.list?.[correctPathname]?.pointsTo
+
+					if (!tmpPointsTo) return ''
+
+					return typeof tmpPointsTo === 'string' ? tmpPointsTo : tmpPointsTo.url
+				})()
 
 				if (pointsTo) {
 					const url = convertUrlHeaderToQueryString(pointsTo, res, false)
@@ -353,6 +362,16 @@ const puppeteerSSRService = (async () => {
 				 * https://www.inchcalculator.com/convert/year-to-second/
 				 */
 				if (req.getHeader('accept') === 'application/json') {
+					const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
+
+					try {
+						SSRGenerator({
+							url,
+						})
+					} catch (err) {
+						Console.error(err)
+					}
+
 					res.writeStatus('200')
 
 					res = _setCookie(res)
@@ -371,73 +390,104 @@ const puppeteerSSRService = (async () => {
 						res.writableEnded = true
 						Console.log('Request aborted')
 					})
+
+					let html
+					const filePath =
+						(req.getHeader('static-html-path') as string) ||
+						path.resolve(__dirname, '../../../../dist/index.html')
+
+					const url = (() => {
+						const urlWithoutQuery = req.getUrl()
+						const query = req.getQuery()
+						const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
+
+						return tmpUrl
+					})()
 					try {
-						const filePath =
-							(req.getHeader('static-html-path') as string) ||
-							path.resolve(__dirname, '../../../../dist/index.html')
-						const url = (() => {
-							const urlWithoutQuery = req.getUrl()
-							const query = req.getQuery()
-							const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
+						const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
+						const result = await SSRGenerator({
+							url,
+						})
 
-							return tmpUrl
-						})()
-						const apiStoreData = await (async () => {
-							let tmpStoreKey
-							let tmpAPIStore
+						if (result?.status === 200) {
+							html = fs.readFileSync(result.file)
+						}
+					} catch (err) {
+						Console.error(err)
+					}
 
-							tmpStoreKey = hashCode(url)
+					try {
+						if (!html) {
+							const apiStoreData = await (async () => {
+								let tmpStoreKey
+								let tmpAPIStore
 
-							tmpAPIStore = await getStoreCache(tmpStoreKey)
+								tmpStoreKey = hashCode(url)
 
-							if (tmpAPIStore) return tmpAPIStore.data
+								tmpAPIStore = await getStoreCache(tmpStoreKey)
 
-							const deviceType = res.cookies?.deviceInfo?.type
+								if (tmpAPIStore) return tmpAPIStore.data
 
-							tmpStoreKey = hashCode(
-								`${url}${
-									url.includes('?') && deviceType
-										? '&device=' + deviceType
-										: '?device=' + deviceType
-								}`
-							)
+								const deviceType = res.cookies?.deviceInfo?.type
 
-							tmpAPIStore = await getStoreCache(tmpStoreKey)
+								tmpStoreKey = hashCode(
+									`${url}${
+										url.includes('?') && deviceType
+											? '&device=' + deviceType
+											: '?device=' + deviceType
+									}`
+								)
 
-							if (tmpAPIStore) return tmpAPIStore.data
+								tmpAPIStore = await getStoreCache(tmpStoreKey)
 
-							return
-						})()
+								if (tmpAPIStore) return tmpAPIStore.data
 
-						const WindowAPIStore = {}
+								return
+							})()
 
-						if (apiStoreData) {
-							if (apiStoreData.length) {
-								for (const cacheKey of apiStoreData) {
-									const apiCache = await getDataCache(cacheKey)
-									if (
-										!apiCache ||
-										!apiCache.cache ||
-										apiCache.cache.status !== 200
-									)
-										continue
+							const WindowAPIStore = {}
 
-									WindowAPIStore[cacheKey] = apiCache.cache.data
+							if (apiStoreData) {
+								if (apiStoreData.length) {
+									for (const cacheKey of apiStoreData) {
+										const apiCache = await getDataCache(cacheKey)
+										if (
+											!apiCache ||
+											!apiCache.cache ||
+											apiCache.cache.status !== 200
+										)
+											continue
+
+										WindowAPIStore[cacheKey] = apiCache.cache.data
+									}
 								}
 							}
+
+							try {
+								html = fs.readFileSync(filePath, 'utf8') || ''
+							} catch (err) {
+								Console.error(err)
+							}
+
+							html = html.replace(
+								'</head>',
+								`<script>window.API_STORE = ${JSON.stringify({
+									WindowAPIStore,
+								})}</script></head>`
+							)
 						}
 
-						let html = fs.readFileSync(filePath, 'utf8') || ''
-
-						html = html.replace(
-							'</head>',
-							`<script>window.API_STORE = ${JSON.stringify({
-								WindowAPIStore,
-							})}</script></head>`
-						)
-
 						const body = (() => {
-							if (!enableContentEncoding) return html
+							if (enableContentEncoding && Buffer.isBuffer(html)) return html
+
+							if (!enableContentEncoding) {
+								switch (true) {
+									case Buffer.isBuffer(html):
+										return brotliDecompressSync(html).toString()
+									default:
+										return html
+								}
+							}
 
 							switch (true) {
 								case contentEncoding === 'br':
@@ -480,7 +530,6 @@ const puppeteerSSRService = (async () => {
 							res.end(body, true)
 						})
 					} catch (err) {
-						Console.log(err)
 						if (!res.writableEnded) {
 							res.cork(() => {
 								res

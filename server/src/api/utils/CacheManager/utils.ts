@@ -16,11 +16,19 @@ const dataPath = getDataPath()
 const storePath = getStorePath()
 
 if (!fs.existsSync(dataPath)) {
-	fs.mkdirSync(dataPath)
+	try {
+		fs.mkdirSync(dataPath)
+	} catch (err) {
+		Console.error(err)
+	}
 }
 
 if (!fs.existsSync(storePath)) {
-	fs.mkdirSync(storePath)
+	try {
+		fs.mkdirSync(storePath)
+	} catch (err) {
+		Console.error(err)
+	}
 }
 
 export const regexKeyConverter =
@@ -124,7 +132,13 @@ export const updateStatus = (
 		!newStatus || newStatus === 'ready' ? '' : '.' + newStatus
 	}.${extension}`
 
-	if (file !== newFile) fs.rename(file, newFile, () => {})
+	if (file !== newFile) {
+		fs.rename(file, newFile, (err) => {
+			if (err) {
+				Console.error(err)
+			}
+		})
+	}
 } // updateStatus
 
 export const get = async (
@@ -200,7 +214,13 @@ export const get = async (
 	Console.log(`File ${file} is ready!`)
 
 	const content = (() => {
-		let tmpContent: string | Buffer = fs.readFileSync(file)
+		let tmpContent: string | Buffer = ''
+
+		try {
+			tmpContent = fs.readFileSync(file)
+		} catch (err) {
+			Console.error(err)
+		}
 
 		if (extension === 'br') {
 			tmpContent = brotliDecompressSync(tmpContent).toString()

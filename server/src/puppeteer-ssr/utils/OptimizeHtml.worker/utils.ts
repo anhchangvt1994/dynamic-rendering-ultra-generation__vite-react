@@ -14,27 +14,32 @@ import {
 	regexShallowOptimize,
 } from '../../constants'
 
-export const compressContent = async (html: string): Promise<string> => {
+export const compressContent = async (
+	html: string,
+	options?: { [key: string]: any }
+): Promise<string> => {
 	if (!html || PROCESS_ENV.DISABLE_COMPRESS) return html
 	// console.log('start compress')
 	if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
 
 	if (POWER_LEVEL === POWER_LEVEL_LIST.ONE) return html
 
+	options = options || {
+		collapseBooleanAttributes: true,
+		collapseInlineTagWhitespace: true,
+		collapseWhitespace: true,
+		removeAttributeQuotes: true,
+		removeComments: true,
+		removeEmptyAttributes: true,
+		removeEmptyElements: true,
+		useShortDoctype: true,
+	}
+
 	let tmpHTML = html
 
 	if (ENV !== 'development') {
 		try {
-			tmpHTML = await minify(tmpHTML, {
-				collapseBooleanAttributes: true,
-				collapseInlineTagWhitespace: true,
-				collapseWhitespace: true,
-				removeAttributeQuotes: true,
-				removeComments: true,
-				removeEmptyAttributes: true,
-				removeEmptyElements: true,
-				useShortDoctype: true,
-			})
+			tmpHTML = await minify(tmpHTML, options)
 		} catch (err) {
 			return html
 		}

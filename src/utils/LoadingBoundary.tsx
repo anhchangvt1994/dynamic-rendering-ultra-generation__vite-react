@@ -11,7 +11,7 @@ function useWithDelay(delay: number, fallback: ReactNode): ReactNode {
 				setIsShow(true)
 			}, delay)
 		}
-	}, [delay, isShow])
+	}, [delay])
 
 	return isShow ? fallback : ''
 }
@@ -26,8 +26,13 @@ export default function LoadingBoundary({
 	fallback?: ReactNode
 }): ReactElement {
 	const delayTime: number = Number(delay) || 0
+	const timestamp = Date.now()
 
 	const Component: ReactNode = useWithDelay(delayTime, fallback)
 
-	return <Suspense fallback={Component}>{children}</Suspense>
+	return (
+		<Suspense fallback={Component} key={timestamp}>
+			{children}
+		</Suspense>
+	)
 } // LoadingBoundary

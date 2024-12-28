@@ -17,6 +17,7 @@ import DetectRedirect from './utils/DetectRedirect'
 import detectStaticExtension from './utils/DetectStaticExtension'
 import { ENV, ENV_MODE, MODE, PROCESS_ENV } from './utils/InitEnv'
 import sendFile from './utils/SendFile'
+import Console from './utils/ConsoleHandler'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
@@ -86,13 +87,19 @@ const startServer = async () => {
 								})()
 
 								const body = (() => {
-									const content = fs.readFileSync(staticPath)
-									const tmpBody =
-										contentEncoding === 'br'
-											? brotliCompressSync(content)
-											: contentEncoding === 'gzip'
-											? gzipSync(content)
-											: content
+									let tmpBody
+
+									try {
+										const content = fs.readFileSync(staticPath)
+										tmpBody =
+											contentEncoding === 'br'
+												? brotliCompressSync(content)
+												: contentEncoding === 'gzip'
+												? gzipSync(content)
+												: content
+									} catch (err) {
+										Console.error(err)
+									}
 
 									return tmpBody
 								})()
