@@ -23,12 +23,12 @@ export const Outer = styled.div`
 	}
 `
 
-function Component(props) {
+function ImageItem(props) {
 	const [isError, setIsError] = useState(false)
 
-	const onErrorHandler = useCallback(() => {
+	const onErrorHandler = () => {
 		setIsError(true)
-	}, [])
+	}
 
 	return (
 		<Outer className={isError ? '--is-error' : ''}>
@@ -37,6 +37,6 @@ function Component(props) {
 	)
 }
 
-const ImageItem = memo(Component)
+// const ImageItem = memo(Component)
 
 export default ImageItem

@@ -33,11 +33,11 @@ const _getViewsPath = () => {
 					__dirname,
 					'../../puppeteer-ssr/utils/Cache.worker/views'
 				)
-		  })()
+			})()
 		: _path2.default.resolve(
 				__dirname,
 				'../../puppeteer-ssr/utils/Cache.worker/views'
-		  )
+			)
 
 	if (!_fsextra2.default.existsSync(viewsPath)) {
 		try {

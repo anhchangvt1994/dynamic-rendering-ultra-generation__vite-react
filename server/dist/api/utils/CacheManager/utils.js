@@ -191,7 +191,7 @@ const get = async (directory, key, extension, options) => {
 	const file = `${directory}/${key}${
 		!status || status === 'ready'
 			? !options.autoCreateIfEmpty.status ||
-			  options.autoCreateIfEmpty.status === 'ready'
+				options.autoCreateIfEmpty.status === 'ready'
 				? ''
 				: '.' + options.autoCreateIfEmpty.status
 			: '.' + status
@@ -267,7 +267,7 @@ const get = async (directory, key, extension, options) => {
 		!content || Array.isArray(content)
 			? {
 					data: content,
-			  }
+				}
 			: content
 
 	return {
@@ -347,7 +347,7 @@ const set = async (directory, key, extension, content, options) => {
 				...(typeof content === 'string'
 					? {
 							cache: content,
-					  }
+						}
 					: content),
 			}
 		})()

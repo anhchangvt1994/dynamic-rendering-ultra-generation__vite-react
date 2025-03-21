@@ -65,8 +65,8 @@ const handleResultAfterISRGenerator = (res, params) => {
 							? contentEncoding === 'br'
 								? _zlib.brotliCompressSync.call(void 0, result.html)
 								: contentEncoding === 'gzip'
-								? _zlib.gzipSync.call(void 0, result.html)
-								: result.html
+									? _zlib.gzipSync.call(void 0, result.html)
+									: result.html
 							: (() => {
 									let tmpContent = _fs2.default.readFileSync(result.response)
 
@@ -82,7 +82,7 @@ const handleResultAfterISRGenerator = (res, params) => {
 									}
 
 									return tmpContent
-							  })()
+								})()
 					} else if (result.response.indexOf('.br') !== -1) {
 						const content = _fs2.default.readFileSync(result.response)
 
@@ -175,8 +175,8 @@ const handleInvalidUrl = (res, req) => {
 		req.getHeader('x-forwarded-proto')
 			? req.getHeader('x-forwarded-proto')
 			: _InitEnv.PROCESS_ENV.IS_SERVER
-			? 'https'
-			: 'http'
+				? 'https'
+				: 'http'
 	}://${req.getHeader('host')}`
 	const url = req.getUrl()
 	const urlLower = url.toLowerCase()

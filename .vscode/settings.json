@@ -1,6 +1,4 @@
 {
-	"nuxt.isNuxtApp": false,
-
 	"editor.wordWrap": "on",
 	"editor.suggest.showModules": false,
 	"editor.formatOnSave": false,
@@ -8,7 +6,8 @@
 	"editor.codeActionsOnSave": [
 		"source.formatDocument",
 		"source.fixAll.tslint",
-		"source.fixAll.eslint"
+		"source.fixAll.eslint",
+		"source.organizeImports"
 	],
 	"editor.quickSuggestions": {
 		"other": true,
@@ -39,11 +38,10 @@
 	},
 	"path-autocomplete.pathSeparators": " \t({[",
 	"workbench.editor.empty.hint": "hidden",
-	"eslint.experimental.useFlatConfig": true,
 	"eslint.workingDirectories": [
 		{
 			"mode": "auto"
 		}
 	],
-	"jira-plugin.workingProject": ""
+	"nuxt.isNuxtApp": false
 }

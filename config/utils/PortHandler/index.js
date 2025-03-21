@@ -1,7 +1,7 @@
-const net = require('net')
-const fs = require('fs')
-const path = require('path')
-const ObjectToEnvConverter = require('../ObjectToEnvConverter')
+import net from 'net'
+import fs from 'fs'
+import path from 'path'
+import ObjectToEnvConverter from '../ObjectToEnvConverter'
 
 const envPortPath = path.resolve(__dirname, './.env')
 
@@ -78,6 +78,10 @@ const getPort = (name) => {
 	return name ? portInfo[name] : portInfo
 } // getPort
 
+const setPort = (() => {
+	return writeFileENVSync
+})()
+
 const releasePort = (port) => {
 	return new Promise((resolve, reject) => {
 		const server = net.createServer()
@@ -93,11 +97,4 @@ const releasePort = (port) => {
 	})
 }
 
-module.exports = {
-	findFreePort,
-	releasePort,
-	setPort: (() => {
-		return writeFileENVSync
-	})(),
-	getPort,
-}
+export { findFreePort, releasePort, setPort, getPort }

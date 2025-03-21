@@ -15,8 +15,8 @@ exports.ENV = ENV
 const MODE = ['development', 'preview', 'production'].includes(process.env.MODE)
 	? process.env.MODE
 	: process.env.ENV === 'development'
-	? 'development'
-	: 'production'
+		? 'development'
+		: 'production'
 exports.MODE = MODE
 
 const envModeList = {
@@ -79,26 +79,26 @@ const PROCESS_ENV = (() => {
 			? false
 			: ['true', '1'].includes(
 					(process.env.DISABLE_COMPRESS || '').toLowerCase()
-			  )
+				)
 	)
 	tmpProcessEnv.DISABLE_DEEP_OPTIMIZE =
 		process.env.DISABLE_DEEP_OPTIMIZE === undefined
 			? false
 			: ['true', '1'].includes(
 					(process.env.DISABLE_DEEP_OPTIMIZE || '').toLowerCase()
-			  )
+				)
 	tmpProcessEnv.DISABLE_OPTIMIZE =
 		process.env.DISABLE_OPTIMIZE === undefined
 			? false
 			: ['true', '1'].includes(
 					(process.env.DISABLE_OPTIMIZE || '').toLowerCase()
-			  )
+				)
 	tmpProcessEnv.ENABLE_URL_TESTING =
 		process.env.ENABLE_URL_TESTING === undefined
 			? false
 			: ['true', '1'].includes(
 					(process.env.ENABLE_URL_TESTING || '').toLowerCase()
-			  )
+				)
 
 	return tmpProcessEnv
 })()

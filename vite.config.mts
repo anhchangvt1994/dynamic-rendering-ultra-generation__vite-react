@@ -1,18 +1,22 @@
-import path from 'path'
-import fs from 'fs'
-import { defineConfig } from 'vite'
 import alias from '@rollup/plugin-alias'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
-import AutoImport from 'unplugin-auto-import/vite'
-import tailwind from 'tailwindcss'
-import tailwindNesting from 'tailwindcss/nesting'
+import tailwind from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react-swc'
 import autoprefixer from 'autoprefixer'
+import fs from 'fs'
+import path from 'path'
 import postcssSimpleVars from 'postcss-simple-vars'
+import AutoImport from 'unplugin-auto-import/vite'
+import { defineConfig } from 'vite'
 import EnvironmentPlugin from 'vite-plugin-environment'
+import viteDevelopmentConfig from './config/vite.development.config'
+import viteProductionConfig, {
+  aliasExternal,
+} from './config/vite.production.config'
 
 import {
-	ENV_OBJECT_DEFAULT,
-	promiseENVWriteFileSync,
+  ENV_OBJECT_DEFAULT,
+  promiseENVWriteFileSync,
 } from './config/env/env.mjs'
 import { generateDTS } from './config/types/dts-generator.mjs'
 import { getPort } from './config/utils/PortHandler'
@@ -21,14 +25,7 @@ const resolve = resolveTsconfigPathsToAlias()
 const PUPPETEER_SSR_PORT = getPort('PUPPETEER_SSR_PORT') || 8080
 
 // https://vitejs.dev/config/
-export default defineConfig(async ({ mode }) => {
-	// const react =
-	// 	mode === 'development'
-	// 		? (await import('@vitejs/plugin-react-swc')).default
-	// 		: (await import('@vitejs/plugin-react')).default
-	// const react = await (await import('@vitejs/plugin-react')).default
-	const react = await (await import('@vitejs/plugin-react-swc')).default
-
+export default defineConfig(({ mode }) => {
 	promiseENVWriteFileSync.then(function () {
 		generateDTS({
 			input: ENV_OBJECT_DEFAULT as any,
@@ -37,14 +34,14 @@ export default defineConfig(async ({ mode }) => {
 		})
 	})
 
-	const ViteConfigWithMode = await getViteConfigWithMode(mode)
-	const config = ViteConfigWithMode?.default?.() ?? {}
-	const aliasExternal = ViteConfigWithMode?.aliasExternal ?? {}
+	const ViteConfigWithMode = getViteConfigWithMode(mode)
+	const config = ViteConfigWithMode?.() ?? {}
 
 	return {
 		publicDir: 'src/assets/static',
 		plugins: [
 			react(),
+			tailwind(),
 			EnvironmentPlugin(ENV_OBJECT_DEFAULT as any, {
 				defineOn: 'import.meta.env',
 			}),
@@ -182,7 +179,7 @@ export default defineConfig(async ({ mode }) => {
 						alias({
 							entries: aliasExternal.entries || {},
 						}),
-				  ]
+					]
 				: []),
 			...(config?.plugins ?? []),
 		],
@@ -191,8 +188,8 @@ export default defineConfig(async ({ mode }) => {
 				plugins: [
 					autoprefixer,
 					postcssSimpleVars,
-					(tailwindNesting as () => any)(),
-					tailwind('./tailwind.config.cjs'),
+					// (tailwindNesting as () => any)(),
+					// tailwind('./tailwind.config.cjs'),
 				],
 			},
 		},
@@ -206,7 +203,7 @@ export default defineConfig(async ({ mode }) => {
 			...(mode === 'production'
 				? {
 						exclude: Object.keys(aliasExternal.entries || {}),
-				  }
+					}
 				: {}),
 		},
 		build: {
@@ -251,7 +248,7 @@ export default defineConfig(async ({ mode }) => {
 										return req.url
 								},
 							},
-					  }
+						}
 					: {
 							'/': {
 								target: `http://localhost:${PUPPETEER_SSR_PORT}`,
@@ -260,7 +257,7 @@ export default defineConfig(async ({ mode }) => {
 										return req.url
 								},
 							},
-					  },
+						},
 		},
 	}
 })
@@ -268,9 +265,7 @@ export default defineConfig(async ({ mode }) => {
 const getViteConfigWithMode = (mode) => {
 	if (!mode) return
 
-	return mode === 'development'
-		? import('./config/vite.development.config')
-		: import('./config/vite.production.config')
+	return mode === 'development' ? viteDevelopmentConfig : viteProductionConfig
 } // getViteConfigFilePathWithMode(mode?: 'development' | 'production')
 
 function resolveTsconfigPathsToAlias(tsconfigPath = './tsconfig.json') {

@@ -192,8 +192,8 @@ const puppeteerSSRService = (async () => {
 					req.getHeader('x-forwarded-proto')
 						? req.getHeader('x-forwarded-proto')
 						: _InitEnv.PROCESS_ENV.IS_SERVER
-						? 'http'
-						: 'http'
+							? 'http'
+							: 'http'
 				}://${req.getHeader('host')}`
 
 			// NOTE - Detect, setup BotInfo and LocaleInfo

@@ -149,9 +149,7 @@ function BrowserManager() {
 
 			const selfUserDataDirPath =
 				reserveUserDataDirPath ||
-				`${strUserDataDir}${
-					_serverconfig2.default.isRemoteCrawler ? '_remote' : ''
-				}`
+				`${strUserDataDir}${_serverconfig2.default.isRemoteCrawler ? '_remote' : ''}`
 			reserveUserDataDirPath = `${strUserDataDir}_reserve${
 				_serverconfig2.default.isRemoteCrawler ? '_remote' : ''
 			}`

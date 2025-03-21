@@ -247,8 +247,8 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
 													totalRequestsToCrawl =
 														totalRequestsToCrawl > certainLimitRequestToCrawl
 															? totalRequestsToCrawl -
-															  certainLimitRequestToCrawl -
-															  1
+																certainLimitRequestToCrawl -
+																1
 															: totalRequestsToCrawl - 1
 													totalRequestsToCrawl =
 														totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
@@ -309,8 +309,8 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
 													totalRequestsToCrawl =
 														totalRequestsToCrawl > certainLimitRequestToCrawl
 															? totalRequestsToCrawl -
-															  certainLimitRequestToCrawl -
-															  1
+																certainLimitRequestToCrawl -
+																1
 															: totalRequestsToCrawl - 1
 													totalRequestsToCrawl =
 														totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl

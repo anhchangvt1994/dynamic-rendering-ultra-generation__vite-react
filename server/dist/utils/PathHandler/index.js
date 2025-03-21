@@ -36,11 +36,11 @@ const getPagesPath = () => {
 					__dirname,
 					'../../puppeteer-ssr/utils/Cache.worker/pages'
 				)
-		  })()
+			})()
 		: _path2.default.resolve(
 				__dirname,
 				'../../puppeteer-ssr/utils/Cache.worker/pages'
-		  )
+			)
 
 	if (!_fs2.default.existsSync(pagesPath)) {
 		try {
@@ -78,11 +78,11 @@ const getViewsPath = () => {
 					__dirname,
 					'../../puppeteer-ssr/utils/Cache.worker/views'
 				)
-		  })()
+			})()
 		: _path2.default.resolve(
 				__dirname,
 				'../../puppeteer-ssr/utils/Cache.worker/views'
-		  )
+			)
 
 	if (!_fs2.default.existsSync(viewsPath)) {
 		try {
@@ -119,7 +119,7 @@ const getDataPath = () => {
 					__dirname,
 					'../../api/utils/CacheManager/data'
 				)
-		  })()
+			})()
 		: _path2.default.resolve(__dirname, '../../api/utils/CacheManager/data')
 }
 exports.getDataPath = getDataPath // getDataPath
@@ -147,7 +147,7 @@ const getStorePath = () => {
 					__dirname,
 					'../../api/utils/CacheManager/store'
 				)
-		  })()
+			})()
 		: _path2.default.resolve(__dirname, '../../api/utils/CacheManager/store')
 }
 exports.getStorePath = getStorePath // getStorePath
@@ -159,7 +159,7 @@ const getUserDataPath = () => {
 				if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/browsers'
 
 				return _path2.default.resolve(__dirname, '../../puppeteer-ssr/browsers')
-		  })()
+			})()
 		: _path2.default.resolve(__dirname, '../../puppeteer-ssr/browsers')
 }
 exports.getUserDataPath = getUserDataPath // getUserDataPath
@@ -171,7 +171,7 @@ const getWorkerManagerPath = () => {
 				if (_fs2.default.existsSync(tmpPath)) return tmpPath + '/WorkerManager'
 
 				return _path2.default.resolve(__dirname, '../../utils/WorkerManager')
-		  })()
+			})()
 		: _path2.default.resolve(__dirname, '../../utils/WorkerManager')
 }
 exports.getWorkerManagerPath = getWorkerManagerPath // getWorkerManagerPath

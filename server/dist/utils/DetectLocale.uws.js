@@ -164,8 +164,8 @@ function detectLocale(req) {
 	const defaultLang = _serverconfig2.default.locale.defaultLang
 		? _serverconfig2.default.locale.defaultLang
 		: !defaultCountry
-		? clientCountry
-		: undefined
+			? clientCountry
+			: undefined
 
 	const url = req.getUrl()
 	const pathSplitted = url.split('/')

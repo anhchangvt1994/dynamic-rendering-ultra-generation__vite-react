@@ -144,8 +144,8 @@ const startServer = async () => {
 											contentEncoding === 'br'
 												? _zlib.brotliCompressSync.call(void 0, content)
 												: contentEncoding === 'gzip'
-												? _zlib.gzipSync.call(void 0, content)
-												: content
+													? _zlib.gzipSync.call(void 0, content)
+													: content
 									} catch (err) {
 										_ConsoleHandler2.default.error(err)
 									}

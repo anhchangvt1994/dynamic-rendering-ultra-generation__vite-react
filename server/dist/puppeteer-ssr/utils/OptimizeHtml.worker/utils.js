@@ -116,7 +116,7 @@ const optimizeContent = async (html, isFullOptimize = false) => {
 								: curAttrs.replace(
 										/(?<srcAttr>(src|srcset))=("|'|)(.*?)("|'|)+(\s|$)/g,
 										'$<srcAttr> '
-								  )
+									)
 						).trim()
 
 						switch (true) {
@@ -340,7 +340,7 @@ const shallowOptimizeContent = async (html) => {
 					: curAttrs.replace(
 							/(?<srcAttr>(src|srcset))=("|'|)(.*?)("|'|)+(\s|$)/g,
 							'$<srcAttr> '
-					  )
+						)
 			).trim()
 
 			switch (true) {

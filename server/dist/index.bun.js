@@ -56,9 +56,9 @@ const pagesPath = _PathHandler.getPagesPath.call(void 0)
 const cleanResourceWithCondition = async () => {
 	if (_InitEnv.ENV_MODE === 'development') {
 		// NOTE - Clean Browsers and Pages after start / restart
-		const {
-			deleteResource,
-		} = require(`./puppeteer-ssr/utils/FollowResource.worker/utils.${_constants.resourceExtension}`)
+		const { deleteResource } = require(
+			`./puppeteer-ssr/utils/FollowResource.worker/utils.${_constants.resourceExtension}`
+		)
 		const browsersPath = _path2.default.resolve(
 			__dirname,
 			'./puppeteer-ssr/browsers'

@@ -57,8 +57,8 @@ const cleanBrowsers = (() => {
 		expiredTime = _InitEnv.PROCESS_ENV.RESET_RESOURCE
 			? 0
 			: process.env.MODE === 'development'
-			? 0
-			: 60
+				? 0
+				: 60
 	) => {
 		if (!isMainThread || process.env.DISABLE_INTERNAL_CRAWLER || !workerManager)
 			return

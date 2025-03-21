@@ -1,7 +1,7 @@
 import { LocaleInfoProvider } from 'app/router/context/LocaleInfoContext'
 import router from 'app/router/index'
-import 'assets/styles/main.css'
 import 'assets/styles/tailwind.css'
+import 'assets/styles/main.css'
 import { UserInfoProvider } from 'store/UserInfoContext'
 import { getRoot } from 'utils/RootHandler'
 

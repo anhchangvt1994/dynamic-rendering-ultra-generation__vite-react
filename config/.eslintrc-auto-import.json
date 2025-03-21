@@ -15,11 +15,14 @@
     "Outlet": true,
     "ProxyAPI": true,
     "React": true,
+    "ReactNode": true,
+    "RenderingInfo": true,
     "Route": true,
     "RouterProvider": true,
     "Routes": true,
     "SetStateAction": true,
     "StrictMode": true,
+    "StyleSheetManager": true,
     "Suspense": true,
     "componentDidCatch": true,
     "createBrowserRouter": true,
@@ -111,9 +114,6 @@
     "useSyncExternalStore": true,
     "useTitleCase": true,
     "useTransition": true,
-    "useUnsignedLetters": true,
-    "ReactNode": true,
-    "StyleSheetManager": true,
-    "RenderingInfo": true
+    "useUnsignedLetters": true
   }
 }

@@ -77,8 +77,8 @@ const convertData = (
 			return contentEncoding === 'br'
 				? _zlib.brotliCompressSync.call(void 0, JSON.stringify(result.data))
 				: contentEncoding === 'gzip'
-				? _zlib.gzipSync.call(void 0, JSON.stringify(result.data))
-				: JSON.stringify(result.data)
+					? _zlib.gzipSync.call(void 0, JSON.stringify(result.data))
+					: JSON.stringify(result.data)
 		default:
 			return typeof result.data === 'string'
 				? result.data

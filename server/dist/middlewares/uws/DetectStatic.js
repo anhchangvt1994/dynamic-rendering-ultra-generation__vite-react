@@ -69,8 +69,8 @@ const DetectStaticMiddle = (res, req) => {
 						contentEncoding === 'br'
 							? _zlib.brotliCompressSync.call(void 0, content)
 							: contentEncoding === 'gzip'
-							? _zlib.gzipSync.call(void 0, content)
-							: content
+								? _zlib.gzipSync.call(void 0, content)
+								: content
 
 					return tmpBody
 				})()

@@ -227,8 +227,8 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 													totalRequestsToCrawl =
 														totalRequestsToCrawl > certainLimitRequestToCrawl
 															? totalRequestsToCrawl -
-															  certainLimitRequestToCrawl -
-															  1
+																certainLimitRequestToCrawl -
+																1
 															: totalRequestsToCrawl - 1
 													totalRequestsToCrawl =
 														totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
@@ -290,8 +290,8 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 													totalRequestsToCrawl =
 														totalRequestsToCrawl > certainLimitRequestToCrawl
 															? totalRequestsToCrawl -
-															  certainLimitRequestToCrawl -
-															  1
+																certainLimitRequestToCrawl -
+																1
 															: totalRequestsToCrawl - 1
 													totalRequestsToCrawl =
 														totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
@@ -469,9 +469,9 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 							_constants.SERVER_LESS
 								? 5000
 								: _constants.BANDWIDTH_LEVEL >
-								  _constants.BANDWIDTH_LEVEL_LIST.ONE
-								? 60000
-								: 60000
+									  _constants.BANDWIDTH_LEVEL_LIST.ONE
+									? 60000
+									: 60000
 						)
 
 					const result = await (async () => {

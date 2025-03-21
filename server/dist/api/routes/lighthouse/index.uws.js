@@ -79,8 +79,8 @@ const apiLighthouse = (() => {
 					req.getHeader('x-forwarded-proto')
 						? req.getHeader('x-forwarded-proto')
 						: _InitEnv.PROCESS_ENV.IS_SERVER
-						? 'https'
-						: 'http'
+							? 'https'
+							: 'http'
 				}://${req.getHeader('host')}`
 
 			const urlParam = req.getQuery('url')

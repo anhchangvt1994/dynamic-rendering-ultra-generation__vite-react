@@ -107,7 +107,7 @@ const puppeteerSSRService = (async () => {
 									'optionalAccess',
 									(_8) => _8['url'],
 								])
-						  )
+							)
 						: ''
 
 					const result = await _ISRHandlerworker2.default.call(void 0, {

@@ -168,8 +168,8 @@ function detectLocale(req) {
 	const defaultLang = _serverconfig2.default.locale.defaultLang
 		? _serverconfig2.default.locale.defaultLang
 		: !defaultCountry
-		? clientCountry
-		: undefined
+			? clientCountry
+			: undefined
 
 	const pathSplitted = req.originalUrl.split('/')
 	const firstDispatcherParam = pathSplitted[1]

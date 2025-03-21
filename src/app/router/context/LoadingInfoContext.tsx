@@ -1,6 +1,8 @@
+import { ReactElement } from 'react'
+
 export type ILoadingInfo = {
 	isShow: boolean
-	element: JSX.Element
+	element: ReactElement
 }
 
 export const INIT_LOADING_INFO: ILoadingInfo = {

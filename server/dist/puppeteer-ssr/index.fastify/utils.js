@@ -49,8 +49,8 @@ const handleResultAfterISRGenerator = (res, params) => {
 					? contentEncoding === 'br'
 						? _zlib.brotliCompressSync.call(void 0, result.html)
 						: contentEncoding === 'gzip'
-						? _zlib.gzipSync.call(void 0, result.html)
-						: result.html
+							? _zlib.gzipSync.call(void 0, result.html)
+							: result.html
 					: (() => {
 							let tmpContent = ''
 
@@ -72,7 +72,7 @@ const handleResultAfterISRGenerator = (res, params) => {
 							}
 
 							return tmpContent
-					  })()
+						})()
 			} else if (result.response.indexOf('.br') !== -1) {
 				let content
 
@@ -108,8 +108,8 @@ const handleResultAfterISRGenerator = (res, params) => {
 						? contentEncoding === 'br'
 							? _zlib.brotliCompressSync.call(void 0, result.html)
 							: contentEncoding === 'gzip'
-							? _zlib.gzipSync.call(void 0, result.html)
-							: result.html
+								? _zlib.gzipSync.call(void 0, result.html)
+								: result.html
 						: _fs2.default.readFileSync(result.response)
 				} catch (err) {
 					_ConsoleHandler2.default.error(err)

@@ -183,7 +183,7 @@ const defineServerConfig = (options) => {
 													]),
 													() => ['desktop', 'mobile']
 												),
-										  }
+											}
 										: {
 												content: _nullishCoalesce(
 													_optionalChain([
@@ -198,7 +198,7 @@ const defineServerConfig = (options) => {
 													() => ['desktop', 'mobile']
 												),
 												...serverConfig[key].list[routeKey].pointsTo,
-										  },
+											},
 							}
 						} else if (serverConfig[key].list[routeKey].preview) {
 							serverConfig[key].list[routeKey] = {
@@ -209,7 +209,7 @@ const defineServerConfig = (options) => {
 												...defaultPreview,
 												...serverConfig[key].preview,
 												...serverConfig[key][routeKey].preview,
-										  },
+											},
 							}
 						}
 					}
@@ -267,7 +267,7 @@ const defineServerConfig = (options) => {
 													),
 													() => ['desktop', 'mobile']
 												),
-										  }
+											}
 										: {
 												content: _nullishCoalesce(
 													_nullishCoalesce(
@@ -290,14 +290,14 @@ const defineServerConfig = (options) => {
 													() => ['desktop', 'mobile']
 												),
 												...tmpConfig.pointsTo,
-										  },
+											},
 							}
 						} else if (tmpConfig.preview) {
 							tmpConfig =
 								typeof tmpConfig.preview === 'boolean'
 									? {
 											preview: defaultOptionOfCustom.preview,
-									  }
+										}
 									: {
 											preview: {
 												content: _nullishCoalesce(
@@ -312,7 +312,7 @@ const defineServerConfig = (options) => {
 												),
 												...tmpConfig.preview,
 											},
-									  }
+										}
 						} else {
 							tmpConfig = {
 								...defaultOptionOfCustom,
@@ -370,14 +370,14 @@ const defineServerConfig = (options) => {
 	serverConfig.crawler = serverConfig.isRemoteCrawler
 		? ''
 		: _InitEnv.ENV_MODE === 'development'
-		? serverConfig.crawler
-		: _InitEnv.PROCESS_ENV.CRAWLER || serverConfig.crawler
+			? serverConfig.crawler
+			: _InitEnv.PROCESS_ENV.CRAWLER || serverConfig.crawler
 
 	serverConfig.crawlerSecretKey = serverConfig.isRemoteCrawler
 		? ''
 		: _InitEnv.ENV_MODE === 'development'
-		? serverConfig.crawlerSecretKey
-		: _InitEnv.PROCESS_ENV.CRAWLER_SECRET_KEY || undefined
+			? serverConfig.crawlerSecretKey
+			: _InitEnv.PROCESS_ENV.CRAWLER_SECRET_KEY || undefined
 
 	return serverConfig
 }
