@@ -68,7 +68,7 @@ export const ServerStore = (() => {
 								ENV: 'production',
 								MODE: 'production',
 								ENV_MODE: 'production',
-						  }
+							}
 				})()
 				deleteCookie('EnvironmentInfo')
 			}
