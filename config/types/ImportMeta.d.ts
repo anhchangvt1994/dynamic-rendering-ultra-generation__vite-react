@@ -10,6 +10,9 @@ interface Env {
     IPV4_ADDRESS:                string;
     IPV4_HOST:                   string;
     IO_HOST:                     string;
+    GREETING:                    string;
+    DEV:                         boolean;
+    PROD:                        boolean;
     ROUTER_BASE_PATH:            string;
     ROUTER_HOME_PATH:            string;
     ROUTER_CONTENT_PATH:         string;

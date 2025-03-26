@@ -1,47 +1,56 @@
 {
-	"editor.wordWrap": "on",
-	"editor.suggest.showModules": false,
-	"editor.formatOnSave": false,
-	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	"editor.codeActionsOnSave": [
-		"source.formatDocument",
-		"source.fixAll.tslint",
-		"source.fixAll.eslint",
-		"source.organizeImports"
-	],
-	"editor.quickSuggestions": {
-		"other": true,
-		"comments": false,
-		"strings": true
-	},
+  "editor.wordWrap": "on",
+  "editor.suggest.showModules": false,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": [
+    "source.formatDocument",
+    "source.fixAll.tslint",
+    "source.fixAll.eslint",
+    "source.organizeImports"
+  ],
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
 
-	"emmet.triggerExpansionOnTab": true,
-	"emmet.showSuggestionsAsSnippets": true,
+  "emmet.triggerExpansionOnTab": true,
+  "emmet.showSuggestionsAsSnippets": true,
 
-	"html.suggest.html5": true,
-	"scss.scannerDepth": 100,
-	"tailwindCSS.emmetCompletions": true,
-	"typescript.updateImportsOnFileMove.enabled": "always",
+  "html.suggest.html5": true,
+  "tailwindCSS.emmetCompletions": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
 
-	"path-autocomplete.extensionOnImport": true,
-	"path-autocomplete.includeExtension": true,
-	"path-autocomplete.excludedItems": {
-		"**": {
-			"when": "**/*.{js,ts,jsx,tsx}",
-			"isDir": true,
-			"context": "(import|require).*"
-		}
-	},
-	"path-autocomplete.pathMappings": {
-		"/": "${workspace}/src/assets/static",
-		"assets": "${workspace}/src/assets"
-	},
-	"path-autocomplete.pathSeparators": " \t({[",
-	"workbench.editor.empty.hint": "hidden",
-	"eslint.workingDirectories": [
-		{
-			"mode": "auto"
-		}
-	],
-	"nuxt.isNuxtApp": false
+  "path-autocomplete.extensionOnImport": true,
+  "path-autocomplete.includeExtension": true,
+  "path-autocomplete.excludedItems": {
+    "**": {
+      "when": "**/*.{js,ts,jsx,tsx}",
+      "isDir": true,
+      "context": "(import|require).*"
+    }
+  },
+  "path-autocomplete.pathMappings": {
+    "/": "${workspace}/src/assets/static",
+    "assets": "${workspace}/src/assets"
+  },
+  "path-autocomplete.pathSeparators": " \t({[",
+  "workbench.editor.empty.hint": "hidden",
+  "eslint.experimental.useFlatConfig": true,
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "nuxt.isNuxtApp": false
 }

@@ -2,12 +2,8 @@
   "globals": {
     "BotInfo": true,
     "BrowserRouter": true,
-    "ComponentType": true,
     "DeviceInfo": true,
-    "Dispatch": true,
     "EnvironmentInfo": true,
-    "HTMLAttributes": true,
-    "HTMLProps": true,
     "Link": true,
     "LocaleInfo": true,
     "NavLink": true,
@@ -15,12 +11,10 @@
     "Outlet": true,
     "ProxyAPI": true,
     "React": true,
-    "ReactNode": true,
     "RenderingInfo": true,
     "Route": true,
     "RouterProvider": true,
     "Routes": true,
-    "SetStateAction": true,
     "StrictMode": true,
     "StyleSheetManager": true,
     "Suspense": true,
@@ -114,6 +108,7 @@
     "useSyncExternalStore": true,
     "useTitleCase": true,
     "useTransition": true,
-    "useUnsignedLetters": true
+    "useUnsignedLetters": true,
+    "yup": true
   }
 }

@@ -115,10 +115,5 @@ declare global {
   const useTitleCase: typeof import('hooks/useStringHelper.ts')['useTitleCase']
   const useTransition: typeof import('react')['useTransition']
   const useUnsignedLetters: typeof import('hooks/useStringHelper.ts')['useUnsignedLetters']
-}
-// for type re-export
-declare global {
-  // @ts-ignore
-  export type { Dispatch, SetStateAction, HTMLProps, HTMLAttributes, ComponentType, ReactNode } from 'react'
-  import('react')
+  const yup: typeof import('yup')
 }

@@ -1,95 +1,97 @@
 {
-	"ts-node": {
-		"transpileOnly": true
-		// "swc": true
-	},
-	"exclude": [
-		"node_modules",
-		"dist",
-		"package.json",
-		"package-lock.json",
-		"yarn-lock.json"
-	],
-	"files": [
-		"config/auto-imports.d.ts",
-		"config/types/ImportMeta.d.ts",
-		"src/static.d.ts"
-	],
-	"include": ["src/**/*.js", "src/**/*.ts", "src/**/*.jsx", "src/**/*.tsx"],
-	"compilerOptions": {
-		"useDefineForClassFields": true,
-		"lib": ["DOM", "DOM.Iterable", "ESNext"],
-		// NOTE - Set what module will be built for project (es, commonjs) (what is compile way will be chosen for import / export syntax)
-		// https://www.typescriptlang.org/tsconfig#module
-		// https://stackoverflow.com/questions/41993811/understanding-target-and-module-in-tsconfig
-		"module": "ESNext",
+  "ts-node": {
+    "transpileOnly": true
+    // "swc": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "package.json",
+    "package-lock.json",
+    "yarn-lock.json",
+    "vite.config.mts"
+  ],
+  "files": [
+    "config/auto-imports.d.ts",
+    "config/auto-imports-type.d.ts",
+    "config/types/ImportMeta.d.ts",
+    "src/static.d.ts"
+  ],
+  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.jsx", "src/**/*.tsx"],
+  "compilerOptions": {
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    // NOTE - Set what module will be built for project (es, commonjs) (what is compile way will be chosen for import / export syntax)
+    // https://www.typescriptlang.org/tsconfig#module
+    // https://stackoverflow.com/questions/41993811/understanding-target-and-module-in-tsconfig
+    "module": "ESNext",
 
-		// NOTE - Set what target ECMAScript target version (you can easy to think that the target option is used to setup for what compile way for script syntax that exclude import and export)
-		// https://www.typescriptlang.org/tsconfig#target
-		// https://stackoverflow.com/questions/39493003/typescript-compile-options-module-vs-target
-		"target": "ESNext",
+    // NOTE - Set what target ECMAScript target version (you can easy to think that the target option is used to setup for what compile way for script syntax that exclude import and export)
+    // https://www.typescriptlang.org/tsconfig#target
+    // https://stackoverflow.com/questions/39493003/typescript-compile-options-module-vs-target
+    "target": "ESNext",
 
-		// NOTE - Set way to system try to find module
-		// https://www.typescriptlang.org/tsconfig#moduleResolution
-		// https://www.typescriptlang.org/tsconfig#moduleResolution
-		// https://www.codementor.io/@elliotaplant/understanding-javascript-module-resolution-systems-with-dinosaurs-il2oqro6e
-		"moduleResolution": "Node",
+    // NOTE - Set way to system try to find module
+    // https://www.typescriptlang.org/tsconfig#moduleResolution
+    // https://www.typescriptlang.org/tsconfig#moduleResolution
+    // https://www.codementor.io/@elliotaplant/understanding-javascript-module-resolution-systems-with-dinosaurs-il2oqro6e
+    "moduleResolution": "Node",
 
-		// NOTE - Base path of project setup with this tsconfig
-		"baseUrl": "src",
+    // NOTE - Base path of project setup with this tsconfig
+    "baseUrl": "src",
 
-		// NOTE - Setup resolve alias path for project (use case is for auto complete sugestion)
-		"paths": {
-			"@/*": ["../*"],
-			"assets/*": ["assets/*"],
-			"app/*": ["app/*"],
-			"hooks/*": ["hooks/*"],
-			"pages/*": ["pages/*"],
-			"components/*": ["components/*"],
-			"utils/*": ["utils/*"]
-		},
+    // NOTE - Setup resolve alias path for project (use case is for auto complete sugestion)
+    "paths": {
+      "@/*": ["../*"],
+      "assets/*": ["assets/*"],
+      "app/*": ["app/*"],
+      "hooks/*": ["hooks/*"],
+      "pages/*": ["pages/*"],
+      "components/*": ["components/*"],
+      "utils/*": ["utils/*"]
+    },
 
-		// NOTE - Tell typescript compile just only check type
-		// https://www.typescriptlang.org/tsconfig#noEmit
-		// https://stackoverflow.com/questions/55002137/typescript-noemit-use-case
-		"noEmit": true,
+    // NOTE - Tell typescript compile just only check type
+    // https://www.typescriptlang.org/tsconfig#noEmit
+    // https://stackoverflow.com/questions/55002137/typescript-noemit-use-case
+    "noEmit": true,
 
-		// NOTE - This option allow us to use .tsx in project
-		// https://www.typescriptlang.org/tsconfig#jsx
-		// https://stackoverflow.com/questions/62859458/what-is-the-use-of-jsx-property-in-tsconfig-json
-		// "jsx": "preserve",
-		// "jsx": "react",
-		"jsx": "react-jsx",
+    // NOTE - This option allow us to use .tsx in project
+    // https://www.typescriptlang.org/tsconfig#jsx
+    // https://stackoverflow.com/questions/62859458/what-is-the-use-of-jsx-property-in-tsconfig-json
+    // "jsx": "preserve",
+    // "jsx": "react",
+    "jsx": "react-jsx",
 
-		// NOTE - Check for auto import
-		// "checkJs": true,
+    // NOTE - Check for auto import
+    // "checkJs": true,
 
-		// NOTE - Allow JavaScript files to be imported inside your project
-		// https://www.typescriptlang.org/tsconfig#allowJs
-		"allowJs": true,
+    // NOTE - Allow JavaScript files to be imported inside your project
+    // https://www.typescriptlang.org/tsconfig#allowJs
+    "allowJs": true,
 
-		// NOTE - Setup strict mode for project (eslint also use this config to figure out error)
-		// https://www.typescriptlang.org/tsconfig#strict
-		// https://dev.to/jsdev/strict-mode-typescript-j8p
-		"strict": false,
-		"noImplicitAny": false,
+    // NOTE - Setup strict mode for project (eslint also use this config to figure out error)
+    // https://www.typescriptlang.org/tsconfig#strict
+    // https://dev.to/jsdev/strict-mode-typescript-j8p
+    "strict": false,
+    "noImplicitAny": false,
 
-		// NOTE - This option will skip type checking of declaration files if enable
-		// https://www.typescriptlang.org/tsconfig#skipLibCheck
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true,
+    // NOTE - This option will skip type checking of declaration files if enable
+    // https://www.typescriptlang.org/tsconfig#skipLibCheck
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
 
-		// NOTE - With flag esModuleInterop we can import CommonJS modules in compliance with es6 modules spec
-		// https://stackoverflow.com/questions/56238356/understanding-esmoduleinterop-in-tsconfig-file
-		"esModuleInterop": true,
+    // NOTE - With flag esModuleInterop we can import CommonJS modules in compliance with es6 modules spec
+    // https://stackoverflow.com/questions/56238356/understanding-esmoduleinterop-in-tsconfig-file
+    "esModuleInterop": true,
 
-		// NOTE - Allow you write (import React from "react";) instead of (import * as React from "react";)
-		// https://www.typescriptlang.org/tsconfig#allowSyntheticDefaultImports
-		"allowSyntheticDefaultImports": true,
-		"importHelpers": true,
-		"sourceMap": true,
-		"isolatedModules": true
-		// "types": ["webpack-env", "react"]
-	}
+    // NOTE - Allow you write (import React from "react";) instead of (import * as React from "react";)
+    // https://www.typescriptlang.org/tsconfig#allowSyntheticDefaultImports
+    "allowSyntheticDefaultImports": true,
+    "importHelpers": true,
+    "sourceMap": true,
+    "isolatedModules": true
+    // "types": ["webpack-env", "react"]
+  }
 }
