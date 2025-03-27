@@ -275,7 +275,7 @@ const apiService = (async () => {
               _FetchManager.fetchData
                 .call(void 0, fetchUrl, {
                   method,
-                  headers,
+                  headers: objHeaders,
                   body,
                 })
                 .then((result) => {
@@ -314,7 +314,7 @@ const apiService = (async () => {
       const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
       const fetchAPITarget = _FetchManager.fetchData.call(void 0, fetchUrl, {
         method,
-        headers,
+        headers: objHeaders,
         body,
       })
 

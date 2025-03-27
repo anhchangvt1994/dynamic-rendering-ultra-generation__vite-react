@@ -40,7 +40,7 @@ function Layout() {
   }
 
   const [infoState, setInfoState] = useState<string>(
-    JSON.stringify(getAPIStore('/users'))
+    JSON.stringify(getAPIStore('/customers?_limit=10'))
   )
   const [userInfoState, setUserInfoState] = useState<string>(
     JSON.stringify(getAPIStore('/users/1'))
@@ -48,12 +48,12 @@ function Layout() {
 
   useEffect(() => {
     fetch(
-      ProxyAPIExample_v1.get(`/users?test=1&user=2`, {
-        expiredTime: 10000,
-        cacheKey: `/users`,
+      ProxyAPIExample_v1.get(`/customers?_limit=10`, {
+        expiredTime: 5000,
+        cacheKey: `/customers?_limit=10`,
         enableStore: true,
         storeInDevice: DeviceInfo.type,
-        relativeCacheKey: ['/users/1'],
+        relativeCacheKey: ['/customers?_limit=10'],
       }),
       {
         method: 'GET',

@@ -561,9 +561,7 @@ const puppeteerSSRService = (async () => {
 
               html = html.replace(
                 '</head>',
-                `<script>window.API_STORE = ${JSON.stringify({
-                  WindowAPIStore,
-                })}</script></head>`
+                `<script>window.API_STORE = ${JSON.stringify(WindowAPIStore)}</script></head>`
               )
             }
 

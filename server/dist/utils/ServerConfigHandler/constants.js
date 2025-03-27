@@ -4,7 +4,7 @@ Object.defineProperty(exports, '__esModule', { value: true })
 const defaultServerConfig = {
   locale: {
     enable: false,
-    hideDefaultLocale: true,
+    hideDefaultLocale: false,
     routes: {},
   },
   isRemoteCrawler: false,
