@@ -44,6 +44,8 @@ var _servestatic2 = _interopRequireDefault(_servestatic)
 var _zlib = require('zlib')
 var _PortHandler = require('../../config/utils/PortHandler')
 var _constants = require('./constants')
+var _ConsoleHandler = require('./utils/ConsoleHandler')
+var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _CookieHandler = require('./utils/CookieHandler')
 var _DetectBot = require('./utils/DetectBot')
 var _DetectBot2 = _interopRequireDefault(_DetectBot)
@@ -56,8 +58,6 @@ var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect)
 var _DetectStaticExtension = require('./utils/DetectStaticExtension')
 var _DetectStaticExtension2 = _interopRequireDefault(_DetectStaticExtension)
 var _InitEnv = require('./utils/InitEnv')
-var _ConsoleHandler = require('./utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
 const ServerConfig = _nullishCoalesce(
   _optionalChain([
@@ -97,6 +97,16 @@ const startServer = async () => {
   app.use(_cors2.default.call(void 0))
   if (!ServerConfig.isRemoteCrawler) {
     app
+      .use(function (req, res, next) {
+        if (
+          req.headers['sec-fetch-dest'] === 'empty' &&
+          !req.headers['accept']
+        ) {
+          return next('router')
+        }
+
+        next()
+      })
       .use(
         '/robots.txt',
         _express2.default.static(

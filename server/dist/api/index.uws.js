@@ -288,7 +288,7 @@ const apiService = (async () => {
             } else {
               if (
                 ((requestInfo.renewTime !== 'infinite' &&
-                  curTime - new Date(apiCache.updatedAt).getTime() >=
+                  curTime - new Date(apiCache.modifiedAt).getTime() >=
                     requestInfo.renewTime) ||
                   !apiCache.cache ||
                   apiCache.cache.status !== 200) &&

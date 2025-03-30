@@ -378,6 +378,11 @@ const puppeteerSSRService = (async () => {
           )}</script></head>`
         )
 
+        console.log(html)
+        console.log(req.headers['accept'])
+        console.log(req.headers['sec-fetch-dest'])
+        console.log('-----------')
+
         const body = (() => {
           if (!enableContentEncoding) return html
 

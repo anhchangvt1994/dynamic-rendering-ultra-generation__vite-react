@@ -95,6 +95,8 @@ const getFileInfo = async (file) => {
         size: stats.size,
         createdAt: stats.birthtime,
         updatedAt: stats.mtimeMs > stats.ctimeMs ? stats.mtime : stats.ctime,
+        modifiedAt: stats.mtime,
+        changedAt: stats.ctime,
         requestedAt: stats.atime,
       })
     })
@@ -174,6 +176,7 @@ const get = async (directory, key, extension, options) => {
     autoCreateIfEmpty: {
       enable: false,
     },
+    updateRequestTime: true,
     ...(options || {}),
   }
 
@@ -212,6 +215,8 @@ const get = async (directory, key, extension, options) => {
         createdAt: curTime,
         updatedAt: curTime,
         requestedAt: curTime,
+        modifiedAt: curTime,
+        changedAt: curTime,
         status: status || options.autoCreateIfEmpty.status,
       }
     } catch (err) {
@@ -219,8 +224,6 @@ const get = async (directory, key, extension, options) => {
       return
     }
   }
-
-  await exports.setRequestTimeInfo.call(void 0, file, new Date())
   const info = await exports.getFileInfo.call(void 0, file)
 
   if (!info || info.size === 0) {
@@ -239,8 +242,20 @@ const get = async (directory, key, extension, options) => {
         _optionalChain([info, 'optionalAccess', (_4) => _4.requestedAt]),
         () => curTime
       ),
+      modifiedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_5) => _5.modifiedAt]),
+        () => curTime
+      ),
+      changedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_6) => _6.changedAt]),
+        () => curTime
+      ),
       status: status || options.autoCreateIfEmpty.status,
     }
+  }
+
+  if (options.updateRequestTime) {
+    await exports.setRequestTimeInfo.call(void 0, file, new Date())
   }
 
   _ConsoleHandler2.default.log(`File ${file} is ready!`)
@@ -274,6 +289,8 @@ const get = async (directory, key, extension, options) => {
     createdAt: info.createdAt,
     updatedAt: info.updatedAt,
     requestedAt: info.requestedAt,
+    modifiedAt: info.modifiedAt,
+    changedAt: info.changedAt,
     status: status || options.autoCreateIfEmpty.status,
     ...objContent,
   }
@@ -343,6 +360,8 @@ const set = async (directory, key, extension, content, options) => {
         createdAt: curTime,
         updatedAt: curTime,
         requestedAt: curTime,
+        modifiedAt: curTime,
+        changedAt: curTime,
         status: options.status,
         ...(typeof content === 'string'
           ? {
