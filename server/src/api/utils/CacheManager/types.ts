@@ -1,11 +1,12 @@
 export type IStatus = undefined | 'fetch' | 'ready'
 
 export interface IGetCacheOptionsParam {
-  autoCreateIfEmpty: {
+  autoCreateIfEmpty?: {
     enable: boolean
     status?: IStatus
   }
   updateRequestTime?: boolean
+  sizeLimit?: number
 }
 
 export interface ISetCacheOptionsParam {

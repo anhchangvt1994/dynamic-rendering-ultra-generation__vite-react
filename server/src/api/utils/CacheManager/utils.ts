@@ -149,7 +149,7 @@ export const get = async (
   extension: 'json' | 'br',
   options?: IGetCacheOptionsParam
 ): Promise<ICacheResult> => {
-  options = {
+  const optionsFormatted = {
     autoCreateIfEmpty: {
       enable: false,
     },
@@ -170,15 +170,15 @@ export const get = async (
   const status = getStatus(directory, key, extension)
   const file = `${directory}/${key}${
     !status || status === 'ready'
-      ? !options.autoCreateIfEmpty.status ||
-        options.autoCreateIfEmpty.status === 'ready'
+      ? !optionsFormatted.autoCreateIfEmpty.status ||
+        optionsFormatted.autoCreateIfEmpty.status === 'ready'
         ? ''
-        : '.' + options.autoCreateIfEmpty.status
+        : '.' + optionsFormatted.autoCreateIfEmpty.status
       : '.' + status
   }.${extension}`
 
   if (!status) {
-    if (!options.autoCreateIfEmpty.enable) return
+    if (!optionsFormatted.autoCreateIfEmpty.enable) return
 
     Console.log(`Create file ${file}`)
 
@@ -194,7 +194,7 @@ export const get = async (
         requestedAt: curTime,
         modifiedAt: curTime,
         changedAt: curTime,
-        status: status || options.autoCreateIfEmpty.status,
+        status: status || optionsFormatted.autoCreateIfEmpty.status,
       }
     } catch (err) {
       Console.error(err)
@@ -212,11 +212,24 @@ export const get = async (
       requestedAt: info?.requestedAt ?? curTime,
       modifiedAt: info?.modifiedAt ?? curTime,
       changedAt: info?.changedAt ?? curTime,
-      status: status || options.autoCreateIfEmpty.status,
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
 
-  if (options.updateRequestTime) {
+  if (optionsFormatted.sizeLimit && info.size > optionsFormatted.sizeLimit) {
+    const curTime = new Date()
+    Console.log(`File lager than sizeLimit`)
+    return {
+      createdAt: info?.createdAt ?? curTime,
+      updatedAt: info?.updatedAt ?? curTime,
+      requestedAt: info?.requestedAt ?? curTime,
+      modifiedAt: info?.modifiedAt ?? curTime,
+      changedAt: info?.changedAt ?? curTime,
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
+
+  if (optionsFormatted.updateRequestTime) {
     await setRequestTimeInfo(file, new Date())
   }
 
@@ -251,7 +264,7 @@ export const get = async (
     requestedAt: info.requestedAt,
     modifiedAt: info.modifiedAt,
     changedAt: info.changedAt,
-    status: status || options.autoCreateIfEmpty.status,
+    status: status || optionsFormatted.autoCreateIfEmpty.status,
     ...objContent,
   }
 } // get

@@ -172,7 +172,7 @@ const updateStatus = (directory, key, extension, newStatus) => {
 exports.updateStatus = updateStatus // updateStatus
 
 const get = async (directory, key, extension, options) => {
-  options = {
+  const optionsFormatted = {
     autoCreateIfEmpty: {
       enable: false,
     },
@@ -193,15 +193,15 @@ const get = async (directory, key, extension, options) => {
   const status = exports.getStatus.call(void 0, directory, key, extension)
   const file = `${directory}/${key}${
     !status || status === 'ready'
-      ? !options.autoCreateIfEmpty.status ||
-        options.autoCreateIfEmpty.status === 'ready'
+      ? !optionsFormatted.autoCreateIfEmpty.status ||
+        optionsFormatted.autoCreateIfEmpty.status === 'ready'
         ? ''
-        : '.' + options.autoCreateIfEmpty.status
+        : '.' + optionsFormatted.autoCreateIfEmpty.status
       : '.' + status
   }.${extension}`
 
   if (!status) {
-    if (!options.autoCreateIfEmpty.enable) return
+    if (!optionsFormatted.autoCreateIfEmpty.enable) return
 
     _ConsoleHandler2.default.log(`Create file ${file}`)
 
@@ -217,7 +217,7 @@ const get = async (directory, key, extension, options) => {
         requestedAt: curTime,
         modifiedAt: curTime,
         changedAt: curTime,
-        status: status || options.autoCreateIfEmpty.status,
+        status: status || optionsFormatted.autoCreateIfEmpty.status,
       }
     } catch (err) {
       _ConsoleHandler2.default.error(err)
@@ -250,11 +250,39 @@ const get = async (directory, key, extension, options) => {
         _optionalChain([info, 'optionalAccess', (_6) => _6.changedAt]),
         () => curTime
       ),
-      status: status || options.autoCreateIfEmpty.status,
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
 
-  if (options.updateRequestTime) {
+  if (optionsFormatted.sizeLimit && info.size > optionsFormatted.sizeLimit) {
+    const curTime = new Date()
+    _ConsoleHandler2.default.log(`File lager than sizeLimit`)
+    return {
+      createdAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_7) => _7.createdAt]),
+        () => curTime
+      ),
+      updatedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_8) => _8.updatedAt]),
+        () => curTime
+      ),
+      requestedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_9) => _9.requestedAt]),
+        () => curTime
+      ),
+      modifiedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_10) => _10.modifiedAt]),
+        () => curTime
+      ),
+      changedAt: _nullishCoalesce(
+        _optionalChain([info, 'optionalAccess', (_11) => _11.changedAt]),
+        () => curTime
+      ),
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
+
+  if (optionsFormatted.updateRequestTime) {
     await exports.setRequestTimeInfo.call(void 0, file, new Date())
   }
 
@@ -291,7 +319,7 @@ const get = async (directory, key, extension, options) => {
     requestedAt: info.requestedAt,
     modifiedAt: info.modifiedAt,
     changedAt: info.changedAt,
-    status: status || options.autoCreateIfEmpty.status,
+    status: status || optionsFormatted.autoCreateIfEmpty.status,
     ...objContent,
   }
 }

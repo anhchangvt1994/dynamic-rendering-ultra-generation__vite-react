@@ -354,7 +354,9 @@ const puppeteerSSRService = (async () => {
         if (apiStoreData) {
           if (apiStoreData.length) {
             for (const cacheKey of apiStoreData) {
-              const apiCache = await _utils.getData.call(void 0, cacheKey)
+              const apiCache = await _utils.getData.call(void 0, cacheKey, {
+                sizeLimit: 10000,
+              })
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
@@ -377,11 +379,6 @@ const puppeteerSSRService = (async () => {
             WindowAPIStore
           )}</script></head>`
         )
-
-        console.log(html)
-        console.log(req.headers['accept'])
-        console.log(req.headers['sec-fetch-dest'])
-        console.log('-----------')
 
         const body = (() => {
           if (!enableContentEncoding) return html
