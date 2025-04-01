@@ -40,28 +40,26 @@ function Layout() {
   }
 
   const [infoState, setInfoState] = useState<string>(
-    JSON.stringify(getAPIStore('/users/2'))
+    JSON.stringify(getAPIStore('/products/2'))
   )
   const [userInfoState, setUserInfoState] = useState<string>(
-    JSON.stringify(getAPIStore('/users/1'))
+    JSON.stringify(getAPIStore('/products/1'))
   )
 
   useEffect(() => {
     fetch(
-      ProxyAPIExample_v1.get(`/users/2`, {
+      ProxyAPIExample_v1.get(`/products/2`, {
         expiredTime: 5000,
-        cacheKey: `/users/2`,
+        cacheKey: `/products/2`,
         enableStore: true,
         storeInDevice: DeviceInfo.type,
-        relativeCacheKey: ['/users/2'],
+        relativeCacheKey: ['/products/2'],
       }),
       {
         method: 'GET',
         headers: new Headers({
           Accept: 'application/json',
-          Author: 'admin',
         }),
-        // body: JSON.stringify({ test: 1, user: 2 }),
       }
     ).then(async (res) => {
       const text = await res.text()
@@ -69,10 +67,10 @@ function Layout() {
     })
 
     fetch(
-      ProxyAPIExample_v1.get(`/users/1`, {
+      ProxyAPIExample_v1.get(`/products/1`, {
         expiredTime: 10000,
         renewTime: 10000,
-        cacheKey: `/users/1`,
+        cacheKey: `/products/1`,
         enableStore: true,
         storeInDevice: DeviceInfo.type,
       }),
@@ -80,9 +78,7 @@ function Layout() {
         method: 'GET',
         headers: new Headers({
           Accept: 'application/json',
-          Author: 'admin',
         }),
-        // body: JSON.stringify({ test: 1, user: 2 }),
       }
     ).then(async (res) => {
       const text = await res.text()

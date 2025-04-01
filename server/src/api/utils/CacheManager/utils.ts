@@ -379,10 +379,6 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
 
   try {
     result = await get(dataPath, key, 'br', options)
-
-    if (result && result.status === 200) {
-      result.data = fs.readFileSync(result.response)
-    }
   } catch (err) {
     Console.error(err)
   }
@@ -398,11 +394,6 @@ export const getStore = async (
 
   try {
     result = await get(storePath, key, 'json', options)
-
-    if (result && result.status === 200) {
-      const tmpData = fs.readFileSync(result.response) as unknown as string
-      result.data = tmpData ? JSON.parse(tmpData) : tmpData
-    }
   } catch (err) {
     Console.error(err)
   }

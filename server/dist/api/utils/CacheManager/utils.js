@@ -428,10 +428,6 @@ const getData = async (key, options) => {
 
   try {
     result = await exports.get.call(void 0, dataPath, key, 'br', options)
-
-    if (result && result.status === 200) {
-      result.data = _fs2.default.readFileSync(result.response)
-    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
@@ -445,11 +441,6 @@ const getStore = async (key, options) => {
 
   try {
     result = await exports.get.call(void 0, storePath, key, 'json', options)
-
-    if (result && result.status === 200) {
-      const tmpData = _fs2.default.readFileSync(result.response)
-      result.data = tmpData ? JSON.parse(tmpData) : tmpData
-    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

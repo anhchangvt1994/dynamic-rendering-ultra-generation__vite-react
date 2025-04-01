@@ -9,6 +9,15 @@ export interface IGetCacheOptionsParam {
   sizeLimit?: number
 }
 
+export interface IGetCacheOptionsNonNullableParam {
+  autoCreateIfEmpty: {
+    enable: boolean
+    status?: IStatus
+  }
+  updateRequestTime: boolean
+  sizeLimit?: number
+}
+
 export interface ISetCacheOptionsParam {
   isCompress: boolean
   status?: IStatus
@@ -20,6 +29,7 @@ export type ICacheResult =
       body?: BodyInit | null
       headers?: HeadersInit
       method?: string
+      data?: string[]
       cache?:
         | string
         | Buffer

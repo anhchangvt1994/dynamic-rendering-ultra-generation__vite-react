@@ -1,4 +1,4 @@
-import { brotliDecompressSync, gunzipSync } from 'zlib'
+import { brotliDecompressSync, gunzipSync, inflateSync } from 'zlib'
 import Console from '../../../utils/ConsoleHandler'
 import { getDataPath } from '../../../utils/PathHandler'
 import { ICacheResult } from '../CacheManager/types'
@@ -46,17 +46,27 @@ export const fetchData = async (
     }
 
     try {
-      if (init) {
+      if (init && init.headers) {
         const headers = new Headers()
         for (const headerKey in init.headers) {
+          if (
+            /referer|static-html-path|accept-encoding/.test(
+              headerKey.toLowerCase()
+            )
+          )
+            continue
+
           headers.append(headerKey, init.headers[headerKey])
         }
+
+        headers.append('accept-encoding', 'gzip, deflate, br')
 
         init.headers = headers
       }
 
       const response = await fetch(input, {
-        ...(init || {}),
+        method: 'GET',
+        headers: init?.headers,
       })
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
@@ -64,14 +74,21 @@ export const fetchData = async (
             let tmpData
             const buffer = await res.clone().arrayBuffer()
 
-            try {
-              tmpData = brotliDecompressSync(buffer)?.toString()
-            } catch {}
+            const contentEncoding = res.headers.get('content-encoding')
 
-            if (!tmpData)
+            if (contentEncoding?.includes('gzip')) {
               try {
                 tmpData = gunzipSync(buffer)?.toString()
               } catch {}
+            } else if (contentEncoding?.includes('deflate')) {
+              try {
+                tmpData = inflateSync(buffer)?.toString()
+              } catch {}
+            } else if (contentEncoding?.includes('br')) {
+              try {
+                tmpData = brotliDecompressSync(buffer)?.toString()
+              } catch {}
+            }
 
             if (!tmpData) {
               const text = await res.clone().text()

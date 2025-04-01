@@ -62,17 +62,27 @@ const fetchData = async (input, init) => {
     }
 
     try {
-      if (init) {
+      if (init && init.headers) {
         const headers = new Headers()
         for (const headerKey in init.headers) {
+          if (
+            /referer|static-html-path|accept-encoding/.test(
+              headerKey.toLowerCase()
+            )
+          )
+            continue
+
           headers.append(headerKey, init.headers[headerKey])
         }
+
+        headers.append('accept-encoding', 'gzip, deflate, br')
 
         init.headers = headers
       }
 
       const response = await fetch(input, {
-        ...(init || {}),
+        method: 'GET',
+        headers: _optionalChain([init, 'optionalAccess', (_2) => _2.headers]),
       })
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
@@ -80,26 +90,63 @@ const fetchData = async (input, init) => {
             let tmpData
             const buffer = await res.clone().arrayBuffer()
 
-            try {
-              tmpData = _optionalChain([
-                _zlib.brotliDecompressSync.call(void 0, buffer),
-                'optionalAccess',
-                (_2) => _2.toString,
-                'call',
-                (_3) => _3(),
-              ])
-            } catch (e) {}
+            const contentEncoding = res.headers.get('content-encoding')
 
-            if (!tmpData)
+            if (
+              _optionalChain([
+                contentEncoding,
+                'optionalAccess',
+                (_3) => _3.includes,
+                'call',
+                (_4) => _4('gzip'),
+              ])
+            ) {
               try {
                 tmpData = _optionalChain([
                   _zlib.gunzipSync.call(void 0, buffer),
                   'optionalAccess',
-                  (_4) => _4.toString,
+                  (_5) => _5.toString,
                   'call',
-                  (_5) => _5(),
+                  (_6) => _6(),
+                ])
+              } catch (e) {}
+            } else if (
+              _optionalChain([
+                contentEncoding,
+                'optionalAccess',
+                (_7) => _7.includes,
+                'call',
+                (_8) => _8('deflate'),
+              ])
+            ) {
+              try {
+                tmpData = _optionalChain([
+                  _zlib.inflateSync.call(void 0, buffer),
+                  'optionalAccess',
+                  (_9) => _9.toString,
+                  'call',
+                  (_10) => _10(),
                 ])
               } catch (e2) {}
+            } else if (
+              _optionalChain([
+                contentEncoding,
+                'optionalAccess',
+                (_11) => _11.includes,
+                'call',
+                (_12) => _12('br'),
+              ])
+            ) {
+              try {
+                tmpData = _optionalChain([
+                  _zlib.brotliDecompressSync.call(void 0, buffer),
+                  'optionalAccess',
+                  (_13) => _13.toString,
+                  'call',
+                  (_14) => _14(),
+                ])
+              } catch (e3) {}
+            }
 
             if (!tmpData) {
               const text = await res.clone().text()

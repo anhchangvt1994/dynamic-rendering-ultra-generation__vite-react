@@ -3,8 +3,6 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : { default: obj }
 }
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
 var _constants = require('../../../constants')
@@ -35,14 +33,6 @@ const getData = async (key, options) => {
 
   try {
     result = await pool.exec('get', [dataPath, key, 'br', options])
-
-    if (result && result.status === 200) {
-      try {
-        result.data = _fs2.default.readFileSync(result.response)
-      } catch (err) {
-        _ConsoleHandler2.default.error(err)
-      }
-    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
@@ -62,17 +52,6 @@ const getStore = async (key, options) => {
 
   try {
     result = await pool.exec('get', [storePath, key, 'json', options])
-
-    if (result && result.status === 200) {
-      let tmpData
-      try {
-        tmpData = _fs2.default.readFileSync(result.response)
-      } catch (err) {
-        _ConsoleHandler2.default.error(err)
-      }
-
-      result.data = tmpData ? JSON.parse(tmpData) : tmpData
-    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

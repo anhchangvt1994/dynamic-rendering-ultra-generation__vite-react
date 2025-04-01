@@ -395,21 +395,75 @@ const puppeteerSSRService = (async () => {
             (req.getHeader('static-html-path') as string) ||
             path.resolve(__dirname, '../../../../dist/index.html')
 
-          const url = (() => {
+          const pathForCacheKeyConverter = (() => {
             const urlWithoutQuery = req.getUrl()
             const query = req.getQuery()
             const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
 
             return tmpUrl
           })()
+
+          const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
+
+          const apiStoreData = await (async () => {
+            let tmpStoreKey
+            let tmpAPIStore
+
+            tmpStoreKey = hashCode(pathForCacheKeyConverter)
+
+            tmpAPIStore = await getStoreCache(tmpStoreKey)
+
+            if (tmpAPIStore) return tmpAPIStore.data
+
+            const deviceType = res.cookies?.deviceInfo?.type
+
+            tmpStoreKey = hashCode(
+              `${pathForCacheKeyConverter}${
+                pathForCacheKeyConverter.includes('?') && deviceType
+                  ? '&device=' + deviceType
+                  : '?device=' + deviceType
+              }`
+            )
+
+            tmpAPIStore = await getStoreCache(tmpStoreKey)
+
+            if (tmpAPIStore) return tmpAPIStore.data
+
+            return
+          })()
+
+          let WindowAPIStore = {}
+
+          if (apiStoreData && apiStoreData.length) {
+            for (const cacheKey of apiStoreData) {
+              const apiCache = await getDataCache(cacheKey, {
+                sizeLimit: 10000,
+              })
+              if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
+                continue
+
+              WindowAPIStore[cacheKey] = apiCache.cache.data
+            }
+          }
+
+          WindowAPIStore = JSON.stringify(WindowAPIStore)
+
           try {
-            const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
             const result = await SSRGenerator({
               url,
             })
 
             if (result?.status === 200) {
               html = fs.readFileSync(result.file)
+
+              if (WindowAPIStore !== '{}') {
+                html = brotliDecompressSync(html).toString() || ''
+
+                html = html.replace(
+                  '</head>',
+                  `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
+                )
+              }
             }
           } catch (err) {
             Console.error(err)
@@ -417,61 +471,18 @@ const puppeteerSSRService = (async () => {
 
           try {
             if (!html) {
-              const apiStoreData = await (async () => {
-                let tmpStoreKey
-                let tmpAPIStore
-
-                tmpStoreKey = hashCode(url)
-
-                tmpAPIStore = await getStoreCache(tmpStoreKey)
-
-                if (tmpAPIStore) return tmpAPIStore.data
-
-                const deviceType = res.cookies?.deviceInfo?.type
-
-                tmpStoreKey = hashCode(
-                  `${url}${
-                    url.includes('?') && deviceType
-                      ? '&device=' + deviceType
-                      : '?device=' + deviceType
-                  }`
-                )
-
-                tmpAPIStore = await getStoreCache(tmpStoreKey)
-
-                if (tmpAPIStore) return tmpAPIStore.data
-
-                return
-              })()
-
-              const WindowAPIStore = {}
-
-              if (apiStoreData) {
-                if (apiStoreData.length) {
-                  for (const cacheKey of apiStoreData) {
-                    const apiCache = await getDataCache(cacheKey)
-                    if (
-                      !apiCache ||
-                      !apiCache.cache ||
-                      apiCache.cache.status !== 200
-                    )
-                      continue
-
-                    WindowAPIStore[cacheKey] = apiCache.cache.data
-                  }
-                }
-              }
-
               try {
                 html = fs.readFileSync(filePath, 'utf8') || ''
+
+                if (WindowAPIStore !== '{}') {
+                  html = html.replace(
+                    '</head>',
+                    `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
+                  )
+                }
               } catch (err) {
                 Console.error(err)
               }
-
-              html = html.replace(
-                '</head>',
-                `<script>window.API_STORE = ${JSON.stringify(WindowAPIStore)}</script></head>`
-              )
             }
 
             const body = (() => {
