@@ -58,7 +58,15 @@ const fetchCache = (() => {
       setTimeout(async () => {
         const apiCache = await _utils.getData.call(void 0, cacheKey)
 
-        if (apiCache && apiCache.cache) res(apiCache.cache)
+        if (!apiCache) return res(null)
+
+        if (
+          apiCache.status === 'ready' ||
+          (apiCache.cache &&
+            apiCache.cache.data &&
+            JSON.stringify(apiCache.cache.data) !== '{}')
+        )
+          res(apiCache.cache)
         else {
           const tmpCache = await fetchCache(cacheKey)
           res(tmpCache)

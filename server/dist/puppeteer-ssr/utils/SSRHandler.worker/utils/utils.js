@@ -38,8 +38,8 @@ var _utils = require('../../../../api/utils/CacheManager/utils')
 var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _StringHelper = require('../../../../utils/StringHelper')
-
 var _constants = require('../../../constants')
+
 // import sharp from 'sharp'
 
 const getInternalScript = async (params) => {
@@ -210,9 +210,9 @@ const getInternalHTML = async (params) => {
 
     html = html.replace(
       '</head>',
-      `<script>window.API_STORE = ${JSON.stringify({
-        WindowAPIStore,
-      })}</script></head>`
+      `<script>window.API_STORE = ${JSON.stringify(
+        WindowAPIStore
+      )}</script></head>`
     )
 
     return {
