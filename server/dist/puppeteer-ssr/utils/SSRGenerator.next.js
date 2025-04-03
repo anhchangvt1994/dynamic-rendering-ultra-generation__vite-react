@@ -134,316 +134,288 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
 
   const routePreviewInfo = routeInfo.preview
 
-  if (!routePreviewInfo) return
-
-  const cacheManager = _utils2.default.call(
-    void 0,
-    SSRHandlerParams.url,
-    viewsPath
-  )
-  if (!_InitEnv.PROCESS_ENV.BASE_URL) {
-    _ConsoleHandler2.default.error('Missing base url!')
-    return
-  }
-
-  if (!SSRHandlerParams.url) {
-    _ConsoleHandler2.default.error('Missing scraping url!')
-    return
-  }
-
-  const startGenerating = Date.now()
+  let result
 
   if (
-    _constants.SERVER_LESS &&
-    _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO
-  )
-    fetchData(`${_InitEnv.PROCESS_ENV.BASE_URL}/cleaner-service`, {
-      method: 'POST',
-      headers: new Headers({
-        Authorization: 'mtr-cleaner-service',
-        Accept: 'application/json',
-      }),
-    })
-
-  let result
-  result = await cacheManager.achieve()
-
-  const certainLimitRequestToCrawl = getCertainLimitRequestToCrawl()
-
-  // console.log(result)
-  // console.log('certainLimitRequestToCrawl: ', certainLimitRequestToCrawl)
-  // console.log('totalRequestsToCrawl: ', totalRequestsToCrawl)
-  // console.log('totalRequestsWaitingToCrawl: ', totalRequestsWaitingToCrawl)
-
-  if (result) {
-    const NonNullableResult = result
-
-    if (routePreviewInfo.renewTime !== 'infinite') {
-      const renewTime = routePreviewInfo.renewTime * 1000
-
-      if (
-        Date.now() - new Date(NonNullableResult.updatedAt).getTime() >
-        renewTime
-      ) {
-        await new Promise((res) => {
-          cacheManager
-            .renew()
-            .then((hasRenew) => {
-              if (
-                !hasRenew &&
-                (totalRequestsToCrawl < certainLimitRequestToCrawl ||
-                  SSRHandlerParams.forceToCrawl)
-              ) {
-                if (!SSRHandlerParams.forceToCrawl) {
-                  resetTotalToCrawlTimeout()
-                  totalRequestsToCrawl++
-                }
-
-                if (waitingToCrawlList.has(SSRHandlerParams.url)) {
-                  waitingToCrawlList.delete(SSRHandlerParams.url)
-                }
-
-                if (_constants.SERVER_LESS) {
-                  const renew = (() => {
-                    let retryTimes = 0
-                    return async () => {
-                      let result
-                      try {
-                        result = await fetchData(
-                          `${_InitEnv.PROCESS_ENV.BASE_URL}/web-scraping`,
-                          {
-                            method: 'GET',
-                            headers: new Headers({
-                              Authorization: 'web-scraping-service',
-                              Accept: 'application/json',
-                              service: 'web-scraping-service',
-                            }),
-                          },
-                          {
-                            startGenerating,
-                            hasCache: NonNullableResult.available,
-                            url: SSRHandlerParams.url,
-                          }
-                        )
-                      } catch (err) {
-                        _ConsoleHandler2.default.error(err)
-                      }
-
-                      if (
-                        (!result || result.status !== 200) &&
-                        retryTimes < 1
-                      ) {
-                        retryTimes++
-                        renew()
-                      } else {
-                        cacheManager.rename(SSRHandlerParams.url)
-
-                        if (SSRHandlerParams.forceToCrawl) {
-                          totalRequestsWaitingToCrawl =
-                            totalRequestsWaitingToCrawl > 0
-                              ? totalRequestsWaitingToCrawl - 1
-                              : 0
-                        } else {
-                          totalRequestsToCrawl =
-                            totalRequestsToCrawl > certainLimitRequestToCrawl
-                              ? totalRequestsToCrawl -
-                                certainLimitRequestToCrawl -
-                                1
-                              : totalRequestsToCrawl - 1
-                          totalRequestsToCrawl =
-                            totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
-                        }
-
-                        if (
-                          waitingToCrawlList.size &&
-                          totalRequestsWaitingToCrawl <
-                            limitRequestWaitingToCrawl
-                        ) {
-                          resetTotalToCrawlTimeout()
-                          totalRequestsWaitingToCrawl++
-                          const nextCrawlItem = waitingToCrawlList
-                            .values()
-                            .next().value
-                          waitingToCrawlList.delete(nextCrawlItem.url)
-
-                          SSRGenerator({
-                            isSkipWaiting: true,
-                            forceToCrawl: true,
-                            ...nextCrawlItem,
-                          })
-                        }
-                      }
-                    }
-                  })()
-
-                  renew()
-                } else {
-                  const renew = (() => {
-                    let retryTimes = 0
-                    return async () => {
-                      let result
-                      try {
-                        result = await _SSRHandlerworker2.default.call(void 0, {
-                          hasCache: NonNullableResult.available,
-                          ...SSRHandlerParams,
-                        })
-                      } catch (err) {
-                        _ConsoleHandler2.default.error(err)
-                      }
-
-                      if (
-                        (!result || result.status !== 200) &&
-                        retryTimes < 2
-                      ) {
-                        retryTimes++
-                        renew()
-                      } else {
-                        cacheManager.rename(SSRHandlerParams.url)
-
-                        if (SSRHandlerParams.forceToCrawl) {
-                          totalRequestsWaitingToCrawl =
-                            totalRequestsWaitingToCrawl > 0
-                              ? totalRequestsWaitingToCrawl - 1
-                              : 0
-                        } else {
-                          totalRequestsToCrawl =
-                            totalRequestsToCrawl > certainLimitRequestToCrawl
-                              ? totalRequestsToCrawl -
-                                certainLimitRequestToCrawl -
-                                1
-                              : totalRequestsToCrawl - 1
-                          totalRequestsToCrawl =
-                            totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
-                        }
-
-                        if (
-                          waitingToCrawlList.size &&
-                          totalRequestsWaitingToCrawl <
-                            limitRequestWaitingToCrawl
-                        ) {
-                          resetTotalToCrawlTimeout()
-                          totalRequestsWaitingToCrawl++
-                          const nextCrawlItem = waitingToCrawlList
-                            .values()
-                            .next().value
-                          waitingToCrawlList.delete(nextCrawlItem.url)
-
-                          SSRGenerator({
-                            isSkipWaiting: true,
-                            forceToCrawl: true,
-                            ...nextCrawlItem,
-                          })
-                        }
-                      }
-                    }
-                  })()
-
-                  renew()
-                }
-              } else if (
-                !hasRenew &&
-                totalRequestsToCrawl >= certainLimitRequestToCrawl &&
-                !waitingToCrawlList.has(SSRHandlerParams.url)
-              ) {
-                waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
-              }
-            })
-            .finally(() => res('finish'))
-        })
-
-        // NOTE - update file name after page change to renew
-        result = await cacheManager.achieve()
-      }
-    }
-  } else if (
-    totalRequestsToCrawl < certainLimitRequestToCrawl ||
-    SSRHandlerParams.forceToCrawl
+    routePreviewInfo ||
+    SSRHandlerParams.url.includes('renderingInfo={"type":"SSR","loader": true}')
   ) {
-    result = await cacheManager.get()
-
-    _ConsoleHandler2.default.log('Check for condition to create new page.')
-    _ConsoleHandler2.default.log(
-      'result.available',
-      _optionalChain([result, 'optionalAccess', (_7) => _7.available])
+    const cacheManager = _utils2.default.call(
+      void 0,
+      SSRHandlerParams.url,
+      viewsPath
     )
+    if (!_InitEnv.PROCESS_ENV.BASE_URL) {
+      _ConsoleHandler2.default.error('Missing base url!')
+      return
+    }
 
-    if (result) {
+    if (!SSRHandlerParams.url) {
+      _ConsoleHandler2.default.error('Missing scraping url!')
+      return
+    }
+
+    const startGenerating = Date.now()
+
+    if (
+      _constants.SERVER_LESS &&
+      _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO
+    )
+      fetchData(`${_InitEnv.PROCESS_ENV.BASE_URL}/cleaner-service`, {
+        method: 'POST',
+        headers: new Headers({
+          Authorization: 'mtr-cleaner-service',
+          Accept: 'application/json',
+        }),
+      })
+
+    result = await cacheManager.achieve()
+
+    const certainLimitRequestToCrawl = getCertainLimitRequestToCrawl()
+
+    // console.log(result)
+    // console.log('certainLimitRequestToCrawl: ', certainLimitRequestToCrawl)
+    // console.log('totalRequestsToCrawl: ', totalRequestsToCrawl)
+    // console.log('totalRequestsWaitingToCrawl: ', totalRequestsWaitingToCrawl)
+
+    if (result && routePreviewInfo) {
       const NonNullableResult = result
-      const isValidToScraping = NonNullableResult.isInit
 
-      if (isValidToScraping) {
-        if (SSRHandlerParams.forceToCrawl) {
-          // NOTE - update create time
-          try {
-            await cacheManager.remove(SSRHandlerParams.url)
-          } catch (err) {
-            _ConsoleHandler2.default.error(err)
-          }
-          cacheManager.get()
-        } else {
-          resetTotalToCrawlTimeout()
-          totalRequestsToCrawl++
-        }
+      if (routePreviewInfo.renewTime !== 'infinite') {
+        const renewTime = routePreviewInfo.renewTime * 1000
 
-        if (waitingToCrawlList.has(SSRHandlerParams.url)) {
-          waitingToCrawlList.delete(SSRHandlerParams.url)
-        }
+        if (
+          Date.now() - new Date(NonNullableResult.updatedAt).getTime() >
+          renewTime
+        ) {
+          await new Promise((res) => {
+            cacheManager
+              .renew()
+              .then((hasRenew) => {
+                if (
+                  !hasRenew &&
+                  (totalRequestsToCrawl < certainLimitRequestToCrawl ||
+                    SSRHandlerParams.forceToCrawl)
+                ) {
+                  if (!SSRHandlerParams.forceToCrawl) {
+                    resetTotalToCrawlTimeout()
+                    totalRequestsToCrawl++
+                  }
 
-        if (_constants.SERVER_LESS)
-          fetchData(
-            `${_InitEnv.PROCESS_ENV.BASE_URL}/web-scraping`,
-            {
-              method: 'GET',
-              headers: new Headers({
-                Authorization: 'web-scraping-service',
-                Accept: 'application/json',
-                service: 'web-scraping-service',
-              }),
-            },
-            {
-              startGenerating,
-              hasCache: NonNullableResult.available,
-              url: SSRHandlerParams.url,
-            }
-          ).finally(() => {
-            if (SSRHandlerParams.forceToCrawl) {
-              totalRequestsWaitingToCrawl =
-                totalRequestsWaitingToCrawl > 0
-                  ? totalRequestsWaitingToCrawl - 1
-                  : 0
-            } else {
-              totalRequestsToCrawl =
-                totalRequestsToCrawl > certainLimitRequestToCrawl
-                  ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
-                  : totalRequestsToCrawl - 1
-              totalRequestsToCrawl =
-                totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
-            }
+                  if (waitingToCrawlList.has(SSRHandlerParams.url)) {
+                    waitingToCrawlList.delete(SSRHandlerParams.url)
+                  }
 
-            if (
-              waitingToCrawlList.size &&
-              totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
-            ) {
-              resetTotalToCrawlTimeout()
-              resetTotalToCrawlTimeout()
-              totalRequestsWaitingToCrawl++
-              const nextCrawlItem = waitingToCrawlList.values().next().value
-              waitingToCrawlList.delete(nextCrawlItem.url)
+                  if (_constants.SERVER_LESS) {
+                    const renew = (() => {
+                      let retryTimes = 0
+                      return async () => {
+                        let result
+                        try {
+                          result = await fetchData(
+                            `${_InitEnv.PROCESS_ENV.BASE_URL}/web-scraping`,
+                            {
+                              method: 'GET',
+                              headers: new Headers({
+                                Authorization: 'web-scraping-service',
+                                Accept: 'application/json',
+                                service: 'web-scraping-service',
+                              }),
+                            },
+                            {
+                              startGenerating,
+                              hasCache: NonNullableResult.available,
+                              url: SSRHandlerParams.url,
+                            }
+                          )
+                        } catch (err) {
+                          _ConsoleHandler2.default.error(err)
+                        }
 
-              SSRGenerator({
-                isSkipWaiting: true,
-                forceToCrawl: true,
-                ...nextCrawlItem,
+                        if (
+                          (!result || result.status !== 200) &&
+                          retryTimes < 1
+                        ) {
+                          retryTimes++
+                          renew()
+                        } else {
+                          cacheManager.rename(SSRHandlerParams.url)
+
+                          if (SSRHandlerParams.forceToCrawl) {
+                            totalRequestsWaitingToCrawl =
+                              totalRequestsWaitingToCrawl > 0
+                                ? totalRequestsWaitingToCrawl - 1
+                                : 0
+                          } else {
+                            totalRequestsToCrawl =
+                              totalRequestsToCrawl > certainLimitRequestToCrawl
+                                ? totalRequestsToCrawl -
+                                  certainLimitRequestToCrawl -
+                                  1
+                                : totalRequestsToCrawl - 1
+                            totalRequestsToCrawl =
+                              totalRequestsToCrawl < 0
+                                ? 0
+                                : totalRequestsToCrawl
+                          }
+
+                          if (
+                            waitingToCrawlList.size &&
+                            totalRequestsWaitingToCrawl <
+                              limitRequestWaitingToCrawl
+                          ) {
+                            resetTotalToCrawlTimeout()
+                            totalRequestsWaitingToCrawl++
+                            const nextCrawlItem = waitingToCrawlList
+                              .values()
+                              .next().value
+                            waitingToCrawlList.delete(nextCrawlItem.url)
+
+                            SSRGenerator({
+                              isSkipWaiting: true,
+                              forceToCrawl: true,
+                              ...nextCrawlItem,
+                            })
+                          }
+                        }
+                      }
+                    })()
+
+                    renew()
+                  } else {
+                    const renew = (() => {
+                      let retryTimes = 0
+                      return async () => {
+                        let result
+                        try {
+                          result = await _SSRHandlerworker2.default.call(
+                            void 0,
+                            {
+                              hasCache: NonNullableResult.available,
+                              ...SSRHandlerParams,
+                            }
+                          )
+                        } catch (err) {
+                          _ConsoleHandler2.default.error(err)
+                        }
+
+                        if (
+                          (!result || result.status !== 200) &&
+                          retryTimes < 2
+                        ) {
+                          retryTimes++
+                          renew()
+                        } else {
+                          cacheManager.rename(SSRHandlerParams.url)
+
+                          if (SSRHandlerParams.forceToCrawl) {
+                            totalRequestsWaitingToCrawl =
+                              totalRequestsWaitingToCrawl > 0
+                                ? totalRequestsWaitingToCrawl - 1
+                                : 0
+                          } else {
+                            totalRequestsToCrawl =
+                              totalRequestsToCrawl > certainLimitRequestToCrawl
+                                ? totalRequestsToCrawl -
+                                  certainLimitRequestToCrawl -
+                                  1
+                                : totalRequestsToCrawl - 1
+                            totalRequestsToCrawl =
+                              totalRequestsToCrawl < 0
+                                ? 0
+                                : totalRequestsToCrawl
+                          }
+
+                          if (
+                            waitingToCrawlList.size &&
+                            totalRequestsWaitingToCrawl <
+                              limitRequestWaitingToCrawl
+                          ) {
+                            resetTotalToCrawlTimeout()
+                            totalRequestsWaitingToCrawl++
+                            const nextCrawlItem = waitingToCrawlList
+                              .values()
+                              .next().value
+                            waitingToCrawlList.delete(nextCrawlItem.url)
+
+                            SSRGenerator({
+                              isSkipWaiting: true,
+                              forceToCrawl: true,
+                              ...nextCrawlItem,
+                            })
+                          }
+                        }
+                      }
+                    })()
+
+                    renew()
+                  }
+                } else if (
+                  !hasRenew &&
+                  totalRequestsToCrawl >= certainLimitRequestToCrawl &&
+                  !waitingToCrawlList.has(SSRHandlerParams.url)
+                ) {
+                  waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
+                }
               })
-            }
+              .finally(() => res('finish'))
           })
-        else
-          _SSRHandlerworker2.default
-            .call(void 0, {
-              hasCache: NonNullableResult.available,
-              ...SSRHandlerParams,
-            })
-            .finally(() => {
+
+          // NOTE - update file name after page change to renew
+          result = await cacheManager.achieve()
+        }
+      }
+    } else if (
+      totalRequestsToCrawl < certainLimitRequestToCrawl ||
+      SSRHandlerParams.forceToCrawl
+    ) {
+      result = await cacheManager.get()
+
+      _ConsoleHandler2.default.log('Check for condition to create new page.')
+      _ConsoleHandler2.default.log(
+        'result.available',
+        _optionalChain([result, 'optionalAccess', (_7) => _7.available])
+      )
+
+      if (result) {
+        const NonNullableResult = result
+        const isValidToScraping = NonNullableResult.isInit
+
+        if (isValidToScraping) {
+          if (SSRHandlerParams.forceToCrawl) {
+            // NOTE - update create time
+            try {
+              await cacheManager.remove(SSRHandlerParams.url)
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
+            }
+            cacheManager.get()
+          } else {
+            resetTotalToCrawlTimeout()
+            totalRequestsToCrawl++
+          }
+
+          if (waitingToCrawlList.has(SSRHandlerParams.url)) {
+            waitingToCrawlList.delete(SSRHandlerParams.url)
+          }
+
+          if (_constants.SERVER_LESS)
+            fetchData(
+              `${_InitEnv.PROCESS_ENV.BASE_URL}/web-scraping`,
+              {
+                method: 'GET',
+                headers: new Headers({
+                  Authorization: 'web-scraping-service',
+                  Accept: 'application/json',
+                  service: 'web-scraping-service',
+                }),
+              },
+              {
+                startGenerating,
+                hasCache: NonNullableResult.available,
+                url: SSRHandlerParams.url,
+              }
+            ).finally(() => {
               if (SSRHandlerParams.forceToCrawl) {
                 totalRequestsWaitingToCrawl =
                   totalRequestsWaitingToCrawl > 0
@@ -463,6 +435,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                 totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
               ) {
                 resetTotalToCrawlTimeout()
+                resetTotalToCrawlTimeout()
                 totalRequestsWaitingToCrawl++
                 const nextCrawlItem = waitingToCrawlList.values().next().value
                 waitingToCrawlList.delete(nextCrawlItem.url)
@@ -474,13 +447,51 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                 })
               }
             })
+          else
+            _SSRHandlerworker2.default
+              .call(void 0, {
+                hasCache: NonNullableResult.available,
+                ...SSRHandlerParams,
+              })
+              .finally(() => {
+                if (SSRHandlerParams.forceToCrawl) {
+                  totalRequestsWaitingToCrawl =
+                    totalRequestsWaitingToCrawl > 0
+                      ? totalRequestsWaitingToCrawl - 1
+                      : 0
+                } else {
+                  totalRequestsToCrawl =
+                    totalRequestsToCrawl > certainLimitRequestToCrawl
+                      ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
+                      : totalRequestsToCrawl - 1
+                  totalRequestsToCrawl =
+                    totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
+                }
+
+                if (
+                  waitingToCrawlList.size &&
+                  totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
+                ) {
+                  resetTotalToCrawlTimeout()
+                  totalRequestsWaitingToCrawl++
+                  const nextCrawlItem = waitingToCrawlList.values().next().value
+                  waitingToCrawlList.delete(nextCrawlItem.url)
+
+                  SSRGenerator({
+                    isSkipWaiting: true,
+                    forceToCrawl: true,
+                    ...nextCrawlItem,
+                  })
+                }
+              })
+        }
       }
+    } else if (
+      !cacheManager.isExist() &&
+      !waitingToCrawlList.has(SSRHandlerParams.url)
+    ) {
+      waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
     }
-  } else if (
-    !cacheManager.isExist() &&
-    !waitingToCrawlList.has(SSRHandlerParams.url)
-  ) {
-    waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
   }
 
   if (

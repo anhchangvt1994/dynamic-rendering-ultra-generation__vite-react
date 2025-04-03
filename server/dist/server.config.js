@@ -13,7 +13,6 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
     },
   },
   routes: {
-    preview: true,
     custom(url) {
       if (!url) return
 

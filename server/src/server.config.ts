@@ -11,7 +11,6 @@ const ServerConfig = defineServerConfig({
     },
   },
   routes: {
-    preview: true,
     custom(url) {
       if (!url) return
 
