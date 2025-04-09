@@ -305,55 +305,11 @@ const puppeteerSSRService = (async () => {
 
       if (!res.writableEnded) {
         const correctPathname = getPathname(res, req)
-        const pointsTo = (() => {
-          const tmpPointsTo =
-            ServerConfig.routes?.list?.[correctPathname]?.pointsTo
+        const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
 
-          if (!tmpPointsTo) return ''
-
-          return typeof tmpPointsTo === 'string' ? tmpPointsTo : tmpPointsTo.url
-        })()
-
-        if (pointsTo) {
-          const url = convertUrlHeaderToQueryString(pointsTo, res, false)
-
-          if (url) {
-            res.onAborted(() => {
-              res.writableEnded = true
-              Console.log('Request aborted')
-            })
-
-            try {
-              const result = await ISRGenerator({
-                url,
-                forceToCrawl: true,
-              })
-
-              res.cork(() => {
-                if (result) {
-                  res.cork(() => {
-                    handleResultAfterISRGenerator(res, {
-                      result,
-                      enableContentEncoding,
-                      contentEncoding,
-                    })
-                  })
-                }
-              })
-            } catch (err) {
-              Console.error(err.message)
-              Console.error('url', url)
-              // NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
-              if (!res.writableEnded)
-                res.writeStatus('500').end('Server Error!', true)
-            }
-
-            res.writableEnded = true
-          }
-        }
-      }
-
-      if (!res.writableEnded) {
+        const pointsTo =
+          ServerConfig.routes.list?.[correctPathname]?.pointsTo ??
+          ServerConfig.routes.custom?.(url)?.pointsTo
         /**
          * NOTE
          * Cache-Control max-age is 1 year
@@ -396,16 +352,16 @@ const puppeteerSSRService = (async () => {
             path.resolve(__dirname, '../../../../dist/index.html')
 
           const pathForCacheKeyConverter = (() => {
-            const urlWithoutQuery = req.getUrl()
+            const urlWithoutQuery = correctPathname
             const query = req.getQuery()
             const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
 
             return tmpUrl
           })()
 
-          const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
-
           const apiStoreData = await (async () => {
+            if (pointsTo && pointsTo.url) return
+
             let tmpStoreKey
             let tmpAPIStore
 

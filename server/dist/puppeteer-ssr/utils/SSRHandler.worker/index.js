@@ -32,6 +32,7 @@ var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _InitEnv = require('../../../utils/InitEnv')
+var _PathHandler = require('../../../utils/PathHandler')
 var _WorkerManager = require('../../../utils/WorkerManager')
 var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 var _BrowserManager = require('../BrowserManager')
@@ -39,7 +40,6 @@ var _BrowserManager2 = _interopRequireDefault(_BrowserManager)
 var _utils = require('../CacheManager.worker/utils')
 var _utils2 = _interopRequireDefault(_utils)
 
-var _PathHandler = require('../../../utils/PathHandler')
 const { parentPort, isMainThread } = require('worker_threads')
 
 const viewsPath = _PathHandler.getViewsPath.call(void 0)
@@ -86,7 +86,7 @@ const SSRHandler = async (params) => {
         } else {
           res(undefined)
         }
-      }, 2000)
+      }, 10000)
       try {
         const tmpResult = await pool.exec('SSRHandler', [
           {

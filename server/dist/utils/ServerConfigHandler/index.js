@@ -183,9 +183,7 @@ const defineServerConfig = (options) => {
                           ]),
                           () => ['desktop', 'mobile']
                         ),
-                      }
-                    : {
-                        content: _nullishCoalesce(
+                        time: _nullishCoalesce(
                           _optionalChain([
                             serverConfig,
                             'access',
@@ -193,7 +191,33 @@ const defineServerConfig = (options) => {
                             'access',
                             (_5) => _5.preview,
                             'optionalAccess',
-                            (_6) => _6.content,
+                            (_6) => _6.time,
+                          ]),
+                          () => 'infinite'
+                        ),
+                        renewTime: _nullishCoalesce(
+                          _optionalChain([
+                            serverConfig,
+                            'access',
+                            (_7) => _7[key],
+                            'access',
+                            (_8) => _8.preview,
+                            'optionalAccess',
+                            (_9) => _9.renewTime,
+                          ]),
+                          () => 1800
+                        ),
+                      }
+                    : {
+                        content: _nullishCoalesce(
+                          _optionalChain([
+                            serverConfig,
+                            'access',
+                            (_10) => _10[key],
+                            'access',
+                            (_11) => _11.preview,
+                            'optionalAccess',
+                            (_12) => _12.content,
                           ]),
                           () => ['desktop', 'mobile']
                         ),
@@ -228,11 +252,11 @@ const defineServerConfig = (options) => {
               _optionalChain([
                 serverConfig,
                 'access',
-                (_7) => _7[key],
+                (_13) => _13[key],
                 'access',
-                (_8) => _8.list,
+                (_14) => _14.list,
                 'optionalAccess',
-                (_9) => _9[urlInfo.pathname],
+                (_15) => _15[urlInfo.pathname],
               ]),
               () => ({
                 preview: serverConfig[key].preview,
@@ -252,20 +276,44 @@ const defineServerConfig = (options) => {
                             _optionalChain([
                               defaultOptionOfCustom,
                               'access',
-                              (_10) => _10.pointsTo,
+                              (_16) => _16.pointsTo,
                               'optionalAccess',
-                              (_11) => _11.content,
+                              (_17) => _17.content,
                             ]),
                             () =>
                               _optionalChain([
                                 defaultOptionOfCustom,
                                 'access',
-                                (_12) => _12.preview,
+                                (_18) => _18.preview,
                                 'optionalAccess',
-                                (_13) => _13.content,
+                                (_19) => _19.content,
                               ])
                           ),
                           () => ['desktop', 'mobile']
+                        ),
+                        time: _nullishCoalesce(
+                          _optionalChain([
+                            defaultOptionOfCustom,
+                            'access',
+                            (_20) => _20[key],
+                            'access',
+                            (_21) => _21.preview,
+                            'optionalAccess',
+                            (_22) => _22.time,
+                          ]),
+                          () => 'infinite'
+                        ),
+                        renewTime: _nullishCoalesce(
+                          _optionalChain([
+                            defaultOptionOfCustom,
+                            'access',
+                            (_23) => _23[key],
+                            'access',
+                            (_24) => _24.preview,
+                            'optionalAccess',
+                            (_25) => _25.renewTime,
+                          ]),
+                          () => 1800
                         ),
                       }
                     : {
@@ -274,21 +322,47 @@ const defineServerConfig = (options) => {
                             _optionalChain([
                               defaultOptionOfCustom,
                               'access',
-                              (_14) => _14.pointsTo,
+                              (_26) => _26.pointsTo,
                               'optionalAccess',
-                              (_15) => _15.content,
+                              (_27) => _27.content,
                             ]),
                             () =>
                               _optionalChain([
                                 defaultOptionOfCustom,
                                 'access',
-                                (_16) => _16.preview,
+                                (_28) => _28.preview,
                                 'optionalAccess',
-                                (_17) => _17.content,
+                                (_29) => _29.content,
                               ])
                           ),
                           () => ['desktop', 'mobile']
                         ),
+                        ...{
+                          time: _nullishCoalesce(
+                            _optionalChain([
+                              defaultOptionOfCustom,
+                              'access',
+                              (_30) => _30[key],
+                              'access',
+                              (_31) => _31.preview,
+                              'optionalAccess',
+                              (_32) => _32.time,
+                            ]),
+                            () => 'infinite'
+                          ),
+                          renewTime: _nullishCoalesce(
+                            _optionalChain([
+                              defaultOptionOfCustom,
+                              'access',
+                              (_33) => _33[key],
+                              'access',
+                              (_34) => _34.preview,
+                              'optionalAccess',
+                              (_35) => _35.renewTime,
+                            ]),
+                            () => 1800
+                          ),
+                        },
                         ...tmpConfig.pointsTo,
                       },
               }
@@ -304,9 +378,9 @@ const defineServerConfig = (options) => {
                           _optionalChain([
                             defaultOptionOfCustom,
                             'access',
-                            (_18) => _18.preview,
+                            (_36) => _36.preview,
                             'optionalAccess',
-                            (_19) => _19.content,
+                            (_37) => _37.content,
                           ]),
                           () => ['desktop', 'mobile']
                         ),

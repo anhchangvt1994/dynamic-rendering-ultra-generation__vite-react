@@ -130,27 +130,28 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
     () => _serverconfig2.default.routes
   )
 
-  if (!routeInfo || routeInfo.pointsTo) return
+  if (!routeInfo) return
 
-  const routePreviewInfo = routeInfo.preview
+  const routePreviewInfo = routeInfo.pointsTo || routeInfo.preview
+
+  const urlToPreview =
+    routePreviewInfo && routePreviewInfo.url
+      ? `${routePreviewInfo.url}${urlInfo.search ? decodeURI(urlInfo.search) : ''}`
+      : SSRHandlerParams.url
 
   let result
 
   if (
     routePreviewInfo ||
-    SSRHandlerParams.url.includes('renderingInfo={"type":"SSR","loader": true}')
+    urlToPreview.includes('renderingInfo={"type":"SSR","loader": true}')
   ) {
-    const cacheManager = _utils2.default.call(
-      void 0,
-      SSRHandlerParams.url,
-      viewsPath
-    )
+    const cacheManager = _utils2.default.call(void 0, urlToPreview, viewsPath)
     if (!_InitEnv.PROCESS_ENV.BASE_URL) {
       _ConsoleHandler2.default.error('Missing base url!')
       return
     }
 
-    if (!SSRHandlerParams.url) {
+    if (!urlToPreview) {
       _ConsoleHandler2.default.error('Missing scraping url!')
       return
     }
@@ -202,8 +203,8 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                     totalRequestsToCrawl++
                   }
 
-                  if (waitingToCrawlList.has(SSRHandlerParams.url)) {
-                    waitingToCrawlList.delete(SSRHandlerParams.url)
+                  if (waitingToCrawlList.has(urlToPreview)) {
+                    waitingToCrawlList.delete(urlToPreview)
                   }
 
                   if (_constants.SERVER_LESS) {
@@ -225,7 +226,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                             {
                               startGenerating,
                               hasCache: NonNullableResult.available,
-                              url: SSRHandlerParams.url,
+                              url: urlToPreview,
                             }
                           )
                         } catch (err) {
@@ -239,7 +240,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                           retryTimes++
                           renew()
                         } else {
-                          cacheManager.rename(SSRHandlerParams.url)
+                          cacheManager.rename(urlToPreview)
 
                           if (SSRHandlerParams.forceToCrawl) {
                             totalRequestsWaitingToCrawl =
@@ -293,6 +294,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                             {
                               hasCache: NonNullableResult.available,
                               ...SSRHandlerParams,
+                              url: urlToPreview,
                             }
                           )
                         } catch (err) {
@@ -306,7 +308,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                           retryTimes++
                           renew()
                         } else {
-                          cacheManager.rename(SSRHandlerParams.url)
+                          cacheManager.rename(urlToPreview)
 
                           if (SSRHandlerParams.forceToCrawl) {
                             totalRequestsWaitingToCrawl =
@@ -353,9 +355,9 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                 } else if (
                   !hasRenew &&
                   totalRequestsToCrawl >= certainLimitRequestToCrawl &&
-                  !waitingToCrawlList.has(SSRHandlerParams.url)
+                  !waitingToCrawlList.has(urlToPreview)
                 ) {
-                  waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
+                  waitingToCrawlList.set(urlToPreview, SSRHandlerParams)
                 }
               })
               .finally(() => res('finish'))
@@ -385,7 +387,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
           if (SSRHandlerParams.forceToCrawl) {
             // NOTE - update create time
             try {
-              await cacheManager.remove(SSRHandlerParams.url)
+              await cacheManager.remove(urlToPreview)
             } catch (err) {
               _ConsoleHandler2.default.error(err)
             }
@@ -395,8 +397,8 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
             totalRequestsToCrawl++
           }
 
-          if (waitingToCrawlList.has(SSRHandlerParams.url)) {
-            waitingToCrawlList.delete(SSRHandlerParams.url)
+          if (waitingToCrawlList.has(urlToPreview)) {
+            waitingToCrawlList.delete(urlToPreview)
           }
 
           if (_constants.SERVER_LESS)
@@ -413,7 +415,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
               {
                 startGenerating,
                 hasCache: NonNullableResult.available,
-                url: SSRHandlerParams.url,
+                url: urlToPreview,
               }
             ).finally(() => {
               if (SSRHandlerParams.forceToCrawl) {
@@ -452,6 +454,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
               .call(void 0, {
                 hasCache: NonNullableResult.available,
                 ...SSRHandlerParams,
+                url: urlToPreview,
               })
               .finally(() => {
                 if (SSRHandlerParams.forceToCrawl) {
@@ -488,17 +491,15 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
       }
     } else if (
       !cacheManager.isExist() &&
-      !waitingToCrawlList.has(SSRHandlerParams.url)
+      !waitingToCrawlList.has(urlToPreview)
     ) {
-      waitingToCrawlList.set(SSRHandlerParams.url, SSRHandlerParams)
+      waitingToCrawlList.set(urlToPreview, SSRHandlerParams)
     }
   }
 
   if (
     (!result || result.status !== 200) &&
-    !SSRHandlerParams.url.includes(
-      'renderingInfo={"type":"SSR","loader": true}'
-    ) &&
+    !urlToPreview.includes('renderingInfo={"type":"SSR","loader": true}') &&
     routeInfo &&
     routeInfo.loader &&
     routeInfo.loader.enable

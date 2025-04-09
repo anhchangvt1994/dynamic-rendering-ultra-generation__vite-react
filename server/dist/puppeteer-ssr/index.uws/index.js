@@ -3,6 +3,13 @@ Object.defineProperty(exports, '__esModule', { value: true })
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : { default: obj }
 }
+function _nullishCoalesce(lhs, rhsFn) {
+  if (lhs != null) {
+    return lhs
+  } else {
+    return rhsFn()
+  }
+}
 function _optionalChain(ops) {
   let lastAccessLHS = undefined
   let value = ops[0]
@@ -359,69 +366,37 @@ const puppeteerSSRService = (async () => {
 
       if (!res.writableEnded) {
         const correctPathname = _FormatUrluws.getPathname.call(void 0, res, req)
-        const pointsTo = (() => {
-          const tmpPointsTo = _optionalChain([
+        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
+          void 0,
+          _FormatUrluws.getUrl.call(void 0, res, req),
+          res
+        )
+
+        const pointsTo = _nullishCoalesce(
+          _optionalChain([
             _serverconfig2.default,
             'access',
             (_6) => _6.routes,
-            'optionalAccess',
+            'access',
             (_7) => _7.list,
             'optionalAccess',
             (_8) => _8[correctPathname],
             'optionalAccess',
             (_9) => _9.pointsTo,
-          ])
-
-          if (!tmpPointsTo) return ''
-
-          return typeof tmpPointsTo === 'string' ? tmpPointsTo : tmpPointsTo.url
-        })()
-
-        if (pointsTo) {
-          const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-            void 0,
-            pointsTo,
-            res,
-            false
-          )
-
-          if (url) {
-            res.onAborted(() => {
-              res.writableEnded = true
-              _ConsoleHandler2.default.log('Request aborted')
-            })
-
-            try {
-              const result = await _ISRGeneratornext2.default.call(void 0, {
-                url,
-                forceToCrawl: true,
-              })
-
-              res.cork(() => {
-                if (result) {
-                  res.cork(() => {
-                    _utils3.handleResultAfterISRGenerator.call(void 0, res, {
-                      result,
-                      enableContentEncoding,
-                      contentEncoding,
-                    })
-                  })
-                }
-              })
-            } catch (err) {
-              _ConsoleHandler2.default.error(err.message)
-              _ConsoleHandler2.default.error('url', url)
-              // NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
-              if (!res.writableEnded)
-                res.writeStatus('500').end('Server Error!', true)
-            }
-
-            res.writableEnded = true
-          }
-        }
-      }
-
-      if (!res.writableEnded) {
+          ]),
+          () =>
+            _optionalChain([
+              _serverconfig2.default,
+              'access',
+              (_10) => _10.routes,
+              'access',
+              (_11) => _11.custom,
+              'optionalCall',
+              (_12) => _12(url),
+              'optionalAccess',
+              (_13) => _13.pointsTo,
+            ])
+        )
         /**
          * NOTE
          * Cache-Control max-age is 1 year
@@ -468,20 +443,16 @@ const puppeteerSSRService = (async () => {
             _path2.default.resolve(__dirname, '../../../../dist/index.html')
 
           const pathForCacheKeyConverter = (() => {
-            const urlWithoutQuery = req.getUrl()
+            const urlWithoutQuery = correctPathname
             const query = req.getQuery()
             const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
 
             return tmpUrl
           })()
 
-          const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-            void 0,
-            _FormatUrluws.getUrl.call(void 0, res, req),
-            res
-          )
-
           const apiStoreData = await (async () => {
+            if (pointsTo && pointsTo.url) return
+
             let tmpStoreKey
             let tmpAPIStore
 
@@ -497,11 +468,11 @@ const puppeteerSSRService = (async () => {
             const deviceType = _optionalChain([
               res,
               'access',
-              (_10) => _10.cookies,
+              (_14) => _14.cookies,
               'optionalAccess',
-              (_11) => _11.deviceInfo,
+              (_15) => _15.deviceInfo,
               'optionalAccess',
-              (_12) => _12.type,
+              (_16) => _16.type,
             ])
 
             tmpStoreKey = _StringHelper.hashCode.call(
@@ -545,7 +516,7 @@ const puppeteerSSRService = (async () => {
               _optionalChain([
                 result,
                 'optionalAccess',
-                (_13) => _13.status,
+                (_17) => _17.status,
               ]) === 200
             ) {
               html = _fs2.default.readFileSync(result.file)

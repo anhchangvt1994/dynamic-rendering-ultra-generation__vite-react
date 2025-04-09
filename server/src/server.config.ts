@@ -11,6 +11,11 @@ const ServerConfig = defineServerConfig({
     },
   },
   routes: {
+    list: {
+      '/': {
+        pointsTo: 'https://suckhoe360.vn',
+      },
+    },
     custom(url) {
       if (!url) return
 

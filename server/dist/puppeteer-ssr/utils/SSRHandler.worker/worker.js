@@ -51,9 +51,9 @@ var _BrowserManager = require('../BrowserManager')
 var _BrowserManager2 = _interopRequireDefault(_BrowserManager)
 var _utils = require('../CacheManager.worker/utils')
 var _utils2 = _interopRequireDefault(_utils)
+var _utils3 = require('../OptimizeHtml.worker/utils')
 
-var _utils3 = require('./utils/utils')
-var _utils5 = require('../OptimizeHtml.worker/utils')
+var _utils5 = require('./utils/utils')
 
 const viewsPath = _PathHandler.getViewsPath.call(void 0)
 
@@ -332,7 +332,7 @@ const SSRHandler = async (params) => {
                 })()
 
                 if (!pointsTo || pointsTo.startsWith(baseUrl)) {
-                  _utils3.getInternalHTML
+                  _utils5.getInternalHTML
                     .call(void 0, { url: reqUrl })
                     .then((result) => {
                       if (!result)
@@ -360,7 +360,7 @@ const SSRHandler = async (params) => {
                 resourceType === 'script' &&
                 reqUrl.startsWith(baseUrl)
               ) {
-                _utils3.getInternalScript
+                _utils5.getInternalScript
                   .call(void 0, { url: reqUrl })
                   .then((result) => {
                     if (!result)
@@ -392,7 +392,13 @@ const SSRHandler = async (params) => {
       let response
 
       try {
-        response = await waitResponse(page, url)
+        const urlToCrawl = url.startsWith(baseUrl)
+          ? url
+          : url.replace(
+              /botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/,
+              ''
+            )
+        response = await waitResponse(page, urlToCrawl)
       } catch (err) {
         _ConsoleHandler2.default.log('SSRHandler line 341:')
         _ConsoleHandler2.default.error('err name: ', err.name)
@@ -444,6 +450,10 @@ const SSRHandler = async (params) => {
           ]),
           async () => ''
         ) // serialized HTML of page DOM.
+        // safePage()?.close()
+      } catch (err) {
+        _ConsoleHandler2.default.log('SSRHandler line 315:')
+        _ConsoleHandler2.default.error(err)
         _optionalChain([
           safePage,
           'call',
@@ -452,18 +462,6 @@ const SSRHandler = async (params) => {
           (_57) => _57.close,
           'call',
           (_58) => _58(),
-        ])
-      } catch (err) {
-        _ConsoleHandler2.default.log('SSRHandler line 315:')
-        _ConsoleHandler2.default.error(err)
-        _optionalChain([
-          safePage,
-          'call',
-          (_59) => _59(),
-          'optionalAccess',
-          (_60) => _60.close,
-          'call',
-          (_61) => _61(),
         ])
 
         return
@@ -477,7 +475,12 @@ const SSRHandler = async (params) => {
   if (_constants.CACHEABLE_STATUS_CODE[status]) {
     try {
       let scriptTags = ''
+      const urlInfo = new URL(url)
       html = html
+        .replace(
+          '</title>',
+          `</title><base href="${urlInfo.origin}/" target="_blank">`
+        )
         .replace(
           /(?<script><script(\s[^>]+)src=("|'|)(.*?)("|'|)(\s[^>]+)*>(.|[\r\n])*?<\/script>)/g,
           (script) => {
@@ -496,17 +499,17 @@ const SSRHandler = async (params) => {
               const href = _optionalChain([
                 /href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/,
                 'access',
-                (_62) => _62.exec,
+                (_59) => _59.exec,
                 'call',
-                (_63) => _63(style),
+                (_60) => _60(style),
                 'optionalAccess',
-                (_64) => _64.groups,
+                (_61) => _61.groups,
                 'optionalAccess',
-                (_65) => _65.href,
+                (_62) => _62.href,
               ])
 
               if (href) {
-                const styleResult = _utils3.getInternalStyle.call(void 0, {
+                const styleResult = _utils5.getInternalStyle.call(void 0, {
                   url: href,
                 })
 
@@ -533,7 +536,7 @@ const SSRHandler = async (params) => {
     }
 
     try {
-      html = await _utils5.compressContent.call(void 0, html, {
+      html = await _utils3.compressContent.call(void 0, html, {
         collapseBooleanAttributes: true,
         collapseInlineTagWhitespace: true,
         collapseWhitespace: true,

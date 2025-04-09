@@ -13,6 +13,11 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
     },
   },
   routes: {
+    list: {
+      '/': {
+        pointsTo: 'https://suckhoe360.vn',
+      },
+    },
     custom(url) {
       if (!url) return
 
