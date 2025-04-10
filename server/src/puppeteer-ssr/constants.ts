@@ -69,7 +69,7 @@ export const optionArgs = [
 ]
 
 export const defaultBrowserOptions: LaunchOptions = {
-  headless: false,
+  headless: 'shell',
   defaultViewport: {
     width: WINDOW_VIEWPORT_WIDTH,
     height: WINDOW_VIEWPORT_HEIGHT,

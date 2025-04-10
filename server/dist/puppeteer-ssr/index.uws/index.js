@@ -438,6 +438,7 @@ const puppeteerSSRService = (async () => {
           })
 
           let html
+          let status = '200'
           const filePath =
             req.getHeader('static-html-path') ||
             _path2.default.resolve(__dirname, '../../../../dist/index.html')
@@ -530,6 +531,33 @@ const puppeteerSSRService = (async () => {
                   `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
                 )
               }
+            } else if (pointsTo) {
+              status = String(
+                _nullishCoalesce(
+                  _optionalChain([
+                    result,
+                    'optionalAccess',
+                    (_18) => _18.status,
+                  ]),
+                  () => '503'
+                )
+              )
+              html =
+                _fs2.default.readFileSync(
+                  _nullishCoalesce(
+                    _optionalChain([
+                      result,
+                      'optionalAccess',
+                      (_19) => _19.response,
+                    ]),
+                    () =>
+                      _path2.default.resolve(
+                        __dirname,
+                        '../../../maintain.html'
+                      )
+                  ),
+                  'utf8'
+                ) || ''
             }
           } catch (err) {
             _ConsoleHandler2.default.error(err)
@@ -576,7 +604,7 @@ const puppeteerSSRService = (async () => {
             })()
 
             res.cork(() => {
-              res.writeStatus('200')
+              res.writeStatus(status)
 
               if (enableContentEncoding) {
                 res.writeHeader('Content-Encoding', contentEncoding)

@@ -85,7 +85,7 @@ const waitResponse = (() => {
             'call',
             (_3) =>
               _3(url, {
-                waitUntil: 'load',
+                waitUntil: 'domcontentloaded',
               }),
             'access',
             (_4) => _4.then,
@@ -148,7 +148,7 @@ const waitResponse = (() => {
             'call',
             (_16) =>
               _16('requestservedfromcache', () => {
-                startTimeout(200)
+                startTimeout(250)
               }),
           ])
           _optionalChain([
@@ -160,7 +160,7 @@ const waitResponse = (() => {
             'call',
             (_19) =>
               _19('requestfailed', () => {
-                startTimeout(200)
+                startTimeout(250)
               }),
           ])
         })
@@ -291,9 +291,9 @@ const SSRHandler = async (params) => {
               /(socket.io.min.js)+(?:$)|data:image\/[a-z]*.?\;base64/.test(
                 url
               ) ||
-              /googletagmanager.com|connect.facebook.net|asia.creativecdn.com|static.hotjar.com|deqik.com|contineljs.com|googleads.g.doubleclick.net|analytics.tiktok.com|google.com|gstatic.com|static.airbridge.io|googleadservices.com|google-analytics.com|sg.mmstat.com|t.contentsquare.net|accounts.google.com|browser.sentry-cdn.com|bat.bing.com|tr.snapchat.com|ct.pinterest.com|criteo.com|webchat.caresoft.vn|tags.creativecdn.com|script.crazyegg.com|tags.tiqcdn.com|trc.taboola.com|securepubads.g.doubleclick.net|partytown/.test(
-                req.url()
-              ) ||
+              // /googletagmanager.com|connect.facebook.net|asia.creativecdn.com|static.hotjar.com|deqik.com|contineljs.com|googleads.g.doubleclick.net|analytics.tiktok.com|google.com|gstatic.com|static.airbridge.io|googleadservices.com|google-analytics.com|sg.mmstat.com|t.contentsquare.net|accounts.google.com|browser.sentry-cdn.com|bat.bing.com|tr.snapchat.com|ct.pinterest.com|criteo.com|webchat.caresoft.vn|tags.creativecdn.com|script.crazyegg.com|tags.tiqcdn.com|trc.taboola.com|securepubads.g.doubleclick.net|partytown/.test(
+              //   req.url()
+              // ) ||
               ['font', 'image', 'media', 'imageset'].includes(resourceType)
             ) {
               req.abort()
@@ -450,10 +450,6 @@ const SSRHandler = async (params) => {
           ]),
           async () => ''
         ) // serialized HTML of page DOM.
-        // safePage()?.close()
-      } catch (err) {
-        _ConsoleHandler2.default.log('SSRHandler line 315:')
-        _ConsoleHandler2.default.error(err)
         _optionalChain([
           safePage,
           'call',
@@ -462,6 +458,18 @@ const SSRHandler = async (params) => {
           (_57) => _57.close,
           'call',
           (_58) => _58(),
+        ])
+      } catch (err) {
+        _ConsoleHandler2.default.log('SSRHandler line 315:')
+        _ConsoleHandler2.default.error(err)
+        _optionalChain([
+          safePage,
+          'call',
+          (_59) => _59(),
+          'optionalAccess',
+          (_60) => _60.close,
+          'call',
+          (_61) => _61(),
         ])
 
         return
@@ -475,62 +483,66 @@ const SSRHandler = async (params) => {
   if (_constants.CACHEABLE_STATUS_CODE[status]) {
     try {
       let scriptTags = ''
-      const urlInfo = new URL(url)
-      html = html
-        .replace(
+
+      if (url.startsWith(baseUrl)) {
+        html = html
+          .replace(
+            /(?<script><script(\s[^>]+)src=("|'|)(.*?)("|'|)(\s[^>]+)*>(.|[\r\n])*?<\/script>)/g,
+            (script) => {
+              if (script) {
+                script = script.replace('<script', '<script defer')
+                scriptTags += script
+              }
+              return ''
+            }
+          )
+          .replace('</body>', scriptTags + '</body>')
+          .replace(
+            /(?<style><link(\s[^>]+)href=("|'|)[A-Za-z0-9_\-\/]{0,}\.css("|'|)[^>\s]*>)/g,
+            (style) => {
+              if (style) {
+                const href = _optionalChain([
+                  /href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/,
+                  'access',
+                  (_62) => _62.exec,
+                  'call',
+                  (_63) => _63(style),
+                  'optionalAccess',
+                  (_64) => _64.groups,
+                  'optionalAccess',
+                  (_65) => _65.href,
+                ])
+
+                if (href) {
+                  const styleResult = _utils5.getInternalStyle.call(void 0, {
+                    url: href,
+                  })
+
+                  if (styleResult && styleResult.status === 200) {
+                    return `<style>${styleResult.body}</style>`
+                  }
+                }
+              }
+
+              return ''
+            }
+          )
+
+        try {
+          html = html.replace(
+            /<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>)/g,
+            ''
+          )
+        } catch (err) {
+          _ConsoleHandler2.default.error(err)
+        }
+      } else {
+        const urlInfo = new URL(url)
+        html = html.replace(
           '</title>',
           `</title><base href="${urlInfo.origin}/" target="_blank">`
         )
-        .replace(
-          /(?<script><script(\s[^>]+)src=("|'|)(.*?)("|'|)(\s[^>]+)*>(.|[\r\n])*?<\/script>)/g,
-          (script) => {
-            if (script) {
-              script = script.replace('<script', '<script defer')
-              scriptTags += script
-            }
-            return ''
-          }
-        )
-        .replace('</body>', scriptTags + '</body>')
-        .replace(
-          /(?<style><link(\s[^>]+)href=("|'|)[A-Za-z0-9_\-\/]{0,}\.css("|'|)[^>\s]*>)/g,
-          (style) => {
-            if (style) {
-              const href = _optionalChain([
-                /href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/,
-                'access',
-                (_59) => _59.exec,
-                'call',
-                (_60) => _60(style),
-                'optionalAccess',
-                (_61) => _61.groups,
-                'optionalAccess',
-                (_62) => _62.href,
-              ])
-
-              if (href) {
-                const styleResult = _utils5.getInternalStyle.call(void 0, {
-                  url: href,
-                })
-
-                if (styleResult && styleResult.status === 200) {
-                  return `<style>${styleResult.body}</style>`
-                }
-              }
-            }
-
-            return ''
-          }
-        )
-    } catch (err) {
-      _ConsoleHandler2.default.error(err)
-    }
-
-    try {
-      html = html.replace(
-        /<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>)/g,
-        ''
-      )
+      }
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }

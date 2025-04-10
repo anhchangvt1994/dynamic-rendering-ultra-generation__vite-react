@@ -347,6 +347,7 @@ const puppeteerSSRService = (async () => {
           })
 
           let html
+          let status = '200'
           const filePath =
             (req.getHeader('static-html-path') as string) ||
             path.resolve(__dirname, '../../../../dist/index.html')
@@ -420,6 +421,14 @@ const puppeteerSSRService = (async () => {
                   `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
                 )
               }
+            } else if (pointsTo) {
+              status = String(result?.status ?? '503')
+              html =
+                fs.readFileSync(
+                  result?.response ??
+                    path.resolve(__dirname, '../../../maintain.html'),
+                  'utf8'
+                ) || ''
             }
           } catch (err) {
             Console.error(err)
@@ -464,7 +473,7 @@ const puppeteerSSRService = (async () => {
             })()
 
             res.cork(() => {
-              res.writeStatus('200')
+              res.writeStatus(status)
 
               if (enableContentEncoding) {
                 res.writeHeader('Content-Encoding', contentEncoding)
