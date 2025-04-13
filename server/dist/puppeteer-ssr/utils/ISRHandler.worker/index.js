@@ -34,19 +34,18 @@ function _optionalChain(ops) {
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
 var _constants = require('../../../constants')
+var _serverconfig = require('../../../server.config')
+var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+var _InitEnv = require('../../../utils/InitEnv')
+var _PathHandler = require('../../../utils/PathHandler')
 var _WorkerManager = require('../../../utils/WorkerManager')
 var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 var _BrowserManager = require('../BrowserManager')
 var _BrowserManager2 = _interopRequireDefault(_BrowserManager)
 var _utils = require('../CacheManager.worker/utils')
 var _utils2 = _interopRequireDefault(_utils)
-
-var _serverconfig = require('../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _InitEnv = require('../../../utils/InitEnv')
-var _PathHandler = require('../../../utils/PathHandler')
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
@@ -106,7 +105,7 @@ const ISRHandler = async (params) => {
       let html
       const timeout = setTimeout(async () => {
         if (html) {
-          const tmpResult = await cacheManager.set(params.url, {
+          const tmpResult = await cacheManager.set({
             html,
             isRaw: !params.hasCache,
           })
@@ -169,7 +168,7 @@ const ISRHandler = async (params) => {
   }
 
   if (!result || result.status !== 200) {
-    cacheManager.remove(params.url).catch((err) => {
+    cacheManager.remove().catch((err) => {
       _ConsoleHandler2.default.error(err)
     })
   }

@@ -38,11 +38,11 @@ var _fs2 = _interopRequireDefault(_fs)
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
 var _zlib = require('zlib')
+var _serverconfig = require('../../../server.config')
+var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 
-var _serverconfig = require('../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
 // import { getPagesPath } from '../../../utils/PathHandler'
 
 // const pagesPath = getPagesPath()
@@ -53,7 +53,7 @@ const regexKeyConverter =
   /www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
 exports.regexKeyConverter = regexKeyConverter
 const regexKeyConverterWithoutLocaleInfo =
-  /www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)/g
+  /www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
 exports.regexKeyConverterWithoutLocaleInfo = regexKeyConverterWithoutLocaleInfo
 
 const getKey = (url) => {
@@ -164,6 +164,12 @@ const get = async (url, cachePath, options) => {
 
   const key = exports.getKey.call(void 0, url)
 
+  const infoTxt = (new URL(url).searchParams.get('infoTxt') || url)
+    .replace('/?', '?')
+    .replace(exports.regexKeyConverterWithoutLocaleInfo, '')
+    .replace(/,"os":"([^&]*)"/, '')
+    .replace(/(\?|\&)$/, '')
+
   let file = `${cachePath}/${key}.br`
   let isRaw = false
 
@@ -187,14 +193,7 @@ const get = async (url, cachePath, options) => {
     try {
       await Promise.all([
         _fs2.default.writeFileSync(file, ''),
-        _fs2.default.writeFileSync(
-          `${cachePath}/info/${key}.txt`,
-          url
-            .replace('/?', '?')
-            .replace(exports.regexKeyConverterWithoutLocaleInfo, '')
-            .replace(/,"os":"([^&]*)"/, '')
-            .replace(/(\?|\&)$/, '')
-        ),
+        _fs2.default.writeFileSync(`${cachePath}/info/${key}.txt`, infoTxt),
       ])
       _ConsoleHandler2.default.log(`File ${key}.br has been created.`)
 

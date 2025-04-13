@@ -45,7 +45,7 @@ const SSRHandler = async (params: ISSRHandlerWorkerParam) => {
       let html
       const timeout = setTimeout(async () => {
         if (html) {
-          const tmpResult = await cacheManager.set(params.url, {
+          const tmpResult = await cacheManager.set({
             html,
             isRaw: !params.hasCache,
           })
@@ -86,7 +86,7 @@ const SSRHandler = async (params: ISSRHandlerWorkerParam) => {
   }
 
   if (!result || result.status !== 200) {
-    cacheManager.remove(params.url).catch((err) => {
+    cacheManager.remove().catch((err) => {
       Console.error(err)
     })
   }

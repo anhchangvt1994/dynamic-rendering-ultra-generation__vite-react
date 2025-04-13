@@ -1,6 +1,4 @@
 import fs from 'fs'
-import path from 'path'
-import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { ISSRResult } from '../../types'
 import {
@@ -16,36 +14,8 @@ import {
   set as setCache,
 } from '../Cache.worker/utils'
 
-const maintainFile = path.resolve(__dirname, '../../../maintain.html')
-
 const CacheManager = (url: string, cachePath: string) => {
-  const pathname = new URL(url).pathname
-
-  const enableToCache =
-    ServerConfig.crawl.enable &&
-    (ServerConfig.crawl.routes[pathname] === undefined ||
-      ServerConfig.crawl.routes[pathname].enable ||
-      ServerConfig.crawl.custom?.(url) === undefined ||
-      ServerConfig.crawl.custom?.(url)?.enable) &&
-    ServerConfig.crawl.cache.enable &&
-    (ServerConfig.crawl.routes[pathname] === undefined ||
-      ServerConfig.crawl.routes[pathname].cache.enable ||
-      ServerConfig.crawl.custom?.(url) === undefined ||
-      ServerConfig.crawl.custom?.(url)?.cache.enable)
-
   const get = async () => {
-    if (!enableToCache)
-      return {
-        response: maintainFile,
-        status: 503,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        requestedAt: new Date(),
-        ttRenderMs: 200,
-        available: false,
-        isInit: true,
-      }
-
     let result
 
     try {
@@ -58,7 +28,6 @@ const CacheManager = (url: string, cachePath: string) => {
   } // get
 
   const achieve = async (): Promise<ISSRResult> => {
-    if (!enableToCache) return
     if (!url) {
       Console.error('Need provide "url" param!')
       return
@@ -102,14 +71,7 @@ const CacheManager = (url: string, cachePath: string) => {
     }
   } // achieve
 
-  const set = async (url: string, params: ICacheSetParams) => {
-    if (!enableToCache)
-      return {
-        html: params.html,
-        response: maintainFile,
-        status: params.html ? 200 : 503,
-      }
-
+  const set = async (params: ICacheSetParams) => {
     let result
 
     try {
@@ -133,9 +95,7 @@ const CacheManager = (url: string, cachePath: string) => {
     return result
   } // renew
 
-  const remove = async (url: string, options?: { force?: boolean }) => {
-    if (!enableToCache) return
-
+  const remove = async (options?: { force?: boolean }) => {
     options = {
       force: false,
       ...options,
@@ -154,9 +114,7 @@ const CacheManager = (url: string, cachePath: string) => {
     }
   } // remove
 
-  const rename = async (url: string, params?: { type?: 'raw' | 'renew' }) => {
-    if (!enableToCache) return
-
+  const rename = async (params?: { type?: 'raw' | 'renew' }) => {
     try {
       await renameCache(url, cachePath, params || {})
     } catch (err) {

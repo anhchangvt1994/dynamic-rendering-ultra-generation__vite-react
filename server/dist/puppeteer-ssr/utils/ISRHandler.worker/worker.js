@@ -45,6 +45,7 @@ var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _ConsoleHandler = require('../../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+var _PathHandler = require('../../../utils/PathHandler')
 
 var _constants3 = require('../../constants')
 
@@ -53,7 +54,6 @@ var _utils2 = _interopRequireDefault(_utils)
 
 var _utils3 = require('../OptimizeHtml.worker/utils')
 var _utils5 = require('./utils/utils')
-var _PathHandler = require('../../../utils/PathHandler')
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
@@ -682,7 +682,7 @@ const ISRHandler = async (params) => {
         _ConsoleHandler2.default.log('ISRHandler line 297:')
         _ConsoleHandler2.default.log('Crawler is fail!')
         _ConsoleHandler2.default.error(err)
-        cacheManager.remove(url).catch((err) => {
+        cacheManager.remove().catch((err) => {
           _ConsoleHandler2.default.error(err)
         })
         _optionalChain([
@@ -695,7 +695,7 @@ const ISRHandler = async (params) => {
           (_64) => _64(),
         ])
         if (params.hasCache) {
-          cacheManager.rename(url)
+          cacheManager.rename()
         }
 
         return {
@@ -739,7 +739,7 @@ const ISRHandler = async (params) => {
             (_73) => _73(),
           ])
           if (params.hasCache) {
-            cacheManager.rename(url)
+            cacheManager.rename()
           }
 
           return
@@ -874,12 +874,12 @@ const ISRHandler = async (params) => {
       // console.log('-------')
     }
 
-    result = await cacheManager.set(url, {
+    result = await cacheManager.set({
       html,
       isRaw,
     })
   } else {
-    cacheManager.remove(url).catch((err) => {
+    cacheManager.remove().catch((err) => {
       _ConsoleHandler2.default.error(err)
     })
     return {

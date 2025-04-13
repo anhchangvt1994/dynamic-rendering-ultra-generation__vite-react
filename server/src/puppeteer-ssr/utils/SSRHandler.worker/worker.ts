@@ -339,12 +339,12 @@ const SSRHandler = async (params: SSRHandlerParam) => {
       Console.error(err)
     }
 
-    result = await cacheManager.set(url, {
+    result = await cacheManager.set({
       html,
       isRaw: false,
     })
   } else {
-    cacheManager.remove(url).catch((err) => {
+    cacheManager.remove().catch((err) => {
       Console.error(err)
     })
     return {

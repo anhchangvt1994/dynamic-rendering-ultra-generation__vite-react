@@ -1,225 +1,186 @@
 import fs from 'fs'
 import path from 'path'
 import { resourceExtension } from '../../../constants'
-import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import WorkerManager from '../../../utils/WorkerManager'
 import { ISSRResult } from '../../types'
 import {
-	ICacheSetParams,
-	getKey as getCacheKey,
-	getStatus as getCacheStatus,
-	getFileInfo,
-	isExist as isCacheExist,
+  ICacheSetParams,
+  getKey as getCacheKey,
+  getStatus as getCacheStatus,
+  getFileInfo,
+  isExist as isCacheExist,
 } from '../Cache.worker/utils'
 
 const workerManager = WorkerManager.init(
-	path.resolve(__dirname, `./../Cache.worker/index.${resourceExtension}`),
-	{
-		minWorkers: 1,
-		maxWorkers: 3,
-	},
-	['get', 'set', 'renew', 'remove', 'rename']
+  path.resolve(__dirname, `./../Cache.worker/index.${resourceExtension}`),
+  {
+    minWorkers: 1,
+    maxWorkers: 3,
+  },
+  ['get', 'set', 'renew', 'remove', 'rename']
 )
 
-const maintainFile = path.resolve(__dirname, '../../../maintain.html')
-
 const CacheManager = (url: string, cachePath: string) => {
-	const pathname = new URL(url).pathname
+  const get = async () => {
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
+    let result
 
-	const enableToCache =
-		ServerConfig.crawl.enable &&
-		(ServerConfig.crawl.routes[pathname] === undefined ||
-			ServerConfig.crawl.routes[pathname].enable ||
-			ServerConfig.crawl.custom?.(url) === undefined ||
-			ServerConfig.crawl.custom?.(url)?.enable) &&
-		ServerConfig.crawl.cache.enable &&
-		(ServerConfig.crawl.routes[pathname] === undefined ||
-			ServerConfig.crawl.routes[pathname].cache.enable ||
-			ServerConfig.crawl.custom?.(url) === undefined ||
-			ServerConfig.crawl.custom?.(url)?.cache.enable)
+    try {
+      result = await pool.exec('get', [url, cachePath])
+    } catch (err) {
+      Console.error(err)
+    }
 
-	const get = async () => {
-		if (!enableToCache)
-			return {
-				response: maintainFile,
-				status: 503,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				requestedAt: new Date(),
-				ttRenderMs: 200,
-				available: false,
-				isInit: true,
-			}
+    freePool.terminate({
+      force: true,
+    })
 
-		const freePool = await workerManager.getFreePool()
-		const pool = freePool.pool
-		let result
+    return result
+  } // get
 
-		try {
-			result = await pool.exec('get', [url, cachePath])
-		} catch (err) {
-			Console.error(err)
-		}
+  const achieve = async (): Promise<ISSRResult> => {
+    if (!url) {
+      Console.error('Need provide "url" param!')
+      return
+    }
 
-		freePool.terminate({
-			force: true,
-		})
+    const key = getCacheKey(url)
+    let file = `${cachePath}/${key}.br`
+    let isRaw = false
 
-		return result
-	} // get
+    switch (true) {
+      case fs.existsSync(file):
+        break
+      case fs.existsSync(`${cachePath}/${key}.renew.br`):
+        file = `${cachePath}/${key}.renew.br`
+        break
+      default:
+        file = `${cachePath}/${key}.raw.br`
+        isRaw = true
+        break
+    }
 
-	const achieve = async (): Promise<ISSRResult> => {
-		if (!enableToCache) return
-		if (!url) {
-			Console.error('Need provide "url" param!')
-			return
-		}
+    if (!fs.existsSync(file)) return
 
-		const key = getCacheKey(url)
-		let file = `${cachePath}/${key}.br`
-		let isRaw = false
+    const info = await getFileInfo(file)
 
-		switch (true) {
-			case fs.existsSync(file):
-				break
-			case fs.existsSync(`${cachePath}/${key}.renew.br`):
-				file = `${cachePath}/${key}.renew.br`
-				break
-			default:
-				file = `${cachePath}/${key}.raw.br`
-				isRaw = true
-				break
-		}
+    if (!info || info.size === 0) return
 
-		if (!fs.existsSync(file)) return
+    // await setRequestTimeInfo(file, new Date())
 
-		const info = await getFileInfo(file)
+    return {
+      file,
+      response: file,
+      status: 200,
+      createdAt: info.createdAt,
+      updatedAt: info.updatedAt,
+      requestedAt: new Date(),
+      ttRenderMs: 200,
+      available: true,
+      isInit: false,
+      isRaw,
+    }
+  } // achieve
 
-		if (!info || info.size === 0) return
+  const set = async (params: ICacheSetParams) => {
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
+    let result
 
-		// await setRequestTimeInfo(file, new Date())
+    try {
+      result = await pool.exec('set', [url, cachePath, params])
+    } catch (err) {
+      Console.error(err)
+    }
 
-		return {
-			file,
-			response: file,
-			status: 200,
-			createdAt: info.createdAt,
-			updatedAt: info.updatedAt,
-			requestedAt: new Date(),
-			ttRenderMs: 200,
-			available: true,
-			isInit: false,
-			isRaw,
-		}
-	} // achieve
+    freePool.terminate({
+      force: true,
+    })
 
-	const set = async (params: ICacheSetParams) => {
-		if (!enableToCache)
-			return {
-				html: params.html,
-				response: maintainFile,
-				status: params.html ? 200 : 503,
-			}
+    return result
+  } // set
 
-		const freePool = await workerManager.getFreePool()
-		const pool = freePool.pool
-		let result
+  const renew = async () => {
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
+    let result
 
-		try {
-			result = await pool.exec('set', [url, cachePath, params])
-		} catch (err) {
-			Console.error(err)
-		}
+    try {
+      result = await pool.exec('renew', [url, cachePath])
+    } catch (err) {
+      Console.error(err)
+    }
 
-		freePool.terminate({
-			force: true,
-		})
+    freePool.terminate({
+      force: true,
+    })
 
-		return result
-	} // set
+    return result
+  } // renew
 
-	const renew = async () => {
-		const freePool = await workerManager.getFreePool()
-		const pool = freePool.pool
-		let result
+  const remove = async (options?: { force?: boolean }) => {
+    options = {
+      force: false,
+      ...options,
+    }
 
-		try {
-			result = await pool.exec('renew', [url, cachePath])
-		} catch (err) {
-			Console.error(err)
-		}
+    if (!options.force) {
+      const tmpCacheInfo = await achieve()
 
-		freePool.terminate({
-			force: true,
-		})
+      if (tmpCacheInfo) return
+    }
 
-		return result
-	} // renew
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
 
-	const remove = async (url: string, options?: { force?: boolean }) => {
-		if (!enableToCache) return
+    try {
+      await pool.exec('remove', [url, cachePath])
+    } catch (err) {
+      Console.error(err)
+    }
 
-		options = {
-			force: false,
-			...options,
-		}
+    freePool.terminate({
+      force: true,
+    })
+  } // remove
 
-		if (!options.force) {
-			const tmpCacheInfo = await achieve()
+  const rename = async (params?: { type?: 'raw' | 'renew' }) => {
+    if (!url) return
 
-			if (tmpCacheInfo) return
-		}
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
 
-		const freePool = await workerManager.getFreePool()
-		const pool = freePool.pool
+    try {
+      await pool.exec('rename', [url, cachePath, params || {}])
+    } catch (err) {
+      Console.error(err)
+    }
 
-		try {
-			await pool.exec('remove', [url, cachePath])
-		} catch (err) {
-			Console.error(err)
-		}
+    freePool.terminate({
+      force: true,
+    })
+  } // rename
 
-		freePool.terminate({
-			force: true,
-		})
-	} // remove
+  const getStatus = () => {
+    return getCacheStatus(url, cachePath)
+  } // getStatus
 
-	const rename = async (url: string, params?: { type?: 'raw' | 'renew' }) => {
-		if (!enableToCache || !url) return
+  const isExist = () => {
+    return isCacheExist(url, cachePath)
+  } // isExist
 
-		const freePool = await workerManager.getFreePool()
-		const pool = freePool.pool
-
-		try {
-			await pool.exec('rename', [url, cachePath, params || {}])
-		} catch (err) {
-			Console.error(err)
-		}
-
-		freePool.terminate({
-			force: true,
-		})
-	} // rename
-
-	const getStatus = () => {
-		return getCacheStatus(url, cachePath)
-	} // getStatus
-
-	const isExist = () => {
-		return isCacheExist(url, cachePath)
-	} // isExist
-
-	return {
-		achieve,
-		get,
-		getStatus,
-		set,
-		renew,
-		remove,
-		rename,
-		isExist,
-	}
+  return {
+    achieve,
+    get,
+    getStatus,
+    set,
+    renew,
+    remove,
+    rename,
+    isExist,
+  }
 }
 
 export default CacheManager
