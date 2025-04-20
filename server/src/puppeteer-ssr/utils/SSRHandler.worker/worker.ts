@@ -317,8 +317,8 @@ const SSRHandler = async (params: SSRHandlerParam) => {
       } else {
         const urlInfo = new URL(url)
         html = html.replace(
-          '</title>',
-          `</title><base href="${urlInfo.origin}/" target="_blank">`
+          '<head>',
+          `<head><base href="${urlInfo.origin}/" target="_blank">`
         )
       }
     } catch (err) {

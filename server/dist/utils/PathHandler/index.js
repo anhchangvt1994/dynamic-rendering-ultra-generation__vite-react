@@ -45,6 +45,16 @@ const getPagesPath = () => {
   if (!_fs2.default.existsSync(pagesPath)) {
     try {
       _fs2.default.mkdirSync(pagesPath)
+    } catch (err) {
+      _ConsoleHandler2.default.error(err)
+    }
+  }
+
+  if (
+    _fs2.default.existsSync(pagesPath) &&
+    !_fs2.default.existsSync(`${pagesPath}/info`)
+  ) {
+    try {
       _fs2.default.mkdirSync(`${pagesPath}/info`)
     } catch (err) {
       _ConsoleHandler2.default.error(err)
@@ -87,6 +97,17 @@ const getViewsPath = () => {
   if (!_fs2.default.existsSync(viewsPath)) {
     try {
       _fs2.default.mkdirSync(viewsPath)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  if (
+    _fs2.default.existsSync(viewsPath) &&
+    !_fs2.default.existsSync(`${viewsPath}/info`)
+  ) {
+    try {
+      _fs2.default.mkdirSync(`${viewsPath}/info`)
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }

@@ -17,6 +17,15 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
       '/': {
         pointsTo: 'https://suckhoe360.vn',
       },
+      '/long-chau': {
+        pointsTo: 'https://nhathuoclongchau.com.vn',
+      },
+      '/vinmect': {
+        pointsTo: 'https://www.vinmec.com/vie',
+      },
+      '/pharmacity': {
+        pointsTo: 'https://www.pharmacity.vn',
+      },
     },
     custom(url) {
       if (!url) return

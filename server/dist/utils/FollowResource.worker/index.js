@@ -264,7 +264,57 @@ const scanToCleanViews = (dirPath, options) => {
     }
 
     for (const file of viewList) {
-      if (file.endsWith('--loader.br')) continue
+      if (file.endsWith('--loader.br') || file === 'info') continue
+
+      const infoFilePath = _path2.default.join(
+        dirPath,
+        `/info/${file.split('.')[0]}.txt`
+      )
+      const url = _FileHandler.getTextData.call(void 0, infoFilePath)
+
+      if (!url) continue
+
+      const urlInfo = new URL(url)
+
+      const routeOptions = _nullishCoalesce(
+        _nullishCoalesce(
+          _optionalChain([
+            _serverconfig2.default,
+            'access',
+            (_4) => _4.routes,
+            'access',
+            (_5) => _5.list,
+            'optionalAccess',
+            (_6) => _6[urlInfo.pathname],
+          ]),
+          () =>
+            _optionalChain([
+              _serverconfig2.default,
+              'access',
+              (_7) => _7.routes,
+              'access',
+              (_8) => _8.custom,
+              'optionalCall',
+              (_9) => _9(url),
+            ])
+        ),
+        () =>
+          _optionalChain([
+            _serverconfig2.default.routes,
+            'optionalAccess',
+            (_10) => _10.preview,
+          ])
+      )
+
+      const expiredTime = _optionalChain([
+        routeOptions.preview || routeOptions.pointsTo,
+        'optionalAccess',
+        (_11) => _11.time,
+      ])
+
+      if (!expiredTime || expiredTime === 'infinite') {
+        continue
+      }
 
       const cacheFilePath = _path2.default.join(dirPath, file)
       const dirExistTimeInMinutes =
@@ -272,9 +322,16 @@ const scanToCleanViews = (dirPath, options) => {
           new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
         1000
 
-      if (options.forceToClean || dirExistTimeInMinutes >= 300) {
+      if (
+        options.forceToClean ||
+        (!expiredTime && dirExistTimeInMinutes >= 300) ||
+        dirExistTimeInMinutes >= expiredTime
+      ) {
         try {
-          _fs2.default.unlinkSync(cacheFilePath)
+          Promise.all([
+            _fs2.default.unlinkSync(cacheFilePath),
+            _fs2.default.unlinkSync(infoFilePath),
+          ])
         } catch (err) {
           _ConsoleHandler2.default.error(err)
         }
@@ -318,7 +375,7 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           if (!_fs2.default.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
-          if (!_optionalChain([fileInfo, 'optionalAccess', (_4) => _4.size]))
+          if (!_optionalChain([fileInfo, 'optionalAccess', (_12) => _12.size]))
             continue
 
           const fileContent = (() => {
@@ -397,7 +454,7 @@ const scanToCleanAPIStoreCache = async (dirPath) => {
           if (!_fs2.default.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
-          if (!_optionalChain([fileInfo, 'optionalAccess', (_5) => _5.size]))
+          if (!_optionalChain([fileInfo, 'optionalAccess', (_13) => _13.size]))
             continue
 
           if (curTime - new Date(fileInfo.requestedAt).getTime() >= 300000) {

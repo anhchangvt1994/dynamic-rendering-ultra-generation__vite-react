@@ -69,6 +69,7 @@ const optionArgs = [
   // '--incognito',
   '--no-experiments',
   '--disable-features=site-per-process',
+  '--disable-features=UsePasswordManager',
 ]
 exports.optionArgs = optionArgs
 
@@ -163,7 +164,7 @@ const CACHEABLE_STATUS_CODE = { 200: true, 302: true }
 exports.CACHEABLE_STATUS_CODE = CACHEABLE_STATUS_CODE
 
 const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v130.0.0/chromium-v130.0.0-pack.tar'
+  'https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar'
 exports.chromiumPath = chromiumPath
 
 const canUseLinuxChromium =

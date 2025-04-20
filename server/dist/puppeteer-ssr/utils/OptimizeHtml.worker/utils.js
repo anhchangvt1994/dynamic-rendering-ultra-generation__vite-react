@@ -1,5 +1,8 @@
 'use strict'
 Object.defineProperty(exports, '__esModule', { value: true })
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj }
+}
 function _optionalChain(ops) {
   let lastAccessLHS = undefined
   let value = ops[0]
@@ -21,7 +24,8 @@ function _optionalChain(ops) {
   }
   return value
 }
-var _htmlminifierterser = require('html-minifier-terser')
+var _node = require('@minify-html/node')
+var _node2 = _interopRequireDefault(_node)
 var _zlib = require('zlib')
 var _constants = require('../../../constants')
 var _InitEnv = require('../../../utils/InitEnv')
@@ -30,28 +34,25 @@ var _constants3 = require('../../constants')
 
 const compressContent = async (html, options) => {
   if (!html || _InitEnv.PROCESS_ENV.DISABLE_COMPRESS) return html
-  // console.log('start compress')
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
-  if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) return html
+  if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) {
+    if (Buffer.isBuffer(html))
+      html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
-  options = options || {
-    collapseBooleanAttributes: true,
-    collapseInlineTagWhitespace: true,
-    collapseWhitespace: true,
-    removeAttributeQuotes: true,
-    removeComments: true,
-    removeEmptyAttributes: true,
-    removeEmptyElements: true,
-    useShortDoctype: true,
+    return html
   }
 
   let tmpHTML = html
 
   if (_InitEnv.ENV !== 'development') {
     try {
-      tmpHTML = await _htmlminifierterser.minify.call(void 0, tmpHTML, options)
+      if (Buffer.isBuffer(html)) {
+        tmpHTML = await _node2.default.minify(tmpHTML, {}).toString()
+      } else {
+        tmpHTML = await _node2.default
+          .minify(Buffer.from(tmpHTML), {})
+          .toString()
+      }
     } catch (err) {
       return html
     }

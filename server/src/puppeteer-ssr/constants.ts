@@ -66,6 +66,7 @@ export const optionArgs = [
   // '--incognito',
   '--no-experiments',
   '--disable-features=site-per-process',
+  '--disable-features=UsePasswordManager',
 ]
 
 export const defaultBrowserOptions: LaunchOptions = {
@@ -136,7 +137,7 @@ export const regexNotFoundPageID = new RegExp(
 export const CACHEABLE_STATUS_CODE = { 200: true, 302: true }
 
 export const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v130.0.0/chromium-v130.0.0-pack.tar'
+  'https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar'
 
 export const canUseLinuxChromium =
   PROCESS_ENV.PLATFORM.toLowerCase() === 'linux' ||

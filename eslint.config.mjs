@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { parse, parseForESLint } from '@typescript-eslint/parser'
 import eslintAirBnb from 'eslint-config-airbnb'
 import eslintAirBnbTs from 'eslint-config-airbnb-typescript'
@@ -5,8 +6,19 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import react from 'eslint-plugin-react'
 import airBnbHooks from 'eslint-plugin-react-hooks'
-import EslintAutoImportType from './config/.eslintrc-auto-import-type.json' with { type: 'json' }
-import EslintAutoImport from './config/.eslintrc-auto-import.json' with { type: 'json' }
+
+const EslintAutoImportType = JSON.parse(
+  fs.readFileSync(
+    new URL('./config/.eslintrc-auto-import-type.json', import.meta.url),
+    'utf-8'
+  )
+)
+const EslintAutoImport = JSON.parse(
+  fs.readFileSync(
+    new URL('./config/.eslintrc-auto-import.json', import.meta.url),
+    'utf-8'
+  )
+)
 
 export default [
   airBnbHooks.configs['recommended-latest'],
@@ -65,6 +77,9 @@ export default [
       'react/prop-types': 'off',
     },
     settings: {
+      react: {
+        version: 'detect',
+      },
       'import/resolver': {
         'eslint-import-resolver-custom-alias': {
           alias: {

@@ -1,15 +1,15 @@
 {
-	"private": true,
-	"name": "puppeteer-ssr",
-	"version": "1.0.0",
-	"description": "puppeteer-ssr",
-	"main": "./index/index.ts",
-	"scripts": {},
-	"author": "",
-	"license": "ISC",
-	"dependencies": {
-		"puppeteer": "24.1.1",
-		"html-minifier-terser": "^7.2.0",
-		"@sparticuz/chromium-min": "131.0.1"
-	}
+  "private": true,
+  "name": "puppeteer-ssr",
+  "version": "1.0.0",
+  "description": "puppeteer-ssr",
+  "main": "./index/index.ts",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "24.6.1",
+    "@minify-html/node": "^0.16.4",
+    "@sparticuz/chromium-min": "133.0.0"
+  }
 }
