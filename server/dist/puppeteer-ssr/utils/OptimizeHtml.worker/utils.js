@@ -32,7 +32,7 @@ var _InitEnv = require('../../../utils/InitEnv')
 
 var _constants3 = require('../../constants')
 
-const compressContent = async (html, options) => {
+const compressContent = async (html) => {
   if (!html || _InitEnv.PROCESS_ENV.DISABLE_COMPRESS) return html
 
   if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) {

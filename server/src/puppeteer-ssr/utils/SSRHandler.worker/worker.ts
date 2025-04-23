@@ -326,15 +326,7 @@ const SSRHandler = async (params: SSRHandlerParam) => {
     }
 
     try {
-      html = await compressContent(html, {
-        collapseBooleanAttributes: true,
-        collapseInlineTagWhitespace: true,
-        collapseWhitespace: true,
-        removeAttributeQuotes: true,
-        removeComments: false,
-        removeEmptyAttributes: true,
-        useShortDoctype: true,
-      })
+      html = await compressContent(html)
     } catch (err) {
       Console.error(err)
     }

@@ -137,7 +137,7 @@ function BrowserManager() {
 
   if (isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
-    const strUserDataDir = userDataDir()
+    // const strUserDataDir = userDataDir()
     const maxRequestPerBrowser = 10
     let totalRequests = 0
     let browserLaunch
@@ -147,6 +147,7 @@ function BrowserManager() {
     const __launch = async () => {
       totalRequests = 0
 
+      const strUserDataDir = userDataDir()
       const selfUserDataDirPath =
         reserveUserDataDirPath ||
         `${strUserDataDir}${_serverconfig2.default.isRemoteCrawler ? '_remote' : ''}`
@@ -195,22 +196,20 @@ function BrowserManager() {
             })
 
             // NOTE - Create a preventive browser to replace when current browser expired
-            new Promise(async (res) => {
-              const reserveBrowser = await _constants3.puppeteer.launch({
+            _constants3.puppeteer
+              .launch({
                 ..._constants3.defaultBrowserOptions,
                 userDataDir: reserveUserDataDirPath,
                 args: _chromiummin2.default.args,
                 executablePath,
               })
-              try {
-                await reserveBrowser.close()
-              } catch (err) {
+              .then((reserveBrowser) => {
+                reserveBrowser.close()
+              })
+              .catch((err) => {
                 _ConsoleHandler2.default.log('BrowserManager line 121')
                 _ConsoleHandler2.default.error(err)
-              }
-
-              res(null)
-            })
+              })
           } else {
             _ConsoleHandler2.default.log('Start browser without executablePath')
             promiseBrowser = _constants3.puppeteer.launch({
@@ -219,19 +218,18 @@ function BrowserManager() {
             })
 
             // NOTE - Create a preventive browser to replace when current browser expired
-            new Promise(async (res) => {
-              const reserveBrowser = await _constants3.puppeteer.launch({
+            _constants3.puppeteer
+              .launch({
                 ..._constants3.defaultBrowserOptions,
                 userDataDir: reserveUserDataDirPath,
               })
-              try {
-                await reserveBrowser.close()
-              } catch (err) {
-                _ConsoleHandler2.default.log('BrowserManager line 143')
+              .then((reserveBrowser) => {
+                reserveBrowser.close()
+              })
+              .catch((err) => {
+                _ConsoleHandler2.default.log('BrowserManager line 135')
                 _ConsoleHandler2.default.error(err)
-              }
-              res(null)
-            })
+              })
           }
         } catch (err) {
           isError = true

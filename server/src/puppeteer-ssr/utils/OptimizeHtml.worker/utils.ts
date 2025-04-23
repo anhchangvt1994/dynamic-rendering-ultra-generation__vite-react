@@ -14,10 +14,7 @@ import {
   regexShallowOptimize,
 } from '../../constants'
 
-export const compressContent = async (
-  html: string,
-  options?: { [key: string]: any }
-): Promise<string> => {
+export const compressContent = async (html: string): Promise<string> => {
   if (!html || PROCESS_ENV.DISABLE_COMPRESS) return html
 
   if (POWER_LEVEL === POWER_LEVEL_LIST.ONE) {
