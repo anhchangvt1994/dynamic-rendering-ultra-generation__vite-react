@@ -118,22 +118,33 @@ function BrowserManager(): IBrowser | undefined {
   if (isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
     // const strUserDataDir = userDataDir()
+    let strUserDataDir: string
     const maxRequestPerBrowser = 10
     let totalRequests = 0
     let browserLaunch: Promise<Browser | undefined>
+    let selfUserDataDirPath: string
     let reserveUserDataDirPath: string
+    let hasReserveUserDataDirPath = false
     let executablePath: string
+    let retryCounter = 0
 
-    const __launch = async () => {
+    const __launch = async (options?: { retry: boolean }) => {
+      options = {
+        retry: false,
+        ...options,
+      }
+
       totalRequests = 0
 
-      const strUserDataDir = userDataDir()
-      const selfUserDataDirPath =
-        reserveUserDataDirPath ||
-        `${strUserDataDir}${ServerConfig.isRemoteCrawler ? '_remote' : ''}`
-      reserveUserDataDirPath = `${strUserDataDir}_reserve${
-        ServerConfig.isRemoteCrawler ? '_remote' : ''
-      }`
+      if (!options.retry) {
+        strUserDataDir = userDataDir()
+        selfUserDataDirPath =
+          reserveUserDataDirPath ||
+          `${strUserDataDir}${ServerConfig.isRemoteCrawler ? '_remote' : ''}`
+        reserveUserDataDirPath = `${strUserDataDir}_reserve${
+          ServerConfig.isRemoteCrawler ? '_remote' : ''
+        }`
+      }
 
       const browserStore = (() => {
         const tmpBrowserStore = getStore('browser')
@@ -147,6 +158,8 @@ function BrowserManager(): IBrowser | undefined {
       browserLaunch = new Promise(async (res, rej) => {
         let isError = false
         let promiseBrowser
+
+        if (options.retry) await new Promise((res) => setTimeout(res, 1000))
 
         try {
           if (canUseLinuxChromium && !promiseStore.executablePath) {
@@ -166,48 +179,66 @@ function BrowserManager(): IBrowser | undefined {
 
           if (promiseStore.executablePath) {
             Console.log('Start browser with executablePath')
-            promiseBrowser = puppeteer.launch({
-              ...defaultBrowserOptions,
-              userDataDir: selfUserDataDirPath,
-              args: Chromium.args,
-              executablePath,
-            })
-
-            // NOTE - Create a preventive browser to replace when current browser expired
-            puppeteer
+            promiseBrowser = puppeteer
               .launch({
                 ...defaultBrowserOptions,
-                userDataDir: reserveUserDataDirPath,
+                userDataDir: selfUserDataDirPath,
                 args: Chromium.args,
                 executablePath,
               })
-              .then((reserveBrowser) => {
-                reserveBrowser.close()
-              })
               .catch((err) => {
-                Console.log('BrowserManager line 121')
+                Console.log('BrowserManager line 188')
                 Console.error(err)
               })
-          } else {
-            Console.log('Start browser without executablePath')
-            promiseBrowser = puppeteer.launch({
-              ...defaultBrowserOptions,
-              userDataDir: selfUserDataDirPath,
-            })
 
             // NOTE - Create a preventive browser to replace when current browser expired
-            puppeteer
+            if (!options.retry || !hasReserveUserDataDirPath) {
+              puppeteer
+                .launch({
+                  ...defaultBrowserOptions,
+                  userDataDir: reserveUserDataDirPath,
+                  args: Chromium.args,
+                  executablePath,
+                })
+                .then((reserveBrowser) => {
+                  hasReserveUserDataDirPath = true
+                  reserveBrowser.close()
+                })
+                .catch((err) => {
+                  hasReserveUserDataDirPath = false
+                  Console.log('BrowserManager line 191')
+                  Console.error(err)
+                })
+            }
+          } else {
+            Console.log('Start browser without executablePath')
+            promiseBrowser = puppeteer
               .launch({
                 ...defaultBrowserOptions,
-                userDataDir: reserveUserDataDirPath,
-              })
-              .then((reserveBrowser) => {
-                reserveBrowser.close()
+                userDataDir: selfUserDataDirPath,
               })
               .catch((err) => {
-                Console.log('BrowserManager line 135')
+                Console.log('BrowserManager line 213')
                 Console.error(err)
               })
+
+            // NOTE - Create a preventive browser to replace when current browser expired
+            if (!options.retry || !hasReserveUserDataDirPath) {
+              puppeteer
+                .launch({
+                  ...defaultBrowserOptions,
+                  userDataDir: reserveUserDataDirPath,
+                })
+                .then((reserveBrowser) => {
+                  hasReserveUserDataDirPath = true
+                  reserveBrowser.close()
+                })
+                .catch((err) => {
+                  hasReserveUserDataDirPath = false
+                  Console.log('BrowserManager line 211')
+                  Console.error(err)
+                })
+            }
           }
         } catch (err) {
           isError = true
@@ -257,7 +288,7 @@ function BrowserManager(): IBrowser | undefined {
                     }, 60000)
                   }
                 } catch (err) {
-                  Console.log('BrowserManager line 193')
+                  Console.log('BrowserManager line 261')
                   Console.error(err)
                 }
             }
@@ -295,14 +326,23 @@ function BrowserManager(): IBrowser | undefined {
         ...options,
       }
 
-      if (options.forceLaunch || !browserLaunch || !_isReady()) {
+      if (!browserLaunch || !_isReady()) {
         await __launch()
+      } else if (options.forceLaunch) {
+        await __launch({ retry: true })
+
+        retryCounter++
       }
 
       const browser = await browserLaunch
 
       if (!browser || !browser.connected) {
-        return _get({ forceLaunch: true })
+        if (retryCounter < 3) {
+          return _get({ forceLaunch: true })
+        } else {
+          retryCounter = 0
+          return
+        }
       }
 
       totalRequests++
@@ -313,6 +353,8 @@ function BrowserManager(): IBrowser | undefined {
     const _newPage = async () => {
       try {
         const browser = await _get()
+
+        if (!browser) return
 
         if (!browser.connected) {
           browser.close()

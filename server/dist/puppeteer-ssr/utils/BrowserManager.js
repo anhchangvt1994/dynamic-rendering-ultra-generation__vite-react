@@ -138,22 +138,33 @@ function BrowserManager() {
   if (isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
     // const strUserDataDir = userDataDir()
+    let strUserDataDir
     const maxRequestPerBrowser = 10
     let totalRequests = 0
     let browserLaunch
+    let selfUserDataDirPath
     let reserveUserDataDirPath
+    let hasReserveUserDataDirPath = false
     let executablePath
+    let retryCounter = 0
 
-    const __launch = async () => {
+    const __launch = async (options) => {
+      options = {
+        retry: false,
+        ...options,
+      }
+
       totalRequests = 0
 
-      const strUserDataDir = userDataDir()
-      const selfUserDataDirPath =
-        reserveUserDataDirPath ||
-        `${strUserDataDir}${_serverconfig2.default.isRemoteCrawler ? '_remote' : ''}`
-      reserveUserDataDirPath = `${strUserDataDir}_reserve${
-        _serverconfig2.default.isRemoteCrawler ? '_remote' : ''
-      }`
+      if (!options.retry) {
+        strUserDataDir = userDataDir()
+        selfUserDataDirPath =
+          reserveUserDataDirPath ||
+          `${strUserDataDir}${_serverconfig2.default.isRemoteCrawler ? '_remote' : ''}`
+        reserveUserDataDirPath = `${strUserDataDir}_reserve${
+          _serverconfig2.default.isRemoteCrawler ? '_remote' : ''
+        }`
+      }
 
       const browserStore = (() => {
         const tmpBrowserStore = _store.getStore.call(void 0, 'browser')
@@ -167,6 +178,8 @@ function BrowserManager() {
       browserLaunch = new Promise(async (res, rej) => {
         let isError = false
         let promiseBrowser
+
+        if (options.retry) await new Promise((res) => setTimeout(res, 1000))
 
         try {
           if (_constants3.canUseLinuxChromium && !promiseStore.executablePath) {
@@ -188,48 +201,66 @@ function BrowserManager() {
 
           if (promiseStore.executablePath) {
             _ConsoleHandler2.default.log('Start browser with executablePath')
-            promiseBrowser = _constants3.puppeteer.launch({
-              ..._constants3.defaultBrowserOptions,
-              userDataDir: selfUserDataDirPath,
-              args: _chromiummin2.default.args,
-              executablePath,
-            })
-
-            // NOTE - Create a preventive browser to replace when current browser expired
-            _constants3.puppeteer
+            promiseBrowser = _constants3.puppeteer
               .launch({
                 ..._constants3.defaultBrowserOptions,
-                userDataDir: reserveUserDataDirPath,
+                userDataDir: selfUserDataDirPath,
                 args: _chromiummin2.default.args,
                 executablePath,
               })
-              .then((reserveBrowser) => {
-                reserveBrowser.close()
-              })
               .catch((err) => {
-                _ConsoleHandler2.default.log('BrowserManager line 121')
+                _ConsoleHandler2.default.log('BrowserManager line 188')
                 _ConsoleHandler2.default.error(err)
               })
-          } else {
-            _ConsoleHandler2.default.log('Start browser without executablePath')
-            promiseBrowser = _constants3.puppeteer.launch({
-              ..._constants3.defaultBrowserOptions,
-              userDataDir: selfUserDataDirPath,
-            })
 
             // NOTE - Create a preventive browser to replace when current browser expired
-            _constants3.puppeteer
+            if (!options.retry || !hasReserveUserDataDirPath) {
+              _constants3.puppeteer
+                .launch({
+                  ..._constants3.defaultBrowserOptions,
+                  userDataDir: reserveUserDataDirPath,
+                  args: _chromiummin2.default.args,
+                  executablePath,
+                })
+                .then((reserveBrowser) => {
+                  hasReserveUserDataDirPath = true
+                  reserveBrowser.close()
+                })
+                .catch((err) => {
+                  hasReserveUserDataDirPath = false
+                  _ConsoleHandler2.default.log('BrowserManager line 191')
+                  _ConsoleHandler2.default.error(err)
+                })
+            }
+          } else {
+            _ConsoleHandler2.default.log('Start browser without executablePath')
+            promiseBrowser = _constants3.puppeteer
               .launch({
                 ..._constants3.defaultBrowserOptions,
-                userDataDir: reserveUserDataDirPath,
-              })
-              .then((reserveBrowser) => {
-                reserveBrowser.close()
+                userDataDir: selfUserDataDirPath,
               })
               .catch((err) => {
-                _ConsoleHandler2.default.log('BrowserManager line 135')
+                _ConsoleHandler2.default.log('BrowserManager line 213')
                 _ConsoleHandler2.default.error(err)
               })
+
+            // NOTE - Create a preventive browser to replace when current browser expired
+            if (!options.retry || !hasReserveUserDataDirPath) {
+              _constants3.puppeteer
+                .launch({
+                  ..._constants3.defaultBrowserOptions,
+                  userDataDir: reserveUserDataDirPath,
+                })
+                .then((reserveBrowser) => {
+                  hasReserveUserDataDirPath = true
+                  reserveBrowser.close()
+                })
+                .catch((err) => {
+                  hasReserveUserDataDirPath = false
+                  _ConsoleHandler2.default.log('BrowserManager line 211')
+                  _ConsoleHandler2.default.error(err)
+                })
+            }
           }
         } catch (err) {
           isError = true
@@ -289,7 +320,7 @@ function BrowserManager() {
                     }, 60000)
                   }
                 } catch (err) {
-                  _ConsoleHandler2.default.log('BrowserManager line 193')
+                  _ConsoleHandler2.default.log('BrowserManager line 261')
                   _ConsoleHandler2.default.error(err)
                 }
             }
@@ -327,14 +358,23 @@ function BrowserManager() {
         ...options,
       }
 
-      if (options.forceLaunch || !browserLaunch || !_isReady()) {
+      if (!browserLaunch || !_isReady()) {
         await __launch()
+      } else if (options.forceLaunch) {
+        await __launch({ retry: true })
+
+        retryCounter++
       }
 
       const browser = await browserLaunch
 
       if (!browser || !browser.connected) {
-        return _get({ forceLaunch: true })
+        if (retryCounter < 3) {
+          return _get({ forceLaunch: true })
+        } else {
+          retryCounter = 0
+          return
+        }
       }
 
       totalRequests++
@@ -345,6 +385,8 @@ function BrowserManager() {
     const _newPage = async () => {
       try {
         const browser = await _get()
+
+        if (!browser) return
 
         if (!browser.connected) {
           browser.close()
