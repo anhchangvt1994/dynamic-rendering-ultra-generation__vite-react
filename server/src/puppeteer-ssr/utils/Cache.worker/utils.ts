@@ -49,6 +49,8 @@ export const getKey = (url: string) => {
     .replace(/,"os":"([^&]*)"/, '')
     .replace(/(\?|\&)$/, '')
 
+  console.log(url)
+
   return crypto.createHash('md5').update(url).digest('hex')
 } // getKey
 

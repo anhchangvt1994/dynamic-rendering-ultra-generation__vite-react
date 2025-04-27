@@ -42,8 +42,10 @@ var _PathHandler = require('../../../utils/PathHandler')
 
 var _ISRHandlerworker = require('../ISRHandler.worker')
 var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
-var _utils = require('./CacheManager.worker/utils')
-var _utils2 = _interopRequireDefault(_utils)
+
+var _utils = require('../SSRGenerator.next/utils')
+var _utils3 = require('./CacheManager.worker/utils')
+var _utils4 = _interopRequireDefault(_utils3)
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0)
 
@@ -99,7 +101,7 @@ const fetchData = async (input, init, reqData) => {
 } // fetchData
 
 const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
-  const cacheManager = _utils2.default.call(
+  const cacheManager = _utils4.default.call(
     void 0,
     ISRHandlerParams.url,
     pagesPath
@@ -113,6 +115,14 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
     _ConsoleHandler2.default.error('Missing scraping url!')
     return
   }
+
+  const isAvailableToCrawl =
+    !_utils.isPointsToRoute.call(void 0, ISRHandlerParams.url) ||
+    (await _utils.isAvailablePointsTo.call(void 0, ISRHandlerParams.url))
+
+  console.log('check available to crawl')
+  if (!isAvailableToCrawl) return
+  console.log('available to crawl')
 
   const startGenerating = Date.now()
 

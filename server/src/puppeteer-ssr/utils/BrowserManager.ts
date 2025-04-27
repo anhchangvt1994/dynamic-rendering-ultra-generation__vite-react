@@ -123,9 +123,10 @@ function BrowserManager(): IBrowser | undefined {
     let totalRequests = 0
     let browserLaunch: Promise<Browser | undefined>
     let selfUserDataDirPath: string
-    let reserveUserDataDirPath: string
+    let reserveUserDataDirPath: string | null
     let hasReserveUserDataDirPath = false
     let executablePath: string
+    let retryTimeout: NodeJS.Timeout | null
     let retryCounter = 0
 
     const __launch = async (options?: { retry: boolean }) => {
@@ -158,8 +159,6 @@ function BrowserManager(): IBrowser | undefined {
       browserLaunch = new Promise(async (res, rej) => {
         let isError = false
         let promiseBrowser
-
-        if (options.retry) await new Promise((res) => setTimeout(res, 1000))
 
         try {
           if (canUseLinuxChromium && !promiseStore.executablePath) {
@@ -205,6 +204,7 @@ function BrowserManager(): IBrowser | undefined {
                   reserveBrowser.close()
                 })
                 .catch((err) => {
+                  reserveUserDataDirPath = null
                   hasReserveUserDataDirPath = false
                   Console.log('BrowserManager line 191')
                   Console.error(err)
@@ -234,6 +234,7 @@ function BrowserManager(): IBrowser | undefined {
                   reserveBrowser.close()
                 })
                 .catch((err) => {
+                  reserveUserDataDirPath = null
                   hasReserveUserDataDirPath = false
                   Console.log('BrowserManager line 211')
                   Console.error(err)
@@ -330,22 +331,22 @@ function BrowserManager(): IBrowser | undefined {
         await __launch()
       } else if (options.forceLaunch) {
         await __launch({ retry: true })
-
-        retryCounter++
       }
 
       const browser = await browserLaunch
 
-      if (!browser || !browser.connected) {
-        if (retryCounter < 3) {
-          return _get({ forceLaunch: true })
-        } else {
-          retryCounter = 0
-          return
-        }
+      if (browser) totalRequests++
+      else if (!retryTimeout) {
+        retryTimeout = setTimeout(() => {
+          __launch({ retry: retryCounter < 3 }).finally(() => {
+            if (retryTimeout) {
+              clearTimeout(retryTimeout)
+              retryTimeout = null
+            }
+          })
+        }, 3000)
+        retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
-
-      totalRequests++
 
       return browser as Browser
     } // _get

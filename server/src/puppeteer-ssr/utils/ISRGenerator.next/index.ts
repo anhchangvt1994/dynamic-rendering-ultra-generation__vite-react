@@ -9,6 +9,10 @@ import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getPagesPath } from '../../../utils/PathHandler'
 import { ISSRResult } from '../../types'
 import ISRHandler from '../ISRHandler.worker'
+import {
+  isAvailablePointsTo,
+  isPointsToRoute,
+} from '../SSRGenerator.next/utils'
 import CacheManager from './CacheManager.worker/utils'
 
 const pagesPath = getPagesPath()
@@ -87,6 +91,14 @@ const ISRGenerator = async ({
     Console.error('Missing scraping url!')
     return
   }
+
+  const isAvailableToCrawl =
+    !isPointsToRoute(ISRHandlerParams.url) ||
+    (await isAvailablePointsTo(ISRHandlerParams.url))
+
+  console.log('check available to crawl')
+  if (!isAvailableToCrawl) return
+  console.log('available to crawl')
 
   const startGenerating = Date.now()
 

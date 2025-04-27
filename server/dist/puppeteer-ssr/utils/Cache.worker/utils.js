@@ -83,6 +83,8 @@ const getKey = (url) => {
     .replace(/,"os":"([^&]*)"/, '')
     .replace(/(\?|\&)$/, '')
 
+  console.log(url)
+
   return _crypto2.default.createHash('md5').update(url).digest('hex')
 }
 exports.getKey = getKey // getKey

@@ -146,6 +146,7 @@ function BrowserManager() {
     let reserveUserDataDirPath
     let hasReserveUserDataDirPath = false
     let executablePath
+    let retryTimeout
     let retryCounter = 0
 
     const __launch = async (options) => {
@@ -178,8 +179,6 @@ function BrowserManager() {
       browserLaunch = new Promise(async (res, rej) => {
         let isError = false
         let promiseBrowser
-
-        if (options.retry) await new Promise((res) => setTimeout(res, 1000))
 
         try {
           if (_constants3.canUseLinuxChromium && !promiseStore.executablePath) {
@@ -227,6 +226,7 @@ function BrowserManager() {
                   reserveBrowser.close()
                 })
                 .catch((err) => {
+                  reserveUserDataDirPath = null
                   hasReserveUserDataDirPath = false
                   _ConsoleHandler2.default.log('BrowserManager line 191')
                   _ConsoleHandler2.default.error(err)
@@ -256,6 +256,7 @@ function BrowserManager() {
                   reserveBrowser.close()
                 })
                 .catch((err) => {
+                  reserveUserDataDirPath = null
                   hasReserveUserDataDirPath = false
                   _ConsoleHandler2.default.log('BrowserManager line 211')
                   _ConsoleHandler2.default.error(err)
@@ -362,22 +363,22 @@ function BrowserManager() {
         await __launch()
       } else if (options.forceLaunch) {
         await __launch({ retry: true })
-
-        retryCounter++
       }
 
       const browser = await browserLaunch
 
-      if (!browser || !browser.connected) {
-        if (retryCounter < 3) {
-          return _get({ forceLaunch: true })
-        } else {
-          retryCounter = 0
-          return
-        }
+      if (browser) totalRequests++
+      else if (!retryTimeout) {
+        retryTimeout = setTimeout(() => {
+          __launch({ retry: retryCounter < 3 }).finally(() => {
+            if (retryTimeout) {
+              clearTimeout(retryTimeout)
+              retryTimeout = null
+            }
+          })
+        }, 3000)
+        retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
-
-      totalRequests++
 
       return browser
     } // _get
