@@ -53,7 +53,7 @@ const regexKeyConverter =
   /www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
 exports.regexKeyConverter = regexKeyConverter
 const regexKeyConverterWithoutLocaleInfo =
-  /www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
+  /www\.|botInfo=([^&]*)|localeInfo=([^&]*)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
 exports.regexKeyConverterWithoutLocaleInfo = regexKeyConverterWithoutLocaleInfo
 
 const getKey = (url) => {
@@ -79,11 +79,15 @@ const getKey = (url) => {
 
   url = url
     .replace('/?', '?')
+    .replace(/infoTxt=([^]*)/, '')
     .replace(exports.regexKeyConverterWithoutLocaleInfo, '')
     .replace(/,"os":"([^&]*)"/, '')
+    .replace(/\&{0,}/g, '')
     .replace(/(\?|\&)$/, '')
 
   console.log(url)
+  console.log(_crypto2.default.createHash('md5').update(url).digest('hex'))
+  console.log('-----')
 
   return _crypto2.default.createHash('md5').update(url).digest('hex')
 }

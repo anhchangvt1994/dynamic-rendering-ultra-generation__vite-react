@@ -8,11 +8,10 @@ var _fs2 = _interopRequireDefault(_fs)
 
 var _zlib = require('zlib')
 var _constants = require('../../constants')
-var _constants3 = require('../constants')
-
 var _ConsoleHandler = require('../../utils/ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
 var _InitEnv = require('../../utils/InitEnv')
+var _constants3 = require('../constants')
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
@@ -112,7 +111,7 @@ const handleResultAfterISRGenerator = (res, params) => {
 
         res.end(body, true)
       } catch (err) {
-        console.log(err)
+        _ConsoleHandler2.default.log(err)
         res
           .writeStatus('504')
           .writeHeader('Content-Type', 'text/html; charset=utf-8')
@@ -152,6 +151,7 @@ const handleResultAfterISRGenerator = (res, params) => {
       res.end(`${result.status} Error`, true)
     }
   } else {
+    console.log('SSR result is empty!')
     res
       .writeStatus('504')
       .writeHeader('Content-Type', 'text/html; charset=utf-8')

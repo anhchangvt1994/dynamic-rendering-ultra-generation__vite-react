@@ -28,7 +28,7 @@ export type IFileInfo =
 export const regexKeyConverter =
   /www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
 export const regexKeyConverterWithoutLocaleInfo =
-  /www\.|botInfo=([^&]*)(?:\&)|localeInfo=([^&]*)(?:\&)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
+  /www\.|botInfo=([^&]*)|localeInfo=([^&]*)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
 
 export const getKey = (url: string) => {
   if (!url) return
@@ -45,11 +45,15 @@ export const getKey = (url: string) => {
 
   url = url
     .replace('/?', '?')
+    .replace(/infoTxt=([^]*)/, '')
     .replace(regexKeyConverterWithoutLocaleInfo, '')
     .replace(/,"os":"([^&]*)"/, '')
+    .replace(/\&{0,}/g, '')
     .replace(/(\?|\&)$/, '')
 
   console.log(url)
+  console.log(crypto.createHash('md5').update(url).digest('hex'))
+  console.log('-----')
 
   return crypto.createHash('md5').update(url).digest('hex')
 } // getKey

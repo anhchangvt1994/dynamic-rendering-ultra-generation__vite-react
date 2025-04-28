@@ -96,10 +96,6 @@ const ISRGenerator = async ({
     !isPointsToRoute(ISRHandlerParams.url) ||
     (await isAvailablePointsTo(ISRHandlerParams.url))
 
-  console.log('check available to crawl')
-  if (!isAvailableToCrawl) return
-  console.log('available to crawl')
-
   const startGenerating = Date.now()
 
   if (SERVER_LESS && BANDWIDTH_LEVEL === BANDWIDTH_LEVEL_LIST.TWO)
@@ -136,7 +132,8 @@ const ISRGenerator = async ({
 
       if (
         Date.now() - new Date(NonNullableResult.updatedAt).getTime() >
-        renewTime
+          renewTime &&
+        isAvailableToCrawl
       ) {
         await new Promise((res) => {
           cacheManager
@@ -310,8 +307,9 @@ const ISRGenerator = async ({
       }
     }
   } else if (
-    totalRequestsToCrawl < certainLimitRequestToCrawl ||
-    ISRHandlerParams.forceToCrawl
+    (totalRequestsToCrawl < certainLimitRequestToCrawl ||
+      ISRHandlerParams.forceToCrawl) &&
+    isAvailableToCrawl
   ) {
     result = await cacheManager.get()
 
@@ -496,7 +494,8 @@ const ISRGenerator = async ({
     }
   } else if (
     !cacheManager.isExist() &&
-    !waitingToCrawlList.has(ISRHandlerParams.url)
+    !waitingToCrawlList.has(ISRHandlerParams.url) &&
+    isAvailableToCrawl
   ) {
     waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
   }

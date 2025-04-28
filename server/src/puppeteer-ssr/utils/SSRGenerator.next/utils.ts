@@ -23,7 +23,7 @@ export const isAvailablePointsTo = async (url: string) => {
   if (!routeInfo || !routeInfo.pointsTo) return false
 
   const viewsPath = getViewsPath()
-  const urlPointsTo = routeInfo.pointsTo.url
+  const urlPointsTo = `${routeInfo.pointsTo.url}${!!urlInfo.search && decodeURI(urlInfo.search)}`
 
   const key = getKey(urlPointsTo)
   let file = `${viewsPath}/${key}.br`

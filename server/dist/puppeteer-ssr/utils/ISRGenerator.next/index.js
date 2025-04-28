@@ -120,10 +120,6 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
     !_utils.isPointsToRoute.call(void 0, ISRHandlerParams.url) ||
     (await _utils.isAvailablePointsTo.call(void 0, ISRHandlerParams.url))
 
-  console.log('check available to crawl')
-  if (!isAvailableToCrawl) return
-  console.log('available to crawl')
-
   const startGenerating = Date.now()
 
   if (
@@ -173,7 +169,8 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 
       if (
         Date.now() - new Date(NonNullableResult.updatedAt).getTime() >
-        renewTime
+          renewTime &&
+        isAvailableToCrawl
       ) {
         await new Promise((res) => {
           cacheManager
@@ -347,8 +344,9 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
       }
     }
   } else if (
-    totalRequestsToCrawl < certainLimitRequestToCrawl ||
-    ISRHandlerParams.forceToCrawl
+    (totalRequestsToCrawl < certainLimitRequestToCrawl ||
+      ISRHandlerParams.forceToCrawl) &&
+    isAvailableToCrawl
   ) {
     result = await cacheManager.get()
 
@@ -541,7 +539,8 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
     }
   } else if (
     !cacheManager.isExist() &&
-    !waitingToCrawlList.has(ISRHandlerParams.url)
+    !waitingToCrawlList.has(ISRHandlerParams.url) &&
+    isAvailableToCrawl
   ) {
     waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
   }

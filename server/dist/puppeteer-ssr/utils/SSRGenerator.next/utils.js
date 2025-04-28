@@ -99,7 +99,7 @@ const isAvailablePointsTo = async (url) => {
   if (!routeInfo || !routeInfo.pointsTo) return false
 
   const viewsPath = _PathHandler.getViewsPath.call(void 0)
-  const urlPointsTo = routeInfo.pointsTo.url
+  const urlPointsTo = `${routeInfo.pointsTo.url}${!!urlInfo.search && decodeURI(urlInfo.search)}`
 
   const key = _utils.getKey.call(void 0, urlPointsTo)
   let file = `${viewsPath}/${key}.br`

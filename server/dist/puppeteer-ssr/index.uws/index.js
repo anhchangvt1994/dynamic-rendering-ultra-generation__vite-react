@@ -271,6 +271,7 @@ const puppeteerSSRService = (async () => {
 
       // NOTE - Detect DeviceInfo
       _DetectDevice2.default.call(void 0, res, req)
+      console.log(res.cookies)
 
       // NOTE - Set cookies for EnvironmentInfo
       res.cookies.environmentInfo = (() => {
