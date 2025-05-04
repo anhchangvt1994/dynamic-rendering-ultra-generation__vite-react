@@ -74,8 +74,9 @@ const getKey = (url) => {
     routeCustomInfo.loader &&
     routeCustomInfo.loader.enable &&
     url.includes('renderingInfo={"type":"SSR","loader": true}')
-  )
+  ) {
     return routeCustomInfo.loader.name + '--loader'
+  }
 
   url = url
     .replace('/?', '?')
@@ -84,10 +85,6 @@ const getKey = (url) => {
     .replace(/,"os":"([^&]*)"/, '')
     .replace(/\&{0,}/g, '')
     .replace(/(\?|\&)$/, '')
-
-  console.log(url)
-  console.log(_crypto2.default.createHash('md5').update(url).digest('hex'))
-  console.log('-----')
 
   return _crypto2.default.createHash('md5').update(url).digest('hex')
 }

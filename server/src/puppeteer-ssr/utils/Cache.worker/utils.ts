@@ -40,8 +40,9 @@ export const getKey = (url: string) => {
     routeCustomInfo.loader &&
     routeCustomInfo.loader.enable &&
     url.includes('renderingInfo={"type":"SSR","loader": true}')
-  )
+  ) {
     return routeCustomInfo.loader.name + '--loader'
+  }
 
   url = url
     .replace('/?', '?')
@@ -50,10 +51,6 @@ export const getKey = (url: string) => {
     .replace(/,"os":"([^&]*)"/, '')
     .replace(/\&{0,}/g, '')
     .replace(/(\?|\&)$/, '')
-
-  console.log(url)
-  console.log(crypto.createHash('md5').update(url).digest('hex'))
-  console.log('-----')
 
   return crypto.createHash('md5').update(url).digest('hex')
 } // getKey

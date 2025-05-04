@@ -97,23 +97,30 @@ const SSRGenerator = async ({
 
   if (
     routePreviewInfo ||
+    SSRHandlerParams.forceToCrawl ||
     SSRHandlerParams.url.includes('renderingInfo={"type":"SSR","loader": true}')
   ) {
+    // NOTE - check if the BASE_URL is available
     if (!PROCESS_ENV.BASE_URL) {
       Console.error('Missing base url!')
       return
     }
 
+    // NOTE - check if the url is available
     if (!SSRHandlerParams.url) {
       Console.error('Missing scraping url!')
       return
     }
 
+    // NOTE - init cache manager for current url
     const cacheManager = CacheManager(SSRHandlerParams.url, viewsPath)
+
+    // NOTE - get the true url to preview (for the point-to case)
     const urlToPreview = cacheManager.getCorrectUrl()
 
     const startGenerating = Date.now()
 
+    // NOTE - check this feature is needed
     if (SERVER_LESS && BANDWIDTH_LEVEL === BANDWIDTH_LEVEL_LIST.TWO)
       fetchData(`${PROCESS_ENV.BASE_URL}/cleaner-service`, {
         method: 'POST',
@@ -123,29 +130,31 @@ const SSRGenerator = async ({
         }),
       })
 
+    // NOTE - quick get the cache
     result = await cacheManager.achieve()
 
+    // NOTE - get the certain limit request to crawl, don't allow to crawl too many pages at the same time
     const certainLimitRequestToCrawl = getCertainLimitRequestToCrawl()
 
-    // console.log(result)
-    // console.log('certainLimitRequestToCrawl: ', certainLimitRequestToCrawl)
-    // console.log('totalRequestsToCrawl: ', totalRequestsToCrawl)
-    // console.log('totalRequestsWaitingToCrawl: ', totalRequestsWaitingToCrawl)
-
+    // NOTE - if cache is available and not --loader
     if (result && routePreviewInfo) {
       const NonNullableResult = result
 
+      // NOTE - check value of the renewTime
       if (routePreviewInfo.renewTime !== 'infinite') {
         const renewTime = routePreviewInfo.renewTime * 1000
 
+        // NOTE - If renewTime is not infinite, next step check if the cache is expired
         if (
           Date.now() - new Date(NonNullableResult.updatedAt).getTime() >
           renewTime
         ) {
+          // NOTE - if the cache is expired, do renew process
           await new Promise((res) => {
             cacheManager
               .renew()
               .then((hasRenew) => {
+                // NOTE - does not have renew process, and valid to crawl -> renew
                 if (
                   !hasRenew &&
                   (totalRequestsToCrawl < certainLimitRequestToCrawl ||
@@ -302,7 +311,9 @@ const SSRGenerator = async ({
 
                     renew()
                   }
-                } else if (
+                }
+                // NOTE - does not have renew process, and invalid to crawl -> add to waiting list
+                else if (
                   !hasRenew &&
                   totalRequestsToCrawl >= certainLimitRequestToCrawl &&
                   !waitingToCrawlList.has(urlToPreview)

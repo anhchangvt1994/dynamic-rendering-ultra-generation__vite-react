@@ -271,7 +271,6 @@ const puppeteerSSRService = (async () => {
 
       // NOTE - Detect DeviceInfo
       _DetectDevice2.default.call(void 0, res, req)
-      console.log(res.cookies)
 
       // NOTE - Set cookies for EnvironmentInfo
       res.cookies.environmentInfo = (() => {
@@ -312,12 +311,11 @@ const puppeteerSSRService = (async () => {
         enableToCrawl &&
         req.getHeader('service') !== 'puppeteer'
       ) {
-        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-          void 0,
-          _FormatUrluws.getUrl.call(void 0, res, req),
+        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+          url: _FormatUrluws.getUrl.call(void 0, res, req),
           res,
-          !botInfo.isBot
-        )
+          simulateBot: !botInfo.isBot,
+        })
 
         if (botInfo.isBot) {
           res.onAborted(() => {
@@ -367,11 +365,10 @@ const puppeteerSSRService = (async () => {
 
       if (!res.writableEnded) {
         const correctPathname = _FormatUrluws.getPathname.call(void 0, res, req)
-        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-          void 0,
-          _FormatUrluws.getUrl.call(void 0, res, req),
-          res
-        )
+        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+          url: _FormatUrluws.getUrl.call(void 0, res, req),
+          res,
+        })
 
         const pointsTo = _nullishCoalesce(
           _optionalChain([
@@ -405,11 +402,10 @@ const puppeteerSSRService = (async () => {
          * https://www.inchcalculator.com/convert/year-to-second/
          */
         if (req.getHeader('accept') === 'application/json') {
-          const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-            void 0,
-            _FormatUrluws.getUrl.call(void 0, res, req),
-            res
-          )
+          const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+            url: _FormatUrluws.getUrl.call(void 0, res, req),
+            res,
+          })
 
           try {
             _SSRGeneratornext2.default.call(void 0, {
@@ -500,6 +496,7 @@ const puppeteerSSRService = (async () => {
               const apiCache = await _utils.getData.call(void 0, cacheKey, {
                 sizeLimit: 10000,
               })
+
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
@@ -527,10 +524,17 @@ const puppeteerSSRService = (async () => {
                 html =
                   _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
 
-                html = html.replace(
-                  '</head>',
-                  `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
-                )
+                if (html.includes('</head>')) {
+                  html = html.replace(
+                    '</head>',
+                    `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                  )
+                } else {
+                  html = html.replace(
+                    '<body',
+                    `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                  )
+                }
               }
             } else if (pointsTo) {
               status = String(
@@ -570,10 +574,17 @@ const puppeteerSSRService = (async () => {
                 html = _fs2.default.readFileSync(filePath, 'utf8') || ''
 
                 if (WindowAPIStore !== '{}') {
-                  html = html.replace(
-                    '</head>',
-                    `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
-                  )
+                  if (html.includes('</head>')) {
+                    html = html.replace(
+                      '</head>',
+                      `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                    )
+                  } else {
+                    html = html.replace(
+                      '<body',
+                      `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                    )
+                  }
                 }
               } catch (err) {
                 _ConsoleHandler2.default.error(err)

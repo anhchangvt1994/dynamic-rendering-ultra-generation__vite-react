@@ -31,13 +31,58 @@ function _optionalChain(ops) {
   }
   return value
 }
-
-var _InitEnv = require('../../utils/InitEnv')
 var _serverconfig = require('../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
 
-const convertUrlHeaderToQueryString = (url, res, simulateBot = false) => {
-  if (!url) return ''
+var _InitEnv = require('../../utils/InitEnv')
+
+const convertUrlHeaderToQueryString = (
+  { url, res, simulateBot } = {
+    url: '',
+    simulateBot: false,
+  }
+) => {
+  if (!url || !res) return ''
+
+  const urlInfo = new URL(url)
+
+  const routeInfo = _nullishCoalesce(
+    _nullishCoalesce(
+      _optionalChain([
+        _serverconfig2.default,
+        'access',
+        (_) => _.routes,
+        'access',
+        (_2) => _2.list,
+        'optionalAccess',
+        (_3) => _3[urlInfo.pathname],
+      ]),
+      () =>
+        _optionalChain([
+          _serverconfig2.default,
+          'access',
+          (_4) => _4.routes,
+          'access',
+          (_5) => _5.custom,
+          'optionalCall',
+          (_6) => _6(url),
+        ])
+    ),
+    () => _serverconfig2.default.routes
+  )
+
+  const routePreviewInfo = _nullishCoalesce(
+    _nullishCoalesce(
+      _optionalChain([routeInfo, 'optionalAccess', (_7) => _7.pointsTo]),
+      () => _optionalChain([routeInfo, 'optionalAccess', (_8) => _8.preview])
+    ),
+    () => routeInfo.loader
+  )
+
+  const routeAllowContent = _nullishCoalesce(
+    _optionalChain([routePreviewInfo, 'optionalAccess', (_9) => _9.content]),
+    () => _serverconfig2.default.crawl.content
+  )
 
   let botInfoStringify
 
@@ -51,9 +96,9 @@ const convertUrlHeaderToQueryString = (url, res, simulateBot = false) => {
       _optionalChain([
         res,
         'access',
-        (_) => _.cookies,
+        (_10) => _10.cookies,
         'optionalAccess',
-        (_2) => _2.botInfo,
+        (_11) => _11.botInfo,
       ])
     )
   }
@@ -62,55 +107,61 @@ const convertUrlHeaderToQueryString = (url, res, simulateBot = false) => {
     _optionalChain([
       res,
       'access',
-      (_3) => _3.cookies,
+      (_12) => _12.cookies,
       'optionalAccess',
-      (_4) => _4.deviceInfo,
+      (_13) => _13.deviceInfo,
     ]),
     () => ({})
   )
   const deviceType =
-    _serverconfig2.default.crawl.content === 'all' ||
-    _serverconfig2.default.crawl.content.includes(deviceInfo.type)
-      ? deviceInfo.type
-      : _serverconfig2.default.crawl.content[0]
+    routeAllowContent === 'same'
+      ? 'same'
+      : routeAllowContent === 'all' ||
+          routeAllowContent.includes(deviceInfo.type)
+        ? deviceInfo.type
+        : routeAllowContent[0]
 
-  const deviceInfoStringify = JSON.stringify({
-    ..._nullishCoalesce(
-      _optionalChain([
-        res,
-        'access',
-        (_5) => _5.cookies,
-        'optionalAccess',
-        (_6) => _6.deviceInfo,
-      ]),
-      () => ({})
-    ),
-    isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
-    type: deviceType,
-  })
+  const deviceInfoStringify =
+    deviceType === 'same'
+      ? ''
+      : JSON.stringify({
+          ..._nullishCoalesce(
+            _optionalChain([
+              res,
+              'access',
+              (_14) => _14.cookies,
+              'optionalAccess',
+              (_15) => _15.deviceInfo,
+            ]),
+            () => ({})
+          ),
+          isMobile:
+            deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+          type: deviceType,
+        })
 
   const localeInfoStringify = JSON.stringify(
     _optionalChain([
       res,
       'access',
-      (_7) => _7.cookies,
+      (_16) => _16.cookies,
       'optionalAccess',
-      (_8) => _8.localeInfo,
+      (_17) => _17.localeInfo,
     ])
   )
   const environmentInfoStringify = JSON.stringify(
     _optionalChain([
       res,
       'access',
-      (_9) => _9.cookies,
+      (_18) => _18.cookies,
       'optionalAccess',
-      (_10) => _10.environmentInfo,
+      (_19) => _19.environmentInfo,
     ])
   )
 
   let urlFormatted = `${url}${
     url.indexOf('?') === -1 ? '?' : '&'
-  }botInfo=${botInfoStringify}&deviceInfo=${deviceInfoStringify}&localeInfo=${localeInfoStringify}&environmentInfo=${environmentInfoStringify}`.trim()
+  }botInfo=${botInfoStringify}&${deviceInfoStringify ? 'deviceInfo=' + deviceInfoStringify + '&' : ''}localeInfo=${localeInfoStringify}&environmentInfo=${environmentInfoStringify}`.trim()
 
   return urlFormatted
 }

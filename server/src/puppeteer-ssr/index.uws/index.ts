@@ -214,7 +214,6 @@ const puppeteerSSRService = (async () => {
 
       // NOTE - Detect DeviceInfo
       DetectDeviceMiddle(res, req)
-      console.log(res.cookies)
 
       // NOTE - Set cookies for EnvironmentInfo
       res.cookies.environmentInfo = (() => {
@@ -252,11 +251,11 @@ const puppeteerSSRService = (async () => {
         enableToCrawl &&
         req.getHeader('service') !== 'puppeteer'
       ) {
-        const url = convertUrlHeaderToQueryString(
-          getUrl(res, req),
+        const url = convertUrlHeaderToQueryString({
+          url: getUrl(res, req),
           res,
-          !botInfo.isBot
-        )
+          simulateBot: !botInfo.isBot,
+        })
 
         if (botInfo.isBot) {
           res.onAborted(() => {
@@ -306,7 +305,10 @@ const puppeteerSSRService = (async () => {
 
       if (!res.writableEnded) {
         const correctPathname = getPathname(res, req)
-        const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
+        const url = convertUrlHeaderToQueryString({
+          url: getUrl(res, req),
+          res,
+        })
 
         const pointsTo =
           ServerConfig.routes.list?.[correctPathname]?.pointsTo ??
@@ -318,7 +320,10 @@ const puppeteerSSRService = (async () => {
          * https://www.inchcalculator.com/convert/year-to-second/
          */
         if (req.getHeader('accept') === 'application/json') {
-          const url = convertUrlHeaderToQueryString(getUrl(res, req), res)
+          const url = convertUrlHeaderToQueryString({
+            url: getUrl(res, req),
+            res,
+          })
 
           try {
             SSRGenerator({
@@ -397,6 +402,7 @@ const puppeteerSSRService = (async () => {
               const apiCache = await getDataCache(cacheKey, {
                 sizeLimit: 10000,
               })
+
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
@@ -417,10 +423,17 @@ const puppeteerSSRService = (async () => {
               if (WindowAPIStore !== '{}') {
                 html = brotliDecompressSync(html).toString() || ''
 
-                html = html.replace(
-                  '</head>',
-                  `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
-                )
+                if (html.includes('</head>')) {
+                  html = html.replace(
+                    '</head>',
+                    `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                  )
+                } else {
+                  html = html.replace(
+                    '<body',
+                    `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                  )
+                }
               }
             } else if (pointsTo) {
               status = String(result?.status ?? '503')
@@ -441,10 +454,17 @@ const puppeteerSSRService = (async () => {
                 html = fs.readFileSync(filePath, 'utf8') || ''
 
                 if (WindowAPIStore !== '{}') {
-                  html = html.replace(
-                    '</head>',
-                    `<script>window.API_STORE = ${WindowAPIStore}</script></head>`
-                  )
+                  if (html.includes('</head>')) {
+                    html = html.replace(
+                      '</head>',
+                      `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                    )
+                  } else {
+                    html = html.replace(
+                      '<body',
+                      `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                    )
+                  }
                 }
               } catch (err) {
                 Console.error(err)

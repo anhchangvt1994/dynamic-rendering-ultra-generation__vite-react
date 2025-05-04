@@ -34,7 +34,7 @@ export interface IServerConfigOptional {
 
     speed?: 3000 | 8000 | 15000
 
-    content?: 'all' | Array<'desktop' | 'mobile'>
+    content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
 
     optimize?: 'low' | 'shallow' | 'deep' | Array<'script' | 'style'>
 
@@ -77,10 +77,11 @@ export interface IServerConfigOptional {
   }
 
   routes?: {
+    content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
     preview?:
       | boolean
       | {
-          content?: 'all' | Array<'desktop' | 'mobile'>
+          content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
           time: number | 'infinite'
           renewTime: number | 'infinite'
         }
@@ -90,11 +91,19 @@ export interface IServerConfigOptional {
           | string
           | {
               url: string
-              content?: 'all' | Array<'desktop' | 'mobile'>
+              content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
               time?: number | 'infinite'
               renewTime?: number | 'infinite'
             }
-      } & Omit<NonNullable<IServerConfigOptional['routes']>, 'list' | 'custom'>
+        loader?: {
+          enable?: boolean
+          name: string
+          content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
+        }
+      } & Omit<
+        NonNullable<IServerConfigOptional['routes']>,
+        'list' | 'custom' | 'content'
+      >
     }
     custom?: (url: string) =>
       | ({
@@ -102,17 +111,18 @@ export interface IServerConfigOptional {
             | string
             | {
                 url: string
-                content?: 'all' | Array<'desktop' | 'mobile'>
+                content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
                 time?: number | 'infinite'
                 renewTime?: number | 'infinite'
               }
           loader?: {
             enable?: boolean
             name: string
+            content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
           }
         } & Omit<
           NonNullable<IServerConfigOptional['routes']>,
-          'list' | 'custom'
+          'list' | 'custom' | 'content'
         >)
       | undefined
       | void
@@ -167,7 +177,7 @@ export interface IServerConfig extends IServerConfigOptional {
 
     speed: 3000 | 8000 | 15000
 
-    content: 'all' | Array<'desktop' | 'mobile'>
+    content: 'all' | 'same' | Array<'desktop' | 'mobile'>
 
     optimize: 'low' | 'shallow' | 'deep' | Array<'script' | 'style'>
 
@@ -200,8 +210,9 @@ export interface IServerConfig extends IServerConfigOptional {
   }
 
   routes: {
+    content: 'all' | 'same' | Array<'desktop' | 'mobile'>
     preview?: {
-      content?: 'all' | Array<'desktop' | 'mobile'>
+      content: 'all' | 'same' | Array<'desktop' | 'mobile'>
       time: number | 'infinite'
       renewTime: number | 'infinite'
     }
@@ -209,29 +220,31 @@ export interface IServerConfig extends IServerConfigOptional {
       [key: string]: {
         pointsTo?: {
           url: string
-          content?: 'all' | Array<'desktop' | 'mobile'>
+          content: 'all' | 'same' | Array<'desktop' | 'mobile'>
           time: number | 'infinite'
           renewTime: number | 'infinite'
         }
         loader?: {
           enable: boolean
           name: string
+          content: 'all' | 'same' | Array<'desktop' | 'mobile'>
         }
-      } & Omit<IServerConfig['routes'], 'list' | 'custom'>
+      } & Omit<IServerConfig['routes'], 'list' | 'custom' | 'content'>
     }
     custom?: (url: string) =>
       | ({
           pointsTo?: {
             url: string
-            content?: 'all' | Array<'desktop' | 'mobile'>
+            content: 'all' | 'same' | Array<'desktop' | 'mobile'>
             time: number | 'infinite'
             renewTime: number | 'infinite'
           }
           loader?: {
             enable: boolean
             name: string
+            content: 'all' | 'same' | Array<'desktop' | 'mobile'>
           }
-        } & Omit<IServerConfig['routes'], 'list' | 'custom'>)
+        } & Omit<IServerConfig['routes'], 'list' | 'custom' | 'content'>)
       | undefined
   }
 

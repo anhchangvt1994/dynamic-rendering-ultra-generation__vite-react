@@ -150,7 +150,7 @@ const defineServerConfig = (options) => {
         }
 
         const defaultPreview = {
-          content: ['desktop', 'mobile'],
+          content: 'same',
           time: 300,
           renewTime: 120,
         }
@@ -159,7 +159,7 @@ const defineServerConfig = (options) => {
           if (typeof serverConfig[key].preview === 'boolean') {
             serverConfig[key].preview = defaultPreview
           } else if (!serverConfig[key].preview.content) {
-            serverConfig[key].preview.content = ['desktop', 'mobile']
+            serverConfig[key].preview.content = 'same'
           }
         }
 
@@ -181,7 +181,7 @@ const defineServerConfig = (options) => {
                             'optionalAccess',
                             (_3) => _3.content,
                           ]),
-                          () => ['desktop', 'mobile']
+                          () => 'same'
                         ),
                         time: _nullishCoalesce(
                           _optionalChain([
@@ -209,18 +209,20 @@ const defineServerConfig = (options) => {
                         ),
                       }
                     : {
-                        content: _nullishCoalesce(
-                          _optionalChain([
-                            serverConfig,
-                            'access',
-                            (_10) => _10[key],
-                            'access',
-                            (_11) => _11.preview,
-                            'optionalAccess',
-                            (_12) => _12.content,
-                          ]),
-                          () => ['desktop', 'mobile']
-                        ),
+                        ...{
+                          content: _nullishCoalesce(
+                            _optionalChain([
+                              serverConfig,
+                              'access',
+                              (_10) => _10[key],
+                              'access',
+                              (_11) => _11.preview,
+                              'optionalAccess',
+                              (_12) => _12.content,
+                            ]),
+                            () => 'same'
+                          ),
+                        },
                         ...serverConfig[key].list[routeKey].pointsTo,
                       },
               }
@@ -289,7 +291,7 @@ const defineServerConfig = (options) => {
                                 (_19) => _19.content,
                               ])
                           ),
-                          () => ['desktop', 'mobile']
+                          () => 'same'
                         ),
                         time: _nullishCoalesce(
                           _optionalChain([
@@ -317,27 +319,27 @@ const defineServerConfig = (options) => {
                         ),
                       }
                     : {
-                        content: _nullishCoalesce(
-                          _nullishCoalesce(
-                            _optionalChain([
-                              defaultOptionOfCustom,
-                              'access',
-                              (_26) => _26.pointsTo,
-                              'optionalAccess',
-                              (_27) => _27.content,
-                            ]),
-                            () =>
+                        ...{
+                          content: _nullishCoalesce(
+                            _nullishCoalesce(
                               _optionalChain([
                                 defaultOptionOfCustom,
                                 'access',
-                                (_28) => _28.preview,
+                                (_26) => _26.pointsTo,
                                 'optionalAccess',
-                                (_29) => _29.content,
-                              ])
+                                (_27) => _27.content,
+                              ]),
+                              () =>
+                                _optionalChain([
+                                  defaultOptionOfCustom,
+                                  'access',
+                                  (_28) => _28.preview,
+                                  'optionalAccess',
+                                  (_29) => _29.content,
+                                ])
+                            ),
+                            () => 'same'
                           ),
-                          () => ['desktop', 'mobile']
-                        ),
-                        ...{
                           time: _nullishCoalesce(
                             _optionalChain([
                               defaultOptionOfCustom,
@@ -374,16 +376,18 @@ const defineServerConfig = (options) => {
                     }
                   : {
                       preview: {
-                        content: _nullishCoalesce(
-                          _optionalChain([
-                            defaultOptionOfCustom,
-                            'access',
-                            (_36) => _36.preview,
-                            'optionalAccess',
-                            (_37) => _37.content,
-                          ]),
-                          () => ['desktop', 'mobile']
-                        ),
+                        ...{
+                          content: _nullishCoalesce(
+                            _optionalChain([
+                              defaultOptionOfCustom,
+                              'access',
+                              (_36) => _36.preview,
+                              'optionalAccess',
+                              (_37) => _37.content,
+                            ]),
+                            () => 'same'
+                          ),
+                        },
                         ...tmpConfig.preview,
                       },
                     }
@@ -399,6 +403,17 @@ const defineServerConfig = (options) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
+              tmpConfig.loader.content =
+                typeof tmpConfig.loader.content === 'undefined'
+                  ? _nullishCoalesce(
+                      _optionalChain([
+                        tmpConfig.pointsTo || tmpConfig.preview,
+                        'optionalAccess',
+                        (_38) => _38.content,
+                      ]),
+                      () => 'same'
+                    )
+                  : tmpConfig.loader.content
             }
 
             return tmpConfig

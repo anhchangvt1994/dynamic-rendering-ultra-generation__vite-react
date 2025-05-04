@@ -80,7 +80,16 @@ const CacheManager = (url, cachePath, options) => {
     _optionalChain([routeInfo, 'optionalAccess', (_7) => _7.pointsTo]),
     () => _optionalChain([routeInfo, 'optionalAccess', (_8) => _8.preview])
   )
-  const enableToCache = !!routePreviewInfo || options.forceToCache
+  const enableToCache =
+    !!routePreviewInfo ||
+    _optionalChain([
+      routeInfo,
+      'access',
+      (_9) => _9.loader,
+      'optionalAccess',
+      (_10) => _10.enable,
+    ]) ||
+    options.forceToCache
   const urlToPreview =
     routePreviewInfo && routePreviewInfo.url
       ? `${routePreviewInfo.url}${urlInfo.search ? decodeURI(urlInfo.search) + '&' : '?'}infoTxt=${url}`

@@ -121,7 +121,7 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
         }
 
         const defaultPreview = {
-          content: ['desktop', 'mobile'],
+          content: 'same',
           time: 300,
           renewTime: 120,
         } as IServerConfig['routes']['preview']
@@ -130,7 +130,7 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
           if (typeof serverConfig[key].preview === 'boolean') {
             serverConfig[key].preview = defaultPreview
           } else if (!serverConfig[key].preview.content) {
-            serverConfig[key].preview.content = ['desktop', 'mobile']
+            serverConfig[key].preview.content = 'same'
           }
         }
 
@@ -142,18 +142,14 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                   typeof serverConfig[key].list[routeKey].pointsTo === 'string'
                     ? {
                         url: serverConfig[key].list[routeKey].pointsTo,
-                        content: serverConfig[key].preview?.content ?? [
-                          'desktop',
-                          'mobile',
-                        ],
+                        content: serverConfig[key].preview?.content ?? 'same',
                         time: serverConfig[key].preview?.time ?? 'infinite',
                         renewTime: serverConfig[key].preview?.renewTime ?? 1800,
                       }
                     : {
-                        content: serverConfig[key].preview?.content ?? [
-                          'desktop',
-                          'mobile',
-                        ],
+                        ...{
+                          content: serverConfig[key].preview?.content ?? 'same',
+                        },
                         ...serverConfig[key].list[routeKey].pointsTo,
                       },
               }
@@ -195,11 +191,10 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                   typeof tmpConfig.pointsTo === 'string'
                     ? {
                         url: tmpConfig.pointsTo,
-                        content: defaultOptionOfCustom.pointsTo?.content ??
-                          defaultOptionOfCustom.preview?.content ?? [
-                            'desktop',
-                            'mobile',
-                          ],
+                        content:
+                          defaultOptionOfCustom.pointsTo?.content ??
+                          defaultOptionOfCustom.preview?.content ??
+                          'same',
                         time:
                           defaultOptionOfCustom[key].preview?.time ??
                           'infinite',
@@ -207,12 +202,11 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                           defaultOptionOfCustom[key].preview?.renewTime ?? 1800,
                       }
                     : {
-                        content: defaultOptionOfCustom.pointsTo?.content ??
-                          defaultOptionOfCustom.preview?.content ?? [
-                            'desktop',
-                            'mobile',
-                          ],
                         ...{
+                          content:
+                            defaultOptionOfCustom.pointsTo?.content ??
+                            defaultOptionOfCustom.preview?.content ??
+                            'same',
                           time:
                             defaultOptionOfCustom[key].preview?.time ??
                             'infinite',
@@ -231,10 +225,10 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                     }
                   : {
                       preview: {
-                        content: defaultOptionOfCustom.preview?.content ?? [
-                          'desktop',
-                          'mobile',
-                        ],
+                        ...{
+                          content:
+                            defaultOptionOfCustom.preview?.content ?? 'same',
+                        },
                         ...tmpConfig.preview,
                       },
                     }
@@ -250,6 +244,11 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
+              tmpConfig.loader.content =
+                typeof tmpConfig.loader.content === 'undefined'
+                  ? ((tmpConfig.pointsTo || tmpConfig.preview)?.content ??
+                    'same')
+                  : tmpConfig.loader.content
             }
 
             return tmpConfig

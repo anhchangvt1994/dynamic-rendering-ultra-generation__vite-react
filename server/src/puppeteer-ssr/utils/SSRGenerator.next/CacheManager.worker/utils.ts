@@ -28,7 +28,8 @@ const CacheManager = (
     ServerConfig.routes.custom?.(url) ??
     (ServerConfig.routes as any)
   const routePreviewInfo = routeInfo?.pointsTo ?? routeInfo?.preview
-  const enableToCache = !!routePreviewInfo || options.forceToCache
+  const enableToCache =
+    !!routePreviewInfo || routeInfo.loader?.enable || options.forceToCache
   const urlToPreview =
     routePreviewInfo && routePreviewInfo.url
       ? `${routePreviewInfo.url}${urlInfo.search ? decodeURI(urlInfo.search) + '&' : '?'}infoTxt=${url}`
