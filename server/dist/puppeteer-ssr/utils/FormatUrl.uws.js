@@ -37,9 +37,10 @@ var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _InitEnv = require('../../utils/InitEnv')
 
 const convertUrlHeaderToQueryString = (
-  { url, res, simulateBot } = {
+  { url, res, simulateBot, isISR } = {
     url: '',
     simulateBot: false,
+    isISR: false,
   }
 ) => {
   if (!url || !res) return ''
@@ -71,18 +72,12 @@ const convertUrlHeaderToQueryString = (
     () => _serverconfig2.default.routes
   )
 
-  const routePreviewInfo = _nullishCoalesce(
-    _nullishCoalesce(
-      _optionalChain([routeInfo, 'optionalAccess', (_7) => _7.pointsTo]),
-      () => _optionalChain([routeInfo, 'optionalAccess', (_8) => _8.preview])
-    ),
-    () => routeInfo.loader
-  )
+  const routePreviewInfo =
+    routeInfo.pointsTo || routeInfo.preview || routeInfo.loader || routeInfo
 
-  const routeAllowContent = _nullishCoalesce(
-    _optionalChain([routePreviewInfo, 'optionalAccess', (_9) => _9.content]),
-    () => _serverconfig2.default.crawl.content
-  )
+  const routeAllowContent = isISR
+    ? _serverconfig2.default.crawl.content
+    : routePreviewInfo.content
 
   let botInfoStringify
 
@@ -96,9 +91,9 @@ const convertUrlHeaderToQueryString = (
       _optionalChain([
         res,
         'access',
-        (_10) => _10.cookies,
+        (_7) => _7.cookies,
         'optionalAccess',
-        (_11) => _11.botInfo,
+        (_8) => _8.botInfo,
       ])
     )
   }
@@ -107,9 +102,9 @@ const convertUrlHeaderToQueryString = (
     _optionalChain([
       res,
       'access',
-      (_12) => _12.cookies,
+      (_9) => _9.cookies,
       'optionalAccess',
-      (_13) => _13.deviceInfo,
+      (_10) => _10.deviceInfo,
     ]),
     () => ({})
   )
@@ -129,9 +124,9 @@ const convertUrlHeaderToQueryString = (
             _optionalChain([
               res,
               'access',
-              (_14) => _14.cookies,
+              (_11) => _11.cookies,
               'optionalAccess',
-              (_15) => _15.deviceInfo,
+              (_12) => _12.deviceInfo,
             ]),
             () => ({})
           ),
@@ -144,18 +139,18 @@ const convertUrlHeaderToQueryString = (
     _optionalChain([
       res,
       'access',
-      (_16) => _16.cookies,
+      (_13) => _13.cookies,
       'optionalAccess',
-      (_17) => _17.localeInfo,
+      (_14) => _14.localeInfo,
     ])
   )
   const environmentInfoStringify = JSON.stringify(
     _optionalChain([
       res,
       'access',
-      (_18) => _18.cookies,
+      (_15) => _15.cookies,
       'optionalAccess',
-      (_19) => _19.environmentInfo,
+      (_16) => _16.environmentInfo,
     ])
   )
 

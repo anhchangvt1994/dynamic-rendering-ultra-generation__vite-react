@@ -8,13 +8,16 @@ export const convertUrlHeaderToQueryString = (
     url,
     res,
     simulateBot,
+    isISR,
   }: {
     url: string
     res?: HttpResponse
     simulateBot?: boolean
+    isISR?: boolean
   } = {
     url: '',
     simulateBot: false,
+    isISR: false,
   }
 ) => {
   if (!url || !res) return ''
@@ -27,10 +30,11 @@ export const convertUrlHeaderToQueryString = (
     (ServerConfig.routes as any)
 
   const routePreviewInfo =
-    routeInfo?.pointsTo ?? routeInfo?.preview ?? routeInfo.loader
+    routeInfo.pointsTo || routeInfo.preview || routeInfo.loader || routeInfo
 
-  const routeAllowContent =
-    routePreviewInfo?.content ?? ServerConfig.crawl.content
+  const routeAllowContent = isISR
+    ? ServerConfig.crawl.content
+    : routePreviewInfo.content
 
   let botInfoStringify
 
