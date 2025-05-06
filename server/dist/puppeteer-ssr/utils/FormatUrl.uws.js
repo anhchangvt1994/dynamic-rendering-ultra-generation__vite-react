@@ -76,7 +76,20 @@ const convertUrlHeaderToQueryString = (
     routeInfo.pointsTo || routeInfo.preview || routeInfo.loader || routeInfo
 
   const routeAllowContent = isISR
-    ? _serverconfig2.default.crawl.content
+    ? routePreviewInfo.content === 'same'
+      ? routePreviewInfo.content
+      : routePreviewInfo.content === 'all'
+        ? _serverconfig2.default.crawl.content === 'same'
+          ? routePreviewInfo.content
+          : _serverconfig2.default.crawl.content
+        : _serverconfig2.default.crawl.content === 'all'
+          ? routePreviewInfo.content
+          : (() => {
+              const routePreviewInfoContent = new Set(routePreviewInfo.content)
+              return _serverconfig2.default.crawl.content.filter((item) =>
+                routePreviewInfoContent.has(item)
+              )
+            })() || routePreviewInfo.content
     : routePreviewInfo.content
 
   let botInfoStringify
@@ -110,7 +123,7 @@ const convertUrlHeaderToQueryString = (
   )
   const deviceType =
     routeAllowContent === 'same'
-      ? 'same'
+      ? routeAllowContent
       : routeAllowContent === 'all' ||
           routeAllowContent.includes(deviceInfo.type)
         ? deviceInfo.type
