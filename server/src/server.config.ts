@@ -4,6 +4,7 @@ const ServerConfig = defineServerConfig({
   crawl: {
     enable: true,
     optimize: 'deep',
+    content: ['mobile'],
     routes: {
       '/login': {
         enable: false,
@@ -25,6 +26,7 @@ const ServerConfig = defineServerConfig({
     //     pointsTo: 'https://www.pharmacity.vn',
     //   },
     // },
+    content: ['desktop'],
     custom(url) {
       if (!url) return
 

@@ -260,10 +260,13 @@ const defineServerConfig = (options) => {
                 'optionalAccess',
                 (_15) => _15[urlInfo.pathname],
               ]),
-              () => ({
-                preview: serverConfig[key].preview,
-              })
+              () =>
+                !!serverConfig[key].preview && {
+                  preview: serverConfig[key].preview,
+                }
             )
+
+            if (!defaultOptionOfCustom) return
 
             if (!tmpConfig) {
               tmpConfig = defaultOptionOfCustom

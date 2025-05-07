@@ -42,10 +42,17 @@ export const convertUrlHeaderToQueryString = (
         : ServerConfig.crawl.content === 'all'
           ? routePreviewInfo.content
           : (() => {
+              if (typeof ServerConfig.crawl.content === 'string')
+                return routePreviewInfo.content
+
               const routePreviewInfoContent = new Set(routePreviewInfo.content)
-              return (ServerConfig.crawl.content as string[]).filter((item) =>
-                routePreviewInfoContent.has(item)
-              )
+              const tmpRouteAllowContent = (
+                ServerConfig.crawl.content as string[]
+              ).filter((item) => routePreviewInfoContent.has(item))
+
+              return !!tmpRouteAllowContent.length
+                ? tmpRouteAllowContent
+                : routePreviewInfo.content
             })() || routePreviewInfo.content
     : routePreviewInfo.content
 
@@ -61,6 +68,7 @@ export const convertUrlHeaderToQueryString = (
   }
 
   const deviceInfo = res.cookies?.deviceInfo ?? {}
+
   const deviceType =
     routeAllowContent === 'same'
       ? routeAllowContent

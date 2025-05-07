@@ -255,6 +255,7 @@ const puppeteerSSRService = (async () => {
           url: getUrl(res, req),
           res,
           simulateBot: !botInfo.isBot,
+          isISR: true,
         })
 
         if (botInfo.isBot) {
