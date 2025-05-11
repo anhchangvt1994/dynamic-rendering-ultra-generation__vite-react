@@ -109,7 +109,9 @@ const SSRHandler = async (params: SSRHandlerParam) => {
     const page = await browser.newPage()
     const safePage = _getSafePage(page)
 
-    const deviceInfo = JSON.parse(specialInfo.deviceInfo)
+    const deviceInfo = specialInfo.deviceInfo
+      ? JSON.parse(specialInfo.deviceInfo)
+      : {}
 
     try {
       await Promise.all([

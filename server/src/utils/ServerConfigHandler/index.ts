@@ -178,12 +178,7 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
             const urlInfo = new URL(url)
 
             const defaultOptionOfCustom =
-              serverConfig[key].list?.[urlInfo.pathname] ??
-              (!!serverConfig[key].preview && {
-                preview: serverConfig[key].preview,
-              })
-
-            if (!defaultOptionOfCustom) return
+              serverConfig[key].list?.[urlInfo.pathname] ?? defaultOption
 
             if (!tmpConfig) {
               tmpConfig = defaultOptionOfCustom
@@ -194,9 +189,9 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                     ? {
                         url: tmpConfig.pointsTo,
                         content:
-                          defaultOptionOfCustom.pointsTo?.content ??
+                          (defaultOptionOfCustom as any).pointsTo?.content ??
                           defaultOptionOfCustom.preview?.content ??
-                          'same',
+                          defaultOption.content,
                         time:
                           defaultOptionOfCustom[key].preview?.time ??
                           'infinite',
@@ -206,9 +201,9 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                     : {
                         ...{
                           content:
-                            defaultOptionOfCustom.pointsTo?.content ??
+                            (defaultOptionOfCustom as any).pointsTo?.content ??
                             defaultOptionOfCustom.preview?.content ??
-                            'same',
+                            defaultOption.content,
                           time:
                             defaultOptionOfCustom[key].preview?.time ??
                             'infinite',
@@ -229,7 +224,8 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                       preview: {
                         ...{
                           content:
-                            defaultOptionOfCustom.preview?.content ?? 'same',
+                            defaultOptionOfCustom.preview?.content ??
+                            defaultOption.content,
                         },
                         ...tmpConfig.preview,
                       },
@@ -246,11 +242,9 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
-              tmpConfig.loader.content =
-                typeof tmpConfig.loader.content === 'undefined'
-                  ? ((tmpConfig.pointsTo || tmpConfig.preview)?.content ??
-                    'same')
-                  : tmpConfig.loader.content
+              tmpConfig.loader.content = !tmpConfig.loader.content
+                ? ((tmpConfig.pointsTo || tmpConfig.preview)?.content ?? 'same')
+                : tmpConfig.loader.content
             }
 
             return tmpConfig

@@ -42,7 +42,7 @@ var _utils4 = _interopRequireDefault(_utils3)
 
 const maintainFile = _path2.default.resolve(
   __dirname,
-  '../../../../maintain.html'
+  '../../../../503-maintain.html'
 )
 
 const CacheManager = (url, cachePath, options) => {

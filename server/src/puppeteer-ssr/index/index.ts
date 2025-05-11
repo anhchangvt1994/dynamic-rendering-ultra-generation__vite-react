@@ -80,9 +80,11 @@ const puppeteerSSRService = (async () => {
           res.status(200).send('Finish clean service!')
         })
     }
-    _app.get('*', async function (req, res, next) {
+    _app.get('*param', async function (req, res, next) {
       if (req.url.startsWith('/api')) {
-        return res.status(404).send('Not Found!')
+        return res
+          .status(404)
+          .sendFile(path.resolve(__dirname, '../../../404-not-found.html'))
       }
 
       const pathname = req.url?.split('?')[0]
@@ -139,7 +141,9 @@ const puppeteerSSRService = (async () => {
           req.query.crawlerSecretKey !== ServerConfig.crawlerSecretKey) ||
           (!botInfo.isBot && enableToCache))
       ) {
-        return res.status(403).send('403 Forbidden')
+        return res
+          .status(403)
+          .sendFile(path.resolve(__dirname, '../../../403-forbidden.html'))
       }
 
       if (
@@ -294,7 +298,7 @@ const puppeteerSSRService = (async () => {
 
         html = html.replace(
           '</head>',
-          `<script>window.API_STORE = ${JSON.stringify(
+          `<script>window.API_STORE=${JSON.stringify(
             WindowAPIStore
           )}</script></head>`
         )
@@ -331,7 +335,9 @@ const puppeteerSSRService = (async () => {
     // Hàm middleware xử lý lỗi cuối cùng
     _app.use(function (err, req, res, next) {
       Console.error(err.stack)
-      res.status(504).send('504 Gateway Timeout')
+      res
+        .status(500)
+        .sendFile(path.resolve(__dirname, '../../../500-server-error.html'))
     })
   }
 

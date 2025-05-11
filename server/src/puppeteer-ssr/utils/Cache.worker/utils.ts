@@ -110,7 +110,7 @@ export const setRequestTimeInfo = async (file: string, value: unknown) => {
   }
 } // setRequestTimeInfo
 
-const maintainFile = path.resolve(__dirname, '../../../../maintain.html')
+const maintainFile = path.resolve(__dirname, '../../../../503-maintain.html')
 
 interface IGetCacheOptionsParam {
   autoCreateIfEmpty: boolean

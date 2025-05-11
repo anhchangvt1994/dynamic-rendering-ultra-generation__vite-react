@@ -78,13 +78,13 @@ export interface IServerConfigOptional {
 
   routes?: {
     content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
-    preview?:
-      | boolean
-      | {
-          content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
-          time: number | 'infinite'
-          renewTime: number | 'infinite'
-        }
+    // preview?:
+    //   | boolean
+    //   | {
+    //       content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
+    //       time: number | 'infinite'
+    //       renewTime: number | 'infinite'
+    //     }
     list?: {
       [key: string]: {
         pointsTo?:

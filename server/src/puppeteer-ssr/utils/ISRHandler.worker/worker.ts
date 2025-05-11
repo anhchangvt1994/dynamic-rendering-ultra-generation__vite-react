@@ -331,7 +331,9 @@ const ISRHandler = async (params: IISRHandlerParam) => {
         return
       }
 
-      const deviceInfo = JSON.parse(specialInfo.deviceInfo)
+      const deviceInfo = specialInfo.deviceInfo
+        ? JSON.parse(specialInfo.deviceInfo)
+        : {}
 
       try {
         await Promise.all([
@@ -382,8 +384,10 @@ const ISRHandler = async (params: IISRHandlerParam) => {
             if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
               const urlInfo = new URL(reqUrl)
               const pointsTo = (() => {
-                const tmpPointsTo =
-                  ServerConfig.routes?.list?.[urlInfo.pathname]?.pointsTo
+                const tmpPointsTo = (
+                  ServerConfig.routes.list?.[urlInfo.pathname] ??
+                  ServerConfig.routes.custom?.(reqUrl)
+                )?.pointsTo
 
                 if (!tmpPointsTo) return ''
 

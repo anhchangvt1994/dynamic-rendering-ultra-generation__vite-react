@@ -260,13 +260,8 @@ const defineServerConfig = (options) => {
                 'optionalAccess',
                 (_15) => _15[urlInfo.pathname],
               ]),
-              () =>
-                !!serverConfig[key].preview && {
-                  preview: serverConfig[key].preview,
-                }
+              () => defaultOption
             )
-
-            if (!defaultOptionOfCustom) return
 
             if (!tmpConfig) {
               tmpConfig = defaultOptionOfCustom
@@ -294,7 +289,7 @@ const defineServerConfig = (options) => {
                                 (_19) => _19.content,
                               ])
                           ),
-                          () => 'same'
+                          () => defaultOption.content
                         ),
                         time: _nullishCoalesce(
                           _optionalChain([
@@ -341,7 +336,7 @@ const defineServerConfig = (options) => {
                                   (_29) => _29.content,
                                 ])
                             ),
-                            () => 'same'
+                            () => defaultOption.content
                           ),
                           time: _nullishCoalesce(
                             _optionalChain([
@@ -388,7 +383,7 @@ const defineServerConfig = (options) => {
                               'optionalAccess',
                               (_37) => _37.content,
                             ]),
-                            () => 'same'
+                            () => defaultOption.content
                           ),
                         },
                         ...tmpConfig.preview,
@@ -406,17 +401,16 @@ const defineServerConfig = (options) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
-              tmpConfig.loader.content =
-                typeof tmpConfig.loader.content === 'undefined'
-                  ? _nullishCoalesce(
-                      _optionalChain([
-                        tmpConfig.pointsTo || tmpConfig.preview,
-                        'optionalAccess',
-                        (_38) => _38.content,
-                      ]),
-                      () => 'same'
-                    )
-                  : tmpConfig.loader.content
+              tmpConfig.loader.content = !tmpConfig.loader.content
+                ? _nullishCoalesce(
+                    _optionalChain([
+                      tmpConfig.pointsTo || tmpConfig.preview,
+                      'optionalAccess',
+                      (_38) => _38.content,
+                    ]),
+                    () => 'same'
+                  )
+                : tmpConfig.loader.content
             }
 
             return tmpConfig

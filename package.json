@@ -2,6 +2,7 @@
   "name": "vite-project-react",
   "private": true,
   "version": "0.0.0",
+  "root": true,
   "scripts": {
     "start": "npm run server-build && ./node_modules/.bin/cross-env ENV=production node -r sucrase/register server/dist/index.uws.js",
     "start:worker": "npm run server-build && ./node_modules/.bin/cross-env ENV=production node server/dist/index.uws.worker.js",
@@ -94,5 +95,6 @@
       "path": "cz-git",
       "czConfig": "./config/cz.config.cjs"
     }
-  }
+  },
+  "packageManager": "yarn@1.22.22"
 }

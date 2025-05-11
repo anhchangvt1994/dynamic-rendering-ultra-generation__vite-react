@@ -6,7 +6,6 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
   crawl: {
     enable: true,
     optimize: 'deep',
-    content: ['mobile'],
     routes: {
       '/login': {
         enable: false,
@@ -14,21 +13,9 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
     },
   },
   routes: {
-    // list: {
-    //   '/': {
-    //     pointsTo: 'https://suckhoe360.vn',
-    //   },
-    //   '/long-chau': {
-    //     pointsTo: 'https://nhathuoclongchau.com.vn',
-    //   },
-    //   '/vinmect': {
-    //     pointsTo: 'https://www.vinmec.com/vie',
-    //   },
-    //   '/pharmacity': {
-    //     pointsTo: 'https://www.pharmacity.vn',
-    //   },
-    // },
-    content: ['desktop'],
+    list: {
+      '/': { pointsTo: 'https://fado.vn' },
+    },
     custom(url) {
       if (!url) return
 

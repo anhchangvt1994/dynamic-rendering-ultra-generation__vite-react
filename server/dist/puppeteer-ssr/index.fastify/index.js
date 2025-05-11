@@ -235,7 +235,10 @@ const puppeteerSSRService = (async () => {
               _serverconfig2.default.crawlerSecretKey) ||
             (!botInfo.isBot && enableToCache))
         ) {
-          return res.status(403).send('403 Forbidden')
+          const html = _fs2.default.readFileSync(
+            _path2.default.resolve(__dirname, '../../../403-forbidden.html')
+          )
+          return res.status(403).send(html)
         }
 
         if (
@@ -385,7 +388,9 @@ const puppeteerSSRService = (async () => {
           if (apiStoreData) {
             if (apiStoreData.length) {
               for (const cacheKey of apiStoreData) {
-                const apiCache = await _utils.getData.call(void 0, cacheKey)
+                const apiCache = await _utils.getData.call(void 0, cacheKey, {
+                  sizeLimit: 10000,
+                })
                 if (
                   !apiCache ||
                   !apiCache.cache ||

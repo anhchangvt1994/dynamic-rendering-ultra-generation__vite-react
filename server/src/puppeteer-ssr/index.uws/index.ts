@@ -209,7 +209,11 @@ const puppeteerSSRService = (async () => {
           req.getQuery('crawlerSecretKey') !== ServerConfig.crawlerSecretKey) ||
           (!botInfo.isBot && !enableToCache))
       ) {
-        return res.writeStatus('403').end('403 Forbidden', true)
+        const html = fs.readFileSync(
+          path.resolve(__dirname, '../../../403-forbidden.html'),
+          'utf8'
+        )
+        return res.writeStatus('403').end(html, true)
       }
 
       // NOTE - Detect DeviceInfo
@@ -280,8 +284,13 @@ const puppeteerSSRService = (async () => {
             Console.error('url', url)
             Console.error(err)
             // NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
-            if (!res.writableEnded)
-              res.writeStatus('500').end('Server Error!', true)
+            if (!res.writableEnded) {
+              const html = fs.readFileSync(
+                path.resolve(__dirname, '../../../500-server-error.html'),
+                'utf8'
+              )
+              res.writeStatus('500').end(html, true)
+            }
           }
 
           res.writableEnded = true
@@ -441,7 +450,7 @@ const puppeteerSSRService = (async () => {
               html =
                 fs.readFileSync(
                   result?.response ??
-                    path.resolve(__dirname, '../../../maintain.html'),
+                    path.resolve(__dirname, '../../../503-maintain.html'),
                   'utf8'
                 ) || ''
             }
@@ -526,6 +535,11 @@ const puppeteerSSRService = (async () => {
             })
           } catch (err) {
             if (!res.writableEnded) {
+              const html =
+                fs.readFileSync(
+                  path.resolve(__dirname, '../../../404-not-found.html'),
+                  'utf8'
+                ) || ''
               res.cork(() => {
                 res
                   .writeStatus('404')
@@ -535,7 +549,7 @@ const puppeteerSSRService = (async () => {
                       ? 'application/json'
                       : 'text/html; charset=utf-8'
                   )
-                  .end('File not found!', true)
+                  .end(html, true)
               })
             }
           }

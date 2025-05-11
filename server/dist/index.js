@@ -37,10 +37,10 @@ var _express = require('express')
 var _express2 = _interopRequireDefault(_express)
 var _fs = require('fs')
 var _fs2 = _interopRequireDefault(_fs)
+var _mimetypes = require('mime-types')
+var _mimetypes2 = _interopRequireDefault(_mimetypes)
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
-var _servestatic = require('serve-static')
-var _servestatic2 = _interopRequireDefault(_servestatic)
 var _zlib = require('zlib')
 var _PortHandler = require('../../config/utils/PortHandler')
 var _constants = require('./constants')
@@ -163,7 +163,7 @@ const startServer = async () => {
                   return tmpBody
                 })()
 
-                const mimeType = _servestatic2.default.mime.lookup(staticPath)
+                const mimeType = _mimetypes2.default.lookup(staticPath)
 
                 res
                   .status(200)
@@ -285,7 +285,9 @@ const startServer = async () => {
               }`,
               'cache-control': 'no-store',
             })
-            return res.end()
+            res.end()
+
+            return
           }
         }
       }

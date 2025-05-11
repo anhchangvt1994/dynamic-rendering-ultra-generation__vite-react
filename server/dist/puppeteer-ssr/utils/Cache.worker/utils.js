@@ -152,7 +152,7 @@ exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
 
 const maintainFile = _path2.default.resolve(
   __dirname,
-  '../../../../maintain.html'
+  '../../../../503-maintain.html'
 )
 
 const get = async (url, cachePath, options) => {

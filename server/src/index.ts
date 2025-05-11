@@ -2,8 +2,8 @@ import { spawn } from 'child_process'
 import cors from 'cors'
 import express from 'express'
 import fs from 'fs'
+import mime from 'mime-types'
 import path from 'path'
-import serveStatic from 'serve-static'
 import { brotliCompressSync, gzipSync } from 'zlib'
 import { findFreePort, getPort, setPort } from '../../config/utils/PortHandler'
 import { COOKIE_EXPIRED } from './constants'
@@ -103,7 +103,7 @@ const startServer = async () => {
                   return tmpBody
                 })()
 
-                const mimeType = serveStatic.mime.lookup(staticPath)
+                const mimeType = mime.lookup(staticPath)
 
                 res
                   .status(200)
@@ -212,7 +212,9 @@ const startServer = async () => {
               }`,
               'cache-control': 'no-store',
             })
-            return res.end()
+            res.end()
+
+            return
           }
         }
       }

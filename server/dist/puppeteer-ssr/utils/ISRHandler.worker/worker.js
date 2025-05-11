@@ -467,7 +467,9 @@ const ISRHandler = async (params) => {
         return
       }
 
-      const deviceInfo = JSON.parse(specialInfo.deviceInfo)
+      const deviceInfo = specialInfo.deviceInfo
+        ? JSON.parse(specialInfo.deviceInfo)
+        : {}
 
       try {
         await Promise.all([
@@ -580,15 +582,29 @@ const ISRHandler = async (params) => {
                   const urlInfo = new URL(reqUrl)
                   const pointsTo = (() => {
                     const tmpPointsTo = _optionalChain([
-                      _serverconfig2.default,
-                      'access',
-                      (_56) => _56.routes,
+                      _nullishCoalesce(
+                        _optionalChain([
+                          _serverconfig2.default,
+                          'access',
+                          (_56) => _56.routes,
+                          'access',
+                          (_57) => _57.list,
+                          'optionalAccess',
+                          (_58) => _58[urlInfo.pathname],
+                        ]),
+                        () =>
+                          _optionalChain([
+                            _serverconfig2.default,
+                            'access',
+                            (_59) => _59.routes,
+                            'access',
+                            (_60) => _60.custom,
+                            'optionalCall',
+                            (_61) => _61(reqUrl),
+                          ])
+                      ),
                       'optionalAccess',
-                      (_57) => _57.list,
-                      'optionalAccess',
-                      (_58) => _58[urlInfo.pathname],
-                      'optionalAccess',
-                      (_59) => _59.pointsTo,
+                      (_62) => _62.pointsTo,
                     ])
 
                     if (!tmpPointsTo) return ''
@@ -670,9 +686,9 @@ const ISRHandler = async (params) => {
             _optionalChain([
               response,
               'optionalAccess',
-              (_60) => _60.status,
+              (_63) => _63.status,
               'optionalCall',
-              (_61) => _61(),
+              (_64) => _64(),
             ]),
             () => status
           )
@@ -688,11 +704,11 @@ const ISRHandler = async (params) => {
         _optionalChain([
           safePage,
           'call',
-          (_62) => _62(),
+          (_65) => _65(),
           'optionalAccess',
-          (_63) => _63.close,
+          (_66) => _66.close,
           'call',
-          (_64) => _64(),
+          (_67) => _67(),
         ])
         if (params.hasCache) {
           cacheManager.rename()
@@ -709,26 +725,14 @@ const ISRHandler = async (params) => {
             await _optionalChain([
               safePage,
               'call',
-              (_65) => _65(),
+              (_68) => _68(),
               'optionalAccess',
-              (_66) => _66.content,
+              (_69) => _69.content,
               'call',
-              (_67) => _67(),
+              (_70) => _70(),
             ]),
             async () => ''
           ) // serialized HTML of page DOM.
-          _optionalChain([
-            safePage,
-            'call',
-            (_68) => _68(),
-            'optionalAccess',
-            (_69) => _69.close,
-            'call',
-            (_70) => _70(),
-          ])
-        } catch (err) {
-          _ConsoleHandler2.default.log('ISRHandler line 315:')
-          _ConsoleHandler2.default.error(err)
           _optionalChain([
             safePage,
             'call',
@@ -737,6 +741,18 @@ const ISRHandler = async (params) => {
             (_72) => _72.close,
             'call',
             (_73) => _73(),
+          ])
+        } catch (err) {
+          _ConsoleHandler2.default.log('ISRHandler line 315:')
+          _ConsoleHandler2.default.error(err)
+          _optionalChain([
+            safePage,
+            'call',
+            (_74) => _74(),
+            'optionalAccess',
+            (_75) => _75.close,
+            'call',
+            (_76) => _76(),
           ])
           if (params.hasCache) {
             cacheManager.rename()
@@ -766,11 +782,11 @@ const ISRHandler = async (params) => {
     const crawlCustomOption = _optionalChain([
       _serverconfig2.default,
       'access',
-      (_74) => _74.crawl,
+      (_77) => _77.crawl,
       'access',
-      (_75) => _75.custom,
+      (_78) => _78.custom,
       'optionalCall',
-      (_76) => _76(url),
+      (_79) => _79(url),
     ])
 
     const optimizeOption = _nullishCoalesce(

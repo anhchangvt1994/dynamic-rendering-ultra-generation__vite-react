@@ -115,7 +115,7 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
 
     html = html.replace(
       '</head>',
-      `<script>window.API_STORE = ${JSON.stringify(
+      `<script>window.API_STORE=${JSON.stringify(
         WindowAPIStore
       )}</script></head>`
     )

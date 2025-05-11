@@ -4,7 +4,6 @@ const ServerConfig = defineServerConfig({
   crawl: {
     enable: true,
     optimize: 'deep',
-    content: ['mobile'],
     routes: {
       '/login': {
         enable: false,
@@ -12,21 +11,9 @@ const ServerConfig = defineServerConfig({
     },
   },
   routes: {
-    // list: {
-    //   '/': {
-    //     pointsTo: 'https://suckhoe360.vn',
-    //   },
-    //   '/long-chau': {
-    //     pointsTo: 'https://nhathuoclongchau.com.vn',
-    //   },
-    //   '/vinmect': {
-    //     pointsTo: 'https://www.vinmec.com/vie',
-    //   },
-    //   '/pharmacity': {
-    //     pointsTo: 'https://www.pharmacity.vn',
-    //   },
-    // },
-    content: ['desktop'],
+    list: {
+      '/': { pointsTo: 'https://fado.vn' },
+    },
     custom(url) {
       if (!url) return
 

@@ -5,10 +5,10 @@ function _interopRequireDefault(obj) {
 }
 var _fs = require('fs')
 var _fs2 = _interopRequireDefault(_fs)
+var _mimetypes = require('mime-types')
+var _mimetypes2 = _interopRequireDefault(_mimetypes)
 var _ConsoleHandler = require('./ConsoleHandler')
 var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _servestatic = require('serve-static')
-var _servestatic2 = _interopRequireDefault(_servestatic)
 
 const sendFile = async (path, res, statusCode) => {
   if (!path) return
@@ -21,7 +21,7 @@ const sendFile = async (path, res, statusCode) => {
           return _ConsoleHandler2.default.error(err)
         }
 
-        const mimeType = _servestatic2.default.mime.lookup(path)
+        const mimeType = _mimetypes2.default.lookup(path)
         res.statusCode = statusCode || 200
         if (!res.getHeader('Content-Type'))
           res.setHeader('Content-Type', mimeType)

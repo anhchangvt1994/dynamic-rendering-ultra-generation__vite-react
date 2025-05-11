@@ -509,6 +509,8 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
     }
   }
 
+  // console.log(routeInfo)
+
   if (
     (!result || result.status !== 200) &&
     !SSRHandlerParams.url.includes(

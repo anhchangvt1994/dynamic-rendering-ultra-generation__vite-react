@@ -8,7 +8,7 @@ import {
 } from '../../Cache.worker/utils'
 import { default as CacheManagerRoot } from '../../CacheManager.worker/utils'
 
-const maintainFile = path.resolve(__dirname, '../../../../maintain.html')
+const maintainFile = path.resolve(__dirname, '../../../../503-maintain.html')
 
 const CacheManager = (
   url: string,
