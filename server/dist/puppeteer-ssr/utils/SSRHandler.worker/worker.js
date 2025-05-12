@@ -315,15 +315,29 @@ const SSRHandler = async (params) => {
                 const urlInfo = new URL(reqUrl)
                 const pointsTo = (() => {
                   const tmpPointsTo = _optionalChain([
-                    _serverconfig2.default,
-                    'access',
-                    (_44) => _44.routes,
+                    _nullishCoalesce(
+                      _optionalChain([
+                        _serverconfig2.default,
+                        'access',
+                        (_44) => _44.routes,
+                        'access',
+                        (_45) => _45.list,
+                        'optionalAccess',
+                        (_46) => _46[urlInfo.pathname],
+                      ]),
+                      () =>
+                        _optionalChain([
+                          _serverconfig2.default,
+                          'access',
+                          (_47) => _47.routes,
+                          'access',
+                          (_48) => _48.custom,
+                          'optionalCall',
+                          (_49) => _49(reqUrl),
+                        ])
+                    ),
                     'optionalAccess',
-                    (_45) => _45.list,
-                    'optionalAccess',
-                    (_46) => _46[urlInfo.pathname],
-                    'optionalAccess',
-                    (_47) => _47.pointsTo,
+                    (_50) => _50.pointsTo,
                   ])
 
                   if (!tmpPointsTo) return ''
@@ -334,8 +348,16 @@ const SSRHandler = async (params) => {
                 })()
 
                 if (!pointsTo || pointsTo.startsWith(baseUrl)) {
+                  const enableAPIStore =
+                    !reqUrl.includes('renderingInfo={"type":"SSR"}') ||
+                    !pointsTo ||
+                    pointsTo.startsWith(baseUrl)
+
                   _utils5.getInternalHTML
-                    .call(void 0, { url: reqUrl })
+                    .call(void 0, {
+                      url: reqUrl,
+                      enableAPIStore,
+                    })
                     .then((result) => {
                       if (!result)
                         req.respond({
@@ -411,9 +433,9 @@ const SSRHandler = async (params) => {
           _optionalChain([
             response,
             'optionalAccess',
-            (_48) => _48.status,
+            (_51) => _51.status,
             'optionalCall',
-            (_49) => _49(),
+            (_52) => _52(),
           ]),
           () => status
         )
@@ -426,11 +448,11 @@ const SSRHandler = async (params) => {
       _optionalChain([
         safePage,
         'call',
-        (_50) => _50(),
+        (_53) => _53(),
         'optionalAccess',
-        (_51) => _51.close,
+        (_54) => _54.close,
         'call',
-        (_52) => _52(),
+        (_55) => _55(),
       ])
 
       return {
@@ -444,26 +466,14 @@ const SSRHandler = async (params) => {
           await _optionalChain([
             safePage,
             'call',
-            (_53) => _53(),
+            (_56) => _56(),
             'optionalAccess',
-            (_54) => _54.content,
+            (_57) => _57.content,
             'call',
-            (_55) => _55(),
+            (_58) => _58(),
           ]),
           async () => ''
         ) // serialized HTML of page DOM.
-        _optionalChain([
-          safePage,
-          'call',
-          (_56) => _56(),
-          'optionalAccess',
-          (_57) => _57.close,
-          'call',
-          (_58) => _58(),
-        ])
-      } catch (err) {
-        _ConsoleHandler2.default.log('SSRHandler line 315:')
-        _ConsoleHandler2.default.error(err)
         _optionalChain([
           safePage,
           'call',
@@ -472,6 +482,18 @@ const SSRHandler = async (params) => {
           (_60) => _60.close,
           'call',
           (_61) => _61(),
+        ])
+      } catch (err) {
+        _ConsoleHandler2.default.log('SSRHandler line 315:')
+        _ConsoleHandler2.default.error(err)
+        _optionalChain([
+          safePage,
+          'call',
+          (_62) => _62(),
+          'optionalAccess',
+          (_63) => _63.close,
+          'call',
+          (_64) => _64(),
         ])
 
         return
@@ -506,13 +528,13 @@ const SSRHandler = async (params) => {
                 const href = _optionalChain([
                   /href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/,
                   'access',
-                  (_62) => _62.exec,
+                  (_65) => _65.exec,
                   'call',
-                  (_63) => _63(style),
+                  (_66) => _66(style),
                   'optionalAccess',
-                  (_64) => _64.groups,
+                  (_67) => _67.groups,
                   'optionalAccess',
-                  (_65) => _65.href,
+                  (_68) => _68.href,
                 ])
 
                 if (href) {

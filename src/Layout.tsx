@@ -118,7 +118,7 @@ function Layout() {
       </p> */}
       <MainContainer>
         <Header>
-          <div>
+          {/* <div>
             <Link
               replace
               style={{ cursor: 'pointer' }}
@@ -134,7 +134,7 @@ function Layout() {
             >
               EN
             </Link>
-          </div>
+          </div> */}
           {userState && userState.email ? (
             <>
               {userState.email + ' | '}

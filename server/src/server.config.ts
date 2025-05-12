@@ -11,9 +11,9 @@ const ServerConfig = defineServerConfig({
     },
   },
   routes: {
-    list: {
-      '/': { pointsTo: 'https://fado.vn' },
-    },
+    // list: {
+    //   '/': { pointsTo: 'https://fado.vn' },
+    // },
     custom(url) {
       if (!url) return
 

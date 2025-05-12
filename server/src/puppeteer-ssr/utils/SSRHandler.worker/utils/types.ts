@@ -1,11 +1,12 @@
 export interface IGetInternalScriptParams {
-	url: string
+  url: string
 }
 
 export interface IGetInternalStyleParams {
-	url: string
+  url: string
 }
 
 export interface IGetInternalHTMLParams {
-	url: string
+  url: string
+  enableAPIStore?: boolean
 }

@@ -158,8 +158,10 @@ const SSRHandler = async (params: SSRHandlerParam) => {
           if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
             const urlInfo = new URL(reqUrl)
             const pointsTo = (() => {
-              const tmpPointsTo =
-                ServerConfig.routes?.list?.[urlInfo.pathname]?.pointsTo
+              const tmpPointsTo = (
+                ServerConfig.routes.list?.[urlInfo.pathname] ??
+                ServerConfig.routes.custom?.(reqUrl)
+              )?.pointsTo
 
               if (!tmpPointsTo) return ''
 
@@ -169,7 +171,15 @@ const SSRHandler = async (params: SSRHandlerParam) => {
             })()
 
             if (!pointsTo || pointsTo.startsWith(baseUrl)) {
-              getInternalHTML({ url: reqUrl })
+              const enableAPIStore =
+                !reqUrl.includes('renderingInfo={"type":"SSR"}') ||
+                !pointsTo ||
+                pointsTo.startsWith(baseUrl)
+
+              getInternalHTML({
+                url: reqUrl,
+                enableAPIStore,
+              })
                 .then((result) => {
                   if (!result)
                     req.respond({

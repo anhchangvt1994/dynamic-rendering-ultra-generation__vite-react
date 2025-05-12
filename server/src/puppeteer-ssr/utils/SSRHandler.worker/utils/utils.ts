@@ -91,12 +91,14 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
     return
   }
 
-  const { url } = params
+  const { url, enableAPIStore } = params
 
   try {
     const filePath = resolve(__dirname, '../../../../../../dist/index.html')
 
     const apiStoreData = await (async () => {
+      if (!enableAPIStore) return
+
       let tmpStoreKey
       let tmpAPIStore
 
@@ -152,7 +154,7 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
 
     html = html.replace(
       '</head>',
-      `<script>window.API_STORE = ${JSON.stringify(
+      `<script>window.API_STORE=${JSON.stringify(
         WindowAPIStore
       )}</script></head>`
     )
