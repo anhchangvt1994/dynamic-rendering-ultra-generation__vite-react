@@ -260,7 +260,7 @@ const defineServerConfig = (options) => {
                 'optionalAccess',
                 (_15) => _15[urlInfo.pathname],
               ]),
-              () => defaultOption
+              () => serverConfig[key]
             )
 
             if (!tmpConfig) {

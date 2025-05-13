@@ -178,7 +178,7 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
             const urlInfo = new URL(url)
 
             const defaultOptionOfCustom =
-              serverConfig[key].list?.[urlInfo.pathname] ?? defaultOption
+              serverConfig[key].list?.[urlInfo.pathname] ?? serverConfig[key]
 
             if (!tmpConfig) {
               tmpConfig = defaultOptionOfCustom
