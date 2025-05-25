@@ -1,10 +1,11 @@
 import fs from 'fs'
-import { fileURLToPath } from 'node:url'
 import path from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// NOTE - If you are using ESM, uncomment the following lines
+// import { fileURLToPath } from 'node:url'
+// const __filename = fileURLToPath?.(import.meta.url)
+// const __dirname = path.dirname(__filename)
 
 // NOTE - This is path of auto-import type declaration
 const dtsAutoImportLibsPath = path.resolve(__dirname, './auto-imports.d.ts')
@@ -179,9 +180,11 @@ const getAutoImportTypes = () =>
     },
   }) // getAutoImportTypes
 
-const handleAutoImport = () => {
-  // NOTE - clean the auto import files and recreate to ensure that types are not accidentally
+export const handleAutoImport = (enable = false) => {
+  // NOTE - generate the types files if NODE_ENV === 'production', ELSE it will be generated using plugins in vite.config.ts
+  if (!enable) return
 
+  // NOTE - clean the auto import files and recreate to ensure that types are not accidentally
   // NOTE - clean step
   if (fs.existsSync(dtsAutoImportLibsPath)) {
     try {
@@ -212,9 +215,6 @@ const handleAutoImport = () => {
     }
   }
 
-  // NOTE - generate the types files if NODE_ENV === 'production', ELSE it will be generated using plugins in vite.config.ts
-  if (process.env.NODE_ENV !== 'production') return
-
   // NOTE - recreate step
   Promise.all([
     getAutoImportLibs()?.buildStart?.(),
@@ -222,8 +222,9 @@ const handleAutoImport = () => {
   ])
 } // handleAutoImport
 
-// NOTE - run the pre-hanlding tasks
-handleAutoImport()
+if (process.env.NODE_ENV === 'development') {
+  handleAutoImport(true)
+}
 
 // NOTE - export the prepare configuration
 export default {

@@ -13,9 +13,7 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
     },
   },
   routes: {
-    // list: {
-    //   '/': { pointsTo: 'https://fado.vn' },
-    // },
+    content: 'all',
     custom(url) {
       if (!url) return
 

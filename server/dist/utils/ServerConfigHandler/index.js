@@ -401,16 +401,17 @@ const defineServerConfig = (options) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
-              tmpConfig.loader.content = !tmpConfig.loader.content
-                ? _nullishCoalesce(
+
+              tmpConfig.loader.content = tmpConfig.loader.content
+                ? tmpConfig.loader.content
+                : _nullishCoalesce(
                     _optionalChain([
                       tmpConfig.pointsTo || tmpConfig.preview,
                       'optionalAccess',
                       (_38) => _38.content,
                     ]),
-                    () => 'same'
+                    () => tmpConfig.content
                   )
-                : tmpConfig.loader.content
             }
 
             return tmpConfig

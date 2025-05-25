@@ -173,7 +173,7 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
           serverConfig[key].custom = (url: string) => {
             if (!url) return
 
-            let tmpConfig = customFunc(url)
+            let tmpConfig = customFunc(url) as any
 
             const urlInfo = new URL(url)
 
@@ -242,9 +242,11 @@ export const defineServerConfig = (options: IServerConfigOptional) => {
                 typeof tmpConfig.loader.enable === 'undefined'
                   ? true
                   : tmpConfig.loader.enable
-              tmpConfig.loader.content = !tmpConfig.loader.content
-                ? ((tmpConfig.pointsTo || tmpConfig.preview)?.content ?? 'same')
-                : tmpConfig.loader.content
+
+              tmpConfig.loader.content = tmpConfig.loader.content
+                ? tmpConfig.loader.content
+                : ((tmpConfig.pointsTo || tmpConfig.preview)?.content ??
+                  tmpConfig.content)
             }
 
             return tmpConfig

@@ -10,6 +10,7 @@ import { getViewsPath } from '../../../utils/PathHandler'
 import { ISSRResult } from '../../types'
 import SSRHandler from '../SSRHandler.worker'
 import CacheManager from './CacheManager.worker/utils'
+import { getOtherUrlsBaseOnDevice } from './utils'
 
 const viewsPath = getViewsPath()
 
@@ -333,6 +334,10 @@ const SSRGenerator = async ({
       SSRHandlerParams.forceToCrawl
     ) {
       result = await cacheManager.get()
+
+      const otherUrlList = getOtherUrlsBaseOnDevice(SSRHandlerParams.url)
+
+      console.log(otherUrlList)
 
       Console.log('Check for condition to create new page.')
       Console.log('result.available', result?.available)

@@ -27,7 +27,6 @@ export const isAvailablePointsTo = async (url: string) => {
 
   const key = getKey(urlPointsTo)
   let file = `${viewsPath}/${key}.br`
-  let isRaw = false
 
   switch (true) {
     case fs.existsSync(file):
@@ -37,7 +36,6 @@ export const isAvailablePointsTo = async (url: string) => {
       break
     default:
       file = `${viewsPath}/${key}.raw.br`
-      isRaw = true
       break
   }
 
@@ -49,3 +47,37 @@ export const isAvailablePointsTo = async (url: string) => {
 
   return true
 } // isAvailablePointsTo
+
+export const getOtherUrlsBaseOnDevice = (url: string) => {
+  const urlInfo = new URL(url)
+  const routeInfo =
+    ServerConfig.routes.list?.[urlInfo.pathname] ??
+    ServerConfig.routes.custom?.(url) ??
+    (ServerConfig.routes as any)
+
+  if (!routeInfo) return []
+
+  const routePreviewInfo = routeInfo.pointsTo || routeInfo.preview
+  const content = routePreviewInfo?.content ?? routeInfo.content
+
+  if (!content) return []
+
+  const urlList: string[] = []
+
+  if (content === 'all' || (Array.isArray(content) && content.length > 1)) {
+    const contentList = content === 'all' ? ['desktop', 'mobile'] : content
+
+    for (const content of contentList) {
+      if (url.includes(`"type":"${content}"`)) continue
+
+      urlList.push(
+        url.replace(
+          /deviceInfo=([^&]*)/g,
+          `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
+        )
+      )
+    }
+  }
+
+  return urlList
+} // getOtherUrlsBaseOnDevice

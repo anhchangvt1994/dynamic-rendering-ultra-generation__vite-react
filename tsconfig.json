@@ -12,22 +12,6 @@
     "vite.config.mts",
     "server"
   ],
-  // "files": [
-  //   "config/auto-imports.d.ts",
-  //   "config/auto-imports-type.d.ts",
-  //   "config/types/ImportMeta.d.ts",
-  //   "src/static.d.ts"
-  // ],
-  // "include": [
-  //   "src/**/*.js",
-  //   "src/**/*.ts",
-  //   "src/**/*.jsx",
-  //   "src/**/*.tsx",
-  //   "src/**/*.d.ts",
-  //   "config/types/ImportMeta.d.ts",
-  //   "config/auto-imports.d.ts",
-  //   "config/auto-imports-type.d.ts"
-  // ],
   "compilerOptions": {
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
@@ -102,6 +86,6 @@
     "importHelpers": true,
     "sourceMap": true,
     "isolatedModules": true
-    // "types": ["webpack-env", "react"]
+    // "types": ["webpack-env", "react"],
   }
 }

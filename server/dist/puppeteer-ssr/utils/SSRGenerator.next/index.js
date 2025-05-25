@@ -44,6 +44,7 @@ var _SSRHandlerworker = require('../SSRHandler.worker')
 var _SSRHandlerworker2 = _interopRequireDefault(_SSRHandlerworker)
 var _utils = require('./CacheManager.worker/utils')
 var _utils2 = _interopRequireDefault(_utils)
+var _utils3 = require('./utils')
 
 const viewsPath = _PathHandler.getViewsPath.call(void 0)
 
@@ -384,6 +385,13 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
       SSRHandlerParams.forceToCrawl
     ) {
       result = await cacheManager.get()
+
+      const otherUrlList = _utils3.getOtherUrlsBaseOnDevice.call(
+        void 0,
+        SSRHandlerParams.url
+      )
+
+      console.log(otherUrlList)
 
       _ConsoleHandler2.default.log('Check for condition to create new page.')
       _ConsoleHandler2.default.log(

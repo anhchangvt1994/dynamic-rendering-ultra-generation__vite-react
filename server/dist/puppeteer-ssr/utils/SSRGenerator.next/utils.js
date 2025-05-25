@@ -103,7 +103,6 @@ const isAvailablePointsTo = async (url) => {
 
   const key = _utils.getKey.call(void 0, urlPointsTo)
   let file = `${viewsPath}/${key}.br`
-  let isRaw = false
 
   switch (true) {
     case _fs2.default.existsSync(file):
@@ -113,7 +112,6 @@ const isAvailablePointsTo = async (url) => {
       break
     default:
       file = `${viewsPath}/${key}.raw.br`
-      isRaw = true
       break
   }
 
@@ -126,3 +124,61 @@ const isAvailablePointsTo = async (url) => {
   return true
 }
 exports.isAvailablePointsTo = isAvailablePointsTo // isAvailablePointsTo
+
+const getOtherUrlsBaseOnDevice = (url) => {
+  const urlInfo = new URL(url)
+  const routeInfo = _nullishCoalesce(
+    _nullishCoalesce(
+      _optionalChain([
+        _serverconfig2.default,
+        'access',
+        (_14) => _14.routes,
+        'access',
+        (_15) => _15.list,
+        'optionalAccess',
+        (_16) => _16[urlInfo.pathname],
+      ]),
+      () =>
+        _optionalChain([
+          _serverconfig2.default,
+          'access',
+          (_17) => _17.routes,
+          'access',
+          (_18) => _18.custom,
+          'optionalCall',
+          (_19) => _19(url),
+        ])
+    ),
+    () => _serverconfig2.default.routes
+  )
+
+  if (!routeInfo) return []
+
+  const routePreviewInfo = routeInfo.pointsTo || routeInfo.preview
+  const content = _nullishCoalesce(
+    _optionalChain([routePreviewInfo, 'optionalAccess', (_20) => _20.content]),
+    () => routeInfo.content
+  )
+
+  if (!content) return []
+
+  const urlList = []
+
+  if (content === 'all' || (Array.isArray(content) && content.length > 1)) {
+    const contentList = content === 'all' ? ['desktop', 'mobile'] : content
+
+    for (const content of contentList) {
+      if (url.includes(`"type":"${content}"`)) continue
+
+      urlList.push(
+        url.replace(
+          /deviceInfo=([^&]*)/g,
+          `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
+        )
+      )
+    }
+  }
+
+  return urlList
+}
+exports.getOtherUrlsBaseOnDevice = getOtherUrlsBaseOnDevice // getOtherUrlsBaseOnDevice

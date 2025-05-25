@@ -6,7 +6,12 @@ var _fsextra = require('fs-extra')
 var _fsextra2 = _interopRequireDefault(_fsextra)
 var _path = require('path')
 var _path2 = _interopRequireDefault(_path)
+var _viteprepareconfig = require('../../../config/vite.prepare.config')
 
+// NOTE - Reset types
+_viteprepareconfig.handleAutoImport.call(void 0, true)
+
+// NOTE - Reset resource
 if (
   _fsextra2.default.pathExistsSync(
     _path2.default.resolve(__dirname, '../../../dist')
