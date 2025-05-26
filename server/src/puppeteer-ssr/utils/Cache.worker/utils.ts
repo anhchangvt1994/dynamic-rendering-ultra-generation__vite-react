@@ -41,7 +41,9 @@ export const getKey = (url: string) => {
     routeCustomInfo.loader.enable &&
     url.includes('renderingInfo={"type":"SSR","loader": true}')
   ) {
-    return routeCustomInfo.loader.name + '--loader'
+    return `${routeCustomInfo.loader.name}--loader--${
+      url.includes('"type":"desktop"') ? 'desktop' : 'mobile'
+    }`
   }
 
   url = url

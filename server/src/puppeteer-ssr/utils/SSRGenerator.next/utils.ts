@@ -2,6 +2,7 @@ import fs from 'fs'
 import ServerConfig from '../../../server.config'
 import { getViewsPath } from '../../../utils/PathHandler'
 import { getFileInfo, getKey } from '../Cache.worker/utils'
+import CacheManager from './CacheManager.worker/utils'
 
 export const isPointsToRoute = (url: string) => {
   const urlInfo = new URL(url)
@@ -63,6 +64,7 @@ export const getOtherUrlsBaseOnDevice = (url: string) => {
   if (!content) return []
 
   const urlList: string[] = []
+  const viewsPath = getViewsPath()
 
   if (content === 'all' || (Array.isArray(content) && content.length > 1)) {
     const contentList = content === 'all' ? ['desktop', 'mobile'] : content
@@ -70,12 +72,15 @@ export const getOtherUrlsBaseOnDevice = (url: string) => {
     for (const content of contentList) {
       if (url.includes(`"type":"${content}"`)) continue
 
-      urlList.push(
-        url.replace(
-          /deviceInfo=([^&]*)/g,
-          `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
-        )
+      const tmpUrl = url.replace(
+        /deviceInfo=([^&]*)/g,
+        `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
       )
+      const cacheManager = CacheManager(tmpUrl, viewsPath)
+
+      if (cacheManager.isExist()) continue
+
+      urlList.push(tmpUrl)
     }
   }
 

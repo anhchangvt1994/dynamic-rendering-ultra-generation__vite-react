@@ -337,7 +337,16 @@ const SSRGenerator = async ({
 
       const otherUrlList = getOtherUrlsBaseOnDevice(SSRHandlerParams.url)
 
-      console.log(otherUrlList)
+      if (otherUrlList && otherUrlList.length) {
+        const ssrOtherUrls = otherUrlList.map((url) =>
+          SSRGenerator({
+            url,
+            forceToCrawl: true,
+          })
+        )
+
+        Promise.race(ssrOtherUrls)
+      }
 
       Console.log('Check for condition to create new page.')
       Console.log('result.available', result?.available)

@@ -391,7 +391,16 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
         SSRHandlerParams.url
       )
 
-      console.log(otherUrlList)
+      if (otherUrlList && otherUrlList.length) {
+        const ssrOtherUrls = otherUrlList.map((url) =>
+          SSRGenerator({
+            url,
+            forceToCrawl: true,
+          })
+        )
+
+        Promise.race(ssrOtherUrls)
+      }
 
       _ConsoleHandler2.default.log('Check for condition to create new page.')
       _ConsoleHandler2.default.log(

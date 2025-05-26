@@ -37,6 +37,8 @@ var _serverconfig = require('../../../server.config')
 var _serverconfig2 = _interopRequireDefault(_serverconfig)
 var _PathHandler = require('../../../utils/PathHandler')
 var _utils = require('../Cache.worker/utils')
+var _utils3 = require('./CacheManager.worker/utils')
+var _utils4 = _interopRequireDefault(_utils3)
 
 const isPointsToRoute = (url) => {
   const urlInfo = new URL(url)
@@ -163,6 +165,7 @@ const getOtherUrlsBaseOnDevice = (url) => {
   if (!content) return []
 
   const urlList = []
+  const viewsPath = _PathHandler.getViewsPath.call(void 0)
 
   if (content === 'all' || (Array.isArray(content) && content.length > 1)) {
     const contentList = content === 'all' ? ['desktop', 'mobile'] : content
@@ -170,12 +173,15 @@ const getOtherUrlsBaseOnDevice = (url) => {
     for (const content of contentList) {
       if (url.includes(`"type":"${content}"`)) continue
 
-      urlList.push(
-        url.replace(
-          /deviceInfo=([^&]*)/g,
-          `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
-        )
+      const tmpUrl = url.replace(
+        /deviceInfo=([^&]*)/g,
+        `deviceInfo={"type":"${content}", "isMobile":${content === 'mobile'}}`
       )
+      const cacheManager = _utils4.default.call(void 0, tmpUrl, viewsPath)
+
+      if (cacheManager.isExist()) continue
+
+      urlList.push(tmpUrl)
     }
   }
 
