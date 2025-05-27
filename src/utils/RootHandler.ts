@@ -25,9 +25,9 @@ export const getRoot = () => {
               clearInterval(interval)
             }
           }, 50)
-        }, 200)
+        }, 250)
       }
-    }, 0)
+    })
     return createRoot(elRootTmp)
   }
 

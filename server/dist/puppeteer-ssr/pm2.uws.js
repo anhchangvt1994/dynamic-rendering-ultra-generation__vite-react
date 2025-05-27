@@ -73,10 +73,7 @@ _pm22.default.connect(false, (err) => {
             _constants.resourceExtension === 'ts'
               ? './node_modules/.bin/sucrase'
               : 'node',
-          interpreter_args:
-            _constants.resourceExtension === 'ts'
-              ? '--require sucrase/register'
-              : '',
+          interpreter_args: '--require sucrase/register',
           wait_ready: true,
           kill_timeout: CLUSTER_KILL_TIMEOUT,
           cwd: '.',
