@@ -10,15 +10,15 @@ const readFileENVSync = () => {
     return
   }
 
-  const portInfoStringity = fs.readFileSync(envPortPath, {
+  const portInfoStringify = fs.readFileSync(envPortPath, {
     encoding: 'utf8',
     flag: 'r',
   })
 
-  if (!portInfoStringity) return
+  if (!portInfoStringify) return
 
   let portInfo = {}
-  portInfoStringity.split('\n').forEach((line) => {
+  portInfoStringify.split('\n').forEach((line) => {
     const [name, value] = line.split('=')
     if (name && value) {
       portInfo[name] = value

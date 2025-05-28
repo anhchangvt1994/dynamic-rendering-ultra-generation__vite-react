@@ -5,7 +5,7 @@
   "root": true,
   "scripts": {
     "start": "npm run server-build && ./node_modules/.bin/cross-env ENV=production node -r sucrase/register server/dist/index.uws.js",
-    "start:worker": "npm run server-build && ./node_modules/.bin/cross-env ENV=production node server/dist/index.uws.worker.js",
+    "start:worker": "npm run server-build && ./node_modules/.bin/cross-env ENV=production node -r sucrase/register server/dist/index.uws.worker.js",
     "start:pm2": "npm run server-build && ./node_modules/.bin/cross-env ENV=production npm run pm2-puppeteer-ssr:uws",
     "start:pm2:worker": "npm run server-build && ./node_modules/.bin/cross-env ENV=production npm run pm2-puppeteer-ssr:uws:worker",
     "dev": "./node_modules/.bin/cross-env ENV=development npm run start-dev",

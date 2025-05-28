@@ -64,8 +64,7 @@ pm2.connect(false, (err) => {
           exec_mode: 'cluster',
           interpreter:
             resourceExtension === 'ts' ? './node_modules/.bin/sucrase' : 'node',
-          interpreter_args:
-            resourceExtension === 'ts' ? '--require sucrase/register' : '',
+          interpreter_args: '--require sucrase/register',
           wait_ready: true,
           kill_timeout: CLUSTER_KILL_TIMEOUT,
           cwd: '.',
