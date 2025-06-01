@@ -132,7 +132,7 @@ const getAutoImportLibs = () =>
         'store/APIStore.ts': ['getAPIStore'],
         'utils/ProxyAPIHelper/index.ts': ['ProxyAPI'],
         'utils/CookieHelper.ts': ['getCookie', 'setCookie', 'deleteCookie'],
-        'components/Link.tsx': [['default', 'Link']],
+        'components/Link.tsx': [['default', 'LinkCustom']],
       },
     ],
     dts: dtsAutoImportLibsPath,

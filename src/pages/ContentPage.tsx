@@ -1,5 +1,5 @@
-import ModuleContentSection from 'components/content-page/ModuleContentSection'
 import CommentSection from 'components/comment-page/CommentSection'
+import ModuleContentSection from 'components/content-page/ModuleContentSection'
 import { generatePath } from 'react-router-dom'
 
 // NOTE - Dummy Data Region
@@ -64,9 +64,9 @@ export default function ContentPage() {
   return (
     <Page>
       <div>
-        <Link to={import.meta.env.ROUTER_HOME_PATH}>
+        <LinkCustom to={import.meta.env.ROUTER_HOME_PATH}>
           {'< Back to HomePage'}
-        </Link>
+        </LinkCustom>
       </div>
       {route?.id !== import.meta.env.ROUTER_COMMENT_ID ? (
         <>
@@ -74,9 +74,11 @@ export default function ContentPage() {
 
           <br />
 
-          <Link to={generatePath(import.meta.env.ROUTER_CONTENT_COMMENT_PATH)}>
+          <LinkCustom
+            to={generatePath(import.meta.env.ROUTER_CONTENT_COMMENT_PATH)}
+          >
             {`> View Comment`}
-          </Link>
+          </LinkCustom>
 
           <CommentSection>
             <Outlet />

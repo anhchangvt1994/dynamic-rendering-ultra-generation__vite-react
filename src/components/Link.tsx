@@ -1,9 +1,9 @@
-import { Link as ReactLinkNative } from 'react-router-dom'
 import type { LinkProps } from 'react-router-dom'
+import { Link as ReactLinkNative } from 'react-router-dom'
 
 interface IProps extends LinkProps {}
 
-function Link(props: IProps) {
+function LinkCustom(props: IProps) {
   const { children, ...linkProps } = props
 
   const onClick = (ev) => {
@@ -21,4 +21,4 @@ function Link(props: IProps) {
   )
 }
 
-export default Link
+export default LinkCustom

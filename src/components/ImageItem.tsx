@@ -5,7 +5,8 @@ const Image = styled.img`
   height: 100%;
   object-fit: contain;
 
-  &[src=''] {
+  &[src=''],
+  &:not([src]) {
     display: none;
   }
 `
@@ -27,6 +28,7 @@ function ImageItem(props) {
   const [isError, setIsError] = useState(false)
 
   const onErrorHandler = () => {
+    console.log('error image loading')
     setIsError(true)
   }
 

@@ -1,5 +1,5 @@
-import { useUserInfo } from 'store/UserInfoContext'
 import ImageItem, { Outer as ImageOuter } from 'components/ImageItem'
+import { useUserInfo } from 'store/UserInfoContext'
 
 const Page = styled.div``
 
@@ -48,9 +48,9 @@ export default function LoginPage() {
   return (
     <Page>
       <div>
-        <Link to={import.meta.env.ROUTER_HOME_PATH}>
+        <LinkCustom to={import.meta.env.ROUTER_HOME_PATH}>
           {'< Back to HomePage'}
-        </Link>
+        </LinkCustom>
       </div>
       <Section>
         <Block>

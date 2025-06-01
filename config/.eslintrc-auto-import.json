@@ -5,6 +5,7 @@
     "DeviceInfo": true,
     "EnvironmentInfo": true,
     "Link": true,
+    "LinkCustom": true,
     "LocaleInfo": true,
     "NavLink": true,
     "Navigate": true,

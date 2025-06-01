@@ -43,12 +43,12 @@ function Layout() {
               </span>
             </>
           ) : (
-            <Link
+            <LinkCustom
               style={{ cursor: 'pointer' }}
               to={import.meta.env.ROUTER_LOGIN_PATH}
             >
               Login
-            </Link>
+            </LinkCustom>
           )}
         </Header>
         <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
