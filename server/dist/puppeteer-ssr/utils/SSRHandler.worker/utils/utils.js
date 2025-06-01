@@ -1,48 +1,22 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _fs = require('fs')
-var _path = require('path')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs');
+var _path = require('path');
 
-var _utils = require('../../../../api/utils/CacheManager/utils')
-var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _StringHelper = require('../../../../utils/StringHelper')
-var _constants = require('../../../constants')
+
+
+var _utils = require('../../../../api/utils/CacheManager/utils');
+var _ConsoleHandler = require('../../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _StringHelper = require('../../../../utils/StringHelper');
+var _constants = require('../../../constants');
+
+
+
+
 
 // import sharp from 'sharp'
 
-const getInternalScript = async (params) => {
+ const getInternalScript = async (
+  params
+) => {
   if (!params) {
     _ConsoleHandler2.default.error('Need provide `params`')
     return
@@ -55,11 +29,7 @@ const getInternalScript = async (params) => {
 
   const urlSplitted = params.url.split('/')
   const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
-  const filePath = _path.resolve.call(
-    void 0,
-    __dirname,
-    `../../../../../../dist/${file}`
-  )
+  const filePath = _path.resolve.call(void 0, __dirname, `../../../../../../dist/${file}`)
 
   try {
     const body = _fs.readFileSync.call(void 0, filePath)
@@ -75,10 +45,11 @@ const getInternalScript = async (params) => {
       status: 404,
     }
   }
-}
-exports.getInternalScript = getInternalScript // getInternalScript
+}; exports.getInternalScript = getInternalScript // getInternalScript
 
-const getInternalStyle = (params) => {
+ const getInternalStyle = (
+  params
+) => {
   if (!params) {
     _ConsoleHandler2.default.error('Need provide `params`')
     return
@@ -91,11 +62,7 @@ const getInternalStyle = (params) => {
 
   const urlSplitted = params.url.split('/')
   const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
-  const filePath = _path.resolve.call(
-    void 0,
-    __dirname,
-    `../../../../../../dist/${file}`
-  )
+  const filePath = _path.resolve.call(void 0, __dirname, `../../../../../../dist/${file}`)
 
   try {
     const body = _fs.readFileSync.call(void 0, filePath)
@@ -111,10 +78,9 @@ const getInternalStyle = (params) => {
       status: 404,
     }
   }
-}
-exports.getInternalStyle = getInternalStyle // getInternalStyle
+}; exports.getInternalStyle = getInternalStyle // getInternalStyle
 
-const getInternalHTML = async (params) => {
+ const getInternalHTML = async (params) => {
   if (!params) {
     _ConsoleHandler2.default.error('Need provide `params`')
     return
@@ -128,11 +94,7 @@ const getInternalHTML = async (params) => {
   const { url, enableAPIStore } = params
 
   try {
-    const filePath = _path.resolve.call(
-      void 0,
-      __dirname,
-      '../../../../../../dist/index.html'
-    )
+    const filePath = _path.resolve.call(void 0, __dirname, '../../../../../../dist/index.html')
 
     const apiStoreData = await (async () => {
       if (!enableAPIStore) return
@@ -146,31 +108,12 @@ const getInternalHTML = async (params) => {
 
       if (tmpAPIStore) return tmpAPIStore.data
 
-      const specialInfo = _nullishCoalesce(
-        _optionalChain([
-          _constants.regexQueryStringSpecialInfo,
-          'access',
-          (_) => _.exec,
-          'call',
-          (_2) => _2(url),
-          'optionalAccess',
-          (_3) => _3.groups,
-        ]),
-        () => ({})
-      )
+      const specialInfo = _nullishCoalesce(_optionalChain([_constants.regexQueryStringSpecialInfo, 'access', _ => _.exec, 'call', _2 => _2(url), 'optionalAccess', _3 => _3.groups]), () => ( {}))
 
       const deviceType = (() => {
         let tmpDeviceType
         try {
-          tmpDeviceType = _optionalChain([
-            JSON,
-            'access',
-            (_4) => _4.parse,
-            'call',
-            (_5) => _5(specialInfo.deviceInfo),
-            'optionalAccess',
-            (_6) => _6.type,
-          ])
+          tmpDeviceType = _optionalChain([JSON, 'access', _4 => _4.parse, 'call', _5 => _5(specialInfo.deviceInfo), 'optionalAccess', _6 => _6.type])
         } catch (err) {
           _ConsoleHandler2.default.error(err)
         }
@@ -178,8 +121,7 @@ const getInternalHTML = async (params) => {
         return tmpDeviceType
       })()
 
-      tmpStoreKey = _StringHelper.hashCode.call(
-        void 0,
+      tmpStoreKey = _StringHelper.hashCode.call(void 0, 
         `${url}${
           url.includes('?') && deviceType
             ? '&device=' + deviceType
@@ -228,8 +170,7 @@ const getInternalHTML = async (params) => {
       status: 404,
     }
   }
-}
-exports.getInternalHTML = getInternalHTML // getInternalHTML
+}; exports.getInternalHTML = getInternalHTML // getInternalHTML
 
 // export const compressInternalImage = async (image: string) => {
 // 	if (!image) {

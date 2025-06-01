@@ -1,7 +1,6 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
+"use strict";Object.defineProperty(exports, "__esModule", {value: true});
 
-const defaultServerConfig = {
+ const defaultServerConfig = {
   locale: {
     enable: false,
     hideDefaultLocale: false,
@@ -28,5 +27,4 @@ const defaultServerConfig = {
   api: {
     list: {},
   },
-}
-exports.defaultServerConfig = defaultServerConfig
+}; exports.defaultServerConfig = defaultServerConfig

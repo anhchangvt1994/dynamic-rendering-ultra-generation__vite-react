@@ -1,56 +1,40 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _zlib = require('zlib')
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _PathHandler = require('../../../utils/PathHandler')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _zlib = require('zlib');
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _PathHandler = require('../../../utils/PathHandler');
 
-var _utils = require('../CacheManager/utils')
 
-const dataPath = _PathHandler.getDataPath.call(void 0)
 
-const fetchData = async (input, init) => {
+
+
+var _utils = require('../CacheManager/utils');
+
+const dataPath = _PathHandler.getDataPath.call(void 0, )
+
+ const fetchData = async (
+  input,
+  init
+
+
+
+
+
+
+
+
+
+) => {
   if (!input) {
     _ConsoleHandler2.default.error('URL is required!')
     return { status: 500, data: {}, message: 'URL is required' }
   }
 
-  const response = await new Promise(async (rootResolve) => {
-    const timeout = _nullishCoalesce(
-      _optionalChain([init, 'optionalAccess', (_) => _.timeout]),
-      () => 10000
-    )
+  const response = await new Promise
+
+
+
+
+(async (rootResolve) => {
+    const timeout = _nullishCoalesce(_optionalChain([init, 'optionalAccess', _ => _.timeout]), () => ( 10000))
     if (timeout !== 'infinite') {
       var responseTimeout = setTimeout(() => {
         rootResolve({
@@ -82,7 +66,7 @@ const fetchData = async (input, init) => {
 
       const response = await fetch(input, {
         method: 'GET',
-        headers: _optionalChain([init, 'optionalAccess', (_2) => _2.headers]),
+        headers: _optionalChain([init, 'optionalAccess', _2 => _2.headers]),
       })
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
@@ -92,59 +76,17 @@ const fetchData = async (input, init) => {
 
             const contentEncoding = res.headers.get('content-encoding')
 
-            if (
-              _optionalChain([
-                contentEncoding,
-                'optionalAccess',
-                (_3) => _3.includes,
-                'call',
-                (_4) => _4('gzip'),
-              ])
-            ) {
+            if (_optionalChain([contentEncoding, 'optionalAccess', _3 => _3.includes, 'call', _4 => _4('gzip')])) {
               try {
-                tmpData = _optionalChain([
-                  _zlib.gunzipSync.call(void 0, buffer),
-                  'optionalAccess',
-                  (_5) => _5.toString,
-                  'call',
-                  (_6) => _6(),
-                ])
+                tmpData = _optionalChain([_zlib.gunzipSync.call(void 0, buffer), 'optionalAccess', _5 => _5.toString, 'call', _6 => _6()])
               } catch (e) {}
-            } else if (
-              _optionalChain([
-                contentEncoding,
-                'optionalAccess',
-                (_7) => _7.includes,
-                'call',
-                (_8) => _8('deflate'),
-              ])
-            ) {
+            } else if (_optionalChain([contentEncoding, 'optionalAccess', _7 => _7.includes, 'call', _8 => _8('deflate')])) {
               try {
-                tmpData = _optionalChain([
-                  _zlib.inflateSync.call(void 0, buffer),
-                  'optionalAccess',
-                  (_9) => _9.toString,
-                  'call',
-                  (_10) => _10(),
-                ])
+                tmpData = _optionalChain([_zlib.inflateSync.call(void 0, buffer), 'optionalAccess', _9 => _9.toString, 'call', _10 => _10()])
               } catch (e2) {}
-            } else if (
-              _optionalChain([
-                contentEncoding,
-                'optionalAccess',
-                (_11) => _11.includes,
-                'call',
-                (_12) => _12('br'),
-              ])
-            ) {
+            } else if (_optionalChain([contentEncoding, 'optionalAccess', _11 => _11.includes, 'call', _12 => _12('br')])) {
               try {
-                tmpData = _optionalChain([
-                  _zlib.brotliDecompressSync.call(void 0, buffer),
-                  'optionalAccess',
-                  (_13) => _13.toString,
-                  'call',
-                  (_14) => _14(),
-                ])
+                tmpData = _optionalChain([_zlib.brotliDecompressSync.call(void 0, buffer), 'optionalAccess', _13 => _13.toString, 'call', _14 => _14()])
               } catch (e3) {}
             }
 
@@ -186,10 +128,9 @@ const fetchData = async (input, init) => {
   })
 
   return response
-}
-exports.fetchData = fetchData // fetchData
+}; exports.fetchData = fetchData // fetchData
 
-const refreshData = async (cacheKeyList) => {
+ const refreshData = async (cacheKeyList) => {
   if (!cacheKeyList || !cacheKeyList.length) return
 
   const arrRefreshData = []
@@ -208,34 +149,32 @@ const refreshData = async (cacheKeyList) => {
           headers.append(key, apiCache.headers[key])
         }
 
-        await exports.fetchData
-          .call(void 0, apiCache.url, {
-            method: apiCache.method,
-            headers: apiCache.headers,
-            body: apiCache.body,
-          })
-          .then((result) => {
-            const cacheResult = apiCache.cache
+        await exports.fetchData.call(void 0, apiCache.url , {
+          method: apiCache.method,
+          headers: apiCache.headers,
+          body: apiCache.body,
+        }).then((result) => {
+          const cacheResult = apiCache.cache 
 
-            const enableToSetCache =
-              result.status === 200 ||
-              !cacheResult ||
-              cacheResult.status !== 200
-            if (enableToSetCache) {
-              _utils.set.call(void 0, dataPath, cacheKeyItem, 'br', {
-                url: apiCache.url,
-                method: apiCache.method,
-                body: apiCache.body,
-                headers: apiCache.headers,
-                cache: {
-                  expiredTime: cacheResult.expiredTime,
-                  ...result,
-                },
-              })
 
-              res('finish')
-            }
-          })
+
+          const enableToSetCache =
+            result.status === 200 || !cacheResult || cacheResult.status !== 200
+          if (enableToSetCache) {
+            _utils.set.call(void 0, dataPath, cacheKeyItem, 'br', {
+              url: apiCache.url ,
+              method: apiCache.method ,
+              body: apiCache.body,
+              headers: apiCache.headers,
+              cache: {
+                expiredTime: cacheResult.expiredTime,
+                ...result,
+              },
+            })
+
+            res('finish')
+          }
+        })
       })
     )
   }
@@ -243,5 +182,4 @@ const refreshData = async (cacheKeyList) => {
   if (arrRefreshData.length) await Promise.all(arrRefreshData)
 
   return 'finish'
-}
-exports.refreshData = refreshData // refreshData
+}; exports.refreshData = refreshData // refreshData

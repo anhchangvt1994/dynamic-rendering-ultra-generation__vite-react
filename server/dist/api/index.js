@@ -1,45 +1,17 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _zlib = require('zlib')
-var _serverconfig = require('../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _StringHelper = require('../utils/StringHelper')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
+var _zlib = require('zlib');
+var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _StringHelper = require('../utils/StringHelper');
 
-var _CacheManager = require('./utils/CacheManager')
-var _FetchManager = require('./utils/FetchManager')
+
+
+
+
+
+
+var _CacheManager = require('./utils/CacheManager');
+var _FetchManager = require('./utils/FetchManager');
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -65,8 +37,11 @@ const fetchCache = (() => {
 })() // fetchCache
 
 const convertData = (
-  result,
+  result
 
+
+
+,
   contentEncoding
 ) => {
   switch (true) {
@@ -88,27 +63,15 @@ const apiService = (async () => {
 
   const _allRequestHandler = () => {
     _app.all('/api', async function (req, res) {
-      const apiInfo = _nullishCoalesce(
-        _optionalChain([
-          /requestInfo=(?<requestInfo>[^&]*)/,
-          'access',
-          (_) => _.exec,
-          'call',
-          (_2) => _2(req.url),
-          'optionalAccess',
-          (_3) => _3.groups,
-        ]),
-        () => ({})
-      )
+      const apiInfo =
+        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.url), 'optionalAccess', _3 => _3.groups]), () => ( {}))
 
       if (!apiInfo) return res.status(500).send('Internal Server Error')
 
       const requestInfo = (() => {
         let result
         try {
-          result = JSON.parse(
-            _StringHelper.decode.call(void 0, apiInfo.requestInfo || '')
-          )
+          result = JSON.parse(_StringHelper.decode.call(void 0, apiInfo.requestInfo || ''))
         } catch (err) {
           _ConsoleHandler2.default.error(err)
         }
@@ -124,7 +87,7 @@ const apiService = (async () => {
         const tmpHeaderAcceptEncoding = req.headers['accept-encoding'] || ''
         if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
         else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-        return ''
+        return '' 
       })()
 
       res.set({
@@ -145,14 +108,13 @@ const apiService = (async () => {
             objHeaders[key] = item
           })
         } else {
-          headers.append(key, value)
+          headers.append(key, value )
           objHeaders[key] = value
         }
       })
 
       // NOTE - Setup secret key for API's header info
-      const apiServerConfigInfo =
-        _serverconfig2.default.api.list[requestInfo.baseUrl]
+      const apiServerConfigInfo = _serverconfig2.default.api.list[requestInfo.baseUrl]
 
       if (apiServerConfigInfo) {
         headers.append(
@@ -165,21 +127,9 @@ const apiService = (async () => {
 
       // NOTE - Handle query string information
       const strQueryString = (() => {
-        const thisAPIQueryString = _optionalChain([
-          req,
-          'access',
-          (_4) => _4.url,
-          'access',
-          (_5) => _5.split,
-          'call',
-          (_6) => _6('?'),
-          'access',
-          (_7) => _7[1],
-          'optionalAccess',
-          (_8) => _8.replace,
-          'call',
-          (_9) => _9(/requestInfo=([^&]*)/g, ''),
-        ])
+        const thisAPIQueryString = _optionalChain([req, 'access', _4 => _4.url
+, 'access', _5 => _5.split, 'call', _6 => _6('?'), 'access', _7 => _7[1]
+, 'optionalAccess', _8 => _8.replace, 'call', _9 => _9(/requestInfo=([^&]*)/g, '')])
 
         if (!thisAPIQueryString) return ''
 
@@ -197,17 +147,19 @@ const apiService = (async () => {
         return `?${targetAPIQueryString}`
       })()
       // NOTE - Handle Post request Body
-      const body = await new Promise((response) => {
-        let rawBody = ''
-        req.on('data', (chunk) => {
-          rawBody += chunk
-        })
+      const body = await new Promise(
+        (response) => {
+          let rawBody = ''
+          req.on('data', (chunk) => {
+            rawBody += chunk
+          })
 
-        req.once('end', () => {
-          req.removeListener('data', () => {})
-          response(rawBody || undefined)
-        })
-      })
+          req.once('end', () => {
+            req.removeListener('data', () => {})
+            response(rawBody || undefined)
+          })
+        }
+      )
 
       const enableCache =
         requestInfo.cacheKey &&
@@ -216,34 +168,20 @@ const apiService = (async () => {
       // NOTE - Handle API Store
       // NOTE - when enableStore, system will store it, but when the client set enableStore to false, system have to remove it. So we must recalculate in each
       if (requestInfo.enableStore) {
-        const apiStore = await _CacheManager.getStore.call(
-          void 0,
-          requestInfo.storeKey,
-          {
-            autoCreateIfEmpty: { enable: true },
-          }
-        )
+        const apiStore = await _CacheManager.getStore.call(void 0, requestInfo.storeKey, {
+          autoCreateIfEmpty: { enable: true },
+        })
         if (!apiStore || !apiStore.data) {
-          _CacheManager.setStore.call(void 0, requestInfo.storeKey, [
-            requestInfo.cacheKey,
-          ])
+          _CacheManager.setStore.call(void 0, requestInfo.storeKey, [requestInfo.cacheKey])
         } else if (!apiStore.data.includes(requestInfo.cacheKey)) {
           apiStore.data.push(requestInfo.cacheKey)
 
-          _CacheManager.setStore.call(
-            void 0,
-            requestInfo.storeKey,
-            apiStore.data
-          )
+          _CacheManager.setStore.call(void 0, requestInfo.storeKey, apiStore.data)
         }
       } else if (requestInfo.storeKey) {
-        const apiStore = await _CacheManager.getStore.call(
-          void 0,
-          requestInfo.storeKey,
-          {
-            autoCreateIfEmpty: { enable: true },
-          }
-        )
+        const apiStore = await _CacheManager.getStore.call(void 0, requestInfo.storeKey, {
+          autoCreateIfEmpty: { enable: true },
+        })
         const tmpAPIStoreData = apiStore.data
 
         if (tmpAPIStoreData) {
@@ -251,20 +189,13 @@ const apiService = (async () => {
 
           tmpAPIStoreData.splice(indexNext, 1)
 
-          _CacheManager.setStore.call(
-            void 0,
-            requestInfo.storeKey,
-            tmpAPIStoreData
-          )
+          _CacheManager.setStore.call(void 0, requestInfo.storeKey, tmpAPIStoreData)
         }
       }
 
       // NOTE - Handle API Cache
       if (enableCache) {
-        const apiCache = await _CacheManager.getData.call(
-          void 0,
-          requestInfo.cacheKey
-        )
+        const apiCache = await _CacheManager.getData.call(void 0, requestInfo.cacheKey)
 
         if (apiCache) {
           const curTime = Date.now()
@@ -283,38 +214,32 @@ const apiService = (async () => {
                 apiCache.cache.status !== 200) &&
               apiCache.status !== 'fetch'
             ) {
-              _CacheManager.updateDataStatus.call(
-                void 0,
-                requestInfo.cacheKey,
-                'fetch'
-              )
+              _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
 
               const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
-              _FetchManager.fetchData
-                .call(void 0, fetchUrl, {
-                  method,
-                  headers: objHeaders,
-                  body,
-                })
-                .then((result) => {
-                  const enableToSetCache =
-                    result.status === 200 ||
-                    !apiCache.cache ||
-                    apiCache.cache.status !== 200
-                  if (enableToSetCache) {
-                    _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-                      url: fetchUrl,
-                      method,
-                      body,
-                      headers: objHeaders,
-                      cache: {
-                        expiredTime: requestInfo.expiredTime,
-                        ...result,
-                      },
-                    })
-                  }
-                })
+              _FetchManager.fetchData.call(void 0, fetchUrl, {
+                method,
+                headers: objHeaders,
+                body,
+              }).then((result) => {
+                const enableToSetCache =
+                  result.status === 200 ||
+                  !apiCache.cache ||
+                  apiCache.cache.status !== 200
+                if (enableToSetCache) {
+                  _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
+                    url: fetchUrl,
+                    method,
+                    body,
+                    headers: objHeaders,
+                    cache: {
+                      expiredTime: requestInfo.expiredTime,
+                      ...result,
+                    },
+                  })
+                }
+              })
             }
 
             let cache = apiCache.cache
@@ -376,12 +301,11 @@ const apiService = (async () => {
 
   return {
     init(app) {
-      if (!app)
-        return _ConsoleHandler2.default.warn('You need provide express app!')
+      if (!app) return _ConsoleHandler2.default.warn('You need provide express app!')
       _app = app
       _allRequestHandler()
     },
   }
 })()
 
-exports.default = apiService
+exports. default = apiService

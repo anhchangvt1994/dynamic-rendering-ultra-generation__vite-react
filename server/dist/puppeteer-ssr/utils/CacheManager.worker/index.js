@@ -1,25 +1,19 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _constants = require('../../../constants')
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _WorkerManager = require('../../../utils/WorkerManager')
-var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _constants = require('../../../constants');
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _WorkerManager = require('../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
 
-var _utils = require('../Cache.worker/utils')
+
+
+
+
+
+
+var _utils = require('../Cache.worker/utils');
 
 const workerManager = _WorkerManager2.default.init(
-  _path2.default.resolve(
-    __dirname,
-    `./../Cache.worker/index.${_constants.resourceExtension}`
-  ),
+  _path2.default.resolve(__dirname, `./../Cache.worker/index.${_constants.resourceExtension}`),
   {
     minWorkers: 1,
     maxWorkers: 3,
@@ -189,4 +183,4 @@ const CacheManager = (url, cachePath) => {
   }
 }
 
-exports.default = CacheManager
+exports. default = CacheManager

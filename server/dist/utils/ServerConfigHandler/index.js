@@ -1,38 +1,9 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _InitEnv = require('../InitEnv')
-var _constants = require('./constants')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _InitEnv = require('../InitEnv');
+var _constants = require('./constants');
 
-const defineServerConfig = (options) => {
-  const serverConfig = { ...options }
+
+ const defineServerConfig = (options) => {
+  const serverConfig = { ...options } 
 
   for (const key in _constants.defaultServerConfig) {
     if (key === 'locale') {
@@ -153,7 +124,7 @@ const defineServerConfig = (options) => {
           content: 'same',
           time: 300,
           renewTime: 120,
-        }
+        } 
 
         if (serverConfig[key].preview) {
           if (typeof serverConfig[key].preview === 'boolean') {
@@ -171,57 +142,13 @@ const defineServerConfig = (options) => {
                   typeof serverConfig[key].list[routeKey].pointsTo === 'string'
                     ? {
                         url: serverConfig[key].list[routeKey].pointsTo,
-                        content: _nullishCoalesce(
-                          _optionalChain([
-                            serverConfig,
-                            'access',
-                            (_) => _[key],
-                            'access',
-                            (_2) => _2.preview,
-                            'optionalAccess',
-                            (_3) => _3.content,
-                          ]),
-                          () => 'same'
-                        ),
-                        time: _nullishCoalesce(
-                          _optionalChain([
-                            serverConfig,
-                            'access',
-                            (_4) => _4[key],
-                            'access',
-                            (_5) => _5.preview,
-                            'optionalAccess',
-                            (_6) => _6.time,
-                          ]),
-                          () => 'infinite'
-                        ),
-                        renewTime: _nullishCoalesce(
-                          _optionalChain([
-                            serverConfig,
-                            'access',
-                            (_7) => _7[key],
-                            'access',
-                            (_8) => _8.preview,
-                            'optionalAccess',
-                            (_9) => _9.renewTime,
-                          ]),
-                          () => 1800
-                        ),
+                        content: _nullishCoalesce(_optionalChain([serverConfig, 'access', _ => _[key], 'access', _2 => _2.preview, 'optionalAccess', _3 => _3.content]), () => ( 'same')),
+                        time: _nullishCoalesce(_optionalChain([serverConfig, 'access', _4 => _4[key], 'access', _5 => _5.preview, 'optionalAccess', _6 => _6.time]), () => ( 'infinite')),
+                        renewTime: _nullishCoalesce(_optionalChain([serverConfig, 'access', _7 => _7[key], 'access', _8 => _8.preview, 'optionalAccess', _9 => _9.renewTime]), () => ( 1800)),
                       }
                     : {
                         ...{
-                          content: _nullishCoalesce(
-                            _optionalChain([
-                              serverConfig,
-                              'access',
-                              (_10) => _10[key],
-                              'access',
-                              (_11) => _11.preview,
-                              'optionalAccess',
-                              (_12) => _12.content,
-                            ]),
-                            () => 'same'
-                          ),
+                          content: _nullishCoalesce(_optionalChain([serverConfig, 'access', _10 => _10[key], 'access', _11 => _11.preview, 'optionalAccess', _12 => _12.content]), () => ( 'same')),
                         },
                         ...serverConfig[key].list[routeKey].pointsTo,
                       },
@@ -246,22 +173,12 @@ const defineServerConfig = (options) => {
           serverConfig[key].custom = (url) => {
             if (!url) return
 
-            let tmpConfig = customFunc(url)
+            let tmpConfig = customFunc(url) 
 
             const urlInfo = new URL(url)
 
-            const defaultOptionOfCustom = _nullishCoalesce(
-              _optionalChain([
-                serverConfig,
-                'access',
-                (_13) => _13[key],
-                'access',
-                (_14) => _14.list,
-                'optionalAccess',
-                (_15) => _15[urlInfo.pathname],
-              ]),
-              () => serverConfig[key]
-            )
+            const defaultOptionOfCustom =
+              _nullishCoalesce(_optionalChain([serverConfig, 'access', _13 => _13[key], 'access', _14 => _14.list, 'optionalAccess', _15 => _15[urlInfo.pathname]]), () => ( serverConfig[key]))
 
             if (!tmpConfig) {
               tmpConfig = defaultOptionOfCustom
@@ -271,97 +188,28 @@ const defineServerConfig = (options) => {
                   typeof tmpConfig.pointsTo === 'string'
                     ? {
                         url: tmpConfig.pointsTo,
-                        content: _nullishCoalesce(
-                          _nullishCoalesce(
-                            _optionalChain([
-                              defaultOptionOfCustom,
-                              'access',
-                              (_16) => _16.pointsTo,
-                              'optionalAccess',
-                              (_17) => _17.content,
-                            ]),
-                            () =>
-                              _optionalChain([
-                                defaultOptionOfCustom,
-                                'access',
-                                (_18) => _18.preview,
-                                'optionalAccess',
-                                (_19) => _19.content,
-                              ])
-                          ),
-                          () => defaultOption.content
-                        ),
-                        time: _nullishCoalesce(
-                          _optionalChain([
-                            defaultOptionOfCustom,
-                            'access',
-                            (_20) => _20[key],
-                            'access',
-                            (_21) => _21.preview,
-                            'optionalAccess',
-                            (_22) => _22.time,
-                          ]),
-                          () => 'infinite'
-                        ),
-                        renewTime: _nullishCoalesce(
-                          _optionalChain([
-                            defaultOptionOfCustom,
-                            'access',
-                            (_23) => _23[key],
-                            'access',
-                            (_24) => _24.preview,
-                            'optionalAccess',
-                            (_25) => _25.renewTime,
-                          ]),
-                          () => 1800
-                        ),
+                        content:
+                          _nullishCoalesce(_nullishCoalesce(_optionalChain([(defaultOptionOfCustom ), 'access', _16 => _16.pointsTo, 'optionalAccess', _17 => _17.content]), () => (
+                          _optionalChain([defaultOptionOfCustom, 'access', _18 => _18.preview, 'optionalAccess', _19 => _19.content]))), () => (
+                          defaultOption.content)),
+                        time:
+                          _nullishCoalesce(_optionalChain([defaultOptionOfCustom, 'access', _20 => _20[key], 'access', _21 => _21.preview, 'optionalAccess', _22 => _22.time]), () => (
+                          'infinite')),
+                        renewTime:
+                          _nullishCoalesce(_optionalChain([defaultOptionOfCustom, 'access', _23 => _23[key], 'access', _24 => _24.preview, 'optionalAccess', _25 => _25.renewTime]), () => ( 1800)),
                       }
                     : {
                         ...{
-                          content: _nullishCoalesce(
-                            _nullishCoalesce(
-                              _optionalChain([
-                                defaultOptionOfCustom,
-                                'access',
-                                (_26) => _26.pointsTo,
-                                'optionalAccess',
-                                (_27) => _27.content,
-                              ]),
-                              () =>
-                                _optionalChain([
-                                  defaultOptionOfCustom,
-                                  'access',
-                                  (_28) => _28.preview,
-                                  'optionalAccess',
-                                  (_29) => _29.content,
-                                ])
-                            ),
-                            () => defaultOption.content
-                          ),
-                          time: _nullishCoalesce(
-                            _optionalChain([
-                              defaultOptionOfCustom,
-                              'access',
-                              (_30) => _30[key],
-                              'access',
-                              (_31) => _31.preview,
-                              'optionalAccess',
-                              (_32) => _32.time,
-                            ]),
-                            () => 'infinite'
-                          ),
-                          renewTime: _nullishCoalesce(
-                            _optionalChain([
-                              defaultOptionOfCustom,
-                              'access',
-                              (_33) => _33[key],
-                              'access',
-                              (_34) => _34.preview,
-                              'optionalAccess',
-                              (_35) => _35.renewTime,
-                            ]),
-                            () => 1800
-                          ),
+                          content:
+                            _nullishCoalesce(_nullishCoalesce(_optionalChain([(defaultOptionOfCustom ), 'access', _26 => _26.pointsTo, 'optionalAccess', _27 => _27.content]), () => (
+                            _optionalChain([defaultOptionOfCustom, 'access', _28 => _28.preview, 'optionalAccess', _29 => _29.content]))), () => (
+                            defaultOption.content)),
+                          time:
+                            _nullishCoalesce(_optionalChain([defaultOptionOfCustom, 'access', _30 => _30[key], 'access', _31 => _31.preview, 'optionalAccess', _32 => _32.time]), () => (
+                            'infinite')),
+                          renewTime:
+                            _nullishCoalesce(_optionalChain([defaultOptionOfCustom, 'access', _33 => _33[key], 'access', _34 => _34.preview, 'optionalAccess', _35 => _35.renewTime]), () => (
+                            1800)),
                         },
                         ...tmpConfig.pointsTo,
                       },
@@ -375,16 +223,9 @@ const defineServerConfig = (options) => {
                   : {
                       preview: {
                         ...{
-                          content: _nullishCoalesce(
-                            _optionalChain([
-                              defaultOptionOfCustom,
-                              'access',
-                              (_36) => _36.preview,
-                              'optionalAccess',
-                              (_37) => _37.content,
-                            ]),
-                            () => defaultOption.content
-                          ),
+                          content:
+                            _nullishCoalesce(_optionalChain([defaultOptionOfCustom, 'access', _36 => _36.preview, 'optionalAccess', _37 => _37.content]), () => (
+                            defaultOption.content)),
                         },
                         ...tmpConfig.preview,
                       },
@@ -404,14 +245,8 @@ const defineServerConfig = (options) => {
 
               tmpConfig.loader.content = tmpConfig.loader.content
                 ? tmpConfig.loader.content
-                : _nullishCoalesce(
-                    _optionalChain([
-                      tmpConfig.pointsTo || tmpConfig.preview,
-                      'optionalAccess',
-                      (_38) => _38.content,
-                    ]),
-                    () => tmpConfig.content
-                  )
+                : (_nullishCoalesce(_optionalChain([(tmpConfig.pointsTo || tmpConfig.preview), 'optionalAccess', _38 => _38.content]), () => (
+                  tmpConfig.content)))
             }
 
             return tmpConfig
@@ -431,7 +266,9 @@ const defineServerConfig = (options) => {
         for (const apiListKey in serverConfig[key].list) {
           if (typeof serverConfig[key].list[apiListKey] === 'string') {
             serverConfig[key].list[apiListKey] = {
-              secretKey: serverConfig[key].list[apiListKey],
+              secretKey: serverConfig[key].list[
+                apiListKey
+              ] ,
               headerSecretKeyName: 'Authorization',
             }
 
@@ -466,6 +303,5 @@ const defineServerConfig = (options) => {
       ? serverConfig.crawlerSecretKey
       : _InitEnv.PROCESS_ENV.CRAWLER_SECRET_KEY || undefined
 
-  return serverConfig
-}
-exports.defineServerConfig = defineServerConfig
+  return serverConfig 
+}; exports.defineServerConfig = defineServerConfig

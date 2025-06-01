@@ -1,7 +1,6 @@
 {
   "ts-node": {
     "transpileOnly": true
-    // "swc": true
   },
   "exclude": [
     "node_modules",

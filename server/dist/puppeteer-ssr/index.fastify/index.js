@@ -1,62 +1,31 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _zlib = require('zlib')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
+var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _zlib = require('zlib');
 
-var _utils = require('../../api/utils/CacheManager/utils')
-var _constants = require('../../constants')
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
 
-var _CleanerService = require('../../utils/CleanerService')
-var _CleanerService2 = _interopRequireDefault(_CleanerService)
-var _ConsoleHandler = require('../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _CookieHandler = require('../../utils/CookieHandler')
-var _InitEnv = require('../../utils/InitEnv')
-var _StringHelper = require('../../utils/StringHelper')
 
-var _FormatUrl = require('../utils/FormatUrl')
-var _ISRGeneratornext = require('../utils/ISRGenerator.next')
-var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext)
-var _ISRHandlerworker = require('../utils/ISRHandler.worker')
-var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
-var _utils3 = require('./utils')
+var _utils = require('../../api/utils/CacheManager/utils');
+var _constants = require('../../constants');
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+
+var _CleanerService = require('../../utils/CleanerService'); var _CleanerService2 = _interopRequireDefault(_CleanerService);
+var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _CookieHandler = require('../../utils/CookieHandler');
+var _InitEnv = require('../../utils/InitEnv');
+var _StringHelper = require('../../utils/StringHelper');
+
+
+
+
+var _FormatUrl = require('../utils/FormatUrl');
+var _ISRGeneratornext = require('../utils/ISRGenerator.next'); var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext);
+var _ISRHandlerworker = require('../utils/ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
+var _utils3 = require('./utils');
 
 const _resetCookie = (res) => {
   _CookieHandler.setCookie.call(void 0, res, `BotInfo=;Max-Age=0;Path=/`)
-  _CookieHandler.setCookie.call(
-    void 0,
-    res,
-    `EnvironmentInfo=;Max-Age=0;Path=/`
-  )
+  _CookieHandler.setCookie.call(void 0, res, `EnvironmentInfo=;Max-Age=0;Path=/`)
   _CookieHandler.setCookie.call(void 0, res, `DeviceInfo=;Max-Age=0;Path=/`)
 } // _resetCookie
 
@@ -76,38 +45,10 @@ const puppeteerSSRService = (async () => {
                 'Welcome to MTr Web Scraping Service, please provide authorization to use it.'
               )
 
-          const startGenerating = Number(
-            _optionalChain([
-              req,
-              'access',
-              (_) => _.query,
-              'optionalAccess',
-              (_2) => _2['startGenerating'],
-            ])
-          )
-          const isFirstRequest = !!_optionalChain([
-            req,
-            'access',
-            (_3) => _3.query,
-            'optionalAccess',
-            (_4) => _4['isFirstRequest'],
-          ])
-          const url = _optionalChain([
-            req,
-            'access',
-            (_5) => _5.query,
-            'optionalAccess',
-            (_6) => _6['url'],
-          ])
-            ? decodeURIComponent(
-                _optionalChain([
-                  req,
-                  'access',
-                  (_7) => _7.query,
-                  'optionalAccess',
-                  (_8) => _8['url'],
-                ])
-              )
+          const startGenerating = Number(_optionalChain([req, 'access', _ => _.query, 'optionalAccess', _2 => _2['startGenerating']]))
+          const isFirstRequest = !!_optionalChain([req, 'access', _3 => _3.query, 'optionalAccess', _4 => _4['isFirstRequest']])
+          const url = _optionalChain([req, 'access', _5 => _5.query, 'optionalAccess', _6 => _6['url']])
+            ? (decodeURIComponent(_optionalChain([req, 'access', _7 => _7.query, 'optionalAccess', _8 => _8['url']]) ) )
             : ''
 
           const result = await _ISRHandlerworker2.default.call(void 0, {
@@ -142,53 +83,30 @@ const puppeteerSSRService = (async () => {
     _app.get(
       '*',
       async function (
-        req,
+        req
 
+,
         res
       ) {
         if (req.url.startsWith('/api')) {
           return res.status(404).send('Not Found!')
         }
 
-        const pathname = _optionalChain([
-          req,
-          'access',
-          (_9) => _9.url,
-          'optionalAccess',
-          (_10) => _10.split,
-          'call',
-          (_11) => _11('?'),
-          'access',
-          (_12) => _12[0],
-        ])
+        const pathname = _optionalChain([req, 'access', _9 => _9.url, 'optionalAccess', _10 => _10.split, 'call', _11 => _11('?'), 'access', _12 => _12[0]])
         const cookies = _CookieHandler.getCookieFromResponse.call(void 0, res)
-        const botInfo = _optionalChain([
-          cookies,
-          'optionalAccess',
-          (_13) => _13['BotInfo'],
-        ])
+        const botInfo = _optionalChain([cookies, 'optionalAccess', _13 => _13['BotInfo']])
         const { enableToCrawl, enableToCache } = (() => {
-          const url = _FormatUrl.convertUrlHeaderToQueryString.call(
-            void 0,
+          const url = _FormatUrl.convertUrlHeaderToQueryString.call(void 0, 
             _FormatUrl.getUrl.call(void 0, req),
-            res,
+            res ,
             !botInfo.isBot
           )
           let enableToCrawl = _serverconfig2.default.crawl.enable
-          let enableToCache =
-            enableToCrawl && _serverconfig2.default.crawl.cache.enable
+          let enableToCache = enableToCrawl && _serverconfig2.default.crawl.cache.enable
 
           const crawlOptionPerRoute =
             _serverconfig2.default.crawl.routes[pathname] ||
-            _optionalChain([
-              _serverconfig2.default,
-              'access',
-              (_14) => _14.crawl,
-              'access',
-              (_15) => _15.custom,
-              'optionalCall',
-              (_16) => _16(url),
-            ])
+            _optionalChain([_serverconfig2.default, 'access', _14 => _14.crawl, 'access', _15 => _15.custom, 'optionalCall', _16 => _16(url)])
 
           if (crawlOptionPerRoute) {
             enableToCrawl = crawlOptionPerRoute.enable
@@ -206,18 +124,12 @@ const puppeteerSSRService = (async () => {
           const tmpHeaderAcceptEncoding = headers['accept-encoding'] || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-          return ''
+          return '' 
         })()
 
         _ConsoleHandler2.default.log('<---puppeteer/index.fastify.ts--->')
-        _ConsoleHandler2.default.log(
-          'enableContentEncoding: ',
-          enableContentEncoding
-        )
-        _ConsoleHandler2.default.log(
-          `headers['accept-encoding']: `,
-          headers['accept-encoding']
-        )
+        _ConsoleHandler2.default.log('enableContentEncoding: ', enableContentEncoding)
+        _ConsoleHandler2.default.log(`headers['accept-encoding']: `, headers['accept-encoding'])
         _ConsoleHandler2.default.log('contentEncoding: ', contentEncoding)
         _ConsoleHandler2.default.log('<---puppeteer/index.fastify.ts--->')
 
@@ -231,8 +143,7 @@ const puppeteerSSRService = (async () => {
         if (
           _serverconfig2.default.isRemoteCrawler &&
           ((_serverconfig2.default.crawlerSecretKey &&
-            req.query.crawlerSecretKey !==
-              _serverconfig2.default.crawlerSecretKey) ||
+            req.query.crawlerSecretKey !== _serverconfig2.default.crawlerSecretKey) ||
             (!botInfo.isBot && enableToCache))
         ) {
           const html = _fs2.default.readFileSync(
@@ -246,10 +157,9 @@ const puppeteerSSRService = (async () => {
           enableToCrawl &&
           headers.service !== 'puppeteer'
         ) {
-          const url = _FormatUrl.convertUrlHeaderToQueryString.call(
-            void 0,
+          const url = _FormatUrl.convertUrlHeaderToQueryString.call(void 0, 
             _FormatUrl.getUrl.call(void 0, req),
-            res,
+            res ,
             !botInfo.isBot
           )
           if (!req.headers['redirect'] && botInfo.isBot) {
@@ -289,23 +199,10 @@ const puppeteerSSRService = (async () => {
         }
 
         const correctPathname = _FormatUrl.getPathname.call(void 0, req)
-        const pointsTo = _optionalChain([
-          _serverconfig2.default,
-          'access',
-          (_17) => _17.routes,
-          'optionalAccess',
-          (_18) => _18[correctPathname],
-          'optionalAccess',
-          (_19) => _19.pointsTo,
-        ])
+        const pointsTo = _optionalChain([_serverconfig2.default, 'access', _17 => _17.routes, 'optionalAccess', _18 => _18[correctPathname], 'optionalAccess', _19 => _19.pointsTo])
 
         if (pointsTo) {
-          const url = _FormatUrl.convertUrlHeaderToQueryString.call(
-            void 0,
-            pointsTo,
-            res,
-            false
-          )
+          const url = _FormatUrl.convertUrlHeaderToQueryString.call(void 0, pointsTo, res , false)
 
           if (url) {
             try {
@@ -338,12 +235,12 @@ const puppeteerSSRService = (async () => {
             .header('Cache-Control', 'no-store')
             .send(
               req.headers['redirect']
-                ? JSON.parse(req.headers['redirect'])
+                ? JSON.parse(req.headers['redirect'] )
                 : { status: 200, originPath: pathname, path: pathname }
             )
         } else {
           const filePath =
-            req.headers['static-html-path'] ||
+            (req.headers['static-html-path'] ) ||
             _path2.default.resolve(__dirname, '../../../../dist/index.html')
 
           const apiStoreData = await (async () => {
@@ -356,20 +253,10 @@ const puppeteerSSRService = (async () => {
 
             if (tmpAPIStore) return tmpAPIStore.data
 
-            const cookies = _CookieHandler.getCookieFromResponse.call(
-              void 0,
-              res
-            )
-            const deviceType = _optionalChain([
-              cookies,
-              'optionalAccess',
-              (_20) => _20['DeviceInfo'],
-              'optionalAccess',
-              (_21) => _21['type'],
-            ])
+            const cookies = _CookieHandler.getCookieFromResponse.call(void 0, res)
+            const deviceType = _optionalChain([cookies, 'optionalAccess', _20 => _20['DeviceInfo'], 'optionalAccess', _21 => _21['type']])
 
-            tmpStoreKey = _StringHelper.hashCode.call(
-              void 0,
+            tmpStoreKey = _StringHelper.hashCode.call(void 0, 
               `${req.url}${
                 req.url.includes('?') && deviceType
                   ? '&device=' + deviceType
@@ -444,12 +331,11 @@ const puppeteerSSRService = (async () => {
 
   return {
     init(app) {
-      if (!app)
-        return _ConsoleHandler2.default.warn('You need provide fastify app!')
+      if (!app) return _ConsoleHandler2.default.warn('You need provide fastify app!')
       _app = app
       _allRequestHandler()
     },
   }
 })()
 
-exports.default = puppeteerSSRService
+exports. default = puppeteerSSRService

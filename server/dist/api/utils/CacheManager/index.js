@@ -1,19 +1,17 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _constants = require('../../../constants')
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _PathHandler = require('../../../utils/PathHandler')
-var _WorkerManager = require('../../../utils/WorkerManager')
-var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _constants = require('../../../constants');
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _PathHandler = require('../../../utils/PathHandler');
+var _WorkerManager = require('../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
 
-const dataPath = _PathHandler.getDataPath.call(void 0)
-const storePath = _PathHandler.getStorePath.call(void 0)
+
+
+
+
+
+
+const dataPath = _PathHandler.getDataPath.call(void 0, )
+const storePath = _PathHandler.getStorePath.call(void 0, )
 
 const workerManager = _WorkerManager2.default.init(
   _path2.default.resolve(__dirname, `./worker.${_constants.resourceExtension}`),
@@ -24,7 +22,7 @@ const workerManager = _WorkerManager2.default.init(
   ['get', 'set', 'remove', 'updateStatus']
 )
 
-const getData = async (key, options) => {
+ const getData = async (key, options) => {
   const freePool = await workerManager.getFreePool({
     delay: 150,
   })
@@ -42,10 +40,12 @@ const getData = async (key, options) => {
   })
 
   return result
-}
-exports.getData = getData // getData
+}; exports.getData = getData // getData
 
-const getStore = async (key, options) => {
+ const getStore = async (
+  key,
+  options
+) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
   let result
@@ -61,10 +61,13 @@ const getStore = async (key, options) => {
   })
 
   return result
-}
-exports.getStore = getStore // getStore
+}; exports.getStore = getStore // getStore
 
-const setData = async (key, content, options) => {
+ const setData = async (
+  key,
+  content,
+  options
+) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
   let result
@@ -80,10 +83,9 @@ const setData = async (key, content, options) => {
   })
 
   return result
-}
-exports.setData = setData // setData
+}; exports.setData = setData // setData
 
-const setStore = async (key, content) => {
+ const setStore = async (key, content) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
   let result
@@ -107,10 +109,9 @@ const setStore = async (key, content) => {
   })
 
   return result
-}
-exports.setStore = setStore // setStore
+}; exports.setStore = setStore // setStore
 
-const removeData = async (key) => {
+ const removeData = async (key) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
   let result
@@ -126,10 +127,9 @@ const removeData = async (key) => {
   })
 
   return result
-}
-exports.removeData = removeData // removeData
+}; exports.removeData = removeData // removeData
 
-const removeStore = async (key) => {
+ const removeStore = async (key) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
   let result
@@ -145,10 +145,9 @@ const removeStore = async (key) => {
   })
 
   return result
-}
-exports.removeStore = removeStore // removeStore
+}; exports.removeStore = removeStore // removeStore
 
-const updateDataStatus = async (key, newStatus) => {
+ const updateDataStatus = async (key, newStatus) => {
   const freePool = await workerManager.getFreePool()
   const pool = freePool.pool
 
@@ -161,5 +160,4 @@ const updateDataStatus = async (key, newStatus) => {
   freePool.terminate({
     force: true,
   })
-}
-exports.updateDataStatus = updateDataStatus // updateDataStatus
+}; exports.updateDataStatus = updateDataStatus // updateDataStatus

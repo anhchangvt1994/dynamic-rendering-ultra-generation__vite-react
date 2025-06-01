@@ -1,52 +1,24 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 
-var _constants = require('../../../constants')
-var _serverconfig = require('../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../../../utils/InitEnv')
-var _PathHandler = require('../../../utils/PathHandler')
 
-var _SSRHandlerworker = require('../SSRHandler.worker')
-var _SSRHandlerworker2 = _interopRequireDefault(_SSRHandlerworker)
-var _utils = require('./CacheManager.worker/utils')
-var _utils2 = _interopRequireDefault(_utils)
-var _utils3 = require('./utils')
 
-const viewsPath = _PathHandler.getViewsPath.call(void 0)
+var _constants = require('../../../constants');
+var _serverconfig = require('../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../../utils/InitEnv');
+var _PathHandler = require('../../../utils/PathHandler');
+
+var _SSRHandlerworker = require('../SSRHandler.worker'); var _SSRHandlerworker2 = _interopRequireDefault(_SSRHandlerworker);
+var _utils = require('./CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
+var _utils3 = require('./utils');
+
+const viewsPath = _PathHandler.getViewsPath.call(void 0, )
+
+
+
+
+
+
 
 const limitRequestToCrawl = 24
 let totalRequestsToCrawl = 0
@@ -76,7 +48,11 @@ const getCertainLimitRequestToCrawl = (() => {
   }
 })() // getCertainLimitRequestToCrawl
 
-const fetchData = async (input, init, reqData) => {
+const fetchData = async (
+  input,
+  init,
+  reqData
+) => {
   try {
     const params = new URLSearchParams()
     if (reqData) {
@@ -98,7 +74,10 @@ const fetchData = async (input, init, reqData) => {
   }
 } // fetchData
 
-const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
+const SSRGenerator = async ({
+  isSkipWaiting = false,
+  ...SSRHandlerParams
+}) => {
   if (!SSRHandlerParams.url.includes('&renderingInfo')) {
     SSRHandlerParams.url =
       SSRHandlerParams.url + `&renderingInfo={"type":"SSR"}`
@@ -106,30 +85,10 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
 
   const urlInfo = new URL(SSRHandlerParams.url)
 
-  const routeInfo = _nullishCoalesce(
-    _nullishCoalesce(
-      _optionalChain([
-        _serverconfig2.default,
-        'access',
-        (_) => _.routes,
-        'access',
-        (_2) => _2.list,
-        'optionalAccess',
-        (_3) => _3[urlInfo.pathname],
-      ]),
-      () =>
-        _optionalChain([
-          _serverconfig2.default,
-          'access',
-          (_4) => _4.routes,
-          'access',
-          (_5) => _5.custom,
-          'optionalCall',
-          (_6) => _6(SSRHandlerParams.url),
-        ])
-    ),
-    () => _serverconfig2.default.routes
-  )
+  const routeInfo =
+    _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _ => _.routes, 'access', _2 => _2.list, 'optionalAccess', _3 => _3[urlInfo.pathname]]), () => (
+    _optionalChain([_serverconfig2.default, 'access', _4 => _4.routes, 'access', _5 => _5.custom, 'optionalCall', _6 => _6(SSRHandlerParams.url)]))), () => (
+    (_serverconfig2.default.routes )))
 
   if (!routeInfo) return
 
@@ -155,11 +114,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
     }
 
     // NOTE - init cache manager for current url
-    const cacheManager = _utils2.default.call(
-      void 0,
-      SSRHandlerParams.url,
-      viewsPath
-    )
+    const cacheManager = _utils2.default.call(void 0, SSRHandlerParams.url, viewsPath)
 
     // NOTE - get the true url to preview (for the point-to case)
     const urlToPreview = cacheManager.getCorrectUrl()
@@ -167,10 +122,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
     const startGenerating = Date.now()
 
     // NOTE - check this feature is needed
-    if (
-      _constants.SERVER_LESS &&
-      _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO
-    )
+    if (_constants.SERVER_LESS && _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO)
       fetchData(`${_InitEnv.PROCESS_ENV.BASE_URL}/cleaner-service`, {
         method: 'POST',
         headers: new Headers({
@@ -300,14 +252,11 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
                       return async () => {
                         let result
                         try {
-                          result = await _SSRHandlerworker2.default.call(
-                            void 0,
-                            {
-                              hasCache: NonNullableResult.available,
-                              ...SSRHandlerParams,
-                              url: cacheManager.getCorrectUrl(),
-                            }
-                          )
+                          result = await _SSRHandlerworker2.default.call(void 0, {
+                            hasCache: NonNullableResult.available,
+                            ...SSRHandlerParams,
+                            url: cacheManager.getCorrectUrl(),
+                          })
                         } catch (err) {
                           _ConsoleHandler2.default.error(err)
                         }
@@ -386,10 +335,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
     ) {
       result = await cacheManager.get()
 
-      const otherUrlList = _utils3.getOtherUrlsBaseOnDevice.call(
-        void 0,
-        SSRHandlerParams.url
-      )
+      const otherUrlList = _utils3.getOtherUrlsBaseOnDevice.call(void 0, SSRHandlerParams.url)
 
       if (otherUrlList && otherUrlList.length) {
         const ssrOtherUrls = otherUrlList.map((url) =>
@@ -403,10 +349,7 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
       }
 
       _ConsoleHandler2.default.log('Check for condition to create new page.')
-      _ConsoleHandler2.default.log(
-        'result.available',
-        _optionalChain([result, 'optionalAccess', (_7) => _7.available])
-      )
+      _ConsoleHandler2.default.log('result.available', _optionalChain([result, 'optionalAccess', _7 => _7.available]))
 
       if (result) {
         const NonNullableResult = result
@@ -479,43 +422,41 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
               }
             })
           else
-            _SSRHandlerworker2.default
-              .call(void 0, {
-                hasCache: NonNullableResult.available,
-                ...SSRHandlerParams,
-                url: cacheManager.getCorrectUrl(),
-              })
-              .finally(() => {
-                if (SSRHandlerParams.forceToCrawl) {
-                  totalRequestsWaitingToCrawl =
-                    totalRequestsWaitingToCrawl > 0
-                      ? totalRequestsWaitingToCrawl - 1
-                      : 0
-                } else {
-                  totalRequestsToCrawl =
-                    totalRequestsToCrawl > certainLimitRequestToCrawl
-                      ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
-                      : totalRequestsToCrawl - 1
-                  totalRequestsToCrawl =
-                    totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
-                }
+            _SSRHandlerworker2.default.call(void 0, {
+              hasCache: NonNullableResult.available,
+              ...SSRHandlerParams,
+              url: cacheManager.getCorrectUrl(),
+            }).finally(() => {
+              if (SSRHandlerParams.forceToCrawl) {
+                totalRequestsWaitingToCrawl =
+                  totalRequestsWaitingToCrawl > 0
+                    ? totalRequestsWaitingToCrawl - 1
+                    : 0
+              } else {
+                totalRequestsToCrawl =
+                  totalRequestsToCrawl > certainLimitRequestToCrawl
+                    ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
+                    : totalRequestsToCrawl - 1
+                totalRequestsToCrawl =
+                  totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
+              }
 
-                if (
-                  waitingToCrawlList.size &&
-                  totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
-                ) {
-                  resetTotalToCrawlTimeout()
-                  totalRequestsWaitingToCrawl++
-                  const nextCrawlItem = waitingToCrawlList.values().next().value
-                  waitingToCrawlList.delete(nextCrawlItem.url)
+              if (
+                waitingToCrawlList.size &&
+                totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
+              ) {
+                resetTotalToCrawlTimeout()
+                totalRequestsWaitingToCrawl++
+                const nextCrawlItem = waitingToCrawlList.values().next().value
+                waitingToCrawlList.delete(nextCrawlItem.url)
 
-                  SSRGenerator({
-                    isSkipWaiting: true,
-                    forceToCrawl: true,
-                    ...nextCrawlItem,
-                  })
-                }
-              })
+                SSRGenerator({
+                  isSkipWaiting: true,
+                  forceToCrawl: true,
+                  ...nextCrawlItem,
+                })
+              }
+            })
         }
       }
     } else if (
@@ -549,4 +490,4 @@ const SSRGenerator = async ({ isSkipWaiting = false, ...SSRHandlerParams }) => {
   return result
 }
 
-exports.default = SSRGenerator
+exports. default = SSRGenerator

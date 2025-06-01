@@ -1,73 +1,39 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _crypto = require('crypto')
-var _crypto2 = _interopRequireDefault(_crypto)
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _zlib = require('zlib')
-var _serverconfig = require('../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _crypto = require('crypto'); var _crypto2 = _interopRequireDefault(_crypto);
+var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _zlib = require('zlib');
+var _serverconfig = require('../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 
 // import { getPagesPath } from '../../../utils/PathHandler'
 
 // const pagesPath = getPagesPath()
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // export const regexKeyConverter =
 // 	/^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
-const regexKeyConverter =
-  /www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g
-exports.regexKeyConverter = regexKeyConverter
-const regexKeyConverterWithoutLocaleInfo =
-  /www\.|botInfo=([^&]*)|localeInfo=([^&]*)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g
-exports.regexKeyConverterWithoutLocaleInfo = regexKeyConverterWithoutLocaleInfo
+ const regexKeyConverter =
+  /www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)&renderingInfo=([^&]*)/g; exports.regexKeyConverter = regexKeyConverter
+ const regexKeyConverterWithoutLocaleInfo =
+  /www\.|botInfo=([^&]*)|localeInfo=([^&]*)|environmentInfo=([^&]*)|renderingInfo=([^&]*)|infoTxt=([^&]*)/g; exports.regexKeyConverterWithoutLocaleInfo = regexKeyConverterWithoutLocaleInfo
 
-const getKey = (url) => {
+ const getKey = (url) => {
   if (!url) return
 
-  const routeCustomInfo = _optionalChain([
-    _serverconfig2.default,
-    'access',
-    (_) => _.routes,
-    'access',
-    (_2) => _2.custom,
-    'optionalCall',
-    (_3) => _3(url),
-  ])
+  const routeCustomInfo = _optionalChain([_serverconfig2.default, 'access', _ => _.routes, 'access', _2 => _2.custom, 'optionalCall', _3 => _3(url)])
 
   if (
     routeCustomInfo &&
@@ -89,10 +55,9 @@ const getKey = (url) => {
     .replace(/(\?|\&)$/, '')
 
   return _crypto2.default.createHash('md5').update(url).digest('hex')
-}
-exports.getKey = getKey // getKey
+}; exports.getKey = getKey // getKey
 
-const getFileInfo = async (file) => {
+ const getFileInfo = async (file) => {
   if (!file) {
     _ConsoleHandler2.default.error('Need provide "file" param!')
     return
@@ -116,10 +81,9 @@ const getFileInfo = async (file) => {
   })
 
   return result
-}
-exports.getFileInfo = getFileInfo // getFileInfo
+}; exports.getFileInfo = getFileInfo // getFileInfo
 
-const setRequestTimeInfo = async (file, value) => {
+ const setRequestTimeInfo = async (file, value) => {
   if (!file || !_fs2.default.existsSync(file)) {
     _ConsoleHandler2.default.error('File does not exist!')
     return
@@ -138,26 +102,27 @@ const setRequestTimeInfo = async (file, value) => {
     const fd = _fs2.default.openSync(file, 'r')
     _fs2.default.futimesSync(
       fd,
-      value,
-      _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_4) => _4.updatedAt]),
-        () => new Date()
-      )
+      value ,
+      _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.updatedAt]), () => ( new Date()))
     )
     _fs2.default.close(fd)
     _ConsoleHandler2.default.log('File access time updated.')
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-}
-exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
+}; exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
 
-const maintainFile = _path2.default.resolve(
-  __dirname,
-  '../../../../503-maintain.html'
-)
+const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain.html')
 
-const get = async (url, cachePath, options) => {
+
+
+
+
+ const get = async (
+  url,
+  cachePath,
+  options
+) => {
   options = options || {
     autoCreateIfEmpty: true,
   }
@@ -223,7 +188,7 @@ const get = async (url, cachePath, options) => {
           ttRenderMs: 200,
           available: false,
           isInit: true,
-        }
+        } 
       }
     }
   }
@@ -238,29 +203,13 @@ const get = async (url, cachePath, options) => {
       file,
       response: maintainFile,
       status: 503,
-      createdAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_5) => _5.createdAt]),
-        () => curTime
-      ),
-      updatedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_6) => _6.updatedAt]),
-        () => curTime
-      ),
-      requestedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_7) => _7.requestedAt]),
-        () => curTime
-      ),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.requestedAt]), () => ( curTime)),
       ttRenderMs: 200,
       available: false,
       isInit:
-        Date.now() -
-          new Date(
-            _nullishCoalesce(
-              _optionalChain([info, 'optionalAccess', (_8) => _8.createdAt]),
-              () => curTime
-            )
-          ).getTime() >=
-        53000,
+        Date.now() - new Date(_nullishCoalesce(_optionalChain([info, 'optionalAccess', _8 => _8.createdAt]), () => ( curTime))).getTime() >= 53000,
       isRaw,
     }
   }
@@ -279,10 +228,9 @@ const get = async (url, cachePath, options) => {
     isInit: false,
     isRaw,
   }
-}
-exports.get = get // get
+}; exports.get = get // get
 
-const set = async (
+ const set = async (
   url,
   cachePath,
   { html, isRaw } = {
@@ -328,15 +276,15 @@ const set = async (
     }
   }
 
-  const result = (await exports.get.call(void 0, url, cachePath, {
-    autoCreateIfEmpty: false,
-  })) || { html, status: 200 }
+  const result =
+    (await exports.get.call(void 0, url, cachePath, {
+      autoCreateIfEmpty: false,
+    })) || ({ html, status: 200 } )
 
   return result
-}
-exports.set = set // set
+}; exports.set = set // set
 
-const renew = async (url, cachePath) => {
+ const renew = async (url, cachePath) => {
   if (!url) return _ConsoleHandler2.default.log('Url can not empty!')
   const key = exports.getKey.call(void 0, url)
   let hasRenew = true
@@ -366,10 +314,9 @@ const renew = async (url, cachePath) => {
   }
 
   return hasRenew
-}
-exports.renew = renew // renew
+}; exports.renew = renew // renew
 
-const remove = async (url, cachePath) => {
+ const remove = async (url, cachePath) => {
   if (!url) return _ConsoleHandler2.default.log('Url can not empty!')
   const key = exports.getKey.call(void 0, url)
 
@@ -396,10 +343,13 @@ const remove = async (url, cachePath) => {
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-}
-exports.remove = remove // remove
+}; exports.remove = remove // remove
 
-const rename = (url, cachePath, params) => {
+ const rename = (
+  url,
+  cachePath,
+  params
+) => {
   if (!url || !params) {
     _ConsoleHandler2.default.log('Url can not empty!')
     return
@@ -430,10 +380,9 @@ const rename = (url, cachePath, params) => {
       _ConsoleHandler2.default.error(err)
     }
   }
-}
-exports.rename = rename // rename
+}; exports.rename = rename // rename
 
-const isExist = (url, cachePath) => {
+ const isExist = (url, cachePath) => {
   if (!url) {
     _ConsoleHandler2.default.log('Url can not empty!')
     return false
@@ -446,10 +395,12 @@ const isExist = (url, cachePath) => {
     _fs2.default.existsSync(`${cachePath}/${key}.br`) ||
     _fs2.default.existsSync(`${cachePath}/${key}.renew.br`)
   )
-}
-exports.isExist = isExist // isExist
+}; exports.isExist = isExist // isExist
 
-const getStatus = (url, cachePath) => {
+ const getStatus = (
+  url,
+  cachePath
+) => {
   if (!url) {
     _ConsoleHandler2.default.log('Url can not empty!')
     return
@@ -465,5 +416,4 @@ const getStatus = (url, cachePath) => {
     default:
       return 'ok'
   }
-}
-exports.getStatus = getStatus // getStatus
+}; exports.getStatus = getStatus // getStatus

@@ -1,24 +1,25 @@
 {
-	"name": "lint-and-format-packages",
-	"version": "1.0.0",
-	"description": "lint-and-format-packages",
-	"main": "",
-	"scripts": {},
-	"author": "",
-	"license": "ISC",
-	"dependencies": {
-		"eslint": "9.19.0",
-		"eslint-config-airbnb": "19.0.4",
-		"eslint-config-airbnb-typescript": "18.0.0",
-		"@typescript-eslint/eslint-plugin": "8.26.1",
-		"@typescript-eslint/parser": "8.26.1",
-		"eslint-config-prettier": "10.1.1",
-		"eslint-import-resolver-custom-alias": "1.3.2",
-		"eslint-plugin-import": "2.31.0",
-		"eslint-plugin-jsx-a11y": "6.10.2",
-		"eslint-plugin-prettier": "5.2.3",
-		"eslint-plugin-react": "7.37.4",
-		"eslint-plugin-react-hooks": "5.2.0",
-		"espree": "10.3.0"
-	}
+  "name": "lint-and-format-packages",
+  "version": "1.0.0",
+  "description": "lint-and-format-packages",
+  "main": "",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "eslint": "9.19.0",
+    "eslint-config-airbnb": "19.0.4",
+    "eslint-config-airbnb-typescript": "18.0.0",
+    "@typescript-eslint/eslint-plugin": "8.26.1",
+    "@typescript-eslint/parser": "8.26.1",
+    "eslint-config-prettier": "10.1.1",
+    "eslint-import-resolver-custom-alias": "1.3.2",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-prettier": "5.2.3",
+    "eslint-plugin-react": "7.37.4",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "espree": "10.3.0",
+    "typescript-eslint": "^8.21.0"
+  }
 }

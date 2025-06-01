@@ -1,19 +1,10 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../InitEnv')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../InitEnv');
 
-const getPagesPath = () => {
+ const getPagesPath = () => {
   const pagesPath = _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
@@ -37,10 +28,7 @@ const getPagesPath = () => {
           '../../puppeteer-ssr/utils/Cache.worker/pages'
         )
       })()
-    : _path2.default.resolve(
-        __dirname,
-        '../../puppeteer-ssr/utils/Cache.worker/pages'
-      )
+    : _path2.default.resolve(__dirname, '../../puppeteer-ssr/utils/Cache.worker/pages')
 
   if (!_fs2.default.existsSync(pagesPath)) {
     try {
@@ -50,10 +38,7 @@ const getPagesPath = () => {
     }
   }
 
-  if (
-    _fs2.default.existsSync(pagesPath) &&
-    !_fs2.default.existsSync(`${pagesPath}/info`)
-  ) {
+  if (_fs2.default.existsSync(pagesPath) && !_fs2.default.existsSync(`${pagesPath}/info`)) {
     try {
       _fs2.default.mkdirSync(`${pagesPath}/info`)
     } catch (err) {
@@ -62,10 +47,9 @@ const getPagesPath = () => {
   }
 
   return pagesPath
-}
-exports.getPagesPath = getPagesPath // getPagesPath
+}; exports.getPagesPath = getPagesPath // getPagesPath
 
-const getViewsPath = () => {
+ const getViewsPath = () => {
   const viewsPath = _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
@@ -89,10 +73,7 @@ const getViewsPath = () => {
           '../../puppeteer-ssr/utils/Cache.worker/views'
         )
       })()
-    : _path2.default.resolve(
-        __dirname,
-        '../../puppeteer-ssr/utils/Cache.worker/views'
-      )
+    : _path2.default.resolve(__dirname, '../../puppeteer-ssr/utils/Cache.worker/views')
 
   if (!_fs2.default.existsSync(viewsPath)) {
     try {
@@ -102,10 +83,7 @@ const getViewsPath = () => {
     }
   }
 
-  if (
-    _fs2.default.existsSync(viewsPath) &&
-    !_fs2.default.existsSync(`${viewsPath}/info`)
-  ) {
+  if (_fs2.default.existsSync(viewsPath) && !_fs2.default.existsSync(`${viewsPath}/info`)) {
     try {
       _fs2.default.mkdirSync(`${viewsPath}/info`)
     } catch (err) {
@@ -114,10 +92,9 @@ const getViewsPath = () => {
   }
 
   return viewsPath
-}
-exports.getViewsPath = getViewsPath // getViewsPath
+}; exports.getViewsPath = getViewsPath // getViewsPath
 
-const getDataPath = () => {
+ const getDataPath = () => {
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
@@ -136,16 +113,12 @@ const getDataPath = () => {
 
         if (_fs2.default.existsSync(root)) return root + '/data'
 
-        return _path2.default.resolve(
-          __dirname,
-          '../../api/utils/CacheManager/data'
-        )
+        return _path2.default.resolve(__dirname, '../../api/utils/CacheManager/data')
       })()
     : _path2.default.resolve(__dirname, '../../api/utils/CacheManager/data')
-}
-exports.getDataPath = getDataPath // getDataPath
+}; exports.getDataPath = getDataPath // getDataPath
 
-const getStorePath = () => {
+ const getStorePath = () => {
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
@@ -164,16 +137,12 @@ const getStorePath = () => {
 
         if (_fs2.default.existsSync(root)) return root + '/store'
 
-        return _path2.default.resolve(
-          __dirname,
-          '../../api/utils/CacheManager/store'
-        )
+        return _path2.default.resolve(__dirname, '../../api/utils/CacheManager/store')
       })()
     : _path2.default.resolve(__dirname, '../../api/utils/CacheManager/store')
-}
-exports.getStorePath = getStorePath // getStorePath
+}; exports.getStorePath = getStorePath // getStorePath
 
-const getUserDataPath = () => {
+ const getUserDataPath = () => {
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         const tmpPath = '/tmp'
@@ -182,10 +151,9 @@ const getUserDataPath = () => {
         return _path2.default.resolve(__dirname, '../../puppeteer-ssr/browsers')
       })()
     : _path2.default.resolve(__dirname, '../../puppeteer-ssr/browsers')
-}
-exports.getUserDataPath = getUserDataPath // getUserDataPath
+}; exports.getUserDataPath = getUserDataPath // getUserDataPath
 
-const getWorkerManagerPath = () => {
+ const getWorkerManagerPath = () => {
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         const tmpPath = '/tmp'
@@ -194,5 +162,4 @@ const getWorkerManagerPath = () => {
         return _path2.default.resolve(__dirname, '../../utils/WorkerManager')
       })()
     : _path2.default.resolve(__dirname, '../../utils/WorkerManager')
-}
-exports.getWorkerManagerPath = getWorkerManagerPath // getWorkerManagerPath
+}; exports.getWorkerManagerPath = getWorkerManagerPath // getWorkerManagerPath

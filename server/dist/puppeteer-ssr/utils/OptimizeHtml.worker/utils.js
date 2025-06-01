@@ -1,43 +1,24 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _node = require('@minify-html/node')
-var _node2 = _interopRequireDefault(_node)
-var _zlib = require('zlib')
-var _constants = require('../../../constants')
-var _InitEnv = require('../../../utils/InitEnv')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _node = require('@minify-html/node'); var _node2 = _interopRequireDefault(_node);
+var _zlib = require('zlib');
+var _constants = require('../../../constants');
+var _InitEnv = require('../../../utils/InitEnv');
 
-var _constants3 = require('../../constants')
 
-const compressContent = async (html) => {
+
+
+
+
+
+
+
+
+var _constants3 = require('../../constants');
+
+ const compressContent = async (html) => {
   if (!html || _InitEnv.PROCESS_ENV.DISABLE_COMPRESS) return html
 
   if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) {
-    if (Buffer.isBuffer(html))
-      html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+    if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
     return html
   }
@@ -47,11 +28,11 @@ const compressContent = async (html) => {
   if (_InitEnv.ENV !== 'development') {
     try {
       if (Buffer.isBuffer(html)) {
-        tmpHTML = await _node2.default.minify(tmpHTML, {}).toString()
-      } else {
         tmpHTML = await _node2.default
-          .minify(Buffer.from(tmpHTML), {})
+          .minify(tmpHTML , {})
           .toString()
+      } else {
+        tmpHTML = await _node2.default.minify(Buffer.from(tmpHTML), {}).toString()
       }
     } catch (err) {
       return html
@@ -59,15 +40,16 @@ const compressContent = async (html) => {
   }
 
   return tmpHTML
-}
-exports.compressContent = compressContent // compressContent
+}; exports.compressContent = compressContent // compressContent
 
-const optimizeContent = async (html, isFullOptimize = false) => {
+ const optimizeContent = async (
+  html,
+  isFullOptimize = false
+) => {
   if (!html) return html
   // console.log('start optimize')
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   html = html.replace(_constants3.regexRemoveScriptTag, '')
   html = html.replace(_constants3.regexRemoveSpecialTag, '')
@@ -78,60 +60,42 @@ const optimizeContent = async (html, isFullOptimize = false) => {
     try {
       tmpHTML = tmpHTML
         .replace(_constants3.regexFullOptimizeBody, '')
-        .replace(
-          _constants3.regexHandleAttrsHtmlTag,
-          (match, tag, curAttrs) => {
-            let newAttrs = curAttrs
+        .replace(_constants3.regexHandleAttrsHtmlTag, (match, tag, curAttrs) => {
+          let newAttrs = curAttrs
 
-            if (!newAttrs.includes('lang')) {
-              newAttrs = `lang="en"`
-            }
-
-            return `<html ${newAttrs}>`
+          if (!newAttrs.includes('lang')) {
+            newAttrs = `lang="en"`
           }
-        )
-        .replace(
-          _constants3.regexHandleAttrsImageTag,
-          (match, tag, curAttrs) => {
-            const alt = _optionalChain([
-              /alt=("|'|)(?<alt>[^"']+)("|'|)+(\s|$)/g,
-              'access',
-              (_) => _.exec,
-              'call',
-              (_2) => _2(curAttrs),
-              'optionalAccess',
-              (_3) => _3.groups,
-              'optionalAccess',
-              (_4) => _4.alt,
-              'optionalAccess',
-              (_5) => _5.trim,
-              'call',
-              (_6) => _6(),
-            ])
 
-            if (!alt) return ''
+          return `<html ${newAttrs}>`
+        })
+        .replace(_constants3.regexHandleAttrsImageTag, (match, tag, curAttrs) => {
+          const alt = _optionalChain([/alt=("|'|)(?<alt>[^"']+)("|'|)+(\s|$)/g
+, 'access', _ => _.exec, 'call', _2 => _2(curAttrs)
+, 'optionalAccess', _3 => _3.groups, 'optionalAccess', _4 => _4.alt, 'optionalAccess', _5 => _5.trim, 'call', _6 => _6()])
 
-            let newAttrs = (
-              curAttrs.includes('seo-tag')
-                ? curAttrs
-                : curAttrs.replace(
-                    /(?<srcAttr>(src|srcset))=("|'|)(.*?)("|'|)+(\s|$)/g,
-                    '$<srcAttr> '
-                  )
-            ).trim()
+          if (!alt) return ''
 
-            switch (true) {
-              case !newAttrs.includes('height='):
-                newAttrs = `height="200" ${newAttrs}`
-              case !newAttrs.includes('width='):
-                newAttrs = `width="150" ${newAttrs}`
-              default:
-                break
-            }
+          let newAttrs = (
+            curAttrs.includes('seo-tag')
+              ? curAttrs
+              : curAttrs.replace(
+                  /(?<srcAttr>(src|srcset))=("|'|)(.*?)("|'|)+(\s|$)/g,
+                  '$<srcAttr> '
+                )
+          ).trim()
 
-            return `<img ${newAttrs}>`
+          switch (true) {
+            case !newAttrs.includes('height='):
+              newAttrs = `height="200" ${newAttrs}`
+            case !newAttrs.includes('width='):
+              newAttrs = `width="150" ${newAttrs}`
+            default:
+              break
           }
-        )
+
+          return `<img ${newAttrs}>`
+        })
         .replace(
           _constants3.regexHandleAttrsInteractiveTag,
           (math, tag, curAttrs, negative, content, endTag) => {
@@ -161,17 +125,9 @@ const optimizeContent = async (html, isFullOptimize = false) => {
 
             switch (true) {
               case newTag === 'a':
-                const href = _optionalChain([
-                  /href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g,
-                  'access',
-                  (_7) => _7.exec,
-                  'call',
-                  (_8) => _8(curAttrs),
-                  'optionalAccess',
-                  (_9) => _9.groups,
-                  'optionalAccess',
-                  (_10) => _10.href,
-                ])
+                const href = _optionalChain([/href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g, 'access', _7 => _7.exec, 'call', _8 => _8(
+                  curAttrs
+                ), 'optionalAccess', _9 => _9.groups, 'optionalAccess', _10 => _10.href])
                 tmpContent = tmpContent.replace(
                   /[Cc]lick here|[Cc]lick this|[Gg]o|[Hh]ere|[Tt]his|[Ss]tart|[Rr]ight here|[Mm]ore|[Ll]earn more/g,
                   ''
@@ -185,17 +141,10 @@ const optimizeContent = async (html, isFullOptimize = false) => {
                   tmpContent = `${tmpContentWithTrim} ${href}`
 
                 if (curAttrs.includes('aria-label=')) {
-                  const ariaLabel = _optionalChain([
-                    /aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
-                    'access',
-                    (_11) => _11.exec,
-                    'call',
-                    (_12) => _12(curAttrs),
-                    'optionalAccess',
-                    (_13) => _13.groups,
-                    'optionalAccess',
-                    (_14) => _14.ariaLabel,
-                  ])
+                  const ariaLabel =
+                    _optionalChain([/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g, 'access', _11 => _11.exec, 'call', _12 => _12(
+                      curAttrs
+                    ), 'optionalAccess', _13 => _13.groups, 'optionalAccess', _14 => _14.ariaLabel])
 
                   if (ariaLabel !== tmpContent)
                     newAttrs = curAttrs.replace(
@@ -215,17 +164,10 @@ const optimizeContent = async (html, isFullOptimize = false) => {
                   newAttrs = `type="button" ${newAttrs}`
 
                 if (curAttrs.includes('aria-label=')) {
-                  const ariaLabel = _optionalChain([
-                    /aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
-                    'access',
-                    (_15) => _15.exec,
-                    'call',
-                    (_16) => _16(curAttrs),
-                    'optionalAccess',
-                    (_17) => _17.groups,
-                    'optionalAccess',
-                    (_18) => _18.ariaLabel,
-                  ])
+                  const ariaLabel =
+                    _optionalChain([/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g, 'access', _15 => _15.exec, 'call', _16 => _16(
+                      curAttrs
+                    ), 'optionalAccess', _17 => _17.groups, 'optionalAccess', _18 => _18.ariaLabel])
 
                   tmpContent = ariaLabel
                 } else {
@@ -260,50 +202,42 @@ const optimizeContent = async (html, isFullOptimize = false) => {
 
     return tmpHTML
   }
-}
-exports.optimizeContent = optimizeContent // optimizeContent
+}; exports.optimizeContent = optimizeContent // optimizeContent
 
-const scriptOptimizeContent = async (html) => {
+ const scriptOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   html = html.replace(_constants3.regexRemoveScriptTag, '')
 
   return html
-}
-exports.scriptOptimizeContent = scriptOptimizeContent // scriptOptimizeContent
+}; exports.scriptOptimizeContent = scriptOptimizeContent // scriptOptimizeContent
 
-const styleOptimizeContent = async (html) => {
+ const styleOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   html = html.replace(_constants3.regexRemoveStyleTag, '')
 
   return html
-}
-exports.styleOptimizeContent = styleOptimizeContent // styleOptimizeContent
+}; exports.styleOptimizeContent = styleOptimizeContent // styleOptimizeContent
 
-const lowOptimizeContent = async (html) => {
+ const lowOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   html = html.replace(_constants3.regexLowOptimize, '')
 
   return html
-}
-exports.lowOptimizeContent = lowOptimizeContent // lowOptimizeContent
+}; exports.lowOptimizeContent = lowOptimizeContent // lowOptimizeContent
 
-const shallowOptimizeContent = async (html) => {
+ const shallowOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   html = html
     .replace(_constants3.regexShallowOptimize, '')
@@ -317,21 +251,9 @@ const shallowOptimizeContent = async (html) => {
       return `<html ${newAttrs}>`
     })
     .replace(_constants3.regexHandleAttrsImageTag, (match, tag, curAttrs) => {
-      const alt = _optionalChain([
-        /alt=("|'|)(?<alt>[^"']+)("|'|)+(\s|$)/g,
-        'access',
-        (_19) => _19.exec,
-        'call',
-        (_20) => _20(curAttrs),
-        'optionalAccess',
-        (_21) => _21.groups,
-        'optionalAccess',
-        (_22) => _22.alt,
-        'optionalAccess',
-        (_23) => _23.trim,
-        'call',
-        (_24) => _24(),
-      ])
+      const alt = _optionalChain([/alt=("|'|)(?<alt>[^"']+)("|'|)+(\s|$)/g
+, 'access', _19 => _19.exec, 'call', _20 => _20(curAttrs)
+, 'optionalAccess', _21 => _21.groups, 'optionalAccess', _22 => _22.alt, 'optionalAccess', _23 => _23.trim, 'call', _24 => _24()])
 
       if (!alt) return ''
 
@@ -392,14 +314,12 @@ const shallowOptimizeContent = async (html) => {
     )
 
   return html
-}
-exports.shallowOptimizeContent = shallowOptimizeContent // shallowOptimizeContent
+}; exports.shallowOptimizeContent = shallowOptimizeContent // shallowOptimizeContent
 
-const deepOptimizeContent = async (html) => {
+ const deepOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html))
-    html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
 
   let tmpHTML = html
   try {
@@ -414,17 +334,8 @@ const deepOptimizeContent = async (html) => {
 
         switch (true) {
           case newTag === 'a':
-            const href = _optionalChain([
-              /href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g,
-              'access',
-              (_25) => _25.exec,
-              'call',
-              (_26) => _26(curAttrs),
-              'optionalAccess',
-              (_27) => _27.groups,
-              'optionalAccess',
-              (_28) => _28.href,
-            ])
+            const href = _optionalChain([/href=("|'|)(?<href>.*?)("|'|)+(\s|$)/g, 'access', _25 => _25.exec, 'call', _26 => _26(curAttrs)
+, 'optionalAccess', _27 => _27.groups, 'optionalAccess', _28 => _28.href])
             tmpContent = tmpContent.replace(
               /[Cc]lick here|[Cc]lick this|[Gg]o|[Hh]ere|[Tt]his|[Ss]tart|[Rr]ight here|[Mm]ore|[Ll]earn more/g,
               ''
@@ -438,17 +349,10 @@ const deepOptimizeContent = async (html) => {
               tmpContent = `${tmpContentWithTrim} ${href}`
 
             if (curAttrs.includes('aria-label=')) {
-              const ariaLabel = _optionalChain([
-                /aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
-                'access',
-                (_29) => _29.exec,
-                'call',
-                (_30) => _30(curAttrs),
-                'optionalAccess',
-                (_31) => _31.groups,
-                'optionalAccess',
-                (_32) => _32.ariaLabel,
-              ])
+              const ariaLabel =
+                _optionalChain([/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g, 'access', _29 => _29.exec, 'call', _30 => _30(
+                  curAttrs
+                ), 'optionalAccess', _31 => _31.groups, 'optionalAccess', _32 => _32.ariaLabel])
 
               if (ariaLabel !== tmpContent)
                 newAttrs = curAttrs.replace(
@@ -468,17 +372,10 @@ const deepOptimizeContent = async (html) => {
               newAttrs = `type="button" ${newAttrs}`
 
             if (curAttrs.includes('aria-label=')) {
-              const ariaLabel = _optionalChain([
-                /aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g,
-                'access',
-                (_33) => _33.exec,
-                'call',
-                (_34) => _34(curAttrs),
-                'optionalAccess',
-                (_35) => _35.groups,
-                'optionalAccess',
-                (_36) => _36.ariaLabel,
-              ])
+              const ariaLabel =
+                _optionalChain([/aria-label=("|'|)(?<ariaLabel>[^"']+)("|'|)+(\s|$)/g, 'access', _33 => _33.exec, 'call', _34 => _34(
+                  curAttrs
+                ), 'optionalAccess', _35 => _35.groups, 'optionalAccess', _36 => _36.ariaLabel])
 
               tmpContent = ariaLabel
             } else {
@@ -512,5 +409,4 @@ const deepOptimizeContent = async (html) => {
   }
 
   return tmpHTML
-}
-exports.deepOptimizeContent = deepOptimizeContent // deepOptimizeContent
+}; exports.deepOptimizeContent = deepOptimizeContent // deepOptimizeContent

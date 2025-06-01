@@ -1,57 +1,32 @@
-'use strict'
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _fsextra = require('fs-extra')
-var _fsextra2 = _interopRequireDefault(_fsextra)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _workerpool = require('workerpool')
-var _workerpool2 = _interopRequireDefault(_workerpool)
+"use strict"; function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _fsextra = require('fs-extra'); var _fsextra2 = _interopRequireDefault(_fsextra);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _workerpool = require('workerpool'); var _workerpool2 = _interopRequireDefault(_workerpool);
 
-var _zlib = require('zlib')
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _FileHandler = require('../FileHandler')
-var _utils = require('./utils')
+var _zlib = require('zlib');
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _FileHandler = require('../FileHandler');
+var _utils = require('./utils');
+
+
+
+
+
+
+
+
+
 
 const deleteResource = (path) => {
   _utils.deleteResource.call(void 0, path)
 } //  deleteResource
 
-const copyResource = (path, targetPath, opts) => {
+const copyResource = (
+  path,
+  targetPath,
+  opts
+) => {
   try {
     _fsextra2.default.emptyDirSync(targetPath)
     _fsextra2.default.copySync(path, targetPath)
@@ -86,7 +61,17 @@ const getFileInfo = async (file) => {
   return result
 } // getFileInfo
 
-const checkToCleanFile = async (file, { schedule, validRequestAtDuration }) => {
+
+
+
+
+
+
+
+const checkToCleanFile = async (
+  file,
+  { schedule, validRequestAtDuration }
+) => {
   if (!file) {
     _ConsoleHandler2.default.error('Need provide "file" to delete!')
     return false
@@ -98,7 +83,8 @@ const checkToCleanFile = async (file, { schedule, validRequestAtDuration }) => {
     file = _fs2.default.existsSync(file) ? file : file.replace('.raw', '')
     if (_fs2.default.existsSync(file)) {
       const info = await getFileInfo(file)
-      validRequestAtDuration = validRequestAtDuration || schedule / 2
+      validRequestAtDuration =
+        validRequestAtDuration || (schedule ) / 2
 
       if (!info) {
         // WorkerPool.pool().terminate()
@@ -128,11 +114,15 @@ const checkToCleanFile = async (file, { schedule, validRequestAtDuration }) => {
     }
   })
 
-  return result
+  return result 
   // WorkerPool.pool().terminate()
 } // checkToCleanFile
 
-const scanToCleanBrowsers = async (dirPath, expiredTime = 1, browserStore) => {
+const scanToCleanBrowsers = async (
+  dirPath,
+  expiredTime = 1,
+  browserStore
+) => {
   if (_fs2.default.existsSync(dirPath)) {
     let browserList
 
@@ -162,8 +152,7 @@ const scanToCleanBrowsers = async (dirPath, expiredTime = 1, browserStore) => {
       }
 
       const dirExistTimeInMinutes =
-        (Date.now() -
-          new Date(_fs2.default.statSync(absolutePath).mtime).getTime()) /
+        (Date.now() - new Date(_fs2.default.statSync(absolutePath).mtime).getTime()) /
         60000
 
       if (dirExistTimeInMinutes >= expiredTime) {
@@ -192,30 +181,17 @@ const scanToCleanPages = (dirPath) => {
     for (const file of pageList) {
       if (file === 'info') continue
 
-      const infoFilePath = _path2.default.join(
-        dirPath,
-        `/info/${file.split('.')[0]}.txt`
-      )
+      const infoFilePath = _path2.default.join(dirPath, `/info/${file.split('.')[0]}.txt`)
       const url = _FileHandler.getTextData.call(void 0, infoFilePath)
 
       if (!url) continue
 
       const urlInfo = new URL(url)
 
-      const cacheOption = _nullishCoalesce(
-        _nullishCoalesce(
-          _optionalChain([
-            _serverconfig2.default,
-            'access',
-            (_) => _.crawl,
-            'access',
-            (_2) => _2.custom,
-            'optionalCall',
-            (_3) => _3(url),
-          ]),
-          () => _serverconfig2.default.crawl.routes[urlInfo.pathname]
-        ),
-        () => _serverconfig2.default.crawl
+      const cacheOption = (
+        _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _ => _.crawl, 'access', _2 => _2.custom, 'optionalCall', _3 => _3(url)]), () => (
+        _serverconfig2.default.crawl.routes[urlInfo.pathname])), () => (
+        _serverconfig2.default.crawl))
       ).cache
 
       const expiredTime = cacheOption.time
@@ -226,8 +202,7 @@ const scanToCleanPages = (dirPath) => {
 
       const cacheFilePath = _path2.default.join(dirPath, file)
       const dirExistTimeInMinutes =
-        (Date.now() -
-          new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
+        (Date.now() - new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
         1000
 
       if (dirExistTimeInMinutes >= expiredTime) {
@@ -247,7 +222,12 @@ const scanToCleanPages = (dirPath) => {
   // }
 } // scanToCleanPages
 
-const scanToCleanViews = (dirPath, options) => {
+const scanToCleanViews = (
+  dirPath,
+  options
+
+
+) => {
   if (_fs2.default.existsSync(dirPath)) {
     let viewList
 
@@ -266,51 +246,19 @@ const scanToCleanViews = (dirPath, options) => {
     for (const file of viewList) {
       if (file.endsWith('--loader.br') || file === 'info') continue
 
-      const infoFilePath = _path2.default.join(
-        dirPath,
-        `/info/${file.split('.')[0]}.txt`
-      )
+      const infoFilePath = _path2.default.join(dirPath, `/info/${file.split('.')[0]}.txt`)
       const url = _FileHandler.getTextData.call(void 0, infoFilePath)
 
       if (!url) continue
 
       const urlInfo = new URL(url)
 
-      const routeOptions = _nullishCoalesce(
-        _nullishCoalesce(
-          _optionalChain([
-            _serverconfig2.default,
-            'access',
-            (_4) => _4.routes,
-            'access',
-            (_5) => _5.list,
-            'optionalAccess',
-            (_6) => _6[urlInfo.pathname],
-          ]),
-          () =>
-            _optionalChain([
-              _serverconfig2.default,
-              'access',
-              (_7) => _7.routes,
-              'access',
-              (_8) => _8.custom,
-              'optionalCall',
-              (_9) => _9(url),
-            ])
-        ),
-        () =>
-          _optionalChain([
-            _serverconfig2.default.routes,
-            'optionalAccess',
-            (_10) => _10.preview,
-          ])
-      )
+      const routeOptions =
+        _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _4 => _4.routes, 'access', _5 => _5.list, 'optionalAccess', _6 => _6[urlInfo.pathname]]), () => (
+        _optionalChain([_serverconfig2.default, 'access', _7 => _7.routes, 'access', _8 => _8.custom, 'optionalCall', _9 => _9(url)]))), () => (
+        _optionalChain([(_serverconfig2.default.routes ), 'optionalAccess', _10 => _10.preview])))
 
-      const expiredTime = _optionalChain([
-        routeOptions.preview || routeOptions.pointsTo,
-        'optionalAccess',
-        (_11) => _11.time,
-      ])
+      const expiredTime = _optionalChain([(routeOptions.preview || routeOptions.pointsTo), 'optionalAccess', _11 => _11.time])
 
       if (!expiredTime || expiredTime === 'infinite') {
         continue
@@ -318,8 +266,7 @@ const scanToCleanViews = (dirPath, options) => {
 
       const cacheFilePath = _path2.default.join(dirPath, file)
       const dirExistTimeInMinutes =
-        (Date.now() -
-          new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
+        (Date.now() - new Date(_fs2.default.statSync(cacheFilePath).atime).getTime()) /
         1000
 
       if (
@@ -375,15 +322,12 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           if (!_fs2.default.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
-          if (!_optionalChain([fileInfo, 'optionalAccess', (_12) => _12.size]))
-            continue
+          if (!_optionalChain([fileInfo, 'optionalAccess', _12 => _12.size])) continue
 
           const fileContent = (() => {
             const tmpContent = _fs2.default.readFileSync(absolutePath)
 
-            return JSON.parse(
-              _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
-            )
+            return JSON.parse(_zlib.brotliDecompressSync.call(void 0, tmpContent).toString())
           })()
 
           const expiredTime = fileContent.cache
@@ -454,8 +398,7 @@ const scanToCleanAPIStoreCache = async (dirPath) => {
           if (!_fs2.default.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
-          if (!_optionalChain([fileInfo, 'optionalAccess', (_13) => _13.size]))
-            continue
+          if (!_optionalChain([fileInfo, 'optionalAccess', _13 => _13.size])) continue
 
           if (curTime - new Date(fileInfo.requestedAt).getTime() >= 300000) {
             if (timeout) clearTimeout(timeout)

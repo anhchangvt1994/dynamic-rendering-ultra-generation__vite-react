@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
     ],
     css: {
       postcss: {
-        plugins: [autoprefixer, postcssSimpleVars],
+        plugins: [autoprefixer, postcssSimpleVars()],
       },
     },
     resolve: {

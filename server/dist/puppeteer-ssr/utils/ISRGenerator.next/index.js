@@ -1,53 +1,27 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 
-var _constants = require('../../../constants')
-var _serverconfig = require('../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../../../utils/InitEnv')
-var _PathHandler = require('../../../utils/PathHandler')
 
-var _ISRHandlerworker = require('../ISRHandler.worker')
-var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
 
-var _utils = require('../SSRGenerator.next/utils')
-var _utils3 = require('./CacheManager.worker/utils')
-var _utils4 = _interopRequireDefault(_utils3)
+var _constants = require('../../../constants');
+var _serverconfig = require('../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../../utils/InitEnv');
+var _PathHandler = require('../../../utils/PathHandler');
 
-const pagesPath = _PathHandler.getPagesPath.call(void 0)
+var _ISRHandlerworker = require('../ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
+
+
+
+var _utils = require('../SSRGenerator.next/utils');
+var _utils3 = require('./CacheManager.worker/utils'); var _utils4 = _interopRequireDefault(_utils3);
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0, )
+
+
+
+
+
+
 
 const limitRequestToCrawl = _serverconfig2.default.crawl.limit
 let totalRequestsToCrawl = 0
@@ -63,8 +37,7 @@ const resetTotalToCrawlTimeout = (() => {
   }
 })()
 const waitingToCrawlList = new Map()
-const limitRequestWaitingToCrawl =
-  _serverconfig2.default.crawl.limit === 4 ? 2 : 1
+const limitRequestWaitingToCrawl = _serverconfig2.default.crawl.limit === 4 ? 2 : 1
 let totalRequestsWaitingToCrawl = 0
 
 const getCertainLimitRequestToCrawl = (() => {
@@ -78,7 +51,11 @@ const getCertainLimitRequestToCrawl = (() => {
   }
 })() // getCertainLimitRequestToCrawl
 
-const fetchData = async (input, init, reqData) => {
+const fetchData = async (
+  input,
+  init,
+  reqData
+) => {
   try {
     const params = new URLSearchParams()
     if (reqData) {
@@ -100,12 +77,11 @@ const fetchData = async (input, init, reqData) => {
   }
 } // fetchData
 
-const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
-  const cacheManager = _utils4.default.call(
-    void 0,
-    ISRHandlerParams.url,
-    pagesPath
-  )
+const ISRGenerator = async ({
+  isSkipWaiting = false,
+  ...ISRHandlerParams
+}) => {
+  const cacheManager = _utils4.default.call(void 0, ISRHandlerParams.url, pagesPath)
   if (!_InitEnv.PROCESS_ENV.BASE_URL) {
     _ConsoleHandler2.default.error('Missing base url!')
     return
@@ -122,10 +98,7 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
 
   const startGenerating = Date.now()
 
-  if (
-    _constants.SERVER_LESS &&
-    _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO
-  )
+  if (_constants.SERVER_LESS && _constants.BANDWIDTH_LEVEL === _constants.BANDWIDTH_LEVEL_LIST.TWO)
     fetchData(`${_InitEnv.PROCESS_ENV.BASE_URL}/cleaner-service`, {
       method: 'POST',
       headers: new Headers({
@@ -148,20 +121,10 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
     const NonNullableResult = result
     const pathname = new URL(ISRHandlerParams.url).pathname
 
-    const cacheOption = _nullishCoalesce(
-      _nullishCoalesce(
-        _optionalChain([
-          _serverconfig2.default,
-          'access',
-          (_) => _.crawl,
-          'access',
-          (_2) => _2.custom,
-          'optionalCall',
-          (_3) => _3(ISRHandlerParams.url),
-        ]),
-        () => _serverconfig2.default.crawl.routes[pathname]
-      ),
-      () => _serverconfig2.default.crawl
+    const cacheOption = (
+      _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _ => _.crawl, 'access', _2 => _2.custom, 'optionalCall', _3 => _3(ISRHandlerParams.url)]), () => (
+      _serverconfig2.default.crawl.routes[pathname])), () => (
+      _serverconfig2.default.crawl))
     ).cache
 
     if (cacheOption.renewTime !== 'infinite') {
@@ -351,10 +314,7 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
     result = await cacheManager.get()
 
     _ConsoleHandler2.default.log('Check for condition to create new page.')
-    _ConsoleHandler2.default.log(
-      'result.available',
-      _optionalChain([result, 'optionalAccess', (_4) => _4.available])
-    )
+    _ConsoleHandler2.default.log('result.available', _optionalChain([result, 'optionalAccess', _4 => _4.available]))
 
     if (result) {
       const NonNullableResult = result
@@ -429,45 +389,41 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
                 }
               })
             else
-              return _ISRHandlerworker2.default
-                .call(void 0, {
-                  startGenerating,
-                  hasCache: NonNullableResult.available,
-                  ...ISRHandlerParams,
-                })
-                .finally(() => {
-                  if (ISRHandlerParams.forceToCrawl) {
-                    totalRequestsWaitingToCrawl =
-                      totalRequestsWaitingToCrawl > 0
-                        ? totalRequestsWaitingToCrawl - 1
-                        : 0
-                  } else {
-                    totalRequestsToCrawl =
-                      totalRequestsToCrawl > certainLimitRequestToCrawl
-                        ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
-                        : totalRequestsToCrawl - 1
-                    totalRequestsToCrawl =
-                      totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
-                  }
+              return _ISRHandlerworker2.default.call(void 0, {
+                startGenerating,
+                hasCache: NonNullableResult.available,
+                ...ISRHandlerParams,
+              }).finally(() => {
+                if (ISRHandlerParams.forceToCrawl) {
+                  totalRequestsWaitingToCrawl =
+                    totalRequestsWaitingToCrawl > 0
+                      ? totalRequestsWaitingToCrawl - 1
+                      : 0
+                } else {
+                  totalRequestsToCrawl =
+                    totalRequestsToCrawl > certainLimitRequestToCrawl
+                      ? totalRequestsToCrawl - certainLimitRequestToCrawl - 1
+                      : totalRequestsToCrawl - 1
+                  totalRequestsToCrawl =
+                    totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
+                }
 
-                  if (
-                    waitingToCrawlList.size &&
-                    totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
-                  ) {
-                    resetTotalToCrawlTimeout()
-                    totalRequestsWaitingToCrawl++
-                    const nextCrawlItem = waitingToCrawlList
-                      .values()
-                      .next().value
-                    waitingToCrawlList.delete(nextCrawlItem.url)
+                if (
+                  waitingToCrawlList.size &&
+                  totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
+                ) {
+                  resetTotalToCrawlTimeout()
+                  totalRequestsWaitingToCrawl++
+                  const nextCrawlItem = waitingToCrawlList.values().next().value
+                  waitingToCrawlList.delete(nextCrawlItem.url)
 
-                    ISRGenerator({
-                      isSkipWaiting: true,
-                      forceToCrawl: true,
-                      ...nextCrawlItem,
-                    })
-                  }
-                })
+                  ISRGenerator({
+                    isSkipWaiting: true,
+                    forceToCrawl: true,
+                    ...nextCrawlItem,
+                  })
+                }
+              })
           })()
 
           if (isSkipWaiting) return res(undefined)
@@ -476,8 +432,7 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
               res,
               _constants.SERVER_LESS
                 ? 5000
-                : _constants.BANDWIDTH_LEVEL >
-                    _constants.BANDWIDTH_LEVEL_LIST.ONE
+                : _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE
                   ? 60000
                   : 60000
             )
@@ -548,4 +503,4 @@ const ISRGenerator = async ({ isSkipWaiting = false, ...ISRHandlerParams }) => {
   return result
 }
 
-exports.default = ISRGenerator
+exports. default = ISRGenerator

@@ -1,14 +1,18 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 
-var _utils = require('../Cache.worker/utils')
+
+
+
+
+
+
+
+
+
+
+
+var _utils = require('../Cache.worker/utils');
 
 const CacheManager = (url, cachePath) => {
   const get = async () => {
@@ -138,4 +142,4 @@ const CacheManager = (url, cachePath) => {
   }
 }
 
-exports.default = CacheManager
+exports. default = CacheManager

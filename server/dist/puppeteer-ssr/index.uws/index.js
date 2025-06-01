@@ -1,73 +1,32 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 
-var _zlib = require('zlib')
+var _zlib = require('zlib');
 
-var _utils = require('../../api/utils/CacheManager/utils')
-var _constants = require('../../constants')
-var _DetectBot = require('../../middlewares/uws/DetectBot')
-var _DetectBot2 = _interopRequireDefault(_DetectBot)
-var _DetectDevice = require('../../middlewares/uws/DetectDevice')
-var _DetectDevice2 = _interopRequireDefault(_DetectDevice)
-var _DetectLocale = require('../../middlewares/uws/DetectLocale')
-var _DetectLocale2 = _interopRequireDefault(_DetectLocale)
-var _DetectRedirect = require('../../middlewares/uws/DetectRedirect')
-var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect)
-var _DetectStatic = require('../../middlewares/uws/DetectStatic')
-var _DetectStatic2 = _interopRequireDefault(_DetectStatic)
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
 
-var _CleanerService = require('../../utils/CleanerService')
-var _CleanerService2 = _interopRequireDefault(_CleanerService)
-var _ConsoleHandler = require('../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../../utils/InitEnv')
-var _StringHelper = require('../../utils/StringHelper')
 
-var _FormatUrluws = require('../utils/FormatUrl.uws')
-var _ISRGeneratornext = require('../utils/ISRGenerator.next')
-var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext)
-var _ISRHandlerworker = require('../utils/ISRHandler.worker')
-var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
-var _SSRGeneratornext = require('../utils/SSRGenerator.next')
-var _SSRGeneratornext2 = _interopRequireDefault(_SSRGeneratornext)
-var _utils3 = require('./utils')
+var _utils = require('../../api/utils/CacheManager/utils');
+var _constants = require('../../constants');
+var _DetectBot = require('../../middlewares/uws/DetectBot'); var _DetectBot2 = _interopRequireDefault(_DetectBot);
+var _DetectDevice = require('../../middlewares/uws/DetectDevice'); var _DetectDevice2 = _interopRequireDefault(_DetectDevice);
+var _DetectLocale = require('../../middlewares/uws/DetectLocale'); var _DetectLocale2 = _interopRequireDefault(_DetectLocale);
+var _DetectRedirect = require('../../middlewares/uws/DetectRedirect'); var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect);
+var _DetectStatic = require('../../middlewares/uws/DetectStatic'); var _DetectStatic2 = _interopRequireDefault(_DetectStatic);
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+
+var _CleanerService = require('../../utils/CleanerService'); var _CleanerService2 = _interopRequireDefault(_CleanerService);
+var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../utils/InitEnv');
+var _StringHelper = require('../../utils/StringHelper');
+
+
+
+
+var _FormatUrluws = require('../utils/FormatUrl.uws');
+var _ISRGeneratornext = require('../utils/ISRGenerator.next'); var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext);
+var _ISRHandlerworker = require('../utils/ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
+var _SSRGeneratornext = require('../utils/SSRGenerator.next'); var _SSRGeneratornext2 = _interopRequireDefault(_SSRGeneratornext);
+var _utils3 = require('./utils');
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
@@ -207,13 +166,7 @@ const puppeteerSSRService = (async () => {
       _DetectBot2.default.call(void 0, res, req)
       _DetectLocale2.default.call(void 0, res, req)
 
-      const botInfo = _optionalChain([
-        res,
-        'access',
-        (_) => _.cookies,
-        'optionalAccess',
-        (_2) => _2.botInfo,
-      ])
+      const botInfo = _optionalChain([res, 'access', _ => _.cookies, 'optionalAccess', _2 => _2.botInfo])
 
       // NOTE - Check redirect or not
       const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
@@ -232,21 +185,12 @@ const puppeteerSSRService = (async () => {
       const { enableToCrawl, enableToCache } = (() => {
         const url = _FormatUrluws.getUrl.call(void 0, res, req)
         let enableToCrawl = _serverconfig2.default.crawl.enable
-        let enableToCache =
-          enableToCrawl && _serverconfig2.default.crawl.cache.enable
+        let enableToCache = enableToCrawl && _serverconfig2.default.crawl.cache.enable
 
         const crawlOptionPerRoute =
           _serverconfig2.default.crawl.routes[req.getUrl()] ||
           _serverconfig2.default.crawl.routes[res.urlForCrawler] ||
-          _optionalChain([
-            _serverconfig2.default,
-            'access',
-            (_3) => _3.crawl,
-            'access',
-            (_4) => _4.custom,
-            'optionalCall',
-            (_5) => _5(url),
-          ])
+          _optionalChain([_serverconfig2.default, 'access', _3 => _3.crawl, 'access', _4 => _4.custom, 'optionalCall', _5 => _5(url)])
 
         if (crawlOptionPerRoute) {
           enableToCrawl = crawlOptionPerRoute.enable
@@ -262,8 +206,7 @@ const puppeteerSSRService = (async () => {
       if (
         _serverconfig2.default.isRemoteCrawler &&
         ((_serverconfig2.default.crawlerSecretKey &&
-          req.getQuery('crawlerSecretKey') !==
-            _serverconfig2.default.crawlerSecretKey) ||
+          req.getQuery('crawlerSecretKey') !== _serverconfig2.default.crawlerSecretKey) ||
           (!botInfo.isBot && !enableToCache))
       ) {
         const html = _fs2.default.readFileSync(
@@ -295,14 +238,11 @@ const puppeteerSSRService = (async () => {
         const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
         if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
         else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-        return ''
+        return '' 
       })()
 
       _ConsoleHandler2.default.log('<---puppeteer/index.uws.ts--->')
-      _ConsoleHandler2.default.log(
-        'enableContentEncoding: ',
-        enableContentEncoding
-      )
+      _ConsoleHandler2.default.log('enableContentEncoding: ', enableContentEncoding)
       _ConsoleHandler2.default.log(
         `req.getHeader('accept-encoding'): `,
         req.getHeader('accept-encoding')
@@ -346,10 +286,7 @@ const puppeteerSSRService = (async () => {
             // NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
             if (!res.writableEnded) {
               const html = _fs2.default.readFileSync(
-                _path2.default.resolve(
-                  __dirname,
-                  '../../../500-server-error.html'
-                ),
+                _path2.default.resolve(__dirname, '../../../500-server-error.html'),
                 'utf8'
               )
               res.writeStatus('500').end(html, true)
@@ -383,31 +320,9 @@ const puppeteerSSRService = (async () => {
           res,
         })
 
-        const pointsTo = _nullishCoalesce(
-          _optionalChain([
-            _serverconfig2.default,
-            'access',
-            (_6) => _6.routes,
-            'access',
-            (_7) => _7.list,
-            'optionalAccess',
-            (_8) => _8[correctPathname],
-            'optionalAccess',
-            (_9) => _9.pointsTo,
-          ]),
-          () =>
-            _optionalChain([
-              _serverconfig2.default,
-              'access',
-              (_10) => _10.routes,
-              'access',
-              (_11) => _11.custom,
-              'optionalCall',
-              (_12) => _12(url),
-              'optionalAccess',
-              (_13) => _13.pointsTo,
-            ])
-        )
+        const pointsTo =
+          _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _6 => _6.routes, 'access', _7 => _7.list, 'optionalAccess', _8 => _8[correctPathname], 'optionalAccess', _9 => _9.pointsTo]), () => (
+          _optionalChain([_serverconfig2.default, 'access', _10 => _10.routes, 'access', _11 => _11.custom, 'optionalCall', _12 => _12(url), 'optionalAccess', _13 => _13.pointsTo])))
         /**
          * NOTE
          * Cache-Control max-age is 1 year
@@ -450,7 +365,7 @@ const puppeteerSSRService = (async () => {
           let html
           let status = '200'
           const filePath =
-            req.getHeader('static-html-path') ||
+            (req.getHeader('static-html-path') ) ||
             _path2.default.resolve(__dirname, '../../../../dist/index.html')
 
           const pathForCacheKeyConverter = (() => {
@@ -467,27 +382,15 @@ const puppeteerSSRService = (async () => {
             let tmpStoreKey
             let tmpAPIStore
 
-            tmpStoreKey = _StringHelper.hashCode.call(
-              void 0,
-              pathForCacheKeyConverter
-            )
+            tmpStoreKey = _StringHelper.hashCode.call(void 0, pathForCacheKeyConverter)
 
             tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
 
             if (tmpAPIStore) return tmpAPIStore.data
 
-            const deviceType = _optionalChain([
-              res,
-              'access',
-              (_14) => _14.cookies,
-              'optionalAccess',
-              (_15) => _15.deviceInfo,
-              'optionalAccess',
-              (_16) => _16.type,
-            ])
+            const deviceType = _optionalChain([res, 'access', _14 => _14.cookies, 'optionalAccess', _15 => _15.deviceInfo, 'optionalAccess', _16 => _16.type])
 
-            tmpStoreKey = _StringHelper.hashCode.call(
-              void 0,
+            tmpStoreKey = _StringHelper.hashCode.call(void 0, 
               `${pathForCacheKeyConverter}${
                 pathForCacheKeyConverter.includes('?') && deviceType
                   ? '&device=' + deviceType
@@ -524,18 +427,11 @@ const puppeteerSSRService = (async () => {
               url,
             })
 
-            if (
-              _optionalChain([
-                result,
-                'optionalAccess',
-                (_17) => _17.status,
-              ]) === 200
-            ) {
+            if (_optionalChain([result, 'optionalAccess', _17 => _17.status]) === 200) {
               html = _fs2.default.readFileSync(result.file)
 
               if (WindowAPIStore !== '{}') {
-                html =
-                  _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
+                html = _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
 
                 if (html.includes('</head>')) {
                   html = html.replace(
@@ -550,30 +446,11 @@ const puppeteerSSRService = (async () => {
                 }
               }
             } else if (pointsTo) {
-              status = String(
-                _nullishCoalesce(
-                  _optionalChain([
-                    result,
-                    'optionalAccess',
-                    (_18) => _18.status,
-                  ]),
-                  () => '503'
-                )
-              )
+              status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _18 => _18.status]), () => ( '503')))
               html =
                 _fs2.default.readFileSync(
-                  _nullishCoalesce(
-                    _optionalChain([
-                      result,
-                      'optionalAccess',
-                      (_19) => _19.response,
-                    ]),
-                    () =>
-                      _path2.default.resolve(
-                        __dirname,
-                        '../../../503-maintain.html'
-                      )
-                  ),
+                  _nullishCoalesce(_optionalChain([result, 'optionalAccess', _19 => _19.response]), () => (
+                    _path2.default.resolve(__dirname, '../../../503-maintain.html'))),
                   'utf8'
                 ) || ''
             }
@@ -610,9 +487,7 @@ const puppeteerSSRService = (async () => {
               if (!enableContentEncoding) {
                 switch (true) {
                   case Buffer.isBuffer(html):
-                    return _zlib.brotliDecompressSync
-                      .call(void 0, html)
-                      .toString()
+                    return _zlib.brotliDecompressSync.call(void 0, html).toString()
                   default:
                     return html
                 }
@@ -662,10 +537,7 @@ const puppeteerSSRService = (async () => {
             if (!res.writableEnded) {
               const html =
                 _fs2.default.readFileSync(
-                  _path2.default.resolve(
-                    __dirname,
-                    '../../../404-not-found.html'
-                  ),
+                  _path2.default.resolve(__dirname, '../../../404-not-found.html'),
                   'utf8'
                 ) || ''
               res.cork(() => {
@@ -688,14 +560,11 @@ const puppeteerSSRService = (async () => {
 
   return {
     init(app) {
-      if (!app)
-        return _ConsoleHandler2.default.warn(
-          'You need provide uWebSockets app!'
-        )
+      if (!app) return _ConsoleHandler2.default.warn('You need provide uWebSockets app!')
       _app = app
       _allRequestHandler()
     },
   }
 })()
 
-exports.default = puppeteerSSRService
+exports. default = puppeteerSSRService

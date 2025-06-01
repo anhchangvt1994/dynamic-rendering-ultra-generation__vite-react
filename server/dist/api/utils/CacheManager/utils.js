@@ -1,47 +1,19 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _crypto = require('crypto')
-var _crypto2 = _interopRequireDefault(_crypto)
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _zlib = require('zlib')
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _PathHandler = require('../../../utils/PathHandler')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _crypto = require('crypto'); var _crypto2 = _interopRequireDefault(_crypto);
+var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _zlib = require('zlib');
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _PathHandler = require('../../../utils/PathHandler');
 
-const dataPath = _PathHandler.getDataPath.call(void 0)
-const storePath = _PathHandler.getStorePath.call(void 0)
+
+
+
+
+
+
+
+
+const dataPath = _PathHandler.getDataPath.call(void 0, )
+const storePath = _PathHandler.getStorePath.call(void 0, )
 
 if (!_fs2.default.existsSync(dataPath)) {
   try {
@@ -59,11 +31,10 @@ if (!_fs2.default.existsSync(storePath)) {
   }
 }
 
-const regexKeyConverter =
-  /^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g
-exports.regexKeyConverter = regexKeyConverter
+ const regexKeyConverter =
+  /^https?:\/\/(www\.)?|^www\.|botInfo=([^&]*)&deviceInfo=([^&]*)&localeInfo=([^&]*)&environmentInfo=([^&]*)/g; exports.regexKeyConverter = regexKeyConverter
 
-const getKey = (url) => {
+ const getKey = (url) => {
   if (!url) {
     _ConsoleHandler2.default.error('Need provide "url" param!')
     return
@@ -74,10 +45,9 @@ const getKey = (url) => {
     .replace(exports.regexKeyConverter, '')
     .replace(/\?(?:\&|)$/g, '')
   return _crypto2.default.createHash('md5').update(url).digest('hex')
-}
-exports.getKey = getKey // getKey
+}; exports.getKey = getKey // getKey
 
-const getFileInfo = async (file) => {
+ const getFileInfo = async (file) => {
   if (!file) {
     _ConsoleHandler2.default.error('Need provide "file" param!')
     return
@@ -103,10 +73,9 @@ const getFileInfo = async (file) => {
   })
 
   return result
-}
-exports.getFileInfo = getFileInfo // getFileInfo
+}; exports.getFileInfo = getFileInfo // getFileInfo
 
-const setRequestTimeInfo = async (file, value) => {
+ const setRequestTimeInfo = async (file, value) => {
   if (!file || !_fs2.default.existsSync(file)) {
     _ConsoleHandler2.default.error('File does not exist!')
     return
@@ -125,21 +94,21 @@ const setRequestTimeInfo = async (file, value) => {
     const fd = _fs2.default.openSync(file, 'r')
     _fs2.default.futimesSync(
       fd,
-      value,
-      _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_) => _.updatedAt]),
-        () => new Date()
-      )
+      value ,
+      _nullishCoalesce(_optionalChain([info, 'optionalAccess', _ => _.updatedAt]), () => ( new Date()))
     )
     _fs2.default.close(fd)
     _ConsoleHandler2.default.log('File access time updated.')
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-}
-exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
+}; exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
 
-const getStatus = (directory, key, extension) => {
+ const getStatus = (
+  directory,
+  key,
+  extension
+) => {
   switch (true) {
     case _fs2.default.existsSync(`${directory}/${key}.${extension}`):
       return 'ready'
@@ -148,10 +117,14 @@ const getStatus = (directory, key, extension) => {
     default:
       return
   }
-}
-exports.getStatus = getStatus // getStatus
+}; exports.getStatus = getStatus // getStatus
 
-const updateStatus = (directory, key, extension, newStatus) => {
+ const updateStatus = (
+  directory,
+  key,
+  extension,
+  newStatus
+) => {
   const status = exports.getStatus.call(void 0, directory, key, extension)
 
   const file = `${directory}/${key}${
@@ -168,10 +141,14 @@ const updateStatus = (directory, key, extension, newStatus) => {
       }
     })
   }
-}
-exports.updateStatus = updateStatus // updateStatus
+}; exports.updateStatus = updateStatus // updateStatus
 
-const get = async (directory, key, extension, options) => {
+ const get = async (
+  directory,
+  key,
+  extension,
+  options
+) => {
   const optionsFormatted = {
     autoCreateIfEmpty: {
       enable: false,
@@ -230,26 +207,11 @@ const get = async (directory, key, extension, options) => {
     const curTime = new Date()
     _ConsoleHandler2.default.log(`File ${file} is empty`)
     return {
-      createdAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_2) => _2.createdAt]),
-        () => curTime
-      ),
-      updatedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_3) => _3.updatedAt]),
-        () => curTime
-      ),
-      requestedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_4) => _4.requestedAt]),
-        () => curTime
-      ),
-      modifiedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_5) => _5.modifiedAt]),
-        () => curTime
-      ),
-      changedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_6) => _6.changedAt]),
-        () => curTime
-      ),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _2 => _2.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _3 => _3.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.changedAt]), () => ( curTime)),
       status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
@@ -258,26 +220,11 @@ const get = async (directory, key, extension, options) => {
     const curTime = new Date()
     _ConsoleHandler2.default.log(`File lager than sizeLimit`)
     return {
-      createdAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_7) => _7.createdAt]),
-        () => curTime
-      ),
-      updatedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_8) => _8.updatedAt]),
-        () => curTime
-      ),
-      requestedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_9) => _9.requestedAt]),
-        () => curTime
-      ),
-      modifiedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_10) => _10.modifiedAt]),
-        () => curTime
-      ),
-      changedAt: _nullishCoalesce(
-        _optionalChain([info, 'optionalAccess', (_11) => _11.changedAt]),
-        () => curTime
-      ),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _8 => _8.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _9 => _9.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _10 => _10.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _11 => _11.changedAt]), () => ( curTime)),
       status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
@@ -298,12 +245,10 @@ const get = async (directory, key, extension, options) => {
     }
 
     if (extension === 'br') {
-      tmpContent = _zlib.brotliDecompressSync
-        .call(void 0, tmpContent)
-        .toString()
+      tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
     } else tmpContent = tmpContent.toString('utf8')
 
-    return JSON.parse(tmpContent)
+    return JSON.parse(tmpContent )
   })()
 
   const objContent =
@@ -322,10 +267,15 @@ const get = async (directory, key, extension, options) => {
     status: status || optionsFormatted.autoCreateIfEmpty.status,
     ...objContent,
   }
-}
-exports.get = get // get
+}; exports.get = get // get
 
-const set = async (directory, key, extension, content, options) => {
+ const set = async (
+  directory,
+  key,
+  extension,
+  content,
+  options
+) => {
   if (!directory) {
     _ConsoleHandler2.default.error('Need provide "directory" param')
     return
@@ -400,12 +350,14 @@ const set = async (directory, key, extension, content, options) => {
     })()
 
   return result
-}
-exports.set = set // set
+}; exports.set = set // set
 
-const remove = (directory, key, extension) => {
-  if (!directory)
-    return _ConsoleHandler2.default.log('Key param can not empty!')
+ const remove = (
+  directory,
+  key,
+  extension
+) => {
+  if (!directory) return _ConsoleHandler2.default.log('Key param can not empty!')
   if (!key) return _ConsoleHandler2.default.log('Key param can not empty!')
 
   const status = exports.getStatus.call(void 0, directory, key, extension)
@@ -420,10 +372,9 @@ const remove = (directory, key, extension) => {
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-}
-exports.remove = remove // remove
+}; exports.remove = remove // remove
 
-const getData = async (key, options) => {
+ const getData = async (key, options) => {
   let result
 
   try {
@@ -433,10 +384,12 @@ const getData = async (key, options) => {
   }
 
   return result
-}
-exports.getData = getData // getData
+}; exports.getData = getData // getData
 
-const getStore = async (key, options) => {
+ const getStore = async (
+  key,
+  options
+) => {
   let result
 
   try {
@@ -446,30 +399,25 @@ const getStore = async (key, options) => {
   }
 
   return result
-}
-exports.getStore = getStore // getStore
+}; exports.getStore = getStore // getStore
 
-const setData = async (key, content, options) => {
+ const setData = async (
+  key,
+  content,
+  options
+) => {
   let result
 
   try {
-    result = await exports.set.call(
-      void 0,
-      dataPath,
-      key,
-      'br',
-      content,
-      options
-    )
+    result = await exports.set.call(void 0, dataPath, key, 'br', content, options)
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
 
   return result
-}
-exports.setData = setData // setData
+}; exports.setData = setData // setData
 
-const setStore = async (key, content) => {
+ const setStore = async (key, content) => {
   let result
 
   try {
@@ -481,10 +429,9 @@ const setStore = async (key, content) => {
   }
 
   return result
-}
-exports.setStore = setStore // setStore
+}; exports.setStore = setStore // setStore
 
-const removeData = async (key) => {
+ const removeData = async (key) => {
   let result
 
   try {
@@ -494,10 +441,9 @@ const removeData = async (key) => {
   }
 
   return result
-}
-exports.removeData = removeData // removeData
+}; exports.removeData = removeData // removeData
 
-const removeStore = async (key) => {
+ const removeStore = async (key) => {
   let result
 
   try {
@@ -507,14 +453,12 @@ const removeStore = async (key) => {
   }
 
   return result
-}
-exports.removeStore = removeStore // removeStore
+}; exports.removeStore = removeStore // removeStore
 
-const updateDataStatus = async (key, newStatus) => {
+ const updateDataStatus = async (key, newStatus) => {
   try {
     exports.updateStatus.call(void 0, dataPath, key, 'br', newStatus)
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-}
-exports.updateDataStatus = updateDataStatus // updateDataStatus
+}; exports.updateDataStatus = updateDataStatus // updateDataStatus

@@ -1,83 +1,28 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-  if (lhs != null) {
-    return lhs
-  } else {
-    return rhsFn()
-  }
-}
-function _optionalChain(ops) {
-  let lastAccessLHS = undefined
-  let value = ops[0]
-  let i = 1
-  while (i < ops.length) {
-    const op = ops[i]
-    const fn = ops[i + 1]
-    i += 2
-    if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-      return undefined
-    }
-    if (op === 'access' || op === 'optionalAccess') {
-      lastAccessLHS = value
-      value = fn(value)
-    } else if (op === 'call' || op === 'optionalCall') {
-      value = fn((...args) => value.call(lastAccessLHS, ...args))
-      lastAccessLHS = undefined
-    }
-  }
-  return value
-}
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _serverconfig = require('../../../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _serverconfig = require('../../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 
-var _CacheManagerworker = require('../../CacheManager.worker')
-var _CacheManagerworker2 = _interopRequireDefault(_CacheManagerworker)
 
-const maintainFile = _path2.default.resolve(
-  __dirname,
-  '../../../../503-maintain.html'
-)
+var _CacheManagerworker = require('../../CacheManager.worker'); var _CacheManagerworker2 = _interopRequireDefault(_CacheManagerworker);
 
-const CacheManager = (url, cachePath, options) => {
+const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain.html')
+
+const CacheManager = (
+  url,
+  cachePath,
+  options
+
+
+) => {
   options = {
     forceToCache: false,
     ...(options || {}),
   }
   const urlInfo = new URL(url)
-  const routeInfo = _nullishCoalesce(
-    _nullishCoalesce(
-      _optionalChain([
-        _serverconfig2.default,
-        'access',
-        (_) => _.routes,
-        'access',
-        (_2) => _2.list,
-        'optionalAccess',
-        (_3) => _3[urlInfo.pathname],
-      ]),
-      () =>
-        _optionalChain([
-          _serverconfig2.default,
-          'access',
-          (_4) => _4.routes,
-          'access',
-          (_5) => _5.custom,
-          'optionalCall',
-          (_6) => _6(url),
-        ])
-    ),
-    () => _serverconfig2.default.routes
-  )
-  const routePreviewInfo = _nullishCoalesce(
-    _optionalChain([routeInfo, 'optionalAccess', (_7) => _7.pointsTo]),
-    () => _optionalChain([routeInfo, 'optionalAccess', (_8) => _8.preview])
-  )
+  const routeInfo =
+    _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _ => _.routes, 'access', _2 => _2.list, 'optionalAccess', _3 => _3[urlInfo.pathname]]), () => (
+    _optionalChain([_serverconfig2.default, 'access', _4 => _4.routes, 'access', _5 => _5.custom, 'optionalCall', _6 => _6(url)]))), () => (
+    (_serverconfig2.default.routes )))
+  const routePreviewInfo = _nullishCoalesce(_optionalChain([routeInfo, 'optionalAccess', _7 => _7.pointsTo]), () => ( _optionalChain([routeInfo, 'optionalAccess', _8 => _8.preview])))
   const enableToCache = !!routePreviewInfo || options.forceToCache
   const urlToPreview =
     routePreviewInfo && routePreviewInfo.url
@@ -175,4 +120,4 @@ const CacheManager = (url, cachePath, options) => {
   }
 }
 
-exports.default = CacheManager
+exports. default = CacheManager
