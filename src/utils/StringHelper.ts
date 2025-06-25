@@ -451,16 +451,38 @@ const getLocale = (lang?: string, country?: string) => {
   return arrLocale.join('-')
 } // getLocale
 
-const encode = (input) => {
+const generateKeyStream = (secretKey, length) => {
+  let seed = 0
+  for (let i = 0; i < secretKey.length; i++) {
+    seed = (seed * 31 + secretKey.charCodeAt(i)) >>> 0
+  }
+
+  const stream = new Uint8Array(length)
+  for (let i = 0; i < length; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    stream[i] = (seed >>> 24) & 0xff
+  }
+  return stream
+}
+
+const encode = (input, key = '') => {
+  const keyStream = generateKeyStream(key, input.length)
+  let xorEncoded = ''
+
+  for (let i = 0; i < input.length; i++) {
+    const charCode = input.charCodeAt(i)
+    xorEncoded += String.fromCharCode(charCode ^ keyStream[i])
+  }
+
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
   let output = ''
   let i = 0
 
-  while (i < input.length) {
-    const a = input.charCodeAt(i++)
-    const b = input.charCodeAt(i++)
-    const c = input.charCodeAt(i++)
+  while (i < xorEncoded.length) {
+    const a = xorEncoded.charCodeAt(i++)
+    const b = xorEncoded.charCodeAt(i++)
+    const c = xorEncoded.charCodeAt(i++)
     const index1 = a >> 2
     const index2 = ((a & 3) << 4) | (b >> 4)
     const index3 = isNaN(b) ? 64 : ((b & 15) << 2) | (c >> 6)
@@ -474,12 +496,12 @@ const encode = (input) => {
   }
 
   return output
-} // encode
+}
 
-const decode = (input) => {
+const decode = (input, key = '') => {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  let output = ''
+  let binaryString = ''
   let i = 0
 
   input = input.replace(/[^A-Za-z0-9\+\/\=]/g, '')
@@ -489,17 +511,26 @@ const decode = (input) => {
     const index2 = chars.indexOf(input.charAt(i++))
     const index3 = chars.indexOf(input.charAt(i++))
     const index4 = chars.indexOf(input.charAt(i++))
+
     const a = (index1 << 2) | (index2 >> 4)
     const b = ((index2 & 15) << 4) | (index3 >> 2)
     const c = ((index3 & 3) << 6) | index4
 
-    output += String.fromCharCode(a)
-    if (index3 !== 64) output += String.fromCharCode(b)
-    if (index4 !== 64) output += String.fromCharCode(c)
+    binaryString += String.fromCharCode(a)
+    if (index3 !== 64) binaryString += String.fromCharCode(b)
+    if (index4 !== 64) binaryString += String.fromCharCode(c)
+  }
+
+  const keyStream = generateKeyStream(key, binaryString.length)
+  let output = ''
+
+  for (let i = 0; i < binaryString.length; i++) {
+    const charCode = binaryString.charCodeAt(i) ^ keyStream[i]
+    output += String.fromCharCode(charCode)
   }
 
   return output
-} // decode
+}
 
 const hashCode = (str: string): string => {
   // tslint:disable:no-bitwise
@@ -518,14 +549,14 @@ const hashCode = (str: string): string => {
 }
 
 export {
+  decode,
+  encode,
+  generateSentenceCase,
+  generateTitleCase,
+  getCustomSlug,
+  getLocale,
   getSlug,
   getSlugWithoutDash,
   getUnsignedLetters,
-  getCustomSlug,
-  generateTitleCase,
-  generateSentenceCase,
-  getLocale,
-  encode,
-  decode,
   hashCode,
 }

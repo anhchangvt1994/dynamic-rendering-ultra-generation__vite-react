@@ -138,7 +138,7 @@ const puppeteerSSRService = (async () => {
           }
         })
     }
-    _app.get('/*', async function (res, req) {
+    _app.get('/*', async function (res, req): Promise<any> {
       // if (req.getUrl().startsWith('/api')) {
       // 	return res.writeStatus('404').end('Not Found!', true)
       // }

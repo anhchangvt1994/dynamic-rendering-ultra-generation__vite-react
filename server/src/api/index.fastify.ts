@@ -2,7 +2,6 @@ import { FastifyInstance } from 'fastify'
 import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
-import { decode } from '../utils/StringHelper'
 import {
   getData as getDataCache,
   getStore as getStoreCache,
@@ -12,6 +11,7 @@ import {
   updateDataStatus as updateDataCacheStatus,
 } from './utils/CacheManager'
 import { fetchData, refreshData } from './utils/FetchManager'
+import { decodeRequestInfo } from './utils/StringHelper'
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -71,7 +71,7 @@ const apiService = (async () => {
       const requestInfo = (() => {
         let result
         try {
-          result = JSON.parse(decode(apiInfo.requestInfo || ''))
+          result = decodeRequestInfo(apiInfo.requestInfo || '')
         } catch (err) {
           Console.error(err)
         }
@@ -115,13 +115,11 @@ const apiService = (async () => {
       // NOTE - Setup secret key for API's header info
       const apiServerConfigInfo = ServerConfig.api.list[requestInfo.baseUrl]
 
-      if (apiServerConfigInfo) {
-        headers.append(
-          apiServerConfigInfo.headerSecretKeyName,
-          apiServerConfigInfo.secretKey
-        )
-        objHeaders[apiServerConfigInfo.headerSecretKeyName] =
-          apiServerConfigInfo.secretKey
+      if (apiServerConfigInfo && apiServerConfigInfo.headers) {
+        for (const key in apiServerConfigInfo.headers) {
+          headers.append(key, apiServerConfigInfo.headers[key])
+          objHeaders[key] = apiServerConfigInfo.headers[key]
+        }
       }
 
       // NOTE - Handle query string information
@@ -146,7 +144,14 @@ const apiService = (async () => {
         return `?${targetAPIQueryString}`
       })()
       // NOTE - Handle Post request Body
-      const body = req.body as BodyInit | undefined | null
+      let body = req.body as BodyInit | undefined | null
+
+      if (apiServerConfigInfo && apiServerConfigInfo.body && body) {
+        body = JSON.stringify({
+          ...apiServerConfigInfo.body,
+          ...JSON.parse(body as string),
+        }) as BodyInit
+      }
 
       const enableCache =
         requestInfo.cacheKey &&

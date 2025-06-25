@@ -39,37 +39,110 @@ const DetectStaticMiddle = (res, req) => {
           .writeHeader('Content-Type', mimeType )
           .end(body, true)
       } else {
+        const mimeType = _mimetypes2.default.lookup(staticPath)
+
+        const enableContentEncoding = ['text/javascript', 'text/css'].includes(
+          mimeType 
+        )
         const contentEncoding = (() => {
+          if (!enableContentEncoding) return ''
+
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
           return '' 
         })()
-        const body = (() => {
-          let content
-          try {
-            content = _fs2.default.readFileSync(staticPath)
-          } catch (err) {
-            _ConsoleHandler2.default.error(err)
-          }
-          const tmpBody =
-            contentEncoding === 'br'
-              ? _zlib.brotliCompressSync.call(void 0, content)
-              : contentEncoding === 'gzip'
-                ? _zlib.gzipSync.call(void 0, content)
-                : content
+        const enableCache = !enableContentEncoding || contentEncoding
+        let isContentEncodingAvailable = false
 
-          return tmpBody
+        const body = (() => {
+          if (enableContentEncoding) {
+            const staticContentEncodingPath = staticPath
+              .replace('/dist', '/server/resources')
+              .replace(/.js|.css/, `.${contentEncoding}`)
+
+            if (_fs2.default.existsSync(staticContentEncodingPath)) {
+              try {
+                const content = _fs2.default.readFileSync(staticContentEncodingPath)
+                isContentEncodingAvailable = true
+                return content
+              } catch (err) {
+                _ConsoleHandler2.default.error(err)
+                return ''
+              }
+            } else {
+              try {
+                const content = _fs2.default.readFileSync(staticPath)
+
+                if (contentEncoding === 'br') {
+                  _zlib.brotliCompress.call(void 0, 
+                    content,
+                    {
+                      params: {
+                        [_zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+                      },
+                    },
+                    (err, result) => {
+                      if (err) _ConsoleHandler2.default.error(err)
+                      else {
+                        _fs2.default.writeFile(
+                          staticContentEncodingPath,
+                          result,
+                          (err) => {
+                            if (err) _ConsoleHandler2.default.error(err)
+                          }
+                        )
+                      }
+                    }
+                  )
+                } else if (contentEncoding === 'gzip') {
+                  _zlib.gzip.call(void 0, 
+                    content,
+                    {
+                      level: _zlib.constants.Z_BEST_COMPRESSION,
+                    },
+                    (err, result) => {
+                      if (err) _ConsoleHandler2.default.error(err)
+                      else {
+                        _fs2.default.writeFile(
+                          staticContentEncodingPath,
+                          result,
+                          (err) => {
+                            if (err) _ConsoleHandler2.default.error(err)
+                          }
+                        )
+                      }
+                    }
+                  )
+                }
+
+                return content
+              } catch (err) {
+                _ConsoleHandler2.default.error(err)
+                return ''
+              }
+            }
+          } else {
+            try {
+              const content = _fs2.default.readFileSync(staticPath)
+              return content
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
+              return ''
+            }
+          }
         })()
 
-        const mimeType = _mimetypes2.default.lookup(staticPath)
+        res.writeStatus('200')
 
-        res
-          .writeStatus('200')
-          .writeHeader('Cache-Control', 'public, max-age=31556952')
-          .writeHeader('Content-Encoding', contentEncoding )
-          .writeHeader('Content-Type', mimeType )
-          .end(body, true)
+        if (enableCache) {
+          res.writeHeader('Cache-Control', 'public, max-age=31556952')
+        }
+        if (enableContentEncoding && isContentEncodingAvailable) {
+          res.writeHeader('Content-Encoding', contentEncoding )
+        }
+
+        res.writeHeader('Content-Type', mimeType ).end(body, true)
       }
     } catch (err) {
       res.writeStatus('404').end('File not found', true)

@@ -20,8 +20,8 @@ export default (): UserConfig => {
 export const aliasExternal: RollupAliasOptions = {
   entries: process.env.ESM
     ? {
-        react: 'https://esm.sh/react@18',
-        'react-dom': 'https://esm.sh/react-dom@18',
+        // react: 'https://esm.sh/react@18',
+        // 'react-dom': 'https://esm.sh/react-dom@18',
         // 'react-router-dom': 'https://esm.sh/react-router-dom@7',
         // 'styled-components': 'https://esm.sh/styled-components@5.3.6',
         // polished: 'https://esm.sh/polished@4.2.2',

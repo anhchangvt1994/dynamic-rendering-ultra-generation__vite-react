@@ -37,7 +37,7 @@ const puppeteerSSRService = (async () => {
   const _allRequestHandler = () => {
     if (SERVER_LESS) {
       _app
-        .get('/web-scraping', async function (req, res) {
+        .get('/web-scraping', async function (req, res): Promise<any> {
           if (req.headers.authorization !== webScrapingService)
             return res
               .status(200)
@@ -59,7 +59,7 @@ const puppeteerSSRService = (async () => {
 
           res.status(200).send(result || {})
         })
-        .post('/cleaner-service', async function (req, res) {
+        .post('/cleaner-service', async function (req, res): Promise<any> {
           if (req.headers.authorization !== cleanerService)
             return res
               .status(200)

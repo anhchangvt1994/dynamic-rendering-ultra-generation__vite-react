@@ -7,7 +7,6 @@
 var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
-var _StringHelper = require('../utils/StringHelper');
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
 
 
@@ -18,6 +17,7 @@ var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _inte
 
 var _utils = require('./utils/CacheManager/utils');
 var _FetchManager = require('./utils/FetchManager');
+var _StringHelper = require('./utils/StringHelper');
 
 const handleArrayBuffer = (message) => {
   if (message instanceof ArrayBuffer) {
@@ -114,7 +114,7 @@ const apiService = (async () => {
       const requestInfo = (() => {
         let result
         try {
-          result = JSON.parse(_StringHelper.decode.call(void 0, apiInfo.requestInfo || ''))
+          result = _StringHelper.decodeRequestInfo.call(void 0, apiInfo.requestInfo || '')
         } catch (err) {
           _ConsoleHandler2.default.error(err)
         }
@@ -155,13 +155,11 @@ const apiService = (async () => {
         // NOTE - Setup secret key for API's header info
         const apiServerConfigInfo = _serverconfig2.default.api.list[requestInfo.baseUrl]
 
-        if (apiServerConfigInfo) {
-          headers.append(
-            apiServerConfigInfo.headerSecretKeyName,
-            apiServerConfigInfo.secretKey
-          )
-          objHeaders[apiServerConfigInfo.headerSecretKeyName] =
-            apiServerConfigInfo.secretKey
+        if (apiServerConfigInfo && apiServerConfigInfo.headers) {
+          for (const key in apiServerConfigInfo.headers) {
+            headers.append(key, apiServerConfigInfo.headers[key])
+            objHeaders[key] = apiServerConfigInfo.headers[key]
+          }
         }
 
         // NOTE - Handle query string information
@@ -187,13 +185,20 @@ const apiService = (async () => {
           return `?${targetAPIQueryString}`
         })()
         // NOTE - Handle Post request Body
-        const body = await new Promise(
+        let body = await new Promise(
           (response) => {
             res.onData((data) => {
               response(handleArrayBuffer(data) || undefined)
             })
           }
         )
+
+        if (apiServerConfigInfo && apiServerConfigInfo.body && body) {
+          body = JSON.stringify({
+            ...apiServerConfigInfo.body,
+            ...JSON.parse(body ),
+          }) 
+        }
 
         const enableCache =
           requestInfo.cacheKey &&

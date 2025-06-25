@@ -11,7 +11,7 @@ export interface IRequestInfo {
   renewTime?: number
   enableStore?: boolean
   relativeCacheKey?: string[]
-  storeInDevice?: 'mobile' | 'desktop' | 'tablet'
+  storeInDevice: 'mobile' | 'desktop' | 'tablet'
 }
 
 export interface IAliasMapRequestInfo {

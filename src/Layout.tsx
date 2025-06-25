@@ -1,6 +1,7 @@
 import LoadingPageComponent from 'components/LoadingPageComponent'
 import { useUserInfo } from 'store/UserInfoContext'
 import LoadingBoundary from 'utils/LoadingBoundary'
+import { ProxyAPIExample_v1 } from 'utils/ProxyAPIHelper/EndpointGenerator'
 
 const MainContainer = styled.div`
   max-width: 1280px;
@@ -26,6 +27,35 @@ function Layout() {
       'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
     )
   }
+
+  const [infoState, setInfoState] = useState<string>(
+    JSON.stringify(getAPIStore('/products/2'))
+  )
+
+  useEffect(() => {
+    fetch(
+      ProxyAPIExample_v1.get(
+        `?user_content_key=AehSKLiLXgECdCUA37448tMdvrCVPdgY-cTdVoE9_ML-TNJrVqLLokle2z8kRfYhGqLj0Tqfzu04ovsCemAEuCFsg_cxK3D5PcKGPbgaG4xvfFkIZA791I_YTWW-ZqNOgU5JEDAWr1IMQGKYqn1PDX--1nevE0QdfVg2gCxHm2pfWn7izr61S91xsImRX42dxZi1g98Yz5yL4e-E4rXenuqwG1KhtYgahEA-w7H4AII0dF7MwakGAZ16DOKMCxnLea2nTyIGHx2lS5Z9DAvxBavUqGTfyj0xxg&lib=MG9_Wr3TbCamnAlPxYCpvQ5HJ0qIQSE5w`,
+        {
+          expiredTime: 5000,
+          cacheKey: `/products/2`,
+          enableStore: true,
+          storeInDevice: DeviceInfo.type,
+          relativeCacheKey: ['/products/2'],
+        }
+      ),
+      {
+        method: 'GET',
+        headers: new Headers({
+          Accept: 'application/json',
+        }),
+        // body removed: GET requests should not have a body
+      }
+    ).then(async (res) => {
+      const text = await res.text()
+      setInfoState(text)
+    })
+  }, [])
 
   const onClickLogout = () => {
     setUserState({ email: '' })

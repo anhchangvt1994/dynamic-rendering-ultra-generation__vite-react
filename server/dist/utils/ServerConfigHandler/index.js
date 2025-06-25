@@ -264,20 +264,9 @@ var _constants = require('./constants');
         }
 
         for (const apiListKey in serverConfig[key].list) {
-          if (typeof serverConfig[key].list[apiListKey] === 'string') {
-            serverConfig[key].list[apiListKey] = {
-              secretKey: serverConfig[key].list[
-                apiListKey
-              ] ,
-              headerSecretKeyName: 'Authorization',
-            }
-
-            continue
-          }
-
-          if (!serverConfig[key].list[apiListKey].headerSecretKeyName) {
-            serverConfig[key].list[apiListKey].headerSecretKeyName =
-              'Authorization'
+          serverConfig[key].list[apiListKey] = {
+            headers: serverConfig[key].list[apiListKey].headers || {},
+            body: serverConfig[key].list[apiListKey].body || {},
           }
         }
       } else serverConfig[key] = _constants.defaultServerConfig[key]

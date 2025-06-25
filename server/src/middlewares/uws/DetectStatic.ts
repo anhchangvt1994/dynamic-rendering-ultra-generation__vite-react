@@ -2,7 +2,7 @@ import fs from 'fs'
 import mime from 'mime-types'
 import path from 'path'
 import { HttpRequest, HttpResponse } from 'uWebSockets.js'
-import { brotliCompressSync, gzipSync } from 'zlib'
+import { brotliCompress, gzip, constants as zc } from 'zlib'
 import ServerConfig from '../../server.config'
 import Console from '../../utils/ConsoleHandler'
 import detectStaticExtension from '../../utils/DetectStaticExtension.uws'
@@ -39,37 +39,110 @@ const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
           .writeHeader('Content-Type', mimeType as string)
           .end(body, true)
       } else {
+        const mimeType = mime.lookup(staticPath)
+
+        const enableContentEncoding = ['text/javascript', 'text/css'].includes(
+          mimeType as string
+        )
         const contentEncoding = (() => {
+          if (!enableContentEncoding) return ''
+
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
           return '' as 'br' | 'gzip' | ''
         })()
-        const body = (() => {
-          let content
-          try {
-            content = fs.readFileSync(staticPath)
-          } catch (err) {
-            Console.error(err)
-          }
-          const tmpBody =
-            contentEncoding === 'br'
-              ? brotliCompressSync(content)
-              : contentEncoding === 'gzip'
-                ? gzipSync(content)
-                : content
+        const enableCache = !enableContentEncoding || contentEncoding
+        let isContentEncodingAvailable = false
 
-          return tmpBody
+        const body = (() => {
+          if (enableContentEncoding) {
+            const staticContentEncodingPath = staticPath
+              .replace('/dist', '/server/resources')
+              .replace(/.js|.css/, `.${contentEncoding}`)
+
+            if (fs.existsSync(staticContentEncodingPath)) {
+              try {
+                const content = fs.readFileSync(staticContentEncodingPath)
+                isContentEncodingAvailable = true
+                return content
+              } catch (err) {
+                Console.error(err)
+                return ''
+              }
+            } else {
+              try {
+                const content = fs.readFileSync(staticPath)
+
+                if (contentEncoding === 'br') {
+                  brotliCompress(
+                    content,
+                    {
+                      params: {
+                        [zc.BROTLI_PARAM_QUALITY]: 11,
+                      },
+                    },
+                    (err, result) => {
+                      if (err) Console.error(err)
+                      else {
+                        fs.writeFile(
+                          staticContentEncodingPath,
+                          result,
+                          (err) => {
+                            if (err) Console.error(err)
+                          }
+                        )
+                      }
+                    }
+                  )
+                } else if (contentEncoding === 'gzip') {
+                  gzip(
+                    content,
+                    {
+                      level: zc.Z_BEST_COMPRESSION,
+                    },
+                    (err, result) => {
+                      if (err) Console.error(err)
+                      else {
+                        fs.writeFile(
+                          staticContentEncodingPath,
+                          result,
+                          (err) => {
+                            if (err) Console.error(err)
+                          }
+                        )
+                      }
+                    }
+                  )
+                }
+
+                return content
+              } catch (err) {
+                Console.error(err)
+                return ''
+              }
+            }
+          } else {
+            try {
+              const content = fs.readFileSync(staticPath)
+              return content
+            } catch (err) {
+              Console.error(err)
+              return ''
+            }
+          }
         })()
 
-        const mimeType = mime.lookup(staticPath)
+        res.writeStatus('200')
 
-        res
-          .writeStatus('200')
-          .writeHeader('Cache-Control', 'public, max-age=31556952')
-          .writeHeader('Content-Encoding', contentEncoding as string)
-          .writeHeader('Content-Type', mimeType as string)
-          .end(body, true)
+        if (enableCache) {
+          res.writeHeader('Cache-Control', 'public, max-age=31556952')
+        }
+        if (enableContentEncoding && isContentEncodingAvailable) {
+          res.writeHeader('Content-Encoding', contentEncoding as string)
+        }
+
+        res.writeHeader('Content-Type', mimeType as string).end(body, true)
       }
     } catch (err) {
       res.writeStatus('404').end('File not found', true)

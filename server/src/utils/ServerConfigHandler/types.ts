@@ -1,3 +1,5 @@
+import { IRequestBodyOptional, IRequestHeadersOptional } from '../../types'
+
 export interface IServerConfigOptional {
   rootCache?: string
   isRemoteCrawler?: boolean
@@ -132,13 +134,14 @@ export interface IServerConfigOptional {
   crawlerSecretKey?: string
 
   api?: {
+    secretKey?:
+      | ('DeviceInfo.type' | 'DeviceInfo.os' | 'LocaleInfo.country')[]
+      | string
     list?: {
-      [key: string]:
-        | string
-        | {
-            secretKey: string
-            headerSecretKeyName?: string
-          }
+      [key: string]: {
+        headers?: IRequestHeadersOptional
+        body?: IRequestBodyOptional
+      }
     }
   }
 }
@@ -251,8 +254,8 @@ export interface IServerConfig extends IServerConfigOptional {
   api: {
     list: {
       [key: string]: {
-        secretKey: string
-        headerSecretKeyName: string
+        headers?: IRequestHeadersOptional
+        body?: IRequestBodyOptional
       }
     }
   }

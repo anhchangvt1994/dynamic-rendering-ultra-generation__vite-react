@@ -13,7 +13,7 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
   routes: {
     content: 'all',
     custom(url) {
-      if (!url) return
+      if (!url || url.includes('login')) return
 
       const urlInfo = new URL(url)
       const pathSlitted = urlInfo.pathname.trim().split('/')
@@ -32,6 +32,14 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
           },
         }
       }
+    },
+  },
+  api: {
+    list: {
+      'https://api.example.com': {
+        headers: {},
+        body: {},
+      },
     },
   },
 })

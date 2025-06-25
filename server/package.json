@@ -19,6 +19,7 @@
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.52.0",
     "workerpool": "^9.2.0",
     "dotenv": "^16.4.7",
-    "mime-types": "3.0.1"
+    "mime-types": "3.0.1",
+    "sharp": "^0.34.2"
   }
 }
