@@ -4,6 +4,10 @@
   "type": "module",
   "version": "0.0.0",
   "root": true,
+  "workspaces": [
+    "config/*",
+    "server"
+  ],
   "scripts": {
     "dev": "node config/scripts/dev.mjs",
     "build": "node config/scripts/build.mjs",
@@ -30,8 +34,8 @@
   ],
   "dependencies": {
     "polished": "^4.2.2",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-router-dom": "^7.0.0",
     "styled-components": "^6.1.18"
   },

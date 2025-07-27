@@ -63,6 +63,7 @@ function Layout() {
 
   return (
     <div className="layout">
+      {infoState}
       <MainContainer>
         <Header>
           {userState && userState.email ? (

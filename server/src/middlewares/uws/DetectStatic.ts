@@ -7,6 +7,7 @@ import ServerConfig from '../../server.config'
 import Console from '../../utils/ConsoleHandler'
 import detectStaticExtension from '../../utils/DetectStaticExtension.uws'
 import { ENV } from '../../utils/InitEnv'
+// import optimizeImage from '../../utils/OptimizeImage'
 
 const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
   const isStatic = detectStaticExtension(req)
@@ -79,7 +80,7 @@ const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
                     content,
                     {
                       params: {
-                        [zc.BROTLI_PARAM_QUALITY]: 11,
+                        [zc.BROTLI_PARAM_QUALITY]: zc.Z_BEST_COMPRESSION,
                       },
                     },
                     (err, result) => {
@@ -124,6 +125,19 @@ const DetectStaticMiddle = (res: HttpResponse, req: HttpRequest) => {
             }
           } else {
             try {
+              // if (
+              //   IMAGE_MIME_TYPE_LIST_WITHOUT_SVG.includes(mimeType as string)
+              // ) {
+              //   optimizeImage(staticPath)
+              //     .then((result) => {
+              //       if (result) {
+              //         console.log(result)
+              //       }
+              //     })
+              //     .catch((err) => {
+              //       console.error(`Error optimizing image: ${staticPath}`, err)
+              //     })
+              // }
               const content = fs.readFileSync(staticPath)
               return content
             } catch (err) {

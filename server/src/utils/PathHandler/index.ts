@@ -163,3 +163,27 @@ export const getWorkerManagerPath = () => {
       })()
     : path.resolve(__dirname, '../../utils/WorkerManager')
 } // getWorkerManagerPath
+
+export const getResourcePath = () => {
+  return PROCESS_ENV.IS_SERVER
+    ? (() => {
+        let root = '/tmp'
+        if (ServerConfig.rootCache) {
+          if (fs.existsSync(ServerConfig.rootCache)) {
+            root = ServerConfig.rootCache
+          } else {
+            try {
+              fs.mkdirSync(ServerConfig.rootCache)
+              root = ServerConfig.rootCache
+            } catch (err) {
+              Console.error(err.message)
+            }
+          }
+        }
+
+        if (fs.existsSync(root)) return root + '/resources'
+
+        return path.resolve(__dirname, '../../../resources')
+      })()
+    : path.resolve(__dirname, '../../../resources')
+} // getResourcePath

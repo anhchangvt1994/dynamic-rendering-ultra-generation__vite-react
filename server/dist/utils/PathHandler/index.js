@@ -163,3 +163,27 @@ var _InitEnv = require('../InitEnv');
       })()
     : _path2.default.resolve(__dirname, '../../utils/WorkerManager')
 }; exports.getWorkerManagerPath = getWorkerManagerPath // getWorkerManagerPath
+
+ const getResourcePath = () => {
+  return _InitEnv.PROCESS_ENV.IS_SERVER
+    ? (() => {
+        let root = '/tmp'
+        if (_serverconfig2.default.rootCache) {
+          if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
+            root = _serverconfig2.default.rootCache
+          } else {
+            try {
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              root = _serverconfig2.default.rootCache
+            } catch (err) {
+              _ConsoleHandler2.default.error(err.message)
+            }
+          }
+        }
+
+        if (_fs2.default.existsSync(root)) return root + '/resources'
+
+        return _path2.default.resolve(__dirname, '../../../resources')
+      })()
+    : _path2.default.resolve(__dirname, '../../../resources')
+}; exports.getResourcePath = getResourcePath // getResourcePath

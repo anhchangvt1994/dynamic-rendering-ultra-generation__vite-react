@@ -7,6 +7,7 @@ var _serverconfig = require('../../server.config'); var _serverconfig2 = _intero
 var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _DetectStaticExtensionuws = require('../../utils/DetectStaticExtension.uws'); var _DetectStaticExtensionuws2 = _interopRequireDefault(_DetectStaticExtensionuws);
 var _InitEnv = require('../../utils/InitEnv');
+// import optimizeImage from '../../utils/OptimizeImage'
 
 const DetectStaticMiddle = (res, req) => {
   const isStatic = _DetectStaticExtensionuws2.default.call(void 0, req)
@@ -79,7 +80,7 @@ const DetectStaticMiddle = (res, req) => {
                     content,
                     {
                       params: {
-                        [_zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+                        [_zlib.constants.BROTLI_PARAM_QUALITY]: _zlib.constants.Z_BEST_COMPRESSION,
                       },
                     },
                     (err, result) => {
@@ -124,6 +125,19 @@ const DetectStaticMiddle = (res, req) => {
             }
           } else {
             try {
+              // if (
+              //   IMAGE_MIME_TYPE_LIST_WITHOUT_SVG.includes(mimeType as string)
+              // ) {
+              //   optimizeImage(staticPath)
+              //     .then((result) => {
+              //       if (result) {
+              //         console.log(result)
+              //       }
+              //     })
+              //     .catch((err) => {
+              //       console.error(`Error optimizing image: ${staticPath}`, err)
+              //     })
+              // }
               const content = _fs2.default.readFileSync(staticPath)
               return content
             } catch (err) {
