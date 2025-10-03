@@ -126,8 +126,8 @@ export const MAX_WORKERS = PROCESS_ENV.MAX_WORKERS
 export const DURATION_TIMEOUT = SERVER_LESS
   ? 5000
   : PROCESS_ENV.DURATION_TIMEOUT
-    ? Number(PROCESS_ENV.DURATION_TIMEOUT)
-    : 20000
+  ? Number(PROCESS_ENV.DURATION_TIMEOUT)
+  : 20000
 
 export const DISABLE_COMPRESS_HTML = !!PROCESS_ENV.DISABLE_COMPRESS_HTML
 export const DISABLE_DEEP_OPTIMIZE = !!PROCESS_ENV.DISABLE_DEEP_OPTIMIZE
@@ -141,7 +141,7 @@ export const regexNotFoundPageID = new RegExp(
 export const CACHEABLE_STATUS_CODE = { 200: true, 302: true }
 
 export const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.tar'
+  'https://github.com/Sparticuz/chromium/releases/download/v140.0.0/chromium-v140.0.0-pack.tar'
 
 export const canUseLinuxChromium =
   PROCESS_ENV.PLATFORM.toLowerCase() === 'linux' ||

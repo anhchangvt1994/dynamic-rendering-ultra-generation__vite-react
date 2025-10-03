@@ -155,7 +155,9 @@ export const optimizeImage = async (path: string): Promise<File> => {
       fileType = 'image/gif'
     }
 
-    return new File([optimizedImage], fileName, { type: fileType })
+    return new File([new Uint8Array(optimizedImage)], fileName, {
+      type: fileType,
+    })
   } catch (error) {
     throw new Error(`Failed to optimize image: ${error.message}`)
   }

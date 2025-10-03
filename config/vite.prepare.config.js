@@ -140,6 +140,7 @@ const getAutoImportLibs = () =>
       enabled: true,
       filepath: eslintAutoImportLibsPath,
     },
+    enforce: 'pre',
   }) // getAutoImportLibs
 
 const getAutoImportTypes = () =>
@@ -178,6 +179,7 @@ const getAutoImportTypes = () =>
       enabled: true,
       filepath: eslintAutoImportTypesPath,
     },
+    enforce: 'pre',
   }) // getAutoImportTypes
 
 export const handleAutoImport = (enable = false) => {

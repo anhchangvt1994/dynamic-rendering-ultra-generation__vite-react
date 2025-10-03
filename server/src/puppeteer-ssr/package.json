@@ -8,8 +8,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "24.15.0",
+    "puppeteer": "24.23.0",
     "@minify-html/node": "^0.16.4",
-    "@sparticuz/chromium-min": "138.0.2"
+    "@sparticuz/chromium-min": "140.0.0"
   }
 }

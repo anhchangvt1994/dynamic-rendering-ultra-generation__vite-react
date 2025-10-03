@@ -43,7 +43,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwind(),
-      ...vitePrepareConfig.plugins,
       EnvironmentPlugin(ENV_OBJECT_DEFAULT as any, {
         defineOn: 'import.meta.env',
       }),
@@ -51,6 +50,7 @@ export default defineConfig(({ mode }) => {
         extensions: ['.mjs', '.js', '.json', '.js', '.ts', '.jsx', '.tsx'],
         modulePaths: resolve.modules,
       }),
+      ...vitePrepareConfig.plugins,
       ...(mode === 'development'
         ? [
             alias({
@@ -134,7 +134,7 @@ export default defineConfig(({ mode }) => {
   }
 })
 
-const getViteConfigWithMode = (mode) => {
+const getViteConfigWithMode = (mode: any) => {
   if (!mode) return
 
   return mode === 'development' ? viteDevelopmentConfig : viteProductionConfig
