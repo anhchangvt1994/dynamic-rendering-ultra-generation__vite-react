@@ -39,7 +39,7 @@ function Layout() {
         {
           expiredTime: 5000,
           cacheKey: `/products/2`,
-          enableStore: true,
+          // enableStore: true,
           storeInDevice: DeviceInfo.type,
           relativeCacheKey: ['/products/2'],
         }
@@ -63,7 +63,7 @@ function Layout() {
 
   return (
     <div className="layout">
-      {infoState}
+      {!RenderingInfo.loader && infoState}
       <MainContainer>
         <Header>
           {userState && userState.email ? (

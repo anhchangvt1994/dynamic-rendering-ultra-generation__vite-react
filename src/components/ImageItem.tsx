@@ -34,11 +34,17 @@ function ImageItem(props) {
 
   return (
     <Outer className={isError ? '--is-error' : ''}>
-      <Image {...props} onError={onErrorHandler} />
+      <Image
+        {...props}
+        ref={(el) => {
+          if (el) {
+            el.onerror = onErrorHandler
+          }
+        }}
+        src={null}
+      />
     </Outer>
   )
 }
-
-// const ImageItem = memo(Component)
 
 export default ImageItem

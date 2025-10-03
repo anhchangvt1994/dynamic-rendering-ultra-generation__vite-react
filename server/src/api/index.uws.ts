@@ -100,6 +100,8 @@ const apiService = (async () => {
       const apiInfo =
         /requestInfo=(?<requestInfo>[^&]*)/.exec(req.getQuery())?.groups ?? {}
 
+      console.log('apiInfo', apiInfo)
+
       // NOTE - Response 500 Error if the apiInfo is empty
       if (!res.writableEnded && !apiInfo) {
         res.writableEnded = true
@@ -122,6 +124,8 @@ const apiService = (async () => {
         return result
       })()
 
+      console.log('requestInfo', requestInfo)
+
       // NOTE - Response 500 Error if the requestInfo is empty
       if (
         !res.writableEnded &&
@@ -134,6 +138,8 @@ const apiService = (async () => {
           .writeHeader('Cache-Control', 'no-store')
           .end('Internal Server Error', true)
       }
+
+      console.log('requestInfo', requestInfo)
 
       if (!res.writableEnded) {
         // NOTE - Handle method
