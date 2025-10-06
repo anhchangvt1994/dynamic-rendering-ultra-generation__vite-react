@@ -42,7 +42,5 @@ export const encodeRequestInfo = (req: IRequestInfo, secret = ''): string => {
 export const decodeRequestInfo = (input: string, secret = ''): IRequestInfo => {
   const json = decode(input, secret).replace(/hts:\//g, 'https://')
 
-  console.log('json', json)
-
   return deAliasMap(JSON.parse(json))
 } // decodeRequestInfo

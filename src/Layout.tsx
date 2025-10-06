@@ -39,7 +39,7 @@ function Layout() {
         {
           expiredTime: 5000,
           cacheKey: `/products/2`,
-          // enableStore: true,
+          enableStore: true,
           storeInDevice: DeviceInfo.type,
           relativeCacheKey: ['/products/2'],
         }

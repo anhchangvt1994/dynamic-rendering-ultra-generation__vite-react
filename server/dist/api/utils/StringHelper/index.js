@@ -42,7 +42,5 @@
  const decodeRequestInfo = (input, secret = '') => {
   const json = _StringHelper.decode.call(void 0, input, secret).replace(/hts:\//g, 'https://')
 
-  console.log('json', json)
-
   return deAliasMap(JSON.parse(json))
 }; exports.decodeRequestInfo = decodeRequestInfo // decodeRequestInfo

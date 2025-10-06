@@ -527,7 +527,7 @@ const decode = (input, key = '') => {
     output += String.fromCharCode(charCode)
   }
 
-  return output
+  return output.replace(/[^\x20-\x7E]+$/g, '')
 }
 
 const hashCode = (str: string): string => {

@@ -1,6 +1,5 @@
 // DOCS: https://github.com/kvz/locutus/blob/master/src/php/strings/str_replace.js
 function str_replace(search, replace, subject, countObj?) {
-  // eslint-disable-line camelcase
   //  discuss at: https://locutus.io/php/str_replace/
   // original by: Kevin van Zonneveld (https://kvz.io)
   // improved by: Gabriel Paderni
@@ -529,7 +528,7 @@ const decode = (input, key = '') => {
     output += String.fromCharCode(charCode)
   }
 
-  return output
+  return output.replace(/[^\x20-\x7E]+$/g, '')
 }
 
 const hashCode = (str: string): string => {

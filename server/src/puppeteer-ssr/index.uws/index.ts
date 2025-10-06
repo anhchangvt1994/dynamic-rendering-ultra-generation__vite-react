@@ -335,6 +335,7 @@ const puppeteerSSRService = (async () => {
             res,
           })
 
+          // QUESTION: Tại sao sử dụng SSRGenerator thay vì ISRGenerator ?
           try {
             SSRGenerator({
               url,
@@ -433,7 +434,12 @@ const puppeteerSSRService = (async () => {
               if (WindowAPIStore !== '{}') {
                 html = brotliDecompressSync(html).toString() || ''
 
-                if (html.includes('</head>')) {
+                if (html.includes('window.API_STORE={}')) {
+                  html = html.replace(
+                    'window.API_STORE={}',
+                    `window.API_STORE=${JSON.stringify(WindowAPIStore)}`
+                  )
+                } else if (html.includes('</head>')) {
                   html = html.replace(
                     '</head>',
                     `<script>window.API_STORE=${WindowAPIStore}</script></head>`
@@ -464,7 +470,12 @@ const puppeteerSSRService = (async () => {
                 html = fs.readFileSync(filePath, 'utf8') || ''
 
                 if (WindowAPIStore !== '{}') {
-                  if (html.includes('</head>')) {
+                  if (html.includes('window.API_STORE={}')) {
+                    html = html.replace(
+                      'window.API_STORE={}',
+                      `window.API_STORE=${JSON.stringify(WindowAPIStore)}`
+                    )
+                  } else if (html.includes('</head>')) {
                     html = html.replace(
                       '</head>',
                       `<script>window.API_STORE=${WindowAPIStore}</script></head>`
