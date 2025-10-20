@@ -34,7 +34,7 @@ export interface IServerConfigOptional {
 
     limit?: 2 | 3 | 4
 
-    speed?: 3000 | 8000 | 15000
+    speed?: 3000 | 8000 | 15000 | 20000 | 30000 | 40000 | 50000 | 60000
 
     content?: 'all' | 'same' | Array<'desktop' | 'mobile'>
 
@@ -178,7 +178,7 @@ export interface IServerConfig extends IServerConfigOptional {
 
     limit: 2 | 3 | 4
 
-    speed: 3000 | 8000 | 15000
+    speed: 3000 | 8000 | 15000 | 20000 | 30000 | 40000 | 50000 | 60000
 
     content: 'all' | 'same' | Array<'desktop' | 'mobile'>
 

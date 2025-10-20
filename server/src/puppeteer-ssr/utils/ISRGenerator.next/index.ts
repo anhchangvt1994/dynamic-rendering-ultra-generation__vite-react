@@ -1,3 +1,4 @@
+import path from 'path'
 import {
   BANDWIDTH_LEVEL,
   BANDWIDTH_LEVEL_LIST,
@@ -498,6 +499,12 @@ const ISRGenerator = async ({
     isAvailableToCrawl
   ) {
     waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
+  }
+
+  if (!result.response && !result.html) {
+    if (result.status === 503) {
+      result.response = path.resolve(__dirname, '../../../../503-maintain.html')
+    }
   }
 
   return result

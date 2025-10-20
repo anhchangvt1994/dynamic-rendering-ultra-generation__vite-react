@@ -1,5 +1,6 @@
 import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
+import apiService from '../../../api/index.crawler'
 import {
   BANDWIDTH_LEVEL,
   BANDWIDTH_LEVEL_LIST,
@@ -132,7 +133,18 @@ const waitResponse = (() => {
     let response
     try {
       response = await new Promise(async (resolve, reject) => {
-        // WorkerPool.workerEmit('waitResponse_00')
+        let pendingRequests = 0
+
+        safePage().on('request', (req) => {
+          pendingRequests++
+        })
+        safePage().on('requestfinished', (req) => {
+          pendingRequests--
+        })
+        safePage().on('requestfailed', (req) => {
+          pendingRequests--
+        })
+
         const result = await new Promise<any>((resolveAfterPageLoad) => {
           safePage()
             ?.goto(url, {
@@ -193,7 +205,11 @@ const waitResponse = (() => {
 
         if (regexNotFoundPageID.test(html)) return resolve(result)
 
-        await new Promise((resolveAfterPageLoadInFewSecond) => {
+        await new Promise(async (resolveAfterPageLoadInFewSecond) => {
+          if (pendingRequests <= 0) {
+            return resolveAfterPageLoadInFewSecond(null)
+          }
+
           const startTimeout = (() => {
             let timeout
             return (duration = defaultRequestWaitingDuration) => {
@@ -217,10 +233,15 @@ const waitResponse = (() => {
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
         })
 
+        safePage().removeAllListeners('request')
+        safePage().removeAllListeners('requestfinished')
+        safePage().removeAllListeners('requestservedfromcache')
+        safePage().removeAllListeners('requestfailed')
+
         // console.log(`finish all page: `, url.split('?')[0])
 
         setTimeout(() => {
-          resolve(result)
+          resolve(pendingRequests > 0 ? { status: () => 503 } : result)
         }, 500)
       })
     } catch (err) {
@@ -374,7 +395,16 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 
             if (resourceType.includes('fetch')) {
               const urlInfo = new URL(reqUrl)
-              if (!urlInfo.pathname.startsWith('/api')) {
+              if (urlInfo.pathname.startsWith('/api')) {
+                apiService(req)
+                  .then((res) => {
+                    req.respond(res)
+                  })
+                  .catch((err) => {
+                    Console.error(err)
+                    req.continue()
+                  })
+              } else {
                 return req.respond({
                   status: 200,
                 })
@@ -462,6 +492,8 @@ const ISRHandler = async (params: IISRHandlerParam) => {
           throw new Error('Internal Error')
         } finally {
           status = response?.status?.() ?? status
+          if (status !== 200) return { status }
+
           Console.log(`Internal crawler status: ${status}`)
         }
       } catch (err) {

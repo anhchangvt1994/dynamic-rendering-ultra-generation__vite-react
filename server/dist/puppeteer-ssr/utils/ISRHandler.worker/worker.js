@@ -1,5 +1,6 @@
 "use strict"; function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } async function _asyncNullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return await rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 var _workerpool = require('workerpool'); var _workerpool2 = _interopRequireDefault(_workerpool);
+var _indexcrawler = require('../../../api/index.crawler'); var _indexcrawler2 = _interopRequireDefault(_indexcrawler);
 
 
 
@@ -132,7 +133,18 @@ const waitResponse = (() => {
     let response
     try {
       response = await new Promise(async (resolve, reject) => {
-        // WorkerPool.workerEmit('waitResponse_00')
+        let pendingRequests = 0
+
+        safePage().on('request', (req) => {
+          pendingRequests++
+        })
+        safePage().on('requestfinished', (req) => {
+          pendingRequests--
+        })
+        safePage().on('requestfailed', (req) => {
+          pendingRequests--
+        })
+
         const result = await new Promise((resolveAfterPageLoad) => {
           _optionalChain([safePage, 'call', _7 => _7()
 , 'optionalAccess', _8 => _8.goto, 'call', _9 => _9(url, {
@@ -193,7 +205,11 @@ const waitResponse = (() => {
 
         if (_constants3.regexNotFoundPageID.test(html)) return resolve(result)
 
-        await new Promise((resolveAfterPageLoadInFewSecond) => {
+        await new Promise(async (resolveAfterPageLoadInFewSecond) => {
+          if (pendingRequests <= 0) {
+            return resolveAfterPageLoadInFewSecond(null)
+          }
+
           const startTimeout = (() => {
             let timeout
             return (duration = defaultRequestWaitingDuration) => {
@@ -217,10 +233,15 @@ const waitResponse = (() => {
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
         })
 
+        safePage().removeAllListeners('request')
+        safePage().removeAllListeners('requestfinished')
+        safePage().removeAllListeners('requestservedfromcache')
+        safePage().removeAllListeners('requestfailed')
+
         // console.log(`finish all page: `, url.split('?')[0])
 
         setTimeout(() => {
-          resolve(result)
+          resolve(pendingRequests > 0 ? { status: () => 503 } : result)
         }, 500)
       })
     } catch (err) {
@@ -374,7 +395,16 @@ const ISRHandler = async (params) => {
 
             if (resourceType.includes('fetch')) {
               const urlInfo = new URL(reqUrl)
-              if (!urlInfo.pathname.startsWith('/api')) {
+              if (urlInfo.pathname.startsWith('/api')) {
+                _indexcrawler2.default.call(void 0, req)
+                  .then((res) => {
+                    req.respond(res)
+                  })
+                  .catch((err) => {
+                    _ConsoleHandler2.default.error(err)
+                    req.continue()
+                  })
+              } else {
                 return req.respond({
                   status: 200,
                 })
@@ -462,6 +492,8 @@ const ISRHandler = async (params) => {
           throw new Error('Internal Error')
         } finally {
           status = _nullishCoalesce(_optionalChain([response, 'optionalAccess', _63 => _63.status, 'optionalCall', _64 => _64()]), () => ( status))
+          if (status !== 200) return { status }
+
           _ConsoleHandler2.default.log(`Internal crawler status: ${status}`)
         }
       } catch (err) {

@@ -37,7 +37,7 @@ function Layout() {
       ProxyAPIExample_v1.get(
         `?user_content_key=AehSKLiLXgECdCUA37448tMdvrCVPdgY-cTdVoE9_ML-TNJrVqLLokle2z8kRfYhGqLj0Tqfzu04ovsCemAEuCFsg_cxK3D5PcKGPbgaG4xvfFkIZA791I_YTWW-ZqNOgU5JEDAWr1IMQGKYqn1PDX--1nevE0QdfVg2gCxHm2pfWn7izr61S91xsImRX42dxZi1g98Yz5yL4e-E4rXenuqwG1KhtYgahEA-w7H4AII0dF7MwakGAZ16DOKMCxnLea2nTyIGHx2lS5Z9DAvxBavUqGTfyj0xxg&lib=MG9_Wr3TbCamnAlPxYCpvQ5HJ0qIQSE5w`,
         {
-          expiredTime: 5000,
+          expiredTime: 30000,
           cacheKey: `/products/2`,
           enableStore: true,
           storeInDevice: DeviceInfo.type,

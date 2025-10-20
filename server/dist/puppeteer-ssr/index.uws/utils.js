@@ -48,7 +48,6 @@ const _setCookie = (res) => {
 
 ) => {
   const { result, enableContentEncoding, contentEncoding } = params
-
   if (result) {
     // Add Server-Timing! See https://w3c.github.io/server-timing/.
     if (
