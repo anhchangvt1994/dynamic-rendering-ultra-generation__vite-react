@@ -409,9 +409,10 @@ const ISRHandler = async (params: IISRHandlerParam) => {
                   status: 200,
                 })
               }
-            }
-
-            if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
+            } else if (
+              resourceType === 'document' &&
+              reqUrl.startsWith(baseUrl)
+            ) {
               const urlInfo = new URL(reqUrl)
               const pointsTo = (() => {
                 const tmpPointsTo = (

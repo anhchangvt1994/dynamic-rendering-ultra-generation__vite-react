@@ -3,6 +3,7 @@ var _child_process = require('child_process');
 var _cors = require('cors'); var _cors2 = _interopRequireDefault(_cors);
 var _fastify = require('fastify'); var _fastify2 = _interopRequireDefault(_fastify);
 var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _mimetypes = require('mime-types'); var _mimetypes2 = _interopRequireDefault(_mimetypes);
 var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _servestatic = require('serve-static'); var _servestatic2 = _interopRequireDefault(_servestatic);
 var _zlib = require('zlib');
@@ -104,7 +105,7 @@ const startServer = async () => {
                   return tmpBody
                 })()
 
-                const mimeType = _servestatic2.default.mime.lookup(staticPath)
+                const mimeType = _mimetypes2.default.lookup(staticPath)
 
                 res
                   .writeHead(200, {
@@ -167,8 +168,8 @@ const startServer = async () => {
           _serverconfig2.default.locale.enable &&
           Boolean(
             !_serverconfig2.default.locale.routes ||
-              !_serverconfig2.default.locale.routes[req.url ] ||
-              _serverconfig2.default.locale.routes[req.url ].enable
+            !_serverconfig2.default.locale.routes[req.url ] ||
+            _serverconfig2.default.locale.routes[req.url ].enable
           )
 
         _CookieHandler.setCookie.call(void 0, 

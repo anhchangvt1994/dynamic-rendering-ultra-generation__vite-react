@@ -3,6 +3,7 @@ import { spawn } from 'child_process'
 import cors from 'cors'
 import fastify from 'fastify'
 import fs from 'fs'
+import mime from 'mime-types'
 import path from 'path'
 import serveStatic from 'serve-static'
 import { brotliCompressSync, gzipSync } from 'zlib'
@@ -104,7 +105,7 @@ const startServer = async () => {
                   return tmpBody
                 })()
 
-                const mimeType = serveStatic.mime.lookup(staticPath)
+                const mimeType = mime.lookup(staticPath)
 
                 res
                   .writeHead(200, {
@@ -167,8 +168,8 @@ const startServer = async () => {
           ServerConfig.locale.enable &&
           Boolean(
             !ServerConfig.locale.routes ||
-              !ServerConfig.locale.routes[req.url as string] ||
-              ServerConfig.locale.routes[req.url as string].enable
+            !ServerConfig.locale.routes[req.url as string] ||
+            ServerConfig.locale.routes[req.url as string].enable
           )
 
         setCookie(

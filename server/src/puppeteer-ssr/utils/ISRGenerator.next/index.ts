@@ -339,7 +339,8 @@ const ISRGenerator = async ({
           waitingToCrawlList.delete(ISRHandlerParams.url)
         }
 
-        const tmpResult: ISSRResult = await new Promise(async (res) => {
+        // const tmpResult: ISSRResult = await new Promise(async (res) => {
+        new Promise(async (res) => {
           const handle = (() => {
             if (SERVER_LESS)
               return fetchData(
@@ -445,11 +446,11 @@ const ISRGenerator = async ({
           res(result)
         })
 
-        if (tmpResult && tmpResult.status) result = tmpResult
-        else {
-          const tmpResult = await cacheManager.achieve()
-          result = tmpResult || result
-        }
+        // if (tmpResult && tmpResult.status) result = tmpResult
+        // else {
+        //   const tmpResult = await cacheManager.achieve()
+        //   result = tmpResult || result
+        // }
       }
       // NOTE - Uncomment this logic if you need the second bot waiting for the first bot result
       // else if (!isSkipWaiting) {
