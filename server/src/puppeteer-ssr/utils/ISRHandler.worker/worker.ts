@@ -241,7 +241,7 @@ const waitResponse = (() => {
         // console.log(`finish all page: `, url.split('?')[0])
 
         setTimeout(() => {
-          resolve(pendingRequests > 0 ? { status: () => 503 } : result)
+          resolve(pendingRequests > 2 ? { status: () => 503 } : result)
         }, 500)
       })
     } catch (err) {
@@ -405,9 +405,10 @@ const ISRHandler = async (params: IISRHandlerParam) => {
                     req.continue()
                   })
               } else {
-                return req.respond({
-                  status: 200,
-                })
+                req.continue()
+                // return req.respond({
+                //   status: 200,
+                // })
               }
             } else if (
               resourceType === 'document' &&
