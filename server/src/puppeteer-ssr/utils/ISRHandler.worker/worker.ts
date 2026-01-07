@@ -135,13 +135,13 @@ const waitResponse = (() => {
       response = await new Promise(async (resolve, reject) => {
         let pendingRequests = 0
 
-        safePage().on('request', (req) => {
+        safePage().on('request', () => {
           pendingRequests++
         })
-        safePage().on('requestfinished', (req) => {
+        safePage().on('requestfinished', () => {
           pendingRequests--
         })
-        safePage().on('requestfailed', (req) => {
+        safePage().on('requestfailed', () => {
           pendingRequests--
         })
 
@@ -221,13 +221,17 @@ const waitResponse = (() => {
           startTimeout()
 
           safePage()?.on('requestfinished', () => {
-            startTimeout()
+            startTimeout(
+              pendingRequests <= 3 ? 2000 : defaultRequestWaitingDuration
+            )
           })
           safePage()?.on('requestservedfromcache', () => {
-            startTimeout(requestServedFromCacheDuration)
+            startTimeout(
+              pendingRequests <= 3 ? 2000 : requestServedFromCacheDuration
+            )
           })
           safePage()?.on('requestfailed', () => {
-            startTimeout(requestFailDuration)
+            startTimeout(pendingRequests <= 3 ? 2000 : requestFailDuration)
           })
 
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
@@ -241,7 +245,7 @@ const waitResponse = (() => {
         // console.log(`finish all page: `, url.split('?')[0])
 
         setTimeout(() => {
-          resolve(pendingRequests > 2 ? { status: () => 503 } : result)
+          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
         }, 500)
       })
     } catch (err) {
@@ -374,6 +378,15 @@ const ISRHandler = async (params: IISRHandlerParam) => {
           safePage()?.setExtraHTTPHeaders({
             ...specialInfo,
             service: 'puppeteer',
+          }),
+          safePage()?.evaluateOnNewDocument(() => {
+            const getContext = HTMLCanvasElement.prototype.getContext
+            HTMLCanvasElement.prototype.getContext = function (type) {
+              if (type === '2d' || type === 'webgl') {
+                return null
+              }
+              return getContext.call(this, type)
+            }
           }),
         ])
 

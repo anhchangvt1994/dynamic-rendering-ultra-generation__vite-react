@@ -1,5 +1,5 @@
 import type { RollupAliasOptions } from '@rollup/plugin-alias'
-import type { UserConfig } from 'vite'
+// import type { UserConfig } from 'vite'
 import NormalSplitChunks from '../plugins/NormalSplitChunks'
 import splitChunkConstants from './utils/splitChunkConstants'
 import splitChunkContexts from './utils/splitChunkContexts'
@@ -10,7 +10,7 @@ import splitChunkSchemas from './utils/splitChunkSchemas'
 import splitChunkStore from './utils/splitChunkStore'
 import splitChunkUtils from './utils/splitChunkUtils'
 
-export default (): UserConfig => {
+export default (): any => {
   return {
     // NOTE - If you want to use Regex please use /...\/([^/]+)/ to split chunks right way
     plugins: [

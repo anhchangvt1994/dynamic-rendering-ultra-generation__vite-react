@@ -1,8 +1,8 @@
 import type { RollupAliasOptions } from '@rollup/plugin-alias'
-import type { UserConfig } from 'vite'
+// import type { UserConfig } from 'vite'
 
-export default (): UserConfig => {
-	return {}
+export default (): any => {
+  return {}
 }
 
 export const aliasExternal: RollupAliasOptions = {} // alias

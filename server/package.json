@@ -16,7 +16,7 @@
     "geoip-lite": "^1.4.10",
     "pm2": "^5.4.3",
     "puppeteer-ssr": "file:./src/puppeteer-ssr",
-    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.52.0",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.56.0",
     "workerpool": "^9.2.0",
     "dotenv": "^16.4.7",
     "mime-types": "3.0.1",

@@ -135,13 +135,13 @@ const waitResponse = (() => {
       response = await new Promise(async (resolve, reject) => {
         let pendingRequests = 0
 
-        safePage().on('request', (req) => {
+        safePage().on('request', () => {
           pendingRequests++
         })
-        safePage().on('requestfinished', (req) => {
+        safePage().on('requestfinished', () => {
           pendingRequests--
         })
-        safePage().on('requestfailed', (req) => {
+        safePage().on('requestfailed', () => {
           pendingRequests--
         })
 
@@ -221,13 +221,17 @@ const waitResponse = (() => {
           startTimeout()
 
           _optionalChain([safePage, 'call', _23 => _23(), 'optionalAccess', _24 => _24.on, 'call', _25 => _25('requestfinished', () => {
-            startTimeout()
+            startTimeout(
+              pendingRequests <= 3 ? 2000 : defaultRequestWaitingDuration
+            )
           })])
           _optionalChain([safePage, 'call', _26 => _26(), 'optionalAccess', _27 => _27.on, 'call', _28 => _28('requestservedfromcache', () => {
-            startTimeout(requestServedFromCacheDuration)
+            startTimeout(
+              pendingRequests <= 3 ? 2000 : requestServedFromCacheDuration
+            )
           })])
           _optionalChain([safePage, 'call', _29 => _29(), 'optionalAccess', _30 => _30.on, 'call', _31 => _31('requestfailed', () => {
-            startTimeout(requestFailDuration)
+            startTimeout(pendingRequests <= 3 ? 2000 : requestFailDuration)
           })])
 
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
@@ -241,7 +245,7 @@ const waitResponse = (() => {
         // console.log(`finish all page: `, url.split('?')[0])
 
         setTimeout(() => {
-          resolve(pendingRequests > 2 ? { status: () => 503 } : result)
+          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
         }, 500)
       })
     } catch (err) {
@@ -375,9 +379,18 @@ const ISRHandler = async (params) => {
             ...specialInfo,
             service: 'puppeteer',
           })]),
+          _optionalChain([safePage, 'call', _53 => _53(), 'optionalAccess', _54 => _54.evaluateOnNewDocument, 'call', _55 => _55(() => {
+            const getContext = HTMLCanvasElement.prototype.getContext
+            HTMLCanvasElement.prototype.getContext = function (type) {
+              if (type === '2d' || type === 'webgl') {
+                return null
+              }
+              return getContext.call(this, type)
+            }
+          })]),
         ])
 
-        _optionalChain([safePage, 'call', _53 => _53(), 'optionalAccess', _54 => _54.on, 'call', _55 => _55('request', async (req) => {
+        _optionalChain([safePage, 'call', _56 => _56(), 'optionalAccess', _57 => _57.on, 'call', _58 => _58('request', async (req) => {
           const resourceType = req.resourceType()
 
           if (resourceType === 'stylesheet') {
@@ -417,9 +430,9 @@ const ISRHandler = async (params) => {
               const urlInfo = new URL(reqUrl)
               const pointsTo = (() => {
                 const tmpPointsTo = _optionalChain([(
-                  _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _56 => _56.routes, 'access', _57 => _57.list, 'optionalAccess', _58 => _58[urlInfo.pathname]]), () => (
-                  _optionalChain([_serverconfig2.default, 'access', _59 => _59.routes, 'access', _60 => _60.custom, 'optionalCall', _61 => _61(reqUrl)])))
-                ), 'optionalAccess', _62 => _62.pointsTo])
+                  _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _59 => _59.routes, 'access', _60 => _60.list, 'optionalAccess', _61 => _61[urlInfo.pathname]]), () => (
+                  _optionalChain([_serverconfig2.default, 'access', _62 => _62.routes, 'access', _63 => _63.custom, 'optionalCall', _64 => _64(reqUrl)])))
+                ), 'optionalAccess', _65 => _65.pointsTo])
 
                 if (!tmpPointsTo) return ''
 
@@ -493,7 +506,7 @@ const ISRHandler = async (params) => {
           _ConsoleHandler2.default.error('err message: ', err.message)
           throw new Error('Internal Error')
         } finally {
-          status = _nullishCoalesce(_optionalChain([response, 'optionalAccess', _63 => _63.status, 'optionalCall', _64 => _64()]), () => ( status))
+          status = _nullishCoalesce(_optionalChain([response, 'optionalAccess', _66 => _66.status, 'optionalCall', _67 => _67()]), () => ( status))
           if (status !== 200) return { status }
 
           _ConsoleHandler2.default.log(`Internal crawler status: ${status}`)
@@ -505,7 +518,7 @@ const ISRHandler = async (params) => {
         cacheManager.remove().catch((err) => {
           _ConsoleHandler2.default.error(err)
         })
-        _optionalChain([safePage, 'call', _65 => _65(), 'optionalAccess', _66 => _66.close, 'call', _67 => _67()])
+        _optionalChain([safePage, 'call', _68 => _68(), 'optionalAccess', _69 => _69.close, 'call', _70 => _70()])
         if (params.hasCache) {
           cacheManager.rename()
         }
@@ -517,12 +530,12 @@ const ISRHandler = async (params) => {
 
       if (_constants3.CACHEABLE_STATUS_CODE[status]) {
         try {
-          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _68 => _68(), 'optionalAccess', _69 => _69.content, 'call', _70 => _70()])), async () => ( '')) // serialized HTML of page DOM.
-          _optionalChain([safePage, 'call', _71 => _71(), 'optionalAccess', _72 => _72.close, 'call', _73 => _73()])
+          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _71 => _71(), 'optionalAccess', _72 => _72.content, 'call', _73 => _73()])), async () => ( '')) // serialized HTML of page DOM.
+          _optionalChain([safePage, 'call', _74 => _74(), 'optionalAccess', _75 => _75.close, 'call', _76 => _76()])
         } catch (err) {
           _ConsoleHandler2.default.log('ISRHandler line 315:')
           _ConsoleHandler2.default.error(err)
-          _optionalChain([safePage, 'call', _74 => _74(), 'optionalAccess', _75 => _75.close, 'call', _76 => _76()])
+          _optionalChain([safePage, 'call', _77 => _77(), 'optionalAccess', _78 => _78.close, 'call', _79 => _79()])
           if (params.hasCache) {
             cacheManager.rename()
           }
@@ -548,7 +561,7 @@ const ISRHandler = async (params) => {
 
     const pathname = new URL(url).pathname
 
-    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _77 => _77.crawl, 'access', _78 => _78.custom, 'optionalCall', _79 => _79(url)])
+    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _80 => _80.crawl, 'access', _81 => _81.custom, 'optionalCall', _82 => _82(url)])
 
     const optimizeOption = (
       _nullishCoalesce(_nullishCoalesce(crawlCustomOption, () => (

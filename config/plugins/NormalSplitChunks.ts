@@ -1,12 +1,12 @@
 import crypto from 'crypto'
-import type { OutputOptions } from 'rollup'
-import type { Plugin } from 'vite'
+// import type { OutputOptions } from 'rollup'
+// import type { Plugin } from 'vite'
 
 export default (
   splitChunkConfig: Array<
     string | RegExp | ((pathName: string) => boolean | string)
   >
-): Plugin => {
+): any => {
   return {
     name: 'normal-split-chunks',
     config(config) {
@@ -17,7 +17,7 @@ export default (
       )
         return
 
-      const output = config.build?.rollupOptions?.output as OutputOptions
+      const output = config.build?.rollupOptions?.output as any
       output.manualChunks = function (pathName, meta) {
         /**
          * NOTE - refer to
