@@ -1,5 +1,5 @@
-import type { LinkProps } from 'react-router-dom'
-import { Link as ReactLinkNative } from 'react-router-dom'
+import type { LinkProps } from 'react-router'
+import { Link as ReactLinkNative } from 'react-router'
 
 interface IProps extends LinkProps {}
 

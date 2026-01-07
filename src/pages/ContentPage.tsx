@@ -1,6 +1,6 @@
 import CommentSection from 'components/comment-page/CommentSection'
 import ModuleContentSection from 'components/content-page/ModuleContentSection'
-import { generatePath } from 'react-router-dom'
+import { generatePath } from 'react-router'
 
 // NOTE - Dummy Data Region
 const response: {

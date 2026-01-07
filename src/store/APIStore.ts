@@ -1,5 +1,6 @@
 import { hashCode } from 'utils/StringHelper'
 
+const API_STORE = globalThis.API_STORE as Record<string, any> | undefined
 const API_STORE_CLONED = JSON.parse(JSON.stringify(API_STORE || {}))
 
 export const getAPIStore = (key?: string) => {

@@ -49,14 +49,16 @@ const getAutoImportLibs = () =>
       {
         'react-dom/client': ['createRoot'],
       },
-      'react-router-dom',
+      'react-router',
       {
-        'react-router-dom': [
+        'react-router': [
           'createBrowserRouter',
           'RouterProvider',
           'BrowserRouter',
           'useMatches',
           'generatePath',
+          'Outlet',
+          'Navigate',
         ],
       },
       {

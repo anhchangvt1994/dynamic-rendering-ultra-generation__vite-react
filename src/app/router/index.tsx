@@ -1,6 +1,6 @@
 import Layout from 'Layout'
 import NotFoundPage from 'pages/NotFoundPage'
-import { RouteObject } from 'react-router-dom'
+import { RouteObject } from 'react-router'
 import { ServerStore } from 'store/ServerStore'
 import { LoadingInfoProvider } from './context/LoadingInfoContext'
 import { RouteObjectCustomize } from './types'
