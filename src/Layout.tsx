@@ -1,6 +1,5 @@
 import LoadingPageComponent from 'components/LoadingPageComponent'
-import { Outlet } from 'react-router'
-import { Header, MainContainer } from 'styles'
+import { Body, Header, MainContainer } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
 
 function Layout() {
@@ -17,9 +16,11 @@ function Layout() {
       <MainContainer>
         <Header></Header>
 
-        <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
-          <Outlet />
-        </LoadingBoundary>
+        <Body>
+          <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
+            <Outlet />
+          </LoadingBoundary>
+        </Body>
       </MainContainer>
     </div>
   )

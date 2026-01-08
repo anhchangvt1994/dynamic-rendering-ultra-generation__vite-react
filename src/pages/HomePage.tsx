@@ -1,5 +1,3 @@
-import ModuleSection from 'components/home-page/ModuleSection'
-
 function HomePage() {
   setTitleTag('Trang chủ')
   setSeoTag({
@@ -17,11 +15,7 @@ function HomePage() {
     setMetaKeywordsTag('Trang chủ, React, wsc-seo')
     setMetaDescriptionTag('Trang chủ React and WSC-SEO')
   }, 500)
-  return (
-    <div className="home-page">
-      <ModuleSection />
-    </div>
-  )
+  return <div className="home-page"></div>
 }
 
 export default HomePage
