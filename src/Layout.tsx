@@ -1,5 +1,6 @@
+import Header from 'components/header'
 import LoadingPageComponent from 'components/LoadingPageComponent'
-import { Body, Header, MainContainer } from 'styles'
+import { Body, MainContainer } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
 
 function Layout() {
@@ -14,7 +15,7 @@ function Layout() {
   return (
     <div className="layout">
       <MainContainer>
-        <Header></Header>
+        <Header />
 
         <Body>
           <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
