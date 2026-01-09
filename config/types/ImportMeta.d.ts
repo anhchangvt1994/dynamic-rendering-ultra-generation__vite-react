@@ -30,4 +30,5 @@ interface Env {
     STYLE_SCREEN_TABLET:         string;
     STYLE_SCREEN_LAPTOP:         string;
     STYLE_SCREEN_DESKTOP:        string;
+    STYLE_MIXINS_LIQUID_GLASS:   string[];
 }

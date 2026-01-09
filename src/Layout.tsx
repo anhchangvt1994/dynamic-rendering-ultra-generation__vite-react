@@ -1,4 +1,4 @@
-import Header from 'components/header'
+import Header from 'components/common/header'
 import LoadingPageComponent from 'components/LoadingPageComponent'
 import { Body, MainContainer } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
@@ -14,7 +14,9 @@ function Layout() {
 
   return (
     <div className="layout">
-      <MainContainer>
+      <MainContainer
+        className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
+      >
         <Header />
 
         <Body>

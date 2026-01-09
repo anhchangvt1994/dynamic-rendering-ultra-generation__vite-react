@@ -3,7 +3,9 @@ import { AvatarStyle, HeaderStyle } from './styles'
 const Header = () => {
   return (
     <HeaderStyle>
-      <AvatarStyle></AvatarStyle>
+      <AvatarStyle
+        className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
+      ></AvatarStyle>
     </HeaderStyle>
   )
 }

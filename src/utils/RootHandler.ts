@@ -12,7 +12,7 @@ export const getRoot = () => {
           if (
             !elRootTmp.innerHTML.includes('id="loading-page-component--global"')
           ) {
-            elRoot.replaceWith(elRootTmp)
+            return elRoot.replaceWith(elRootTmp)
           }
 
           interval = setInterval(() => {

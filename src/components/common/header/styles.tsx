@@ -1,16 +1,14 @@
-import { liquidGlass } from 'styles'
-
 export const HeaderStyle = styled.header`
   position: relative;
   display: flex;
   padding: 16px;
   height: 100px;
-  ${liquidGlass}
+  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   z-index: 10;
 `
 
 export const AvatarStyle = styled.div`
-  ${liquidGlass}
+  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   position: absolute;
   width: 100px;
   height: 100px;
@@ -33,7 +31,7 @@ export const AvatarStyle = styled.div`
   );
 
   &::before {
-    ${liquidGlass}
+    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
     content: '';
     position: absolute;
     width: calc(100% - 16px);
@@ -45,6 +43,20 @@ export const AvatarStyle = styled.div`
     top: 0;
     bottom: 0;
     margin: auto;
-    background: url('/images/pikachu-01.gif') center center / 180% no-repeat;
+  }
+
+  &.lazy-load {
+    &::before {
+      background: url('/images/pikachu_lazy-load-01.webp') center center / 180%
+        no-repeat;
+    }
+  }
+
+  &.full-load {
+    &::before {
+      background:
+        url('/images/pikachu-01.webp') center center / 180% no-repeat,
+        url('/images/pikachu_lazy-load-01.webp') center center / 180% no-repeat;
+    }
   }
 `
