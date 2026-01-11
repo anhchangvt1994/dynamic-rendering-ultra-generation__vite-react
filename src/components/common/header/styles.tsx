@@ -3,6 +3,7 @@ export const HeaderStyle = styled.header`
   display: flex;
   padding: 16px;
   height: 100px;
+  flex: 0 0 100px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   z-index: 10;
 `

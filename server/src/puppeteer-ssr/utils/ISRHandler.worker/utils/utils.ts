@@ -97,7 +97,7 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
       return
     })()
 
-    const WindowAPIStore = {}
+    let WindowAPIStore = {}
 
     if (apiStoreData) {
       if (apiStoreData.length) {
@@ -111,14 +111,26 @@ export const getInternalHTML = async (params: IGetInternalHTMLParams) => {
       }
     }
 
+    WindowAPIStore = JSON.stringify(WindowAPIStore)
+
     let html = readFileSync(filePath, 'utf8') || ''
 
-    html = html.replace(
-      '</head>',
-      `<script>window.API_STORE=${JSON.stringify(
-        WindowAPIStore
-      )}</script></head>`
-    )
+    if (html.includes('window.API_STORE={}')) {
+      html = html.replace(
+        'window.API_STORE={}',
+        `window.API_STORE=${WindowAPIStore}`
+      )
+    } else if (html.includes('</head>')) {
+      html = html.replace(
+        '</head>',
+        `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+      )
+    } else {
+      html = html.replace(
+        '<body',
+        `<script>window.API_STORE=${WindowAPIStore}</script><body`
+      )
+    }
 
     return {
       body: html,

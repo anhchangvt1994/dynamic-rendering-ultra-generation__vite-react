@@ -368,7 +368,6 @@ const puppeteerSSRService = (async () => {
           const filePath =
             (req.getHeader('static-html-path') ) ||
             _path2.default.resolve(__dirname, '../../../../dist/index.html')
-
           const pathForCacheKeyConverter = (() => {
             const urlWithoutQuery = correctPathname
             const query = req.getQuery()
@@ -377,67 +376,98 @@ const puppeteerSSRService = (async () => {
             return tmpUrl
           })()
 
-          const apiStoreData = await (async () => {
-            if (pointsTo && pointsTo.url) return
-
-            let tmpStoreKey
-            let tmpAPIStore
-
-            tmpStoreKey = _StringHelper.hashCode.call(void 0, pathForCacheKeyConverter)
-
-            tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
-
-            if (tmpAPIStore) return tmpAPIStore.data
-
-            const deviceType = _optionalChain([res, 'access', _14 => _14.cookies, 'optionalAccess', _15 => _15.deviceInfo, 'optionalAccess', _16 => _16.type])
-
-            tmpStoreKey = _StringHelper.hashCode.call(void 0, 
-              `${pathForCacheKeyConverter}${
-                pathForCacheKeyConverter.includes('?') && deviceType
-                  ? '&device=' + deviceType
-                  : '?device=' + deviceType
-              }`
-            )
-
-            tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
-
-            if (tmpAPIStore) return tmpAPIStore.data
-
-            return
-          })()
-
-          let WindowAPIStore = {}
-
-          if (apiStoreData && apiStoreData.length) {
-            for (const cacheKey of apiStoreData) {
-              const apiCache = await _utils.getData.call(void 0, cacheKey, {
-                sizeLimit: 10000,
-              })
-
-              if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
-                continue
-
-              WindowAPIStore[cacheKey] = apiCache.cache.data
-            }
-          }
-
-          WindowAPIStore = JSON.stringify(WindowAPIStore)
-
           try {
             const result = await _SSRGeneratornext2.default.call(void 0, {
               url,
             })
 
-            if (_optionalChain([result, 'optionalAccess', _17 => _17.status]) === 200) {
+            if (_optionalChain([result, 'optionalAccess', _14 => _14.status]) === 200) {
               html = _fs2.default.readFileSync(result.file)
+            } else if (pointsTo) {
+              status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _15 => _15.status]), () => ( '503')))
+              html =
+                _fs2.default.readFileSync(
+                  _nullishCoalesce(_optionalChain([result, 'optionalAccess', _16 => _16.response]), () => (
+                    _path2.default.resolve(__dirname, '../../../503-maintain.html'))),
+                  'utf8'
+                ) || ''
+            }
+          } catch (err) {
+            _ConsoleHandler2.default.error(err)
+          }
 
+          if (!html) {
+            try {
+              html = _fs2.default.readFileSync(filePath, 'utf8') || ''
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
+            }
+          }
+
+          if (
+            html &&
+            status === '200' &&
+            (!html.includes('window.API_STORE') ||
+              html.includes('window.API_STORE={}'))
+          ) {
+            const apiStoreData = await (async () => {
+              if (pointsTo && pointsTo.url) return
+
+              let tmpStoreKey
+              let tmpAPIStore
+
+              tmpStoreKey = _StringHelper.hashCode.call(void 0, pathForCacheKeyConverter)
+
+              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+
+              if (tmpAPIStore) return tmpAPIStore.data
+
+              const deviceType = _optionalChain([res, 'access', _17 => _17.cookies, 'optionalAccess', _18 => _18.deviceInfo, 'optionalAccess', _19 => _19.type])
+
+              tmpStoreKey = _StringHelper.hashCode.call(void 0, 
+                `${pathForCacheKeyConverter}${
+                  pathForCacheKeyConverter.includes('?') && deviceType
+                    ? '&device=' + deviceType
+                    : '?device=' + deviceType
+                }`
+              )
+
+              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+
+              if (tmpAPIStore) return tmpAPIStore.data
+
+              return
+            })()
+
+            let WindowAPIStore = {}
+
+            if (apiStoreData && apiStoreData.length) {
+              for (const cacheKey of apiStoreData) {
+                const apiCache = await _utils.getData.call(void 0, cacheKey, {
+                  sizeLimit: 10000,
+                })
+
+                if (
+                  !apiCache ||
+                  !apiCache.cache ||
+                  apiCache.cache.status !== 200
+                )
+                  continue
+
+                WindowAPIStore[cacheKey] = apiCache.cache.data
+              }
+            }
+
+            WindowAPIStore = JSON.stringify(WindowAPIStore)
+
+            try {
               if (WindowAPIStore !== '{}') {
                 html = _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
 
                 if (html.includes('window.API_STORE={}')) {
                   html = html.replace(
                     'window.API_STORE={}',
-                    `window.API_STORE=${JSON.stringify(WindowAPIStore)}`
+                    `window.API_STORE=${WindowAPIStore}`
                   )
                 } else if (html.includes('</head>')) {
                   html = html.replace(
@@ -451,47 +481,12 @@ const puppeteerSSRService = (async () => {
                   )
                 }
               }
-            } else if (pointsTo) {
-              status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _18 => _18.status]), () => ( '503')))
-              html =
-                _fs2.default.readFileSync(
-                  _nullishCoalesce(_optionalChain([result, 'optionalAccess', _19 => _19.response]), () => (
-                    _path2.default.resolve(__dirname, '../../../503-maintain.html'))),
-                  'utf8'
-                ) || ''
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
             }
-          } catch (err) {
-            _ConsoleHandler2.default.error(err)
           }
 
           try {
-            if (!html) {
-              try {
-                html = _fs2.default.readFileSync(filePath, 'utf8') || ''
-
-                if (WindowAPIStore !== '{}') {
-                  if (html.includes('window.API_STORE={}')) {
-                    html = html.replace(
-                      'window.API_STORE={}',
-                      `window.API_STORE=${JSON.stringify(WindowAPIStore)}`
-                    )
-                  } else if (html.includes('</head>')) {
-                    html = html.replace(
-                      '</head>',
-                      `<script>window.API_STORE=${WindowAPIStore}</script></head>`
-                    )
-                  } else {
-                    html = html.replace(
-                      '<body',
-                      `<script>window.API_STORE=${WindowAPIStore}</script><body`
-                    )
-                  }
-                }
-              } catch (err) {
-                _ConsoleHandler2.default.error(err)
-              }
-            }
-
             const body = (() => {
               if (enableContentEncoding && Buffer.isBuffer(html)) return html
 

@@ -1,9 +1,9 @@
-export const MainContainer = styled.div`
+export const MainContainerStyle = styled.div`
   display: flex;
   flex-direction: column;
   max-width: 1280px;
   min-width: 0;
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
   margin: 0 auto;
   padding: 16px;
@@ -25,9 +25,15 @@ export const MainContainer = styled.div`
   }
 `
 
-export const Body = styled.div`
+export const BodyStyle = styled.div`
   padding: 16px;
   margin-top: 16px;
   flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+`
+
+export const ContentStyle = styled.div`
+  height: 100%;
 `

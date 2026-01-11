@@ -1,6 +1,6 @@
 import Header from 'components/common/header'
 import LoadingPageComponent from 'components/LoadingPageComponent'
-import { Body, MainContainer } from 'styles'
+import { BodyStyle, ContentStyle, MainContainerStyle } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
 
 function Layout() {
@@ -14,17 +14,19 @@ function Layout() {
 
   return (
     <div className="layout">
-      <MainContainer
+      <MainContainerStyle
         className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
       >
         <Header />
 
-        <Body>
-          <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
-            <Outlet />
-          </LoadingBoundary>
-        </Body>
-      </MainContainer>
+        <BodyStyle>
+          <ContentStyle>
+            <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
+              <Outlet />
+            </LoadingBoundary>
+          </ContentStyle>
+        </BodyStyle>
+      </MainContainerStyle>
     </div>
   )
 } // App()

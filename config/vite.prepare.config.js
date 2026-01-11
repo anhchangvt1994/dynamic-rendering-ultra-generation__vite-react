@@ -135,6 +135,7 @@ const getAutoImportLibs = () =>
         'utils/ProxyAPIHelper/index.ts': ['ProxyAPI'],
         'utils/CookieHelper.ts': ['getCookie', 'setCookie', 'deleteCookie'],
         'components/Link.tsx': [['default', 'LinkCustom']],
+        '@reduxjs/toolkit/query/react': ['createApi', 'fetchBaseQuery'],
       },
     ],
     dts: dtsAutoImportLibsPath,

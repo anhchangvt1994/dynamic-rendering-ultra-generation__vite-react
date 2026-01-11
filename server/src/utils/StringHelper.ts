@@ -481,16 +481,15 @@ const encode = (input, key = '') => {
     const a = xorEncoded.charCodeAt(i++)
     const b = xorEncoded.charCodeAt(i++)
     const c = xorEncoded.charCodeAt(i++)
+
     const index1 = a >> 2
     const index2 = ((a & 3) << 4) | (b >> 4)
     const index3 = isNaN(b) ? 64 : ((b & 15) << 2) | (c >> 6)
     const index4 = isNaN(c) ? 64 : c & 63
 
-    output +=
-      chars.charAt(index1) +
-      chars.charAt(index2) +
-      chars.charAt(index3) +
-      chars.charAt(index4)
+    output += chars.charAt(index1) + chars.charAt(index2)
+    output += index3 === 64 ? '=' : chars.charAt(index3)
+    output += index4 === 64 ? '=' : chars.charAt(index4)
   }
 
   return output

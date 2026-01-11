@@ -502,6 +502,10 @@ const ISRGenerator = async ({
     waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
   }
 
+  if (!result) {
+    result = await cacheManager.get()
+  }
+
   if (!result.response && !result.html) {
     if (result.status === 503) {
       result.response = _path2.default.resolve(__dirname, '../../../../503-maintain.html')

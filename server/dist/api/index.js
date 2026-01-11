@@ -73,7 +73,7 @@ const apiService = (() => {
         try {
           result = _StringHelper.decodeRequestInfo.call(void 0, apiInfo.requestInfo || '')
         } catch (err) {
-          _ConsoleHandler2.default.error(err)
+          console.error(err)
         }
 
         return result
