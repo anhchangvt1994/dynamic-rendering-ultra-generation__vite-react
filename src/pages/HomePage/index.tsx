@@ -22,13 +22,14 @@ function HomePage() {
   )
 
   const { data, isFetching } = useGetPokemonListQuery()
+  const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
   const [isLoading, setIsLoading] = useState(isFetching)
 
-  console.log('isFetching', isFetching)
-  console.log('pokemonListState', pokemonListState)
-
   const pokemonList = useMemo(() => {
-    if (RenderingInfo.loader || isLoading) {
+    if (
+      RenderingInfo.loader ||
+      (isLoading && (!isFirstTimeLoading || !pokemonListState))
+    ) {
       return Array.from({ length: 8 }).map((_, index) => (
         <PokemonCardLoading key={index} />
       ))
@@ -47,6 +48,10 @@ function HomePage() {
 
   useEffect(() => {
     setIsLoading(isFetching)
+
+    if (isFirstTimeLoading) {
+      setIsFirstTimeLoading(false)
+    }
   }, [isFetching])
 
   return (
