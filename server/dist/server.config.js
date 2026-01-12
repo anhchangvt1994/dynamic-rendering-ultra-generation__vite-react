@@ -24,6 +24,12 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
             name: 'home-page',
           },
         }
+      } else if (pathSlitted.length === 3 && pathSlitted[1] === 'pokemon') {
+        return {
+          loader: {
+            name: 'pokemon-page',
+          },
+        }
       }
     },
   },

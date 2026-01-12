@@ -1,4 +1,5 @@
 import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
+import { functionGenerator } from 'utils/EnvHelper'
 import {
   BodyStyle,
   HeaderStyle,
@@ -11,10 +12,23 @@ import {
 
 const PokemonPage = () => {
   const route = useRoute()
+  const getPokemonDetailPath = functionGenerator(
+    import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
+  )
   const { name } = route.params
+  const pokemonDetailEndpoint = getPokemonDetailPath(name)
+  const [pokemonState, setPokemonState] = useState(
+    getAPIStore(pokemonDetailEndpoint)
+  )
   const { data, isFetching } = useGetPokemonDetailQuery(name)
-  const pokemonNumber = data?.id ? data.id.toString().padStart(3, '0') : ''
-  const isShowLoading = RenderingInfo.loader || isFetching
+  const [isFirstLoading, setIsFirstLoading] = useState(isFetching)
+  const pokemonNumber = pokemonState?.id
+    ? pokemonState.id.toString().padStart(3, '0')
+    : ''
+  const isShowLoading =
+    RenderingInfo.loader || (isFetching && (!isFirstLoading || !pokemonState))
+
+  console.log('isShowLoading', isShowLoading)
 
   const onLoad = (img) => {
     img.classList.add('show')
@@ -23,6 +37,18 @@ const PokemonPage = () => {
   const onError = (img) => {
     img.classList.add('error')
   }
+
+  useEffect(() => {
+    if (data) {
+      setPokemonState(data)
+    }
+  }, [data])
+
+  useEffect(() => {
+    if (isFirstLoading && !isFetching) {
+      setIsFirstLoading(false)
+    }
+  }, [isFetching])
 
   return (
     <PokemonPageStyle>
