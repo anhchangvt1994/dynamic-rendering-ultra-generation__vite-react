@@ -5,7 +5,7 @@ export default {
     base_url: 'https://pokeapi.co/api/v2',
     path: {
       get_pokemon_list: '/pokemon',
-      get_pokemon_detail: '/pokemon/$id',
+      get_pokemon_detail: (name) => `/pokemon/${name}`,
     },
     reducer_path: {
       pokemon: 'pokemonApi',

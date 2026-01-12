@@ -9,8 +9,8 @@ export default {
       id: 'HomePage',
     },
     pokemon: {
-      path: 'pokemon/:id',
-      get_path: (id) => `/pokemon/${id}`,
+      path: 'pokemon/:name',
+      get_path: (name) => `/pokemon/${name}`,
       id: 'PokemonPage',
     },
     content: {

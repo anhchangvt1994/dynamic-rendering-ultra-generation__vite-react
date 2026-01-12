@@ -7,10 +7,6 @@ import {
 } from './styles'
 
 const PokemonCard = ({ pokemon }) => {
-  const pokemonUrlSplit = pokemon?.url?.split('/') ?? ''
-  const pokemonId = pokemonUrlSplit
-    ? pokemonUrlSplit[pokemonUrlSplit.length - 2]
-    : ''
   const onLoad = (img) => {
     img.classList.add('show')
   }
@@ -24,7 +20,7 @@ const PokemonCard = ({ pokemon }) => {
   )
 
   return (
-    <PokemonCardStyle to={getPokemonDetailUrl?.(pokemonId)}>
+    <PokemonCardStyle to={getPokemonDetailUrl(getSlug(pokemon.name))}>
       <ImageWrapperStyle>
         <ImageStyle
           alt={pokemon.name}

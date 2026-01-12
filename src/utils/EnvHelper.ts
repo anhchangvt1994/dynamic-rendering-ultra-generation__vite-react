@@ -1,6 +1,6 @@
-export const functionGenerator = (env) => {
-  if (!env) return
-  let func = null
+export const functionGenerator = (env): ((...args: any) => any) => {
+  if (!env) return () => {}
+  let func = () => {}
 
   try {
     func = new Function(`return ${env}`)()
