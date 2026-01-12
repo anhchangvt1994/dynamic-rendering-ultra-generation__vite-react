@@ -57,6 +57,7 @@ function HomePage() {
   return (
     <div className="home-page">
       <PokemonListStyle>{pokemonList}</PokemonListStyle>
+      <Outlet />
     </div>
   )
 }

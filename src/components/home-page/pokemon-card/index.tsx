@@ -1,3 +1,4 @@
+import { functionGenerator } from 'utils/EnvHelper'
 import {
   ImageStyle,
   ImageWrapperStyle,
@@ -6,6 +7,10 @@ import {
 } from './styles'
 
 const PokemonCard = ({ pokemon }) => {
+  const pokemonUrlSplit = pokemon?.url?.split('/') ?? ''
+  const pokemonId = pokemonUrlSplit
+    ? pokemonUrlSplit[pokemonUrlSplit.length - 2]
+    : ''
   const onLoad = (img) => {
     img.classList.add('show')
   }
@@ -14,8 +19,12 @@ const PokemonCard = ({ pokemon }) => {
     img.classList.add('error')
   }
 
+  const getPokemonDetailUrl = functionGenerator(
+    import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
+  )
+
   return (
-    <PokemonCardStyle>
+    <PokemonCardStyle to={getPokemonDetailUrl?.(pokemonId)}>
       <ImageWrapperStyle>
         <ImageStyle
           alt={pokemon.name}

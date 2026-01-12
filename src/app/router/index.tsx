@@ -35,9 +35,14 @@ const routes: RouteObjectCustomize[] = defineRoute([
     ),
     children: [
       {
-        index: true,
         path: import.meta.env.ROUTER_HOME_PATH,
         element: withLazy(() => import('pages/HomePage')),
+        children: [
+          {
+            path: import.meta.env.ROUTER_POKEMON_PATH,
+            element: withLazy(() => import('pages/PokemonPage')),
+          },
+        ],
       }, // Home Page
       {
         path: import.meta.env.ROUTER_CONTENT_PATH,
