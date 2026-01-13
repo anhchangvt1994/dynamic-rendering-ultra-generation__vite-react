@@ -1,6 +1,11 @@
 import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
+import { useNavigateInfo } from 'app/router/context/InfoContext'
+import PokemonStats from 'components/pokemon-page/pokemon-stats'
+import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import { functionGenerator } from 'utils/EnvHelper'
 import {
+  BackButtonStyle,
+  BackIconStyle,
   BodyStyle,
   HeaderStyle,
   ImageStyle,
@@ -12,6 +17,8 @@ import {
 
 const PokemonPage = () => {
   const route = useRoute()
+  const navigateInfo = useNavigateInfo()
+  const navigate = useNavigate()
   const getPokemonDetailPath = functionGenerator(
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
   )
@@ -28,15 +35,25 @@ const PokemonPage = () => {
   const isShowLoading =
     RenderingInfo.loader || (isFetching && (!isFirstLoading || !pokemonState))
 
-  console.log('isShowLoading', isShowLoading)
-
   const onLoad = (img) => {
     img.classList.add('show')
-  }
+  } // onLoad
 
   const onError = (img) => {
     img.classList.add('error')
-  }
+  } // onError
+
+  const handleBack = () => {
+    if (!navigateInfo.from) return navigate(import.meta.env.ROUTER_HOME_PATH)
+
+    navigate(-1)
+  } // handleBack
+
+  const pokemonStats = isShowLoading ? (
+    <PokemonStatsLoading />
+  ) : (
+    <PokemonStats stats={pokemonState?.stats ?? []} />
+  )
 
   useEffect(() => {
     if (data) {
@@ -52,10 +69,14 @@ const PokemonPage = () => {
 
   return (
     <PokemonPageStyle>
-      <HeaderStyle></HeaderStyle>
+      <HeaderStyle>
+        <BackButtonStyle onClick={handleBack}>
+          <BackIconStyle />
+        </BackButtonStyle>
+      </HeaderStyle>
       <BodyStyle>
         <ImageWrapperStyle>
-          {!isShowLoading && (
+          {!isShowLoading && pokemonNumber && (
             <ImageStyle
               src={`https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`}
               onLoad={(e) => onLoad(e.target)}
@@ -73,6 +94,8 @@ const PokemonPage = () => {
         ) : (
           <NameStyle>{name}</NameStyle>
         )}
+
+        {pokemonStats}
       </BodyStyle>
     </PokemonPageStyle>
   )

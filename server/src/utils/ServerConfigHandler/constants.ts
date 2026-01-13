@@ -10,7 +10,7 @@ export const defaultServerConfig: IServerConfig = {
   crawl: {
     enable: true,
     limit: 3,
-    speed: 20000,
+    speed: 8000,
     content: 'same',
     cache: {
       enable: true,

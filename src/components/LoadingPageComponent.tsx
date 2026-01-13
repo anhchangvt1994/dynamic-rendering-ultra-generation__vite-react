@@ -7,7 +7,7 @@ const RotationAnimation = keyframes`
 	}
 `
 
-const Wrapper = styled.div`
+const WrapperStyle = styled.div`
   position: fixed;
   display: flex;
   align-items: center;
@@ -19,51 +19,107 @@ const Wrapper = styled.div`
   left: 0;
 `
 
-const Loading = styled.span`
-  width: 175px;
-  height: 80px;
-  display: block;
-  margin: auto;
-  background-image:
-    radial-gradient(circle 25px at 25px 25px, #efefef 100%, transparent 0),
-    radial-gradient(circle 50px at 50px 50px, #efefef 100%, transparent 0),
-    radial-gradient(circle 25px at 25px 25px, #efefef 100%, transparent 0),
-    linear-gradient(#efefef 50px, transparent 0);
-  background-size:
-    50px 50px,
-    100px 76px,
-    50px 50px,
-    120px 40px;
-  background-position:
-    0px 30px,
-    37px 0px,
-    122px 30px,
-    25px 40px;
-  background-repeat: no-repeat;
-  position: relative;
-  box-sizing: border-box;
-  &:after {
+const PokeballLoadingStyle = styled.div`
+  position: absolute;
+  height: 100px;
+  width: 100px;
+  overflow: hidden;
+  border-radius: 50%;
+  z-index: 0;
+  animation: ${RotationAnimation} 3s linear infinite;
+
+  &::before,
+  &::after {
+    position: absolute;
+    display: block;
     content: '';
+    width: 100%;
+    height: 50%;
+    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+    border-radius: 0;
+    left: 0;
+    z-index: -1;
+  }
+
+  &::before {
+    top: 0;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &::after {
+    bottom: 0;
+    background: rgba(255, 2, 1, 0.1);
+  }
+`
+
+const PokeballInnerLoadingStyle = styled.div`
+  position: absolute;
+  height: calc(100% - 8px);
+  width: calc(100% - 8px);
+  overflow: hidden;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  border-radius: 50%;
+
+  &::before,
+  &::after {
+    position: absolute;
+    content: '';
+    display: block;
     left: 0;
     right: 0;
+    top: 0;
+    bottom: 0;
     margin: auto;
-    bottom: 20px;
-    position: absolute;
-    width: 36px;
-    height: 36px;
     border-radius: 50%;
-    border: 5px solid transparent;
-    border-color: #ff3d00 transparent;
-    box-sizing: border-box;
-    animation: ${RotationAnimation} 1s linear infinite;
+    background: #ffffff;
+    z-index: 1;
+    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  }
+
+  &::before {
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &::after {
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.7);
+  }
+`
+
+const HalfBallStyle = styled.div`
+  position: absolute;
+  width: 100%;
+  height: calc(50% - 3px);
+  left: 0;
+
+  &.top {
+    top: 0;
+    background: #ff0201;
+  }
+
+  &.bottom {
+    bottom: 0;
+    background: #ffffff;
   }
 `
 
 function Component() {
   return (
-    <Wrapper id="loading-page-component--global">
-      <Loading></Loading>
-    </Wrapper>
+    <WrapperStyle id="loading-page-component--global">
+      <PokeballLoadingStyle>
+        <PokeballInnerLoadingStyle>
+          <HalfBallStyle className="top" />
+          <HalfBallStyle className="bottom" />
+        </PokeballInnerLoadingStyle>
+      </PokeballLoadingStyle>
+    </WrapperStyle>
   )
 }
 

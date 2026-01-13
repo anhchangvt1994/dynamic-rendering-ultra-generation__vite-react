@@ -24,21 +24,17 @@ function HomePage() {
   const { data, isFetching } = useGetPokemonListQuery()
   const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
   const [isLoading, setIsLoading] = useState(isFetching)
+  const isShowLoading =
+    RenderingInfo.loader ||
+    (isLoading && (!isFirstTimeLoading || !pokemonListState))
 
-  const pokemonList = useMemo(() => {
-    if (
-      RenderingInfo.loader ||
-      (isLoading && (!isFirstTimeLoading || !pokemonListState))
-    ) {
-      return Array.from({ length: 8 }).map((_, index) => (
+  const pokemonList = isShowLoading
+    ? Array.from({ length: 8 }).map((_, index) => (
         <PokemonCardLoading key={index} />
       ))
-    }
-
-    return pokemonListState?.map?.((pokemon) => (
-      <PokemonCard key={pokemon.name} pokemon={pokemon} />
-    ))
-  }, [JSON.stringify(pokemonListState), isLoading])
+    : pokemonListState?.map?.((pokemon) => (
+        <PokemonCard key={pokemon.name} pokemon={pokemon} />
+      ))
 
   useEffect(() => {
     if (data) {

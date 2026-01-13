@@ -35,11 +35,35 @@ interface Env {
     STYLE_SCREEN_LAPTOP:                  string;
     STYLE_SCREEN_DESKTOP:                 string;
     STYLE_MIXINS_LIQUID_GLASS:            string[];
-    API_PROXY_URL:                        string;
+    API_PROXY_URL_GET_FUNCTION:           string;
     API_BASE_URL:                         string;
     API_PATH_GET_POKEMON_LIST:            string;
     API_PATH_GET_POKEMON_DETAIL_FUNCTION: string;
     API_REDUCER_PATH_POKEMON:             string;
     API_ENDPOINT_GET_POKEMON_LIST:        string;
     API_ENDPOINT_GET_POKEMON_DETAIL:      string;
+    INFO_POKEMON_STATS_DEFAULT:           InfoPokemonStatsDefault[];
+    INFO_POKEMON_STATS_LEVEL:             InfoPokemonStatsLevel;
+    INFO_POKEMON_STATS_COLOR:             InfoPokemonStatsColor;
+    INFO_POKEMON_MAX_BASE_STATS:          number;
+}
+
+interface InfoPokemonStatsColor {
+    bad:    string;
+    normal: string;
+    good:   string;
+}
+
+interface InfoPokemonStatsDefault {
+    stat: Stat;
+}
+
+interface Stat {
+    name: string;
+}
+
+interface InfoPokemonStatsLevel {
+    bad:    number;
+    normal: number;
+    good:   number;
 }

@@ -3,7 +3,7 @@ export const MainContainerStyle = styled.div`
   flex-direction: column;
   max-width: 1280px;
   min-width: 0;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   margin: 0 auto;
   padding: 16px;
@@ -32,6 +32,14 @@ export const BodyStyle = styled.div`
   overflow-x: hidden;
   overflow-y: auto;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE / Edge cũ */
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
+  }
 `
 
 export const ContentStyle = styled.div`

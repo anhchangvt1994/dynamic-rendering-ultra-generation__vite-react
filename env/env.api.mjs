@@ -1,7 +1,9 @@
 export default {
   prefix: 'api',
   data: {
-    proxy_url: 'http://localhost:8080',
+    proxy_url: {
+      get: () => window.location.origin,
+    },
     base_url: 'https://pokeapi.co/api/v2',
     path: {
       get_pokemon_list: '/pokemon',

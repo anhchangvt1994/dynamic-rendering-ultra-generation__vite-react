@@ -1,12 +1,38 @@
 export const PokemonPageStyle = styled.div``
 
 export const HeaderStyle = styled.div`
+  position: sticky;
   height: 24px;
   margin-top: -16px;
+  top: 0;
+  z-index: 10;
+`
+
+export const BackButtonStyle = styled.button`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  height: 48px;
+  width: 48px;
+  user-select: none;
+  margin-left: -16px;
+  z-index: 10;
+`
+
+export const BackIconStyle = styled.span`
+  border: solid #ffffff;
+  border-width: 0 4px 4px 0;
+  display: inline-block;
+  padding: 4px;
+  transform: rotate(135deg);
+  -webkit-transform: rotate(135deg);
 `
 
 export const BodyStyle = styled.div`
-  margin-top: 16px;
+  padding: 16px 0;
 `
 
 export const ImageWrapperStyle = styled.div`
@@ -74,7 +100,7 @@ export const NameStyle = styled.div`
 
 export const NameLoadingStyle = styled.div`
   width: 100%;
-  height: 20px;
+  height: 36px;
   text-align: center;
   margin-top: 8px;
   text-transform: capitalize;

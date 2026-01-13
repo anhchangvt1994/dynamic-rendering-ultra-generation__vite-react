@@ -107,6 +107,8 @@ body {
   background: #f2f2f2;
   color: #000;
   margin: 0;
+  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 a {
