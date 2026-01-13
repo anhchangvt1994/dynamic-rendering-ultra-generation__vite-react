@@ -32,6 +32,7 @@ export const BackIconStyle = styled.span`
 `
 
 export const BodyStyle = styled.div`
+  position: relative;
   padding: 16px 0;
 `
 

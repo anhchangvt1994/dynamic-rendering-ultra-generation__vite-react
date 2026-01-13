@@ -2,6 +2,7 @@ import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
+import PokemonTypes from 'components/pokemon-page/pokemon-types'
 import { functionGenerator } from 'utils/EnvHelper'
 import {
   BackButtonStyle,
@@ -75,6 +76,7 @@ const PokemonPage = () => {
         </BackButtonStyle>
       </HeaderStyle>
       <BodyStyle>
+        <PokemonTypes types={pokemonState?.types ?? []} />
         <ImageWrapperStyle>
           {!isShowLoading && pokemonNumber && (
             <ImageStyle
