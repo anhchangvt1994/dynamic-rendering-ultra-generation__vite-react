@@ -37,8 +37,8 @@ var _InitEnv = require('../../utils/InitEnv');
       ? routePreviewInfo.content
       : routePreviewInfo.content === 'all'
         ? _serverconfig2.default.crawl.content === 'same'
-          ? routePreviewInfo.content
-          : _serverconfig2.default.crawl.content
+          ? _serverconfig2.default.crawl.content
+          : routePreviewInfo.content
         : _serverconfig2.default.crawl.content === 'all'
           ? routePreviewInfo.content
           : (() => {

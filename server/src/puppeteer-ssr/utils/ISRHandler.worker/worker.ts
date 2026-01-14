@@ -15,8 +15,6 @@ import {
   puppeteer,
   regexNotFoundPageID,
   regexQueryStringSpecialInfo,
-  WINDOW_VIEWPORT_HEIGHT,
-  WINDOW_VIEWPORT_WIDTH,
 } from '../../constants'
 import { ISSRResult } from '../../types'
 import CacheManager from '../CacheManager.worker/utils'
@@ -371,10 +369,10 @@ const ISRHandler = async (params: IISRHandlerParam) => {
           safePage()?.waitForNetworkIdle({ idleTime: 150 }),
           safePage()?.setCacheEnabled(false),
           safePage()?.setRequestInterception(true),
-          safePage()?.setViewport({
-            width: WINDOW_VIEWPORT_WIDTH,
-            height: WINDOW_VIEWPORT_HEIGHT,
-          }),
+          // safePage()?.setViewport({
+          //   width: WINDOW_VIEWPORT_WIDTH,
+          //   height: WINDOW_VIEWPORT_HEIGHT,
+          // }),
           safePage()?.setExtraHTTPHeaders({
             ...specialInfo,
             service: 'puppeteer',

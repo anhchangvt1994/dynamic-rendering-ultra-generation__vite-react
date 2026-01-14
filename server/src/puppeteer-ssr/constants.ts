@@ -75,10 +75,10 @@ export const optionArgs = [
 
 export const defaultBrowserOptions: LaunchOptions = {
   headless: 'shell',
-  defaultViewport: {
-    width: WINDOW_VIEWPORT_WIDTH,
-    height: WINDOW_VIEWPORT_HEIGHT,
-  },
+  // defaultViewport: {
+  //   width: WINDOW_VIEWPORT_WIDTH,
+  //   height: WINDOW_VIEWPORT_HEIGHT,
+  // },
   userDataDir: `${userDataPath}/user_data`,
   args: optionArgs,
   protocolTimeout: 240000, // NOTE - Handle for error protocol timeout (can test adidas site to got detail of this issue)

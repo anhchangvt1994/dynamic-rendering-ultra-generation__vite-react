@@ -37,8 +37,8 @@ export const convertUrlHeaderToQueryString = (
       ? routePreviewInfo.content
       : routePreviewInfo.content === 'all'
         ? ServerConfig.crawl.content === 'same'
-          ? routePreviewInfo.content
-          : ServerConfig.crawl.content
+          ? ServerConfig.crawl.content
+          : routePreviewInfo.content
         : ServerConfig.crawl.content === 'all'
           ? routePreviewInfo.content
           : (() => {

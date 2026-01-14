@@ -75,10 +75,10 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
 
  const defaultBrowserOptions = {
   headless: 'shell',
-  defaultViewport: {
-    width: exports.WINDOW_VIEWPORT_WIDTH,
-    height: exports.WINDOW_VIEWPORT_HEIGHT,
-  },
+  // defaultViewport: {
+  //   width: WINDOW_VIEWPORT_WIDTH,
+  //   height: WINDOW_VIEWPORT_HEIGHT,
+  // },
   userDataDir: `${userDataPath}/user_data`,
   args: exports.optionArgs,
   protocolTimeout: 240000, // NOTE - Handle for error protocol timeout (can test adidas site to got detail of this issue)
