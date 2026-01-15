@@ -5,6 +5,10 @@ var _PathHandler = require('../utils/PathHandler');
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
 
+ const MOBILE_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'; exports.MOBILE_UA = MOBILE_UA
+ const DESKTOP_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'; exports.DESKTOP_UA = DESKTOP_UA
 // NOTE - Browser Options
  const WINDOW_VIEWPORT_WIDTH = 1920; exports.WINDOW_VIEWPORT_WIDTH = WINDOW_VIEWPORT_WIDTH
 // export const WINDOW_VIEWPORT_HEIGHT = 2160

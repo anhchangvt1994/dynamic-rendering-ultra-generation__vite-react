@@ -1,10 +1,13 @@
-import { Page } from 'puppeteer-core'
+import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
+import apiService from '../../../api/index.crawler'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { getViewsPath } from '../../../utils/PathHandler'
 import {
   CACHEABLE_STATUS_CODE,
+  DESKTOP_UA,
+  MOBILE_UA,
   regexNotFoundPageID,
   regexQueryStringSpecialInfo,
 } from '../../constants'
@@ -43,6 +46,18 @@ const waitResponse = (() => {
     let response
     try {
       response = await new Promise(async (resolve, reject) => {
+        let pendingRequests = 0
+
+        safePage().on('request', () => {
+          pendingRequests++
+        })
+        safePage().on('requestfinished', () => {
+          pendingRequests--
+        })
+        safePage().on('requestfailed', () => {
+          pendingRequests--
+        })
+
         const result = await new Promise<any>((resolveAfterPageLoad) => {
           safePage()
             ?.goto(url, {
@@ -59,9 +74,13 @@ const waitResponse = (() => {
         if (regexNotFoundPageID.test(html)) return resolve(result)
 
         await new Promise((resolveAfterPageLoadInFewSecond) => {
+          if (pendingRequests <= 0) {
+            return resolveAfterPageLoadInFewSecond(null)
+          }
+
           const startTimeout = (() => {
             let timeout
-            return (duration = 1000) => {
+            return (duration = 500) => {
               if (timeout) clearTimeout(timeout)
               timeout = setTimeout(resolveAfterPageLoadInFewSecond, duration)
             }
@@ -70,17 +89,26 @@ const waitResponse = (() => {
           startTimeout()
 
           safePage()?.on('requestfinished', () => {
-            startTimeout()
+            startTimeout(150)
           })
           safePage()?.on('requestservedfromcache', () => {
-            startTimeout(250)
+            startTimeout(150)
           })
           safePage()?.on('requestfailed', () => {
-            startTimeout(250)
+            startTimeout(150)
           })
+
+          setTimeout(resolveAfterPageLoadInFewSecond, 20000)
         })
 
-        resolve(result)
+        safePage().removeAllListeners('request')
+        safePage().removeAllListeners('requestfinished')
+        safePage().removeAllListeners('requestservedfromcache')
+        safePage().removeAllListeners('requestfailed')
+
+        setTimeout(() => {
+          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
+        }, 300)
       })
     } catch (err) {
       throw err
@@ -115,18 +143,23 @@ const SSRHandler = async (params: SSRHandlerParam) => {
 
     try {
       await Promise.all([
-        safePage()?.setUserAgent(
-          deviceInfo.isMobile
-            ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
-            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
-        ),
+        safePage()?.setUserAgent(deviceInfo.isMobile ? MOBILE_UA : DESKTOP_UA),
         safePage()?.waitForNetworkIdle({ idleTime: 150 }),
         safePage()?.setCacheEnabled(false),
         safePage()?.setRequestInterception(true),
-        safePage()?.setViewport({ width: 1366, height: 768 }),
+        // safePage()?.setViewport({ width: 1366, height: 768 }),
         safePage()?.setExtraHTTPHeaders({
           ...specialInfo,
           service: 'puppeteer',
+        }),
+        safePage()?.evaluateOnNewDocument(() => {
+          const getContext = HTMLCanvasElement.prototype.getContext
+          HTMLCanvasElement.prototype.getContext = function (type) {
+            if (type === '2d' || type === 'webgl') {
+              return null
+            }
+            return getContext.call(this, type)
+          }
         }),
       ])
 
@@ -137,9 +170,9 @@ const SSRHandler = async (params: SSRHandlerParam) => {
           req.respond({ status: 200, body: 'aborted' })
         } else if (
           /(socket.io.min.js)+(?:$)|data:image\/[a-z]*.?\;base64/.test(url) ||
-          // /googletagmanager.com|connect.facebook.net|asia.creativecdn.com|static.hotjar.com|deqik.com|contineljs.com|googleads.g.doubleclick.net|analytics.tiktok.com|google.com|gstatic.com|static.airbridge.io|googleadservices.com|google-analytics.com|sg.mmstat.com|t.contentsquare.net|accounts.google.com|browser.sentry-cdn.com|bat.bing.com|tr.snapchat.com|ct.pinterest.com|criteo.com|webchat.caresoft.vn|tags.creativecdn.com|script.crazyegg.com|tags.tiqcdn.com|trc.taboola.com|securepubads.g.doubleclick.net|partytown/.test(
-          //   req.url()
-          // ) ||
+          /googletagmanager.com|connect.facebook.net|asia.creativecdn.com|static.hotjar.com|deqik.com|contineljs.com|googleads.g.doubleclick.net|analytics.tiktok.com|google.com|gstatic.com|static.airbridge.io|googleadservices.com|google-analytics.com|sg.mmstat.com|t.contentsquare.net|accounts.google.com|browser.sentry-cdn.com|bat.bing.com|tr.snapchat.com|ct.pinterest.com|criteo.com|webchat.caresoft.vn|tags.creativecdn.com|script.crazyegg.com|tags.tiqcdn.com|trc.taboola.com|securepubads.g.doubleclick.net|partytown/.test(
+            req.url()
+          ) ||
           ['font', 'image', 'media', 'imageset'].includes(resourceType)
         ) {
           req.abort()
@@ -148,14 +181,25 @@ const SSRHandler = async (params: SSRHandlerParam) => {
 
           if (resourceType.includes('fetch')) {
             const urlInfo = new URL(reqUrl)
-            if (!urlInfo.pathname.startsWith('/api')) {
-              return req.respond({
-                status: 200,
-              })
+            if (urlInfo.pathname.startsWith('/api')) {
+              apiService(req)
+                .then((res) => {
+                  req.respond(res)
+                })
+                .catch((err) => {
+                  Console.error(err)
+                  req.continue()
+                })
+            } else {
+              req.continue()
+              // return req.respond({
+              //   status: 200,
+              // })
             }
-          }
-
-          if (resourceType === 'document' && reqUrl.startsWith(baseUrl)) {
+          } else if (
+            resourceType === 'document' &&
+            reqUrl.startsWith(baseUrl)
+          ) {
             const urlInfo = new URL(reqUrl)
             const pointsTo = (() => {
               const tmpPointsTo = (

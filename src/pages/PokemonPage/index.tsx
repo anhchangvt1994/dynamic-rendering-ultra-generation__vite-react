@@ -76,7 +76,7 @@ const PokemonPage = () => {
         </BackButtonStyle>
       </HeaderStyle>
       <BodyStyle>
-        <PokemonTypes types={pokemonState?.types ?? []} />
+        {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
         <ImageWrapperStyle>
           {!isShowLoading && pokemonNumber && (
             <ImageStyle

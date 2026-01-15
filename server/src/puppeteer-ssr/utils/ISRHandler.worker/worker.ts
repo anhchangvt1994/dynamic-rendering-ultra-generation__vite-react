@@ -11,7 +11,9 @@ import Console from '../../../utils/ConsoleHandler'
 import { getPagesPath } from '../../../utils/PathHandler'
 import {
   CACHEABLE_STATUS_CODE,
+  DESKTOP_UA,
   DURATION_TIMEOUT,
+  MOBILE_UA,
   puppeteer,
   regexNotFoundPageID,
   regexQueryStringSpecialInfo,
@@ -361,9 +363,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
       try {
         await Promise.all([
           safePage()?.setUserAgent(
-            deviceInfo.isMobile
-              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+            deviceInfo.isMobile ? MOBILE_UA : DESKTOP_UA
           ),
           // setCookies,
           safePage()?.waitForNetworkIdle({ idleTime: 150 }),

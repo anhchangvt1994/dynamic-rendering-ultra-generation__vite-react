@@ -15,6 +15,8 @@ var _PathHandler = require('../../../utils/PathHandler');
 
 
 
+
+
 var _constants3 = require('../../constants');
 
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
@@ -361,9 +363,7 @@ const ISRHandler = async (params) => {
       try {
         await Promise.all([
           _optionalChain([safePage, 'call', _35 => _35(), 'optionalAccess', _36 => _36.setUserAgent, 'call', _37 => _37(
-            deviceInfo.isMobile
-              ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+            deviceInfo.isMobile ? _constants3.MOBILE_UA : _constants3.DESKTOP_UA
           )]),
           // setCookies,
           _optionalChain([safePage, 'call', _38 => _38(), 'optionalAccess', _39 => _39.waitForNetworkIdle, 'call', _40 => _40({ idleTime: 150 })]),
