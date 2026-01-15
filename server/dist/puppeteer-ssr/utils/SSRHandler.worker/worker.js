@@ -89,13 +89,13 @@ const waitResponse = (() => {
           startTimeout()
 
           _optionalChain([safePage, 'call', _11 => _11(), 'optionalAccess', _12 => _12.on, 'call', _13 => _13('requestfinished', () => {
-            startTimeout(150)
+            startTimeout(500)
           })])
           _optionalChain([safePage, 'call', _14 => _14(), 'optionalAccess', _15 => _15.on, 'call', _16 => _16('requestservedfromcache', () => {
-            startTimeout(150)
+            startTimeout(500)
           })])
           _optionalChain([safePage, 'call', _17 => _17(), 'optionalAccess', _18 => _18.on, 'call', _19 => _19('requestfailed', () => {
-            startTimeout(150)
+            startTimeout(500)
           })])
 
           setTimeout(resolveAfterPageLoadInFewSecond, 20000)
@@ -108,7 +108,7 @@ const waitResponse = (() => {
 
         setTimeout(() => {
           resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 300)
+        }, 500)
       })
     } catch (err) {
       throw err

@@ -206,32 +206,36 @@ const apiService = (async () => {
                 apiCache.cache.status !== 200) &&
               apiCache.status !== 'fetch'
             ) {
-              updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
+              const apiCache = await getDataCache(requestInfo.cacheKey)
 
-              const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+              if (!apiCache || apiCache.status !== 'fetch') {
+                updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
 
-              fetchData(fetchUrl, {
-                method,
-                headers: objHeaders,
-                body,
-              }).then((result) => {
-                const enableToSetCache =
-                  result.status === 200 ||
-                  !apiCache.cache ||
-                  apiCache.cache.status !== 200
-                if (enableToSetCache) {
-                  setDataCache(requestInfo.cacheKey, {
-                    url: fetchUrl,
-                    method,
-                    body,
-                    headers: objHeaders,
-                    cache: {
-                      expiredTime: requestInfo.expiredTime,
-                      ...result,
-                    },
-                  })
-                }
-              })
+                const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+
+                fetchData(fetchUrl, {
+                  method,
+                  headers: objHeaders,
+                  body,
+                }).then((result) => {
+                  const enableToSetCache =
+                    result.status === 200 ||
+                    !apiCache.cache ||
+                    apiCache.cache.status !== 200
+                  if (enableToSetCache) {
+                    setDataCache(requestInfo.cacheKey, {
+                      url: fetchUrl,
+                      method,
+                      body,
+                      headers: objHeaders,
+                      cache: {
+                        expiredTime: requestInfo.expiredTime,
+                        ...result,
+                      },
+                    })
+                  }
+                })
+              }
             }
 
             let cache = apiCache.cache

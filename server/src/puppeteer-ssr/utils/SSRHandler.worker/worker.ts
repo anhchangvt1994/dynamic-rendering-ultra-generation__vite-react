@@ -89,13 +89,13 @@ const waitResponse = (() => {
           startTimeout()
 
           safePage()?.on('requestfinished', () => {
-            startTimeout(150)
+            startTimeout(500)
           })
           safePage()?.on('requestservedfromcache', () => {
-            startTimeout(150)
+            startTimeout(500)
           })
           safePage()?.on('requestfailed', () => {
-            startTimeout(150)
+            startTimeout(500)
           })
 
           setTimeout(resolveAfterPageLoadInFewSecond, 20000)
@@ -108,7 +108,7 @@ const waitResponse = (() => {
 
         setTimeout(() => {
           resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 300)
+        }, 500)
       })
     } catch (err) {
       throw err

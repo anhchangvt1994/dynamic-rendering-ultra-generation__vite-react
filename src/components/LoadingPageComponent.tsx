@@ -34,9 +34,9 @@ const PokeballLoadingStyle = styled.div`
     display: block;
     content: '';
     width: 100%;
-    height: 50%;
+    /* height: 50%; */
     ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    border-radius: 0;
+    border-radius: 50%;
     left: 0;
     z-index: -1;
   }
@@ -74,10 +74,10 @@ const PokeballInnerLoadingStyle = styled.div`
     top: 0;
     bottom: 0;
     margin: auto;
-    border-radius: 50%;
     background: #ffffff;
     z-index: 1;
     ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+    border-radius: 50%;
   }
 
   &::before {

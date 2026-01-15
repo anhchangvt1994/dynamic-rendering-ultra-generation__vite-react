@@ -7,8 +7,8 @@ export interface IRequestInfo {
   baseUrl?: string
   storeKey?: string
   cacheKey?: string
-  expiredTime?: number
-  renewTime?: number
+  expiredTime?: number | 'infinite'
+  renewTime?: number | 'infinite'
   enableStore?: boolean
   relativeCacheKey?: string[]
   storeInDevice?: 'mobile' | 'desktop' | 'tablet'

@@ -222,16 +222,16 @@ const waitResponse = (() => {
 
           safePage()?.on('requestfinished', () => {
             startTimeout(
-              pendingRequests <= 3 ? 2000 : defaultRequestWaitingDuration
+              pendingRequests <= 3 ? 2500 : defaultRequestWaitingDuration
             )
           })
           safePage()?.on('requestservedfromcache', () => {
             startTimeout(
-              pendingRequests <= 3 ? 2000 : requestServedFromCacheDuration
+              pendingRequests <= 3 ? 2500 : requestServedFromCacheDuration
             )
           })
           safePage()?.on('requestfailed', () => {
-            startTimeout(pendingRequests <= 3 ? 2000 : requestFailDuration)
+            startTimeout(pendingRequests <= 3 ? 2500 : requestFailDuration)
           })
 
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)

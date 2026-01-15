@@ -21,7 +21,8 @@ const pokemonApi = createApi({
     [import.meta.env.API_ENDPOINT_GET_POKEMON_LIST]: builder.query<any, void>({
       query: () =>
         proxyApi.get(import.meta.env.API_PATH_GET_POKEMON_LIST, {
-          expiredTime: 60000,
+          expiredTime: 'infinite',
+          renewTime: 0,
           cacheKey: import.meta.env.API_ENDPOINT_GET_POKEMON_LIST,
           enableStore: true,
           relativeCacheKey: [import.meta.env.API_ENDPOINT_GET_POKEMON_LIST],
