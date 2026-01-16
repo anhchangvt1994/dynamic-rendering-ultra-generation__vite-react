@@ -16,8 +16,8 @@ export const WINDOW_VIEWPORT_HEIGHT = 99999
 export const optionArgs = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
-  `--window-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
-  `--ozone-override-screen-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
+  // `--window-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
+  // `--ozone-override-screen-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
   '--disable-gpu',
   '--disable-infobars',
   '--disable-software-rasterizer',

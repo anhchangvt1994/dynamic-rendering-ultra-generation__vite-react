@@ -61,7 +61,7 @@ const waitResponse = (() => {
         const result = await new Promise((resolveAfterPageLoad) => {
           _optionalChain([safePage, 'call', _ => _()
 , 'optionalAccess', _2 => _2.goto, 'call', _3 => _3(url, {
-              waitUntil: 'domcontentloaded',
+              waitUntil: 'networkidle2',
             })
 , 'access', _4 => _4.then, 'call', _5 => _5((res) => resolveAfterPageLoad(res))
 , 'access', _6 => _6.catch, 'call', _7 => _7((err) => {
@@ -74,9 +74,9 @@ const waitResponse = (() => {
         if (_constants.regexNotFoundPageID.test(html)) return resolve(result)
 
         await new Promise((resolveAfterPageLoadInFewSecond) => {
-          if (pendingRequests <= 0) {
-            return resolveAfterPageLoadInFewSecond(null)
-          }
+          // if (pendingRequests <= 0) {
+          //   return resolveAfterPageLoadInFewSecond(null)
+          // }
 
           const startTimeout = (() => {
             let timeout
@@ -89,13 +89,13 @@ const waitResponse = (() => {
           startTimeout()
 
           _optionalChain([safePage, 'call', _11 => _11(), 'optionalAccess', _12 => _12.on, 'call', _13 => _13('requestfinished', () => {
-            startTimeout(500)
+            startTimeout(250)
           })])
           _optionalChain([safePage, 'call', _14 => _14(), 'optionalAccess', _15 => _15.on, 'call', _16 => _16('requestservedfromcache', () => {
-            startTimeout(500)
+            startTimeout(250)
           })])
           _optionalChain([safePage, 'call', _17 => _17(), 'optionalAccess', _18 => _18.on, 'call', _19 => _19('requestfailed', () => {
-            startTimeout(500)
+            startTimeout(250)
           })])
 
           setTimeout(resolveAfterPageLoadInFewSecond, 20000)
@@ -108,7 +108,7 @@ const waitResponse = (() => {
 
         setTimeout(() => {
           resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 500)
+        }, 300)
       })
     } catch (err) {
       throw err
@@ -147,7 +147,6 @@ const SSRHandler = async (params) => {
         _optionalChain([safePage, 'call', _26 => _26(), 'optionalAccess', _27 => _27.waitForNetworkIdle, 'call', _28 => _28({ idleTime: 150 })]),
         _optionalChain([safePage, 'call', _29 => _29(), 'optionalAccess', _30 => _30.setCacheEnabled, 'call', _31 => _31(false)]),
         _optionalChain([safePage, 'call', _32 => _32(), 'optionalAccess', _33 => _33.setRequestInterception, 'call', _34 => _34(true)]),
-        // safePage()?.setViewport({ width: 1366, height: 768 }),
         _optionalChain([safePage, 'call', _35 => _35(), 'optionalAccess', _36 => _36.setExtraHTTPHeaders, 'call', _37 => _37({
           ...specialInfo,
           service: 'puppeteer',

@@ -16,8 +16,8 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
  const optionArgs = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
-  `--window-size=${exports.WINDOW_VIEWPORT_WIDTH},${exports.WINDOW_VIEWPORT_HEIGHT}`,
-  `--ozone-override-screen-size=${exports.WINDOW_VIEWPORT_WIDTH},${exports.WINDOW_VIEWPORT_HEIGHT}`,
+  // `--window-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
+  // `--ozone-override-screen-size=${WINDOW_VIEWPORT_WIDTH},${WINDOW_VIEWPORT_HEIGHT}`,
   '--disable-gpu',
   '--disable-infobars',
   '--disable-software-rasterizer',

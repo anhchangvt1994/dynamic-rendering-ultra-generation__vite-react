@@ -61,7 +61,7 @@ const waitResponse = (() => {
         const result = await new Promise<any>((resolveAfterPageLoad) => {
           safePage()
             ?.goto(url, {
-              waitUntil: 'domcontentloaded',
+              waitUntil: 'networkidle2',
             })
             .then((res) => resolveAfterPageLoad(res))
             .catch((err) => {
@@ -74,9 +74,9 @@ const waitResponse = (() => {
         if (regexNotFoundPageID.test(html)) return resolve(result)
 
         await new Promise((resolveAfterPageLoadInFewSecond) => {
-          if (pendingRequests <= 0) {
-            return resolveAfterPageLoadInFewSecond(null)
-          }
+          // if (pendingRequests <= 0) {
+          //   return resolveAfterPageLoadInFewSecond(null)
+          // }
 
           const startTimeout = (() => {
             let timeout
@@ -89,13 +89,13 @@ const waitResponse = (() => {
           startTimeout()
 
           safePage()?.on('requestfinished', () => {
-            startTimeout(500)
+            startTimeout(250)
           })
           safePage()?.on('requestservedfromcache', () => {
-            startTimeout(500)
+            startTimeout(250)
           })
           safePage()?.on('requestfailed', () => {
-            startTimeout(500)
+            startTimeout(250)
           })
 
           setTimeout(resolveAfterPageLoadInFewSecond, 20000)
@@ -108,7 +108,7 @@ const waitResponse = (() => {
 
         setTimeout(() => {
           resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 500)
+        }, 300)
       })
     } catch (err) {
       throw err
@@ -147,7 +147,6 @@ const SSRHandler = async (params: SSRHandlerParam) => {
         safePage()?.waitForNetworkIdle({ idleTime: 150 }),
         safePage()?.setCacheEnabled(false),
         safePage()?.setRequestInterception(true),
-        // safePage()?.setViewport({ width: 1366, height: 768 }),
         safePage()?.setExtraHTTPHeaders({
           ...specialInfo,
           service: 'puppeteer',

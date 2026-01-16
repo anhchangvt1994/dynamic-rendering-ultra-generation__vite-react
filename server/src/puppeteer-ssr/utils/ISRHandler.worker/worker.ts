@@ -106,7 +106,8 @@ const waitResponse = (() => {
     ).speed
 
     const commonWaitingDuration = crawlSpeedOption / 10
-    const waitUntil = commonWaitingDuration <= 800 ? 'load' : 'domcontentloaded'
+    const waitUntil =
+      commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
 
     const firstWaitingDuration =
       BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
