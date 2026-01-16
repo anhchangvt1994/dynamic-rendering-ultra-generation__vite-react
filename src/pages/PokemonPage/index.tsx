@@ -68,6 +68,23 @@ const PokemonPage = () => {
     }
   }, [isFetching])
 
+  useEffect(() => {
+    if (pokemonState) {
+      setSeoTag({
+        title: pokemonState.name || 'Pokemon',
+        'og:type': 'website',
+        'og:title': pokemonState.name || 'Pokemon',
+        'og:description': `Pokemon ${pokemonState.name || ''}`,
+        'og:url': window.location.pathname,
+        'og:site_name': `Pokemon ${pokemonState.name || ''}`,
+        'og:image': '',
+        'og:image:width': '1200',
+        'og:image:height': '628',
+        robots: 'index, follow',
+      })
+    }
+  }, [JSON.stringify(pokemonState)])
+
   return (
     <PokemonPageStyle>
       <HeaderStyle>
