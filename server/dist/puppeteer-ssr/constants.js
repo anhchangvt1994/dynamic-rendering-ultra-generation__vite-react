@@ -145,7 +145,7 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
  const CACHEABLE_STATUS_CODE = { 200: true, 302: true }; exports.CACHEABLE_STATUS_CODE = CACHEABLE_STATUS_CODE
 
  const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.tar'; exports.chromiumPath = chromiumPath
+  'https://github.com/Sparticuz/chromium/releases/download/v140.0.0/chromium-v140.0.0-pack.tar'; exports.chromiumPath = chromiumPath
 
  const canUseLinuxChromium =
   _InitEnv.PROCESS_ENV.PLATFORM.toLowerCase() === 'linux' ||
