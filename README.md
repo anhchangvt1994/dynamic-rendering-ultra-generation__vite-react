@@ -40,8 +40,8 @@ NOTE
 5. [Deployment guide](/READMORE/deployment.md)
 
 6. [The interesting stories](/READMORE/the-interesting-stories.md)
-  - [The `Rendering` world](#the-rendering-world)
-  - [`Dynamic Rendering`! Where have you been all this time ?](#dynamic-rendering-where-have-you-been)
+  <!-- - [The `Rendering` world](#the-rendering-world)
+  - [`Dynamic Rendering`! Where have you been all this time ?](#dynamic-rendering-where-have-you-been) -->
   <!-- - [`Dynamic Rendering` and `Cloaking` (hero and his little brother, same but difference)](#dynamic-rendering-cloaking) -->
   <!-- - [PageSpeed has Lighthouse and Lighthouse has ... Lighthouse](#pagespeed-and-lighthouse) -->
 

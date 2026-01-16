@@ -79,47 +79,41 @@ time,
 mark,
 audio,
 video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font-size: 100%;
-	font: inherit;
-	vertical-align: baseline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
 }
 
 * {
-	box-sizing: border-box;
-	line-height: 1.5 !important;
+  box-sizing: border-box;
+  line-height: 1.5 !important;
 }
 
 html {
-	font-size: 8px;
-	height: 100%;
-
-	&.is-disable-scroll--g2j-basic-modal {
-		&,
-		& body {
-			overflow: hidden;
-		}
-	}
-	/* .is-disable-scroll--g2j-basic-modal */
+  font-size: 8px;
+  height: 100%;
 }
 
 body {
-	position: relative;
-	font-size: 14px;
-	width: 100%;
-	min-height: 100%;
-	overflow-x: hidden;
-	/* line-height: 1.5 !important; */
-	background: #f2f2f2;
-	color: $dark-color;
-	margin: 0;
+  position: relative;
+  font-size: 14px;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  /* line-height: 1.5 !important; */
+  background: #f2f2f2;
+  color: #000;
+  margin: 0;
+  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 a {
-	text-decoration: none;
-	color: $dark-color;
+  text-decoration: none;
+  color: #000;
 }
 
 /* HTML5 display-role reset for older browsers */
@@ -134,36 +128,36 @@ hgroup,
 menu,
 nav,
 section {
-	display: block;
+  display: block;
 }
 ol,
 ul {
-	list-style: none;
+  list-style: none;
 }
 blockquote,
 q {
-	quotes: none;
+  quotes: none;
 }
 blockquote:before,
 blockquote:after,
 q:before,
 q:after {
-	content: '';
-	content: none;
+  content: '';
+  content: none;
 }
 table {
-	border-collapse: collapse;
-	border-spacing: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 img {
-	max-width: 100%;
-	max-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 input,
 textarea {
-	font-size: 2rem;
+  font-size: 2rem;
 }
 
 input,
@@ -172,6 +166,6 @@ button,
 select,
 label,
 a {
-	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-	outline: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  outline: none;
 }

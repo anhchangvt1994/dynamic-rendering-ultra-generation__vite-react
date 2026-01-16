@@ -1,16 +1,16 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-var _crypto = require('crypto')
-var _crypto2 = _interopRequireDefault(_crypto)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _crypto = require('crypto'); var _crypto2 = _interopRequireDefault(_crypto);
 
-var _constants = require('./constants')
+
+
+
+var _constants = require('./constants');
 
 // NOTE - https://www.tutorialspoint.com/encrypt-and-decrypt-data-in-nodejs
 
-const encryptCrawlerKeyCache = (text, options) => {
+ const encryptCrawlerKeyCache = (
+	text,
+	options
+) => {
 	if (!text) return
 
 	const { key, iv } = {
@@ -26,10 +26,12 @@ const encryptCrawlerKeyCache = (text, options) => {
 	const encrypted = cipher.update(text)
 
 	return Buffer.concat([encrypted, cipher.final()]).toString('hex')
-}
-exports.encryptCrawlerKeyCache = encryptCrawlerKeyCache // encryptCrawlerKeyCache
+}; exports.encryptCrawlerKeyCache = encryptCrawlerKeyCache // encryptCrawlerKeyCache
 
-const decryptCrawlerKeyCache = (encrypted, options) => {
+ const decryptCrawlerKeyCache = (
+	encrypted,
+	options
+) => {
 	if (!encrypted) return
 
 	const { key, iv } = {
@@ -46,5 +48,4 @@ const decryptCrawlerKeyCache = (encrypted, options) => {
 	const decrypted = decipher.update(encryptedText)
 
 	return Buffer.concat([decrypted, decipher.final()]).toString()
-}
-exports.decryptCrawlerKeyCache = decryptCrawlerKeyCache // decryptCrawlerKeyCache
+}; exports.decryptCrawlerKeyCache = decryptCrawlerKeyCache // decryptCrawlerKeyCache

@@ -1,31 +1,31 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-var _chromiummin = require('@sparticuz/chromium-min')
-var _chromiummin2 = _interopRequireDefault(_chromiummin)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _chromiummin = require('@sparticuz/chromium-min'); var _chromiummin2 = _interopRequireDefault(_chromiummin);
 
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _constants = require('../../constants')
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _constants = require('../../constants');
 
-var _constants3 = require('../../puppeteer-ssr/constants')
-var _store = require('../../store')
-var _ConsoleHandler = require('../ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../InitEnv')
 
-var _PathHandler = require('../PathHandler')
-var _WorkerManager = require('../WorkerManager')
-var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
 
-const pagesPath = _PathHandler.getPagesPath.call(void 0)
-const viewsPath = _PathHandler.getViewsPath.call(void 0)
-const dataPath = _PathHandler.getDataPath.call(void 0)
-const storePath = _PathHandler.getStorePath.call(void 0)
-const userDataPath = _PathHandler.getUserDataPath.call(void 0)
-const workerManagerPath = _PathHandler.getWorkerManagerPath.call(void 0)
+var _constants3 = require('../../puppeteer-ssr/constants');
+var _store = require('../../store');
+var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../InitEnv');
+
+
+
+
+
+
+
+var _PathHandler = require('../PathHandler');
+var _WorkerManager = require('../WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
+
+
+const pagesPath = _PathHandler.getPagesPath.call(void 0, )
+const viewsPath = _PathHandler.getViewsPath.call(void 0, )
+const dataPath = _PathHandler.getDataPath.call(void 0, )
+const storePath = _PathHandler.getStorePath.call(void 0, )
+const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
+const workerManagerPath = _PathHandler.getWorkerManagerPath.call(void 0, )
 
 const { isMainThread } = require('worker_threads')
 
@@ -51,7 +51,7 @@ const workerManager = (() => {
 	)
 })()
 
-const cleanBrowsers = (() => {
+ const cleanBrowsers = (() => {
 	let executablePath
 	return async (
 		expiredTime = _InitEnv.PROCESS_ENV.RESET_RESOURCE
@@ -74,9 +74,7 @@ const cleanBrowsers = (() => {
 
 		if (_constants3.canUseLinuxChromium && !promiseStore.executablePath) {
 			_ConsoleHandler2.default.log('Create executablePath')
-			promiseStore.executablePath = _chromiummin2.default.executablePath(
-				_constants3.chromiumPath
-			)
+			promiseStore.executablePath = _chromiummin2.default.executablePath(_constants3.chromiumPath)
 		}
 
 		_store.setStore.call(void 0, 'browser', browserStore)
@@ -110,10 +108,9 @@ const cleanBrowsers = (() => {
 				exports.cleanBrowsers.call(void 0, 5)
 			}, 300000)
 	}
-})()
-exports.cleanBrowsers = cleanBrowsers // cleanBrowsers
+})(); exports.cleanBrowsers = cleanBrowsers // cleanBrowsers
 
-const cleanPages = (() => {
+ const cleanPages = (() => {
 	return async () => {
 		if (!isMainThread || !workerManager) return
 
@@ -132,14 +129,13 @@ const cleanPages = (() => {
 
 		if (!_constants.SERVER_LESS) {
 			setTimeout(() => {
-				exports.cleanPages.call(void 0)
+				exports.cleanPages.call(void 0, )
 			}, 1800000)
 		}
 	}
-})()
-exports.cleanPages = cleanPages // cleanPages
+})(); exports.cleanPages = cleanPages // cleanPages
 
-const cleanViews = (() => {
+ const cleanViews = (() => {
 	// let cleanViewsTimeout: NodeJS.Timeout
 	// let distFilesChangedTimeout: NodeJS.Timeout
 	// let isDistChanging: boolean = false
@@ -224,14 +220,13 @@ const cleanViews = (() => {
 
 		if (!_constants.SERVER_LESS) {
 			setTimeout(() => {
-				exports.cleanViews.call(void 0)
+				exports.cleanViews.call(void 0, )
 			}, 300000)
 		}
 	}
-})()
-exports.cleanViews = cleanViews // cleanViews
+})(); exports.cleanViews = cleanViews // cleanViews
 
-const cleanAPIDataCache = (() => {
+ const cleanAPIDataCache = (() => {
 	return async () => {
 		if (!isMainThread || !workerManager) return
 
@@ -250,14 +245,13 @@ const cleanAPIDataCache = (() => {
 
 		if (!_constants.SERVER_LESS) {
 			setTimeout(() => {
-				exports.cleanAPIDataCache.call(void 0)
+				exports.cleanAPIDataCache.call(void 0, )
 			}, 30000)
 		}
 	}
-})()
-exports.cleanAPIDataCache = cleanAPIDataCache // cleanAPIDataCache
+})(); exports.cleanAPIDataCache = cleanAPIDataCache // cleanAPIDataCache
 
-const cleanAPIStoreCache = (() => {
+ const cleanAPIStoreCache = (() => {
 	return async () => {
 		if (!isMainThread || !workerManager) return
 
@@ -276,14 +270,13 @@ const cleanAPIStoreCache = (() => {
 
 		if (!_constants.SERVER_LESS) {
 			setTimeout(() => {
-				exports.cleanAPIStoreCache.call(void 0)
+				exports.cleanAPIStoreCache.call(void 0, )
 			}, 30000)
 		}
 	}
-})()
-exports.cleanAPIStoreCache = cleanAPIStoreCache // cleanAPIStoreCache
+})(); exports.cleanAPIStoreCache = cleanAPIStoreCache // cleanAPIStoreCache
 
-const cleanOther = (() => {
+ const cleanOther = (() => {
 	return async () => {
 		if (!isMainThread || !workerManager) return
 
@@ -313,5 +306,4 @@ const cleanOther = (() => {
 			_ConsoleHandler2.default.error(err)
 		}
 	}
-})()
-exports.cleanOther = cleanOther
+})(); exports.cleanOther = cleanOther

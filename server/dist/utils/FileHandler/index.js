@@ -1,16 +1,8 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _ConsoleHandler = require('../ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 
-const setJsonData = (file, data) => {
+ const setJsonData = (file, data) => {
 	if (!file || !file.endsWith('.json') || !data) return
 
 	const filePath = _path2.default.dirname(file)
@@ -38,10 +30,9 @@ const setJsonData = (file, data) => {
 	} catch (err) {
 		_ConsoleHandler2.default.log(err.message)
 	}
-}
-exports.setJsonData = setJsonData // setJsonData
+}; exports.setJsonData = setJsonData // setJsonData
 
-const setTextData = (file, data) => {
+ const setTextData = (file, data) => {
 	if (!file || !file.endsWith('.txt') || !data || typeof data !== 'string')
 		return
 
@@ -60,10 +51,9 @@ const setTextData = (file, data) => {
 	} catch (err) {
 		_ConsoleHandler2.default.error(err)
 	}
-}
-exports.setTextData = setTextData // setTextData
+}; exports.setTextData = setTextData // setTextData
 
-const getJsonData = (file) => {
+ const getJsonData = (file) => {
 	if (!_fs2.default.existsSync(file)) return
 
 	let result
@@ -75,10 +65,9 @@ const getJsonData = (file) => {
 	}
 
 	return result
-}
-exports.getJsonData = getJsonData // getJsonData
+}; exports.getJsonData = getJsonData // getJsonData
 
-const getTextData = (file) => {
+ const getTextData = (file) => {
 	if (!_fs2.default.existsSync(file)) return
 
 	let result
@@ -90,10 +79,9 @@ const getTextData = (file) => {
 	}
 
 	return result
-}
-exports.getTextData = getTextData // getTextData
+}; exports.getTextData = getTextData // getTextData
 
-const convertJsonToObject = (json) => {
+ const convertJsonToObject = (json) => {
 	if (!json) return
 
 	try {
@@ -103,5 +91,4 @@ const convertJsonToObject = (json) => {
 		_ConsoleHandler2.default.log(err.message)
 		return json
 	}
-}
-exports.convertJsonToObject = convertJsonToObject // convertJsonToObject
+}; exports.convertJsonToObject = convertJsonToObject // convertJsonToObject

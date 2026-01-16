@@ -1,23 +1,25 @@
 {
-	"private": true,
-	"name": "server",
-	"version": "1.0.0",
-	"description": "server",
-	"main": "index.ts",
-	"author": "",
-	"license": "ISC",
-	"dependencies": {
-		"@fastify/middie": "^8.3.0",
-		"@types/express": "^4.17.17",
-		"cors": "^2.8.5",
-		"express": "^4.18.2",
-		"fastify": "^4.23.0",
-		"fs-extra": "^11.2.0",
-		"geoip-lite": "^1.4.7",
-		"pm2": "^5.3.0",
-		"puppeteer-ssr": "file:./src/puppeteer-ssr",
-		"uWebSockets.js": "uNetworking/uWebSockets.js#v20.49.0",
-		"workerpool": "^8.0.0",
-		"dotenv": "^16.3.2"
-	}
+  "private": true,
+  "name": "server",
+  "version": "1.0.0",
+  "description": "server",
+  "main": "index.ts",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/middie": "^9.0.3",
+    "@types/express": "^5.0.0",
+    "cors": "^2.8.5",
+    "express": "5.1.0",
+    "fastify": "^5.2.1",
+    "fs-extra": "^11.3.0",
+    "geoip-lite": "^1.4.10",
+    "pm2": "^5.4.3",
+    "puppeteer-ssr": "file:./src/puppeteer-ssr",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.56.0",
+    "workerpool": "^9.2.0",
+    "dotenv": "^16.4.7",
+    "mime-types": "3.0.1",
+    "sharp": "^0.34.2"
+  }
 }

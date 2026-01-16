@@ -1,656 +1,576 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-function _optionalChain(ops) {
-	let lastAccessLHS = undefined
-	let value = ops[0]
-	let i = 1
-	while (i < ops.length) {
-		const op = ops[i]
-		const fn = ops[i + 1]
-		i += 2
-		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-			return undefined
-		}
-		if (op === 'access' || op === 'optionalAccess') {
-			lastAccessLHS = value
-			value = fn(value)
-		} else if (op === 'call' || op === 'optionalCall') {
-			value = fn((...args) => value.call(lastAccessLHS, ...args))
-			lastAccessLHS = undefined
-		}
-	}
-	return value
-}
-var _fs = require('fs')
-var _fs2 = _interopRequireDefault(_fs)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 
-var _zlib = require('zlib')
+var _zlib = require('zlib');
 
-var _utils = require('../../api/utils/CacheManager/utils')
-var _constants = require('../../constants')
-var _DetectBot = require('../../middlewares/uws/DetectBot')
-var _DetectBot2 = _interopRequireDefault(_DetectBot)
-var _DetectDevice = require('../../middlewares/uws/DetectDevice')
-var _DetectDevice2 = _interopRequireDefault(_DetectDevice)
-var _DetectLocale = require('../../middlewares/uws/DetectLocale')
-var _DetectLocale2 = _interopRequireDefault(_DetectLocale)
-var _DetectRedirect = require('../../middlewares/uws/DetectRedirect')
-var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect)
-var _DetectStatic = require('../../middlewares/uws/DetectStatic')
-var _DetectStatic2 = _interopRequireDefault(_DetectStatic)
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
 
-var _CleanerService = require('../../utils/CleanerService')
-var _CleanerService2 = _interopRequireDefault(_CleanerService)
-var _ConsoleHandler = require('../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _InitEnv = require('../../utils/InitEnv')
-var _StringHelper = require('../../utils/StringHelper')
 
-var _FormatUrluws = require('../utils/FormatUrl.uws')
-var _ISRGeneratornext = require('../utils/ISRGenerator.next')
-var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext)
-var _ISRHandlerworker = require('../utils/ISRHandler.worker')
-var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker)
-var _SSRGeneratornext = require('../utils/SSRGenerator.next')
-var _SSRGeneratornext2 = _interopRequireDefault(_SSRGeneratornext)
-var _utils3 = require('./utils')
+var _utils = require('../../api/utils/CacheManager/utils');
+var _constants = require('../../constants');
+var _DetectBot = require('../../middlewares/uws/DetectBot'); var _DetectBot2 = _interopRequireDefault(_DetectBot);
+var _DetectDevice = require('../../middlewares/uws/DetectDevice'); var _DetectDevice2 = _interopRequireDefault(_DetectDevice);
+var _DetectLocale = require('../../middlewares/uws/DetectLocale'); var _DetectLocale2 = _interopRequireDefault(_DetectLocale);
+var _DetectRedirect = require('../../middlewares/uws/DetectRedirect'); var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect);
+var _DetectStatic = require('../../middlewares/uws/DetectStatic'); var _DetectStatic2 = _interopRequireDefault(_DetectStatic);
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+
+var _CleanerService = require('../../utils/CleanerService'); var _CleanerService2 = _interopRequireDefault(_CleanerService);
+var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../utils/InitEnv');
+var _StringHelper = require('../../utils/StringHelper');
+
+
+
+
+var _FormatUrluws = require('../utils/FormatUrl.uws');
+var _ISRGeneratornext = require('../utils/ISRGenerator.next'); var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext);
+var _ISRHandlerworker = require('../utils/ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
+var _SSRGeneratornext = require('../utils/SSRGenerator.next'); var _SSRGeneratornext2 = _interopRequireDefault(_SSRGeneratornext);
+var _utils3 = require('./utils');
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
 const puppeteerSSRService = (async () => {
-	let _app
-	const webScrapingService = 'web-scraping-service'
-	const cleanerService = 'cleaner-service'
-
-	const _setCookie = (res) => {
-		res
-			.writeHeader(
-				'set-cookie',
-				`EnvironmentInfo=${JSON.stringify(
-					res.cookies.environmentInfo
-				)};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
-			)
-			.writeHeader(
-				'set-cookie',
-				`BotInfo=${JSON.stringify(
-					res.cookies.botInfo
-				)};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
-			)
-			.writeHeader(
-				'set-cookie',
-				`DeviceInfo=${JSON.stringify(
-					res.cookies.deviceInfo
-				)};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
-			)
-			.writeHeader(
-				'set-cookie',
-				`LocaleInfo=${JSON.stringify(
-					res.cookies.localeInfo
-				)};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
-			)
-
-		return res
-	} // _setCookie
-
-	const _resetCookie = (res) => {
-		res
-			.writeHeader('set-cookie', `EnvironmentInfo=;Max-Age=0;Path=/`)
-			.writeHeader('set-cookie', `BotInfo=;Max-Age=0;Path=/`)
-			.writeHeader('set-cookie', `DeviceInfo=;Max-Age=0;Path=/`)
-
-		return res
-	} // _resetCookie
-
-	const _allRequestHandler = () => {
-		if (_constants.SERVER_LESS) {
-			_app
-				.get('/web-scraping', async function (res, req) {
-					if (req.getHeader('authorization') !== webScrapingService)
-						res
-							.writeStatus('200')
-							.end(
-								'Welcome to MTr Web Scraping Service, please provide authorization to use it.',
-								true
-							)
-					else {
-						const startGenerating = Number(req.getQuery('startGenerating'))
-						const isFirstRequest = !!req.getQuery('isFirstRequest')
-						const url = req.getQuery('url') || ''
-
-						res.onAborted(() => {
-							res.writableEnded = true
-							_ConsoleHandler2.default.log('Request aborted')
-						})
-
-						const result = await _ISRHandlerworker2.default.call(void 0, {
-							startGenerating,
-							hasCache: isFirstRequest,
-							url,
-						})
-
-						res.cork(() => {
-							res
-								.writeStatus('200')
-								.end(result ? JSON.stringify(result) : '{}', true)
-						})
-					}
-				})
-				.post('/cleaner-service', async function (res, req) {
-					if (req.getHeader('authorization') !== cleanerService)
-						res
-							.writeStatus('200')
-							.end(
-								'Welcome to MTr Cleaner Service, please provide authorization to use it.',
-								true
-							)
-					else if (!_constants.SERVER_LESS)
-						res
-							.writeStatus('200')
-							.end(
-								'MTr cleaner service can not run in none serverless environment'
-							)
-					else {
-						res.onAborted(() => {
-							res.writableEnded = true
-							_ConsoleHandler2.default.log('Request aborted')
-						})
-
-						await _CleanerService2.default.call(void 0, true)
-
-						_ConsoleHandler2.default.log('Finish clean service!')
-
-						res.cork(() => {
-							res.writeStatus('200').end('Finish clean service!', true)
-						})
-					}
-				})
-		}
-		_app.get('/*', async function (res, req) {
-			// if (req.getUrl().startsWith('/api')) {
-			// 	return res.writeStatus('404').end('Not Found!', true)
-			// }
-			_utils3.handleInvalidUrl.call(void 0, res, req)
-
-			// NOTE - Check if static will send static file
-			if (res.writableEnded) return
-
-			_DetectStatic2.default.call(void 0, res, req)
-
-			// NOTE - Check if static will send static file
-			if (res.writableEnded) return
-
-			// NOTE - Check and create base url
-			if (!_InitEnv.PROCESS_ENV.BASE_URL)
-				_InitEnv.PROCESS_ENV.BASE_URL = `${
-					req.getHeader('x-forwarded-proto')
-						? req.getHeader('x-forwarded-proto')
-						: _InitEnv.PROCESS_ENV.IS_SERVER
-						? 'http'
-						: 'http'
-				}://${req.getHeader('host')}`
-
-			// NOTE - Detect, setup BotInfo and LocaleInfo
-			_DetectBot2.default.call(void 0, res, req)
-			_DetectLocale2.default.call(void 0, res, req)
-
-			const botInfo = _optionalChain([
-				res,
-				'access',
-				(_) => _.cookies,
-				'optionalAccess',
-				(_2) => _2.botInfo,
-			])
-
-			// NOTE - Check redirect or not
-			const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
-
-			/**
-			 * NOTE
-			 * - We need crawl page although this request is not a bot
-			 * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
-			 */
-			if (
-				(res.writableEnded && botInfo.isBot) ||
-				(isRedirect && req.getHeader('accept') !== 'application/json')
-			)
-				return
-
-			const { enableToCrawl, enableToCache } = (() => {
-				const url = _FormatUrluws.getUrl.call(void 0, res, req)
-				let enableToCrawl = _serverconfig2.default.crawl.enable
-				let enableToCache =
-					enableToCrawl && _serverconfig2.default.crawl.cache.enable
-
-				const crawlOptionPerRoute =
-					_serverconfig2.default.crawl.routes[req.getUrl()] ||
-					_serverconfig2.default.crawl.routes[res.urlForCrawler] ||
-					_optionalChain([
-						_serverconfig2.default,
-						'access',
-						(_3) => _3.crawl,
-						'access',
-						(_4) => _4.custom,
-						'optionalCall',
-						(_5) => _5(url),
-					])
-
-				if (crawlOptionPerRoute) {
-					enableToCrawl = crawlOptionPerRoute.enable
-					enableToCache = enableToCrawl && crawlOptionPerRoute.cache.enable
-				}
-
-				return {
-					enableToCrawl,
-					enableToCache,
-				}
-			})()
-
-			if (
-				_serverconfig2.default.isRemoteCrawler &&
-				((_serverconfig2.default.crawlerSecretKey &&
-					req.getQuery('crawlerSecretKey') !==
-						_serverconfig2.default.crawlerSecretKey) ||
-					(!botInfo.isBot && !enableToCache))
-			) {
-				return res.writeStatus('403').end('403 Forbidden', true)
-			}
-
-			// NOTE - Detect DeviceInfo
-			_DetectDevice2.default.call(void 0, res, req)
-
-			// NOTE - Set cookies for EnvironmentInfo
-			res.cookies.environmentInfo = (() => {
-				const tmpEnvironmentInfo =
-					req.getHeader('environmentinfo') || req.getHeader('environmentInfo')
-
-				if (tmpEnvironmentInfo) return JSON.parse(tmpEnvironmentInfo)
-
-				return {
-					ENV: _InitEnv.ENV,
-					MODE: _InitEnv.MODE,
-					ENV_MODE: _InitEnv.ENV_MODE,
-				}
-			})()
-
-			const enableContentEncoding = Boolean(req.getHeader('accept-encoding'))
-			const contentEncoding = (() => {
-				const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
-				if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
-				else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-				return ''
-			})()
-
-			_ConsoleHandler2.default.log('<---puppeteer/index.uws.ts--->')
-			_ConsoleHandler2.default.log(
-				'enableContentEncoding: ',
-				enableContentEncoding
-			)
-			_ConsoleHandler2.default.log(
-				`req.getHeader('accept-encoding'): `,
-				req.getHeader('accept-encoding')
-			)
-			_ConsoleHandler2.default.log('contentEncoding: ', contentEncoding)
-			_ConsoleHandler2.default.log('<---puppeteer/index.uws.ts--->')
-
-			if (
-				_InitEnv.ENV_MODE !== 'development' &&
-				enableToCrawl &&
-				req.getHeader('service') !== 'puppeteer'
-			) {
-				const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-					void 0,
-					_FormatUrluws.getUrl.call(void 0, res, req),
-					res,
-					!botInfo.isBot
-				)
-
-				if (botInfo.isBot) {
-					res.onAborted(() => {
-						res.writableEnded = true
-						_ConsoleHandler2.default.log('Request aborted')
-					})
-
-					try {
-						const result = await _ISRGeneratornext2.default.call(void 0, {
-							url,
-						})
-
-						res.cork(() => {
-							_utils3.handleResultAfterISRGenerator.call(void 0, res, {
-								result,
-								enableContentEncoding,
-								contentEncoding,
-							})
-						})
-					} catch (err) {
-						_ConsoleHandler2.default.error('url', url)
-						_ConsoleHandler2.default.error(err)
-						// NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
-						if (!res.writableEnded)
-							res.writeStatus('500').end('Server Error!', true)
-					}
-
-					res.writableEnded = true
-				} else {
-					try {
-						if (_constants.SERVER_LESS) {
-							await _ISRGeneratornext2.default.call(void 0, {
-								url,
-							})
-						} else {
-							_ISRGeneratornext2.default.call(void 0, {
-								url,
-								isSkipWaiting: true,
-							})
-						}
-					} catch (err) {
-						_ConsoleHandler2.default.error('url', url)
-						_ConsoleHandler2.default.error(err)
-					}
-				}
-			}
-
-			if (!res.writableEnded) {
-				const correctPathname = _FormatUrluws.getPathname.call(void 0, res, req)
-				const pointsTo = (() => {
-					const tmpPointsTo = _optionalChain([
-						_serverconfig2.default,
-						'access',
-						(_6) => _6.routes,
-						'optionalAccess',
-						(_7) => _7.list,
-						'optionalAccess',
-						(_8) => _8[correctPathname],
-						'optionalAccess',
-						(_9) => _9.pointsTo,
-					])
-
-					if (!tmpPointsTo) return ''
-
-					return typeof tmpPointsTo === 'string' ? tmpPointsTo : tmpPointsTo.url
-				})()
-
-				if (pointsTo) {
-					const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-						void 0,
-						pointsTo,
-						res,
-						false
-					)
-
-					if (url) {
-						res.onAborted(() => {
-							res.writableEnded = true
-							_ConsoleHandler2.default.log('Request aborted')
-						})
-
-						try {
-							const result = await _ISRGeneratornext2.default.call(void 0, {
-								url,
-								forceToCrawl: true,
-							})
-
-							res.cork(() => {
-								if (result) {
-									res.cork(() => {
-										_utils3.handleResultAfterISRGenerator.call(void 0, res, {
-											result,
-											enableContentEncoding,
-											contentEncoding,
-										})
-									})
-								}
-							})
-						} catch (err) {
-							_ConsoleHandler2.default.error(err.message)
-							_ConsoleHandler2.default.error('url', url)
-							// NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
-							if (!res.writableEnded)
-								res.writeStatus('500').end('Server Error!', true)
-						}
-
-						res.writableEnded = true
-					}
-				}
-			}
-
-			if (!res.writableEnded) {
-				/**
-				 * NOTE
-				 * Cache-Control max-age is 1 year
-				 * calc by using:
-				 * https://www.inchcalculator.com/convert/year-to-second/
-				 */
-				if (req.getHeader('accept') === 'application/json') {
-					const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-						void 0,
-						_FormatUrluws.getUrl.call(void 0, res, req),
-						res
-					)
-
-					try {
-						_SSRGeneratornext2.default.call(void 0, {
-							url,
-						})
-					} catch (err) {
-						_ConsoleHandler2.default.error(err)
-					}
-
-					res.writeStatus('200')
-
-					res = _setCookie(res)
-					res = _resetCookie(res)
-					res.end(
-						JSON.stringify({
-							status: 200,
-							originPath: req.getUrl(),
-							path: req.getUrl(),
-						}),
-						true
-					)
-				} else {
-					const reqHeaderAccept = req.getHeader('accept')
-					res.onAborted(() => {
-						res.writableEnded = true
-						_ConsoleHandler2.default.log('Request aborted')
-					})
-
-					let html
-					const filePath =
-						req.getHeader('static-html-path') ||
-						_path2.default.resolve(__dirname, '../../../../dist/index.html')
-
-					const url = (() => {
-						const urlWithoutQuery = req.getUrl()
-						const query = req.getQuery()
-						const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
-
-						return tmpUrl
-					})()
-					try {
-						const url = _FormatUrluws.convertUrlHeaderToQueryString.call(
-							void 0,
-							_FormatUrluws.getUrl.call(void 0, res, req),
-							res
-						)
-						const result = await _SSRGeneratornext2.default.call(void 0, {
-							url,
-						})
-
-						if (
-							_optionalChain([
-								result,
-								'optionalAccess',
-								(_10) => _10.status,
-							]) === 200
-						) {
-							html = _fs2.default.readFileSync(result.file)
-						}
-					} catch (err) {
-						_ConsoleHandler2.default.error(err)
-					}
-
-					try {
-						if (!html) {
-							const apiStoreData = await (async () => {
-								let tmpStoreKey
-								let tmpAPIStore
-
-								tmpStoreKey = _StringHelper.hashCode.call(void 0, url)
-
-								tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
-
-								if (tmpAPIStore) return tmpAPIStore.data
-
-								const deviceType = _optionalChain([
-									res,
-									'access',
-									(_11) => _11.cookies,
-									'optionalAccess',
-									(_12) => _12.deviceInfo,
-									'optionalAccess',
-									(_13) => _13.type,
-								])
-
-								tmpStoreKey = _StringHelper.hashCode.call(
-									void 0,
-									`${url}${
-										url.includes('?') && deviceType
-											? '&device=' + deviceType
-											: '?device=' + deviceType
-									}`
-								)
-
-								tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
-
-								if (tmpAPIStore) return tmpAPIStore.data
-
-								return
-							})()
-
-							const WindowAPIStore = {}
-
-							if (apiStoreData) {
-								if (apiStoreData.length) {
-									for (const cacheKey of apiStoreData) {
-										const apiCache = await _utils.getData.call(void 0, cacheKey)
-										if (
-											!apiCache ||
-											!apiCache.cache ||
-											apiCache.cache.status !== 200
-										)
-											continue
-
-										WindowAPIStore[cacheKey] = apiCache.cache.data
-									}
-								}
-							}
-
-							try {
-								html = _fs2.default.readFileSync(filePath, 'utf8') || ''
-							} catch (err) {
-								_ConsoleHandler2.default.error(err)
-							}
-
-							html = html.replace(
-								'</head>',
-								`<script>window.API_STORE = ${JSON.stringify({
-									WindowAPIStore,
-								})}</script></head>`
-							)
-						}
-
-						const body = (() => {
-							if (enableContentEncoding && Buffer.isBuffer(html)) return html
-
-							if (!enableContentEncoding) {
-								switch (true) {
-									case Buffer.isBuffer(html):
-										return _zlib.brotliDecompressSync
-											.call(void 0, html)
-											.toString()
-									default:
-										return html
-								}
-							}
-
-							switch (true) {
-								case contentEncoding === 'br':
-									return _zlib.brotliCompressSync.call(void 0, html)
-								case contentEncoding === 'gzip':
-									return _zlib.gzipSync.call(void 0, html)
-								default:
-									return html
-							}
-						})()
-
-						res.cork(() => {
-							res.writeStatus('200')
-
-							if (enableContentEncoding) {
-								res.writeHeader('Content-Encoding', contentEncoding)
-							}
-
-							res.writeHeader(
-								'Content-Type',
-								reqHeaderAccept === 'application/json'
-									? 'application/json'
-									: 'text/html; charset=utf-8'
-							)
-							res = _setCookie(res)
-							res
-								.writeHeader('Cache-Control', 'no-store')
-								.writeHeader('etag', 'false')
-								.writeHeader('lastModified', 'false')
-
-							// NOTE - Setup cookie information
-							if (res.cookies.lang)
-								res.writeHeader('set-cookie', `lang=${res.cookies.lang};Path=/`)
-							if (res.cookies.country)
-								res.writeHeader(
-									'set-cookie',
-									`country=${res.cookies.country};Path=/`
-								)
-
-							res.end(body, true)
-						})
-					} catch (err) {
-						if (!res.writableEnded) {
-							res.cork(() => {
-								res
-									.writeStatus('404')
-									.writeHeader(
-										'Content-Type',
-										reqHeaderAccept === 'application/json'
-											? 'application/json'
-											: 'text/html; charset=utf-8'
-									)
-									.end('File not found!', true)
-							})
-						}
-					}
-				}
-			}
-		})
-	}
-
-	return {
-		init(app) {
-			if (!app)
-				return _ConsoleHandler2.default.warn(
-					'You need provide uWebSockets app!'
-				)
-			_app = app
-			_allRequestHandler()
-		},
-	}
+  let _app
+  const webScrapingService = 'web-scraping-service'
+  const cleanerService = 'cleaner-service'
+
+  const _setCookie = (res) => {
+    res
+      .writeHeader(
+        'set-cookie',
+        `EnvironmentInfo=${JSON.stringify(
+          res.cookies.environmentInfo
+        )};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
+      )
+      .writeHeader(
+        'set-cookie',
+        `BotInfo=${JSON.stringify(
+          res.cookies.botInfo
+        )};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
+      )
+      .writeHeader(
+        'set-cookie',
+        `DeviceInfo=${JSON.stringify(
+          res.cookies.deviceInfo
+        )};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
+      )
+      .writeHeader(
+        'set-cookie',
+        `LocaleInfo=${JSON.stringify(
+          res.cookies.localeInfo
+        )};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
+      )
+
+    return res
+  } // _setCookie
+
+  const _resetCookie = (res) => {
+    res
+      .writeHeader('set-cookie', `EnvironmentInfo=;Max-Age=0;Path=/`)
+      .writeHeader('set-cookie', `BotInfo=;Max-Age=0;Path=/`)
+      .writeHeader('set-cookie', `DeviceInfo=;Max-Age=0;Path=/`)
+
+    return res
+  } // _resetCookie
+
+  const _allRequestHandler = () => {
+    if (_constants.SERVER_LESS) {
+      _app
+        .get('/web-scraping', async function (res, req) {
+          if (req.getHeader('authorization') !== webScrapingService)
+            res
+              .writeStatus('200')
+              .end(
+                'Welcome to MTr Web Scraping Service, please provide authorization to use it.',
+                true
+              )
+          else {
+            const startGenerating = Number(req.getQuery('startGenerating'))
+            const isFirstRequest = !!req.getQuery('isFirstRequest')
+            const url = req.getQuery('url') || ''
+
+            res.onAborted(() => {
+              res.writableEnded = true
+              _ConsoleHandler2.default.log('Request aborted')
+            })
+
+            const result = await _ISRHandlerworker2.default.call(void 0, {
+              startGenerating,
+              hasCache: isFirstRequest,
+              url,
+            })
+
+            res.cork(() => {
+              res
+                .writeStatus('200')
+                .end(result ? JSON.stringify(result) : '{}', true)
+            })
+          }
+        })
+        .post('/cleaner-service', async function (res, req) {
+          if (req.getHeader('authorization') !== cleanerService)
+            res
+              .writeStatus('200')
+              .end(
+                'Welcome to MTr Cleaner Service, please provide authorization to use it.',
+                true
+              )
+          else if (!_constants.SERVER_LESS)
+            res
+              .writeStatus('200')
+              .end(
+                'MTr cleaner service can not run in none serverless environment'
+              )
+          else {
+            res.onAborted(() => {
+              res.writableEnded = true
+              _ConsoleHandler2.default.log('Request aborted')
+            })
+
+            await _CleanerService2.default.call(void 0, true)
+
+            _ConsoleHandler2.default.log('Finish clean service!')
+
+            res.cork(() => {
+              res.writeStatus('200').end('Finish clean service!', true)
+            })
+          }
+        })
+    }
+    _app.get('/*', async function (res, req) {
+      // if (req.getUrl().startsWith('/api')) {
+      // 	return res.writeStatus('404').end('Not Found!', true)
+      // }
+      _utils3.handleInvalidUrl.call(void 0, res, req)
+
+      // NOTE - Check if static will send static file
+      if (res.writableEnded) return
+
+      _DetectStatic2.default.call(void 0, res, req)
+
+      // NOTE - Check if static will send static file
+      if (res.writableEnded) return
+
+      // NOTE - Check and create base url
+      if (!_InitEnv.PROCESS_ENV.BASE_URL)
+        _InitEnv.PROCESS_ENV.BASE_URL = `${
+          req.getHeader('x-forwarded-proto')
+            ? req.getHeader('x-forwarded-proto')
+            : _InitEnv.PROCESS_ENV.IS_SERVER
+              ? 'http'
+              : 'http'
+        }://${req.getHeader('host')}`
+
+      // NOTE - Detect, setup BotInfo and LocaleInfo
+      _DetectBot2.default.call(void 0, res, req)
+      _DetectLocale2.default.call(void 0, res, req)
+
+      const botInfo = _optionalChain([res, 'access', _ => _.cookies, 'optionalAccess', _2 => _2.botInfo])
+
+      // NOTE - Check redirect or not
+      const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
+
+      /**
+       * NOTE
+       * - We need crawl page although this request is not a bot
+       * When we request by enter first request, redirect will checked and will redirect immediately in server. But when we change router in client side, the request will be a extra fetch from client to server to check redirect information, in this case redirect will run in client not server and won't any request call to server after client run redirect. So we need crawl page in server in the first fetch request that client call to server (if header.accept is 'application/json' then it's fetch request from client)
+       */
+      if (
+        (res.writableEnded && botInfo.isBot) ||
+        (isRedirect && req.getHeader('accept') !== 'application/json')
+      )
+        return
+
+      const { enableToCrawl, enableToCache } = (() => {
+        const url = _FormatUrluws.getUrl.call(void 0, res, req)
+        let enableToCrawl = _serverconfig2.default.crawl.enable
+        let enableToCache = enableToCrawl && _serverconfig2.default.crawl.cache.enable
+
+        const crawlOptionPerRoute =
+          _serverconfig2.default.crawl.routes[req.getUrl()] ||
+          _serverconfig2.default.crawl.routes[res.urlForCrawler] ||
+          _optionalChain([_serverconfig2.default, 'access', _3 => _3.crawl, 'access', _4 => _4.custom, 'optionalCall', _5 => _5(url)])
+
+        if (crawlOptionPerRoute) {
+          enableToCrawl = crawlOptionPerRoute.enable
+          enableToCache = enableToCrawl && crawlOptionPerRoute.cache.enable
+        }
+
+        return {
+          enableToCrawl,
+          enableToCache,
+        }
+      })()
+
+      if (
+        _serverconfig2.default.isRemoteCrawler &&
+        ((_serverconfig2.default.crawlerSecretKey &&
+          req.getQuery('crawlerSecretKey') !== _serverconfig2.default.crawlerSecretKey) ||
+          (!botInfo.isBot && !enableToCache))
+      ) {
+        const html = _fs2.default.readFileSync(
+          _path2.default.resolve(__dirname, '../../../403-forbidden.html'),
+          'utf8'
+        )
+        return res.writeStatus('403').end(html, true)
+      }
+
+      // NOTE - Detect DeviceInfo
+      _DetectDevice2.default.call(void 0, res, req)
+
+      // NOTE - Set cookies for EnvironmentInfo
+      res.cookies.environmentInfo = (() => {
+        const tmpEnvironmentInfo =
+          req.getHeader('environmentinfo') || req.getHeader('environmentInfo')
+
+        if (tmpEnvironmentInfo) return JSON.parse(tmpEnvironmentInfo)
+
+        return {
+          ENV: _InitEnv.ENV,
+          MODE: _InitEnv.MODE,
+          ENV_MODE: _InitEnv.ENV_MODE,
+        }
+      })()
+
+      const enableContentEncoding = Boolean(req.getHeader('accept-encoding'))
+      const contentEncoding = (() => {
+        const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
+        if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
+        else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
+        return '' 
+      })()
+
+      _ConsoleHandler2.default.log('<---puppeteer/index.uws.ts--->')
+      _ConsoleHandler2.default.log('enableContentEncoding: ', enableContentEncoding)
+      _ConsoleHandler2.default.log(
+        `req.getHeader('accept-encoding'): `,
+        req.getHeader('accept-encoding')
+      )
+      _ConsoleHandler2.default.log('contentEncoding: ', contentEncoding)
+      _ConsoleHandler2.default.log('<---puppeteer/index.uws.ts--->')
+
+      if (
+        _InitEnv.ENV_MODE !== 'development' &&
+        enableToCrawl &&
+        req.getHeader('service') !== 'puppeteer'
+      ) {
+        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+          url: _FormatUrluws.getUrl.call(void 0, res, req),
+          res,
+          simulateBot: !botInfo.isBot,
+          isISR: true,
+        })
+
+        if (botInfo.isBot) {
+          res.onAborted(() => {
+            res.writableEnded = true
+            _ConsoleHandler2.default.log('Request aborted')
+          })
+
+          try {
+            const result = await _ISRGeneratornext2.default.call(void 0, {
+              url,
+            })
+
+            res.cork(() => {
+              _utils3.handleResultAfterISRGenerator.call(void 0, res, {
+                result,
+                enableContentEncoding,
+                contentEncoding,
+              })
+            })
+          } catch (err) {
+            _ConsoleHandler2.default.error('url', url)
+            _ConsoleHandler2.default.error(err)
+            // NOTE - Error: uWS.HttpResponse must not be accessed after uWS.HttpResponse.onAborted callback, or after a successful response. See documentation for uWS.HttpResponse and consult the user manual.
+            if (!res.writableEnded) {
+              const html = _fs2.default.readFileSync(
+                _path2.default.resolve(__dirname, '../../../500-server-error.html'),
+                'utf8'
+              )
+              res.writeStatus('500').end(html, true)
+            }
+          }
+
+          res.writableEnded = true
+        } else {
+          try {
+            if (_constants.SERVER_LESS) {
+              await _ISRGeneratornext2.default.call(void 0, {
+                url,
+              })
+            } else {
+              _ISRGeneratornext2.default.call(void 0, {
+                url,
+                isSkipWaiting: true,
+              })
+            }
+          } catch (err) {
+            _ConsoleHandler2.default.error('url', url)
+            _ConsoleHandler2.default.error(err)
+          }
+        }
+      }
+
+      if (!res.writableEnded) {
+        const correctPathname = _FormatUrluws.getPathname.call(void 0, res, req)
+        const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+          url: _FormatUrluws.getUrl.call(void 0, res, req),
+          res,
+        })
+
+        const pointsTo =
+          _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _6 => _6.routes, 'access', _7 => _7.list, 'optionalAccess', _8 => _8[correctPathname], 'optionalAccess', _9 => _9.pointsTo]), () => (
+          _optionalChain([_serverconfig2.default, 'access', _10 => _10.routes, 'access', _11 => _11.custom, 'optionalCall', _12 => _12(url), 'optionalAccess', _13 => _13.pointsTo])))
+        /**
+         * NOTE
+         * Cache-Control max-age is 1 year
+         * calc by using:
+         * https://www.inchcalculator.com/convert/year-to-second/
+         */
+        if (req.getHeader('accept') === 'application/json') {
+          const url = _FormatUrluws.convertUrlHeaderToQueryString.call(void 0, {
+            url: _FormatUrluws.getUrl.call(void 0, res, req),
+            res,
+          })
+
+          // QUESTION: Tại sao sử dụng SSRGenerator thay vì ISRGenerator ?
+          try {
+            _SSRGeneratornext2.default.call(void 0, {
+              url,
+            })
+          } catch (err) {
+            _ConsoleHandler2.default.error(err)
+          }
+
+          res.writeStatus('200')
+
+          res = _setCookie(res)
+          res = _resetCookie(res)
+          res.end(
+            JSON.stringify({
+              status: 200,
+              originPath: req.getUrl(),
+              path: req.getUrl(),
+            }),
+            true
+          )
+        } else {
+          const reqHeaderAccept = req.getHeader('accept')
+          res.onAborted(() => {
+            res.writableEnded = true
+            _ConsoleHandler2.default.log('Request aborted')
+          })
+
+          let html
+          let status = '200'
+          const filePath =
+            (req.getHeader('static-html-path') ) ||
+            _path2.default.resolve(__dirname, '../../../../dist/index.html')
+          const pathForCacheKeyConverter = (() => {
+            const urlWithoutQuery = correctPathname
+            const query = req.getQuery()
+            const tmpUrl = `${urlWithoutQuery}${query ? '?' + query : ''}`
+
+            return tmpUrl
+          })()
+
+          try {
+            const result = await _SSRGeneratornext2.default.call(void 0, {
+              url,
+            })
+
+            if (_optionalChain([result, 'optionalAccess', _14 => _14.status]) === 200) {
+              html = _fs2.default.readFileSync(result.file)
+            } else if (pointsTo) {
+              status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _15 => _15.status]), () => ( '503')))
+              html =
+                _fs2.default.readFileSync(
+                  _nullishCoalesce(_optionalChain([result, 'optionalAccess', _16 => _16.response]), () => (
+                    _path2.default.resolve(__dirname, '../../../503-maintain.html'))),
+                  'utf8'
+                ) || ''
+            }
+          } catch (err) {
+            _ConsoleHandler2.default.error(err)
+          }
+
+          if (!html) {
+            try {
+              html = _fs2.default.readFileSync(filePath, 'utf8') || ''
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
+            }
+          }
+
+          if (
+            html &&
+            status === '200' &&
+            (!html.includes('window.API_STORE') ||
+              html.includes('window.API_STORE={}'))
+          ) {
+            const apiStoreData = await (async () => {
+              if (pointsTo && pointsTo.url) return
+
+              let tmpStoreKey
+              let tmpAPIStore
+
+              tmpStoreKey = _StringHelper.hashCode.call(void 0, pathForCacheKeyConverter)
+
+              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+
+              if (tmpAPIStore) return tmpAPIStore.data
+
+              const deviceType = _optionalChain([res, 'access', _17 => _17.cookies, 'optionalAccess', _18 => _18.deviceInfo, 'optionalAccess', _19 => _19.type])
+
+              tmpStoreKey = _StringHelper.hashCode.call(void 0, 
+                `${pathForCacheKeyConverter}${
+                  pathForCacheKeyConverter.includes('?') && deviceType
+                    ? '&device=' + deviceType
+                    : '?device=' + deviceType
+                }`
+              )
+
+              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+
+              if (tmpAPIStore) return tmpAPIStore.data
+
+              return
+            })()
+
+            let WindowAPIStore = {}
+
+            if (apiStoreData && apiStoreData.length) {
+              for (const cacheKey of apiStoreData) {
+                const apiCache = await _utils.getData.call(void 0, cacheKey, {
+                  sizeLimit: 10000,
+                })
+
+                if (
+                  !apiCache ||
+                  !apiCache.cache ||
+                  apiCache.cache.status !== 200
+                )
+                  continue
+
+                WindowAPIStore[cacheKey] = apiCache.cache.data
+              }
+            }
+
+            WindowAPIStore = JSON.stringify(WindowAPIStore)
+
+            try {
+              if (WindowAPIStore !== '{}') {
+                html = _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
+
+                if (html.includes('window.API_STORE={}')) {
+                  html = html.replace(
+                    'window.API_STORE={}',
+                    `window.API_STORE=${WindowAPIStore}`
+                  )
+                } else if (html.includes('</head>')) {
+                  html = html.replace(
+                    '</head>',
+                    `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                  )
+                } else {
+                  html = html.replace(
+                    '<body',
+                    `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                  )
+                }
+              }
+            } catch (err) {
+              _ConsoleHandler2.default.error(err)
+            }
+          }
+
+          try {
+            const body = (() => {
+              if (enableContentEncoding && Buffer.isBuffer(html)) return html
+
+              if (!enableContentEncoding) {
+                switch (true) {
+                  case Buffer.isBuffer(html):
+                    return _zlib.brotliDecompressSync.call(void 0, html).toString()
+                  default:
+                    return html
+                }
+              }
+
+              switch (true) {
+                case contentEncoding === 'br':
+                  return _zlib.brotliCompressSync.call(void 0, html)
+                case contentEncoding === 'gzip':
+                  return _zlib.gzipSync.call(void 0, html)
+                default:
+                  return html
+              }
+            })()
+
+            res.cork(() => {
+              res.writeStatus(status)
+
+              if (enableContentEncoding) {
+                res.writeHeader('Content-Encoding', contentEncoding)
+              }
+
+              res.writeHeader(
+                'Content-Type',
+                reqHeaderAccept === 'application/json'
+                  ? 'application/json'
+                  : 'text/html; charset=utf-8'
+              )
+              res = _setCookie(res)
+              res
+                .writeHeader('Cache-Control', 'no-store')
+                .writeHeader('etag', 'false')
+                .writeHeader('lastModified', 'false')
+
+              // NOTE - Setup cookie information
+              if (res.cookies.lang)
+                res.writeHeader('set-cookie', `lang=${res.cookies.lang};Path=/`)
+              if (res.cookies.country)
+                res.writeHeader(
+                  'set-cookie',
+                  `country=${res.cookies.country};Path=/`
+                )
+
+              res.end(body, true)
+            })
+          } catch (err) {
+            if (!res.writableEnded) {
+              const html =
+                _fs2.default.readFileSync(
+                  _path2.default.resolve(__dirname, '../../../404-not-found.html'),
+                  'utf8'
+                ) || ''
+              res.cork(() => {
+                res
+                  .writeStatus('404')
+                  .writeHeader(
+                    'Content-Type',
+                    reqHeaderAccept === 'application/json'
+                      ? 'application/json'
+                      : 'text/html; charset=utf-8'
+                  )
+                  .end(html, true)
+              })
+            }
+          }
+        }
+      }
+    })
+  }
+
+  return {
+    init(app) {
+      if (!app) return _ConsoleHandler2.default.warn('You need provide uWebSockets app!')
+      _app = app
+      _allRequestHandler()
+    },
+  }
 })()
 
-exports.default = puppeteerSSRService
+exports. default = puppeteerSSRService

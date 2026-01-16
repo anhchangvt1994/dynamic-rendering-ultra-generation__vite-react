@@ -1,233 +1,188 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-	if (lhs != null) {
-		return lhs
-	} else {
-		return rhsFn()
-	}
-}
-function _optionalChain(ops) {
-	let lastAccessLHS = undefined
-	let value = ops[0]
-	let i = 1
-	while (i < ops.length) {
-		const op = ops[i]
-		const fn = ops[i + 1]
-		i += 2
-		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-			return undefined
-		}
-		if (op === 'access' || op === 'optionalAccess') {
-			lastAccessLHS = value
-			value = fn(value)
-		} else if (op === 'call' || op === 'optionalCall') {
-			value = fn((...args) => value.call(lastAccessLHS, ...args))
-			lastAccessLHS = undefined
-		}
-	}
-	return value
-}
-var _fs = require('fs')
-var _path = require('path')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs');
+var _path = require('path');
 
-var _utils = require('../../../../api/utils/CacheManager/utils')
-var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _StringHelper = require('../../../../utils/StringHelper')
 
-var _constants = require('../../../constants')
+
+var _utils = require('../../../../api/utils/CacheManager/utils');
+var _ConsoleHandler = require('../../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _StringHelper = require('../../../../utils/StringHelper');
+var _constants = require('../../../constants');
+
+
+
+
+
 // import sharp from 'sharp'
 
-const getInternalScript = async (params) => {
-	if (!params) {
-		_ConsoleHandler2.default.error('Need provide `params`')
-		return
-	}
+ const getInternalScript = async (
+  params
+) => {
+  if (!params) {
+    _ConsoleHandler2.default.error('Need provide `params`')
+    return
+  }
 
-	if (!params.url) {
-		_ConsoleHandler2.default.error('Need provide `params.url`')
-		return
-	}
+  if (!params.url) {
+    _ConsoleHandler2.default.error('Need provide `params.url`')
+    return
+  }
 
-	const urlSplitted = params.url.split('/')
-	const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
-	const filePath = _path.resolve.call(
-		void 0,
-		__dirname,
-		`../../../../../../dist/${file}`
-	)
+  const urlSplitted = params.url.split('/')
+  const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
+  const filePath = _path.resolve.call(void 0, __dirname, `../../../../../../dist/${file}`)
 
-	try {
-		const body = _fs.readFileSync.call(void 0, filePath)
+  try {
+    const body = _fs.readFileSync.call(void 0, filePath)
 
-		return {
-			body,
-			status: 200,
-		}
-	} catch (err) {
-		_ConsoleHandler2.default.error(err)
-		return {
-			body: 'File not found',
-			status: 404,
-		}
-	}
-}
-exports.getInternalScript = getInternalScript // getInternalScript
+    return {
+      body,
+      status: 200,
+    }
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+    return {
+      body: 'File not found',
+      status: 404,
+    }
+  }
+}; exports.getInternalScript = getInternalScript // getInternalScript
 
-const getInternalStyle = (params) => {
-	if (!params) {
-		_ConsoleHandler2.default.error('Need provide `params`')
-		return
-	}
+ const getInternalStyle = (
+  params
+) => {
+  if (!params) {
+    _ConsoleHandler2.default.error('Need provide `params`')
+    return
+  }
 
-	if (!params.url) {
-		_ConsoleHandler2.default.error('Need provide `params.url`')
-		return
-	}
+  if (!params.url) {
+    _ConsoleHandler2.default.error('Need provide `params.url`')
+    return
+  }
 
-	const urlSplitted = params.url.split('/')
-	const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
-	const filePath = _path.resolve.call(
-		void 0,
-		__dirname,
-		`../../../../../../dist/${file}`
-	)
+  const urlSplitted = params.url.split('/')
+  const file = urlSplitted[urlSplitted.length - 1].split('?')[0]
+  const filePath = _path.resolve.call(void 0, __dirname, `../../../../../../dist/${file}`)
 
-	try {
-		const body = _fs.readFileSync.call(void 0, filePath)
+  try {
+    const body = _fs.readFileSync.call(void 0, filePath)
 
-		return {
-			body,
-			status: 200,
-		}
-	} catch (err) {
-		_ConsoleHandler2.default.error(err)
-		return {
-			body: 'File not found',
-			status: 404,
-		}
-	}
-}
-exports.getInternalStyle = getInternalStyle // getInternalStyle
+    return {
+      body,
+      status: 200,
+    }
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+    return {
+      body: 'File not found',
+      status: 404,
+    }
+  }
+}; exports.getInternalStyle = getInternalStyle // getInternalStyle
 
-const getInternalHTML = async (params) => {
-	if (!params) {
-		_ConsoleHandler2.default.error('Need provide `params`')
-		return
-	}
+ const getInternalHTML = async (params) => {
+  if (!params) {
+    _ConsoleHandler2.default.error('Need provide `params`')
+    return
+  }
 
-	if (!params.url) {
-		_ConsoleHandler2.default.error('Need provide `params.url`')
-		return
-	}
+  if (!params.url) {
+    _ConsoleHandler2.default.error('Need provide `params.url`')
+    return
+  }
 
-	const { url } = params
+  const { url, enableAPIStore } = params
 
-	try {
-		const filePath = _path.resolve.call(
-			void 0,
-			__dirname,
-			'../../../../../../dist/index.html'
-		)
+  try {
+    const filePath = _path.resolve.call(void 0, __dirname, '../../../../../../dist/index.html')
 
-		const apiStoreData = await (async () => {
-			let tmpStoreKey
-			let tmpAPIStore
+    const apiStoreData = await (async () => {
+      if (!enableAPIStore) return
 
-			tmpStoreKey = _StringHelper.hashCode.call(void 0, url)
+      let tmpStoreKey
+      let tmpAPIStore
 
-			tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+      tmpStoreKey = _StringHelper.hashCode.call(void 0, url)
 
-			if (tmpAPIStore) return tmpAPIStore.data
+      tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
 
-			const specialInfo = _nullishCoalesce(
-				_optionalChain([
-					_constants.regexQueryStringSpecialInfo,
-					'access',
-					(_) => _.exec,
-					'call',
-					(_2) => _2(url),
-					'optionalAccess',
-					(_3) => _3.groups,
-				]),
-				() => ({})
-			)
+      if (tmpAPIStore) return tmpAPIStore.data
 
-			const deviceType = (() => {
-				let tmpDeviceType
-				try {
-					tmpDeviceType = _optionalChain([
-						JSON,
-						'access',
-						(_4) => _4.parse,
-						'call',
-						(_5) => _5(specialInfo.deviceInfo),
-						'optionalAccess',
-						(_6) => _6.type,
-					])
-				} catch (err) {
-					_ConsoleHandler2.default.error(err)
-				}
+      const specialInfo = _nullishCoalesce(_optionalChain([_constants.regexQueryStringSpecialInfo, 'access', _ => _.exec, 'call', _2 => _2(url), 'optionalAccess', _3 => _3.groups]), () => ( {}))
 
-				return tmpDeviceType
-			})()
+      const deviceType = (() => {
+        let tmpDeviceType
+        try {
+          tmpDeviceType = _optionalChain([JSON, 'access', _4 => _4.parse, 'call', _5 => _5(specialInfo.deviceInfo), 'optionalAccess', _6 => _6.type])
+        } catch (err) {
+          _ConsoleHandler2.default.error(err)
+        }
 
-			tmpStoreKey = _StringHelper.hashCode.call(
-				void 0,
-				`${url}${
-					url.includes('?') && deviceType
-						? '&device=' + deviceType
-						: '?device=' + deviceType
-				}`
-			)
+        return tmpDeviceType
+      })()
 
-			tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+      tmpStoreKey = _StringHelper.hashCode.call(void 0, 
+        `${url}${
+          url.includes('?') && deviceType
+            ? '&device=' + deviceType
+            : '?device=' + deviceType
+        }`
+      )
 
-			if (tmpAPIStore) return tmpAPIStore.data
+      tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
 
-			return
-		})()
+      if (tmpAPIStore) return tmpAPIStore.data
 
-		const WindowAPIStore = {}
+      return
+    })()
 
-		if (apiStoreData) {
-			if (apiStoreData.length) {
-				for (const cacheKey of apiStoreData) {
-					const apiCache = await _utils.getData.call(void 0, cacheKey)
-					if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
-						continue
+    let WindowAPIStore = {}
 
-					WindowAPIStore[cacheKey] = apiCache.cache.data
-				}
-			}
-		}
+    if (apiStoreData) {
+      if (apiStoreData.length) {
+        for (const cacheKey of apiStoreData) {
+          const apiCache = await _utils.getData.call(void 0, cacheKey)
+          if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
+            continue
 
-		let html = _fs.readFileSync.call(void 0, filePath, 'utf8') || ''
+          WindowAPIStore[cacheKey] = apiCache.cache.data
+        }
+      }
+    }
 
-		html = html.replace(
-			'</head>',
-			`<script>window.API_STORE = ${JSON.stringify({
-				WindowAPIStore,
-			})}</script></head>`
-		)
+    WindowAPIStore = JSON.stringify(WindowAPIStore)
 
-		return {
-			body: html,
-			status: 200,
-		}
-	} catch (err) {
-		_ConsoleHandler2.default.error(err)
-		return {
-			body: 'File not found',
-			status: 404,
-		}
-	}
-}
-exports.getInternalHTML = getInternalHTML // getInternalHTML
+    let html = _fs.readFileSync.call(void 0, filePath, 'utf8') || ''
+
+    if (html.includes('window.API_STORE={}')) {
+      html = html.replace(
+        'window.API_STORE={}',
+        `window.API_STORE=${WindowAPIStore}`
+      )
+    } else if (html.includes('</head>')) {
+      html = html.replace(
+        '</head>',
+        `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+      )
+    } else {
+      html = html.replace(
+        '<body',
+        `<script>window.API_STORE=${WindowAPIStore}</script><body`
+      )
+    }
+
+    return {
+      body: html,
+      status: 200,
+    }
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+    return {
+      body: 'File not found',
+      status: 404,
+    }
+  }
+}; exports.getInternalHTML = getInternalHTML // getInternalHTML
 
 // export const compressInternalImage = async (image: string) => {
 // 	if (!image) {

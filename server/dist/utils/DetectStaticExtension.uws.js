@@ -1,5 +1,4 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
+"use strict";Object.defineProperty(exports, "__esModule", {value: true});
 
 const detectStaticExtension = (req) => {
 	const url = req.getUrl()
@@ -7,7 +6,7 @@ const detectStaticExtension = (req) => {
 	if (
 		!url ||
 		req.getHeader('sec-fetch-dest') === 'document' ||
-		/application\/json/.test(req.getHeader('accept'))
+		/application\/json/.test(req.getHeader('accept') )
 	) {
 		return false
 	}
@@ -25,4 +24,4 @@ const detectStaticExtension = (req) => {
 	return isStatic
 }
 
-exports.default = detectStaticExtension
+exports. default = detectStaticExtension

@@ -1,14 +1,7 @@
-'use strict'
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-var _serverconfig = require('../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
-var _fsextra = require('fs-extra')
-var _fsextra2 = _interopRequireDefault(_fsextra)
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _InitEnv = require('./InitEnv')
+"use strict"; function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _fsextra = require('fs-extra'); var _fsextra2 = _interopRequireDefault(_fsextra);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _InitEnv = require('./InitEnv');
 
 const _getViewsPath = () => {
 	const viewsPath = _InitEnv.PROCESS_ENV.IS_SERVER
@@ -34,10 +27,7 @@ const _getViewsPath = () => {
 					'../../puppeteer-ssr/utils/Cache.worker/views'
 				)
 		  })()
-		: _path2.default.resolve(
-				__dirname,
-				'../../puppeteer-ssr/utils/Cache.worker/views'
-		  )
+		: _path2.default.resolve(__dirname, '../../puppeteer-ssr/utils/Cache.worker/views')
 
 	if (!_fsextra2.default.existsSync(viewsPath)) {
 		try {

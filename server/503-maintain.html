@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="503 Service Unavailable">
+    <title>503 Service Unavailable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+        }
+        .error-container {
+            position: relative;
+            max-width: 500px;
+            padding: 20px;
+            padding-top: 30px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .error-container h1 {
+            font-size: 48px;
+            margin-bottom: 0;
+            margin-top: 0;
+        }
+        .error-container p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .error-container a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .error-container a:hover {
+            text-decoration: underline;
+        }
+        .loading-icon {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ddd;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1.2s ease-in-out infinite;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            top: -25px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="loading-icon"></div>
+        <h1>503</h1>
+        <p style="font-weight: bold; margin-top: 0; font-size: 18px;">Content is being prepared</p>
+        <p style="line-height: 1.5">We are currently preparing the content for you<br/>Please hang tight for a moment</p>
+        <a href="#" onclick="location.reload(); return false;">Retry Now</a>
+    </div>
+</body>
+</html>

@@ -1,38 +1,38 @@
 import type { ReactElement, ReactNode, MutableRefObject } from 'react'
 
 function useWithDelay(delay: number, fallback: ReactNode): ReactNode {
-	const [isShow, setIsShow] = useState(delay === 0 ? true : false)
+  const [isShow, setIsShow] = useState(delay === 0 ? true : false)
 
-	const timeout: MutableRefObject<NodeJS.Timeout | null> = useRef(null)
+  const timeout: MutableRefObject<NodeJS.Timeout | null> = useRef(null)
 
-	useEffect(() => {
-		if (!isShow) {
-			timeout.current = setTimeout(function () {
-				setIsShow(true)
-			}, delay)
-		}
-	}, [delay])
+  useEffect(() => {
+    if (!isShow) {
+      timeout.current = setTimeout(function () {
+        setIsShow(true)
+      }, delay)
+    }
+  }, [delay])
 
-	return isShow ? fallback : ''
+  return isShow ? fallback : ''
 }
 
 export default function LoadingBoundary({
-	children,
-	delay,
-	fallback,
+  children,
+  delay,
+  fallback,
 }: {
-	children?: ReactNode | undefined
-	delay?: number
-	fallback?: ReactNode
+  children?: ReactNode | undefined
+  delay?: number
+  fallback?: ReactNode
 }): ReactElement {
-	const delayTime: number = Number(delay) || 0
-	const timestamp = Date.now()
+  const delayTime: number = Number(delay) || 0
+  const timestamp = Date.now()
 
-	const Component: ReactNode = useWithDelay(delayTime, fallback)
+  const Component: ReactNode = useWithDelay(delayTime, fallback)
 
-	return (
-		<Suspense fallback={Component} key={timestamp}>
-			{children}
-		</Suspense>
-	)
+  return (
+    <Suspense fallback={Component} key={timestamp}>
+      {children}
+    </Suspense>
+  )
 } // LoadingBoundary

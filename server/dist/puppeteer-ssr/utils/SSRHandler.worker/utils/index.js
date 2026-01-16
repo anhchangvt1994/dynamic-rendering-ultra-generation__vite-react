@@ -1,15 +1,8 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _constants = require('../../../../constants')
-var _WorkerManager = require('../../../../utils/WorkerManager')
-var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
-var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _constants = require('../../../../constants');
+var _WorkerManager = require('../../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
+var _ConsoleHandler = require('../../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+
 
 const workerManager = _WorkerManager2.default.init(
 	_path2.default.resolve(__dirname, `./worker.${_constants.resourceExtension}`),
@@ -20,7 +13,9 @@ const workerManager = _WorkerManager2.default.init(
 	['getInternalScript', 'getInternalHTML']
 )
 
-const getInternalScriptWorker = async (params) => {
+ const getInternalScriptWorker = async (
+	params
+) => {
 	if (!params) {
 		_ConsoleHandler2.default.error('Need provide `params`!')
 		return
@@ -52,10 +47,9 @@ const getInternalScriptWorker = async (params) => {
 	})
 
 	return result
-}
-exports.getInternalScriptWorker = getInternalScriptWorker // getInternalScript
+}; exports.getInternalScriptWorker = getInternalScriptWorker // getInternalScript
 
-const getInternalHTMLWorker = async (params) => {
+ const getInternalHTMLWorker = async (params) => {
 	if (!params) {
 		_ConsoleHandler2.default.error('Need provide `params`!')
 		return
@@ -87,5 +81,4 @@ const getInternalHTMLWorker = async (params) => {
 	})
 
 	return result
-}
-exports.getInternalHTMLWorker = getInternalHTMLWorker // getInternalHTML
+}; exports.getInternalHTMLWorker = getInternalHTMLWorker // getInternalHTML

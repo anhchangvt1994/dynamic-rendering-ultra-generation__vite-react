@@ -1,63 +1,116 @@
 import { HttpRequest, HttpResponse } from 'uWebSockets.js'
+import ServerConfig from '../../server.config'
 import { IBotInfo } from '../../types'
 import { PROCESS_ENV } from '../../utils/InitEnv'
-import ServerConfig from '../../server.config'
 
 export const convertUrlHeaderToQueryString = (
-	url: string,
-	res: HttpResponse,
-	simulateBot: boolean = false
+  {
+    url,
+    res,
+    simulateBot,
+    isISR,
+  }: {
+    url: string
+    res?: HttpResponse
+    simulateBot?: boolean
+    isISR?: boolean
+  } = {
+    url: '',
+    simulateBot: false,
+    isISR: false,
+  }
 ) => {
-	if (!url) return ''
+  if (!url || !res) return ''
 
-	let botInfoStringify
+  const urlInfo = new URL(url)
 
-	if (simulateBot) {
-		botInfoStringify = JSON.stringify({
-			isBot: true,
-			name: 'puppeteer-ssr',
-		} as IBotInfo)
-	} else {
-		botInfoStringify = JSON.stringify(res.cookies?.botInfo)
-	}
+  const routeInfo =
+    ServerConfig.routes.list?.[urlInfo.pathname] ??
+    ServerConfig.routes.custom?.(url) ??
+    (ServerConfig.routes as any)
 
-	const deviceInfo = res.cookies?.deviceInfo ?? {}
-	const deviceType =
-		ServerConfig.crawl.content === 'all' ||
-		ServerConfig.crawl.content.includes(deviceInfo.type)
-			? deviceInfo.type
-			: ServerConfig.crawl.content[0]
+  const routePreviewInfo =
+    routeInfo.pointsTo || routeInfo.preview || routeInfo.loader || routeInfo
 
-	const deviceInfoStringify = JSON.stringify({
-		...(res.cookies?.deviceInfo ?? {}),
-		isMobile: deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
-		type: deviceType,
-	})
+  const routeAllowContent = isISR
+    ? routePreviewInfo.content === 'same'
+      ? routePreviewInfo.content
+      : routePreviewInfo.content === 'all'
+        ? ServerConfig.crawl.content === 'same'
+          ? ServerConfig.crawl.content
+          : routePreviewInfo.content
+        : ServerConfig.crawl.content === 'all'
+          ? routePreviewInfo.content
+          : (() => {
+              if (typeof ServerConfig.crawl.content === 'string')
+                return routePreviewInfo.content
 
-	const localeInfoStringify = JSON.stringify(res.cookies?.localeInfo)
-	const environmentInfoStringify = JSON.stringify(res.cookies?.environmentInfo)
+              const routePreviewInfoContent = new Set(routePreviewInfo.content)
+              const tmpRouteAllowContent = (
+                ServerConfig.crawl.content as string[]
+              ).filter((item) => routePreviewInfoContent.has(item))
 
-	let urlFormatted = `${url}${
-		url.indexOf('?') === -1 ? '?' : '&'
-	}botInfo=${botInfoStringify}&deviceInfo=${deviceInfoStringify}&localeInfo=${localeInfoStringify}&environmentInfo=${environmentInfoStringify}`.trim()
+              return !!tmpRouteAllowContent.length
+                ? tmpRouteAllowContent
+                : routePreviewInfo.content
+            })() || routePreviewInfo.content
+    : routePreviewInfo.content
 
-	return urlFormatted
+  let botInfoStringify
+
+  if (simulateBot) {
+    botInfoStringify = JSON.stringify({
+      isBot: true,
+      name: 'puppeteer-ssr',
+    } as IBotInfo)
+  } else {
+    botInfoStringify = JSON.stringify(res.cookies?.botInfo)
+  }
+
+  const deviceInfo = res.cookies?.deviceInfo ?? {}
+
+  const deviceType =
+    routeAllowContent === 'same'
+      ? routeAllowContent
+      : routeAllowContent === 'all' ||
+          routeAllowContent.includes(deviceInfo.type)
+        ? deviceInfo.type
+        : routeAllowContent[0]
+
+  const deviceInfoStringify =
+    deviceType === 'same'
+      ? ''
+      : JSON.stringify({
+          ...(res.cookies?.deviceInfo ?? {}),
+          isMobile:
+            deviceInfo.isMobile && deviceType !== 'desktop' ? true : false,
+          type: deviceType,
+        })
+
+  const localeInfoStringify = JSON.stringify(res.cookies?.localeInfo)
+  const environmentInfoStringify = JSON.stringify(res.cookies?.environmentInfo)
+
+  let urlFormatted = `${url}${
+    url.indexOf('?') === -1 ? '?' : '&'
+  }botInfo=${botInfoStringify}&${deviceInfoStringify ? 'deviceInfo=' + deviceInfoStringify + '&' : ''}localeInfo=${localeInfoStringify}&environmentInfo=${environmentInfoStringify}`.trim()
+
+  return urlFormatted
 } // formatUrl
 
 export const getUrl = (res: HttpResponse, req: HttpRequest) => {
-	if (!res) return ''
+  if (!res) return ''
 
-	const pathname = res.urlForCrawler
+  const pathname = res.urlForCrawler
 
-	return (
-		(PROCESS_ENV.ENABLE_URL_TESTING ? req.getQuery('urlTesting') : '') ||
-		req.getQuery('url') ||
-		PROCESS_ENV.BASE_URL + pathname
-	).trim()
+  return (
+    (PROCESS_ENV.ENABLE_URL_TESTING ? req.getQuery('urlTesting') : '') ||
+    req.getQuery('url') ||
+    PROCESS_ENV.BASE_URL + pathname
+  ).trim()
 } // getUrl
 
 export const getPathname = (res: HttpResponse, req: HttpRequest) => {
-	if (!res || !req) return
+  if (!res || !req) return
 
-	return res.urlForCrawler || req.getUrl()
+  return res.urlForCrawler || req.getUrl()
 } // getPathname

@@ -1,65 +1,24 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-	if (lhs != null) {
-		return lhs
-	} else {
-		return rhsFn()
-	}
-}
-function _optionalChain(ops) {
-	let lastAccessLHS = undefined
-	let value = ops[0]
-	let i = 1
-	while (i < ops.length) {
-		const op = ops[i]
-		const fn = ops[i + 1]
-		i += 2
-		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-			return undefined
-		}
-		if (op === 'access' || op === 'optionalAccess') {
-			lastAccessLHS = value
-			value = fn(value)
-		} else if (op === 'call' || op === 'optionalCall') {
-			value = fn((...args) => value.call(lastAccessLHS, ...args))
-			lastAccessLHS = undefined
-		}
-	}
-	return value
-}
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 
-var _constants = require('../../constants')
-var _serverconfig = require('../../server.config')
-var _serverconfig2 = _interopRequireDefault(_serverconfig)
 
-var _CookieHandler = require('../../utils/CookieHandler')
-var _StringHelper = require('../../utils/StringHelper')
+var _constants = require('../../constants');
+var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 
-const ValidateLocaleCode = (redirectResult, res) => {
+var _CookieHandler = require('../../utils/CookieHandler');
+var _StringHelper = require('../../utils/StringHelper');
+
+
+const ValidateLocaleCode = (
+	redirectResult,
+	res
+) => {
 	if (!_serverconfig2.default.locale.enable) return redirectResult
 
-	const LocaleInfo = _nullishCoalesce(
-		_optionalChain([
-			res,
-			'access',
-			(_) => _.cookies,
-			'optionalAccess',
-			(_2) => _2.localeInfo,
-		]),
-		() =>
-			_optionalChain([
-				_CookieHandler.getCookieFromResponse.call(void 0, res),
-				'optionalAccess',
-				(_3) => _3['LocaleInfo'],
-			])
-	)
+	const LocaleInfo =
+		_nullishCoalesce(_optionalChain([res, 'access', _ => _.cookies, 'optionalAccess', _2 => _2.localeInfo]), () => (
+		(_optionalChain([_CookieHandler.getCookieFromResponse.call(void 0, res), 'optionalAccess', _3 => _3['LocaleInfo']]) )))
 
-	const defaultLocale = _StringHelper.getLocale.call(
-		void 0,
+	const defaultLocale = _StringHelper.getLocale.call(void 0, 
 		LocaleInfo.defaultLang,
 		LocaleInfo.defaultCountry
 	)
@@ -92,8 +51,7 @@ const ValidateLocaleCode = (redirectResult, res) => {
 	 * => next() and return
 	 */
 
-	const localeSelected = _StringHelper.getLocale.call(
-		void 0,
+	const localeSelected = _StringHelper.getLocale.call(void 0, 
 		LocaleInfo.langSelected,
 		LocaleInfo.countrySelected
 	)
@@ -107,8 +65,7 @@ const ValidateLocaleCode = (redirectResult, res) => {
 		return redirectResult
 	} else if (
 		!isLocaleCodeIdFormatValid &&
-		(!_serverconfig2.default.locale.hideDefaultLocale ||
-			localeSelected !== defaultLocale)
+		(!_serverconfig2.default.locale.hideDefaultLocale || localeSelected !== defaultLocale)
 	) {
 		redirectResult.path = `/${localeSelected}${redirectResult.path}`
 		redirectResult.status = 301
@@ -146,4 +103,4 @@ const _checkLocaleCodeIdFormatValid = (firstDispatcherParam) => {
 	return true
 } // _checkLocaleCodeIdFormatValid()
 
-exports.default = ValidateLocaleCode
+exports. default = ValidateLocaleCode

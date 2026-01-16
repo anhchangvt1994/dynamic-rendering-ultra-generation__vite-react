@@ -1,73 +1,67 @@
-import { IProxyAPIInitParams } from './types'
+import { IProxyAPIInitParams, IRequestInfo } from './types'
+import { encodeRequestInfo } from './utils'
 
 export const ProxyAPI = (() => {
-	return {
-		init: ({ targetBaseUrl }: IProxyAPIInitParams) => {
-			if (!targetBaseUrl) {
-				console.error('targetBaseUrl is required!')
-				return
-			}
+  return {
+    init: ({ targetBaseUrl }: IProxyAPIInitParams) => {
+      if (!targetBaseUrl) {
+        console.error('targetBaseUrl is required!')
+        return
+      }
 
-			const _get = (
-				endpoint: string,
-				config?: {
-					expiredTime?: number
-					renewTime?: number
-					cacheKey?: string
-					enableStore?: boolean
-					storeInDevice?: 'mobile' | 'tablet' | 'desktop'
-					relativeCacheKey?: string[]
-				}
-			) => {
-				if (!endpoint) return ''
+      const _get = (
+        endpoint: IRequestInfo['endpoint'],
+        config?: Omit<IRequestInfo, 'endpoint' | 'baseUrl' | 'storeKey'>
+      ) => {
+        if (!endpoint) return ''
 
-				config = {
-					expiredTime: 0,
-					renewTime: 0,
-					cacheKey: endpoint,
-					enableStore: false,
-					relativeCacheKey: [],
-					...(config ? config : {}),
-				}
+        config = {
+          expiredTime: 0,
+          renewTime: 0,
+          cacheKey: endpoint,
+          enableStore: false,
+          relativeCacheKey: [],
+          ...(config ? config : {}),
+        }
 
-				config.cacheKey = hashCode(config.cacheKey)
+        config.cacheKey = hashCode(config.cacheKey)
 
-				if (config.relativeCacheKey.length) {
-					config.relativeCacheKey = (() => {
-						const arrRelativeCacheKey = []
+        if (config.relativeCacheKey.length) {
+          config.relativeCacheKey = (() => {
+            const arrRelativeCacheKey = []
 
-						for (const cacheKeyItem of config.relativeCacheKey) {
-							if (cacheKeyItem && cacheKeyItem !== config.cacheKey) {
-								arrRelativeCacheKey.push(hashCode(cacheKeyItem))
-							}
-						}
+            for (const cacheKeyItem of config.relativeCacheKey) {
+              if (cacheKeyItem && cacheKeyItem !== config.cacheKey) {
+                arrRelativeCacheKey.push(hashCode(cacheKeyItem))
+              }
+            }
 
-						return arrRelativeCacheKey
-					})()
-				}
+            return arrRelativeCacheKey
+          })()
+        }
 
-				const requestInfo: { [key: string]: any } = {
-					endpoint,
-					baseUrl: targetBaseUrl,
-					storeKey: hashCode(
-						`${location.pathname}${location.search}${
-							config.storeInDevice
-								? location.search
-									? '&device=' + config.storeInDevice
-									: '?device=' + config.storeInDevice
-								: ''
-						}`
-					),
-					...config,
-				}
+        const requestInfo: IRequestInfo = {
+          endpoint,
+          baseUrl: targetBaseUrl,
+          storeKey: hashCode(
+            `${location.pathname}${location.search}${
+              config.storeInDevice
+                ? location.search
+                  ? '&device=' + config.storeInDevice
+                  : '?device=' + config.storeInDevice
+                : ''
+            }`
+          ),
+          ...config,
+        }
 
-				return `/api?requestInfo=${encode(JSON.stringify(requestInfo))}`
-			} // _get
+        return `/api?requestInfo=${encodeRequestInfo(requestInfo)}`
+      } // _get
 
-			return {
-				targetBaseUrl,
-				get: _get,
-			}
-		},
-	}
+      return {
+        targetBaseUrl,
+        get: _get,
+      }
+    },
+  }
 })()

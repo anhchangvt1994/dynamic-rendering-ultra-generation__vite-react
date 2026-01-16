@@ -1,45 +1,8 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-function _nullishCoalesce(lhs, rhsFn) {
-	if (lhs != null) {
-		return lhs
-	} else {
-		return rhsFn()
-	}
-}
-function _optionalChain(ops) {
-	let lastAccessLHS = undefined
-	let value = ops[0]
-	let i = 1
-	while (i < ops.length) {
-		const op = ops[i]
-		const fn = ops[i + 1]
-		i += 2
-		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-			return undefined
-		}
-		if (op === 'access' || op === 'optionalAccess') {
-			lastAccessLHS = value
-			value = fn(value)
-		} else if (op === 'call' || op === 'optionalCall') {
-			value = fn((...args) => value.call(lastAccessLHS, ...args))
-			lastAccessLHS = undefined
-		}
-	}
-	return value
-}
-var _path = require('path')
-var _path2 = _interopRequireDefault(_path)
-var _constants = require('../../../../constants')
-var _BrowserManager = require('../../../../puppeteer-ssr/utils/BrowserManager')
-var _BrowserManager2 = _interopRequireDefault(_BrowserManager)
-var _ConsoleHandler = require('../../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _WorkerManager = require('../../../../utils/WorkerManager')
-var _WorkerManager2 = _interopRequireDefault(_WorkerManager)
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _constants = require('../../../../constants');
+var _BrowserManager = require('../../../../puppeteer-ssr/utils/BrowserManager'); var _BrowserManager2 = _interopRequireDefault(_BrowserManager);
+var _ConsoleHandler = require('../../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _WorkerManager = require('../../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
 const { parentPort, isMainThread } = require('worker_threads')
 
 const workerManager = _WorkerManager2.default.init(
@@ -52,9 +15,9 @@ const workerManager = _WorkerManager2.default.init(
 	['runPageSpeed', 'getPageSpeedUrl']
 )
 
-const browserManager = _BrowserManager2.default.call(void 0)
+const browserManager = _BrowserManager2.default.call(void 0, )
 
-const runPageSpeed = async (url) => {
+ const runPageSpeed = async (url) => {
 	if (!browserManager || !url) return
 
 	const browser = await browserManager.get()
@@ -92,10 +55,9 @@ const runPageSpeed = async (url) => {
 	}
 
 	return result
-}
-exports.runPageSpeed = runPageSpeed // runPageSpeed
+}; exports.runPageSpeed = runPageSpeed // runPageSpeed
 
-const getPageSpeedUrl = async (url) => {
+ const getPageSpeedUrl = async (url) => {
 	if (!browserManager || !url) return
 
 	const browser = await browserManager.get()
@@ -123,13 +85,7 @@ const getPageSpeedUrl = async (url) => {
 		force: true,
 	})
 
-	browser.emit(
-		'closePage',
-		_nullishCoalesce(
-			_optionalChain([result, 'optionalAccess', (_) => _.pageSpeedUrl]),
-			() => url
-		)
-	)
+	browser.emit('closePage', _nullishCoalesce(_optionalChain([result, 'optionalAccess', _ => _.pageSpeedUrl]), () => ( url)))
 	if (!isMainThread) {
 		parentPort.postMessage({
 			name: 'closePage',
@@ -139,5 +95,4 @@ const getPageSpeedUrl = async (url) => {
 	}
 
 	return result
-}
-exports.getPageSpeedUrl = getPageSpeedUrl // getPageSpeedUrl
+}; exports.getPageSpeedUrl = getPageSpeedUrl // getPageSpeedUrl

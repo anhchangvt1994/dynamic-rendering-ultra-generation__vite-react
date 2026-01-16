@@ -7,12 +7,12 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"@commitlint/config-conventional": "^17.6.6",
-		"commitizen": "^4.3.0",
-		"commitlint": "^17.6.6",
-		"cz-git": "^1.6.1",
-    "husky": "^8.0.3",
-		"lint-staged": "^13.2.3",
-		"prettier": "^2.8.8"
+		"@commitlint/config-conventional": "^19.6.0",
+		"commitizen": "^4.3.1",
+		"commitlint": "^19.6.1",
+		"cz-git": "^1.11.0",
+    "husky": "^9.1.7",
+		"lint-staged": "^15.4.2",
+		"prettier": "^3.4.2"
 	}
 }

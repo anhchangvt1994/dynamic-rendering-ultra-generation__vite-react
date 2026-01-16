@@ -1,35 +1,9 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
-function _interopRequireDefault(obj) {
-	return obj && obj.__esModule ? obj : { default: obj }
-}
-function _optionalChain(ops) {
-	let lastAccessLHS = undefined
-	let value = ops[0]
-	let i = 1
-	while (i < ops.length) {
-		const op = ops[i]
-		const fn = ops[i + 1]
-		i += 2
-		if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) {
-			return undefined
-		}
-		if (op === 'access' || op === 'optionalAccess') {
-			lastAccessLHS = value
-			value = fn(value)
-		} else if (op === 'call' || op === 'optionalCall') {
-			value = fn((...args) => value.call(lastAccessLHS, ...args))
-			lastAccessLHS = undefined
-		}
-	}
-	return value
-}
-var _ConsoleHandler = require('../../../utils/ConsoleHandler')
-var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler)
-var _FetchManager = require('../../utils/FetchManager')
-var _constants = require('./constants')
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _FetchManager = require('../../utils/FetchManager');
+var _constants = require('./constants');
 
-var _worker = require('./worker')
+var _worker = require('./worker');
 
 const setupCors = (res, origin) => {
 	res
@@ -49,18 +23,14 @@ const apiLighthouse = (() => {
 
 	const _allRequestHandler = () => {
 		_app.all('/api/lighthouse', async function (req, res) {
-			const urlParam = _optionalChain([
-				req,
-				'access',
-				(_) => _.query,
-				'optionalAccess',
-				(_2) => _2['url'],
-			])
+			const urlParam = _optionalChain([req, 'access', _ => _.query, 'optionalAccess', _2 => _2['url']])
 			if (!urlParam) {
 				res.raw.statusMessage = '`url` querystring params is required'
 				return res.status(400).send('`url` querystring params is required')
 			} else if (
-				!/^(https?:\/\/)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/.test(urlParam)
+				!/^(https?:\/\/)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/.test(
+					urlParam 
+				)
 			) {
 				res.raw.statusMessage =
 					'`url` querystring params does not match the correct format'
@@ -70,7 +40,7 @@ const apiLighthouse = (() => {
 			}
 
 			const params = new URLSearchParams()
-			params.append('urlTesting', urlParam)
+			params.append('urlTesting', urlParam )
 
 			const requestUrl =
 				_constants.TARGET_OPTIMAL_URL.replace('http://', 'https://') +
@@ -91,12 +61,10 @@ const apiLighthouse = (() => {
 			}
 
 			const lighthouseResult = await Promise.all([
-				_worker.runPageSpeed.call(
-					void 0,
+				_worker.runPageSpeed.call(void 0, 
 					`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${urlParam}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`
 				),
-				_worker.runPageSpeed.call(
-					void 0,
+				_worker.runPageSpeed.call(void 0, 
 					`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${requestUrl}&strategy=mobile&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO`
 				),
 			])
@@ -120,7 +88,9 @@ const apiLighthouse = (() => {
 				await Promise.all([
 					new Promise((res) => {
 						if (lighthouseResult[0] && lighthouseResult[0].categories) {
-							const categories = Object.values(lighthouseResult[0].categories)
+							const categories = Object.values(
+								lighthouseResult[0].categories
+							)
 
 							for (const category of categories) {
 								tmpLighthouseResponse.original.info.push({
@@ -136,7 +106,9 @@ const apiLighthouse = (() => {
 					}),
 					new Promise((res) => {
 						if (lighthouseResult[1] && lighthouseResult[1].categories) {
-							const categories = Object.values(lighthouseResult[1].categories)
+							const categories = Object.values(
+								lighthouseResult[1].categories
+							)
 
 							for (const category of categories) {
 								tmpLighthouseResponse.optimal.info.push({
@@ -161,12 +133,11 @@ const apiLighthouse = (() => {
 
 	return {
 		init(app) {
-			if (!app)
-				return _ConsoleHandler2.default.warn('You need provide express app!')
+			if (!app) return _ConsoleHandler2.default.warn('You need provide express app!')
 			_app = app
 			_allRequestHandler()
 		},
 	}
 })()
 
-exports.default = apiLighthouse
+exports. default = apiLighthouse

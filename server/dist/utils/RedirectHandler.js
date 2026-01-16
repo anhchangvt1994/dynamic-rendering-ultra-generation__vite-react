@@ -1,11 +1,10 @@
-'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
+"use strict";Object.defineProperty(exports, "__esModule", {value: true});
 
-var _redirectconfig = require('../app/redirect.config')
-var _InitEnv = require('./InitEnv')
+var _redirectconfig = require('../app/redirect.config');
+var _InitEnv = require('./InitEnv');
 
 const RedirectHandler = (req, res, next) => {
-	const botInfoStringify = res.getHeader('Bot-Info')
+	const botInfoStringify = res.getHeader('Bot-Info') 
 	const botInfo = JSON.parse(botInfoStringify)
 
 	if (botInfo.isBot && req.headers.service !== 'puppeteer') {
@@ -13,13 +12,11 @@ const RedirectHandler = (req, res, next) => {
 		let redirectUrl = ''
 
 		const REDIRECT_INFO_FORMATTED = (() => {
-			if (
-				!_redirectconfig.REDIRECT_INFO ||
-				!_redirectconfig.REDIRECT_INFO.length
-			)
-				return []
+			if (!_redirectconfig.REDIRECT_INFO || !_redirectconfig.REDIRECT_INFO.length) return []
 
-			const tmpRedirectInfoFormatted = []
+			const tmpRedirectInfoFormatted
+
+ = []
 
 			for (const redirectInfoItem of _redirectconfig.REDIRECT_INFO) {
 				tmpRedirectInfoFormatted.push({
@@ -64,4 +61,4 @@ const RedirectHandler = (req, res, next) => {
 	}
 }
 
-exports.default = RedirectHandler
+exports. default = RedirectHandler

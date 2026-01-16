@@ -1,4 +1,5 @@
 // import LoadingPageComponent from 'components/LoadingPageComponent'
+import { ReactElement } from 'react'
 import { ServerStore } from 'store/ServerStore'
 import { resetSeoTag } from 'utils/SeoHelper'
 // import {
@@ -61,7 +62,7 @@ export default function ServerRouterHandler({ children }) {
 	const { locale } = useParams()
 	// const { loadingState, setLoadingState } = useLoadingInfo()
 	const { setLocaleState } = useLocaleInfo()
-	const [element, setElement] = useState<JSX.Element>()
+	const [element, setElement] = useState<ReactElement>()
 	const enableLocale = useMemo(
 		() => Boolean(LocaleInfo.langSelected || LocaleInfo.countrySelected),
 		[]

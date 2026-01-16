@@ -10,408 +10,433 @@ import { getTextData } from '../FileHandler'
 import { deleteResource as deleteResourceWithWorker } from './utils'
 
 type IFileInfo =
-	| {
-			size: number
-			createdAt: number
-			updatedAt: number
-			requestedAt: number
-	  }
-	| undefined
+  | {
+      size: number
+      createdAt: number
+      updatedAt: number
+      requestedAt: number
+    }
+  | undefined
 
 const deleteResource = (path: string) => {
-	deleteResourceWithWorker(path)
+  deleteResourceWithWorker(path)
 } //  deleteResource
 
 const copyResource = (
-	path: string,
-	targetPath: string,
-	opts: { [key: string]: any }
+  path: string,
+  targetPath: string,
+  opts: { [key: string]: any }
 ) => {
-	try {
-		fsExtra.emptyDirSync(targetPath)
-		fsExtra.copySync(path, targetPath)
-	} catch (err) {
-		Console.error(err)
-	}
+  try {
+    fsExtra.emptyDirSync(targetPath)
+    fsExtra.copySync(path, targetPath)
+  } catch (err) {
+    Console.error(err)
+  }
 } // copyResource
 
 const getFileInfo = async (file: string): Promise<IFileInfo> => {
-	if (!file) {
-		Console.error('Need provide "file" param!')
-		return
-	}
+  if (!file) {
+    Console.error('Need provide "file" param!')
+    return
+  }
 
-	const result = await new Promise<IFileInfo>((res) => {
-		fs.stat(file, (err, stats) => {
-			if (err) {
-				Console.error(err)
-				res(undefined)
-				return
-			}
+  const result = await new Promise<IFileInfo>((res) => {
+    fs.stat(file, (err, stats) => {
+      if (err) {
+        Console.error(err)
+        res(undefined)
+        return
+      }
 
-			res({
-				size: stats.size,
-				createdAt: stats.birthtimeMs,
-				updatedAt: stats.mtimeMs,
-				requestedAt: stats.atimeMs,
-			})
-		})
-	})
+      res({
+        size: stats.size,
+        createdAt: stats.birthtimeMs,
+        updatedAt: stats.mtimeMs,
+        requestedAt: stats.atimeMs,
+      })
+    })
+  })
 
-	return result
+  return result
 } // getFileInfo
 
 export interface ICheckToCleanFileOptionsParam {
-	schedule?: number
-	validRequestAtDuration?: number
+  schedule?: number
+  validRequestAtDuration?: number
 }
 
 export type ICheckToCleanResult = boolean | 'update'
 
 const checkToCleanFile = async (
-	file: string,
-	{ schedule, validRequestAtDuration }: ICheckToCleanFileOptionsParam
+  file: string,
+  { schedule, validRequestAtDuration }: ICheckToCleanFileOptionsParam
 ): Promise<ICheckToCleanResult> => {
-	if (!file) {
-		Console.error('Need provide "file" to delete!')
-		return false
-	}
+  if (!file) {
+    Console.error('Need provide "file" to delete!')
+    return false
+  }
 
-	schedule = schedule || 30000
+  schedule = schedule || 30000
 
-	const result = await new Promise(async (res) => {
-		file = fs.existsSync(file) ? file : file.replace('.raw', '')
-		if (fs.existsSync(file)) {
-			const info = await getFileInfo(file)
-			validRequestAtDuration =
-				validRequestAtDuration || (schedule as number) / 2
+  const result = await new Promise(async (res) => {
+    file = fs.existsSync(file) ? file : file.replace('.raw', '')
+    if (fs.existsSync(file)) {
+      const info = await getFileInfo(file)
+      validRequestAtDuration =
+        validRequestAtDuration || (schedule as number) / 2
 
-			if (!info) {
-				// WorkerPool.pool().terminate()
-				return res(false)
-			}
+      if (!info) {
+        // WorkerPool.pool().terminate()
+        return res(false)
+      }
 
-			const curTime = Date.now()
-			const requestedAt = new Date(info.requestedAt).getTime()
-			const updatedAt = new Date(info.updatedAt).getTime()
-			const duration =
-				curTime - (requestedAt > updatedAt ? requestedAt : updatedAt)
+      const curTime = Date.now()
+      const requestedAt = new Date(info.requestedAt).getTime()
+      const updatedAt = new Date(info.updatedAt).getTime()
+      const duration =
+        curTime - (requestedAt > updatedAt ? requestedAt : updatedAt)
 
-			if (duration > validRequestAtDuration) {
-				let unlinkFinish = true
-				try {
-					deleteResource(file)
-					Console.log(`File ${file} was permanently deleted`)
-				} catch (err) {
-					Console.error(err)
-					unlinkFinish = false
-				}
+      if (duration > validRequestAtDuration) {
+        let unlinkFinish = true
+        try {
+          deleteResource(file)
+          Console.log(`File ${file} was permanently deleted`)
+        } catch (err) {
+          Console.error(err)
+          unlinkFinish = false
+        }
 
-				return res(unlinkFinish)
-			} else {
-				return res('update')
-			}
-		}
-	})
+        return res(unlinkFinish)
+      } else {
+        return res('update')
+      }
+    }
+  })
 
-	return result as ICheckToCleanResult
-	// WorkerPool.pool().terminate()
+  return result as ICheckToCleanResult
+  // WorkerPool.pool().terminate()
 } // checkToCleanFile
 
 const scanToCleanBrowsers = async (
-	dirPath: string,
-	expiredTime = 1,
-	browserStore
+  dirPath: string,
+  expiredTime = 1,
+  browserStore
 ) => {
-	if (fs.existsSync(dirPath)) {
-		let browserList
+  if (fs.existsSync(dirPath)) {
+    let browserList
 
-		try {
-			browserList = fs.readdirSync(dirPath)
-		} catch (err) {
-			Console.error(err)
-		}
+    try {
+      browserList = fs.readdirSync(dirPath)
+    } catch (err) {
+      Console.error(err)
+    }
 
-		const curUserDataPath = browserStore.userDataPath
-			? path.join('', browserStore.userDataPath)
-			: ''
-		const reserveUserDataPath = browserStore.reserveUserDataPath
-			? path.join('', browserStore.reserveUserDataPath)
-			: ''
+    const curUserDataPath = browserStore.userDataPath
+      ? path.join('', browserStore.userDataPath)
+      : ''
+    const reserveUserDataPath = browserStore.reserveUserDataPath
+      ? path.join('', browserStore.reserveUserDataPath)
+      : ''
 
-		for (const file of browserList) {
-			const absolutePath = path.join(dirPath, file)
+    for (const file of browserList) {
+      const absolutePath = path.join(dirPath, file)
 
-			if (file === 'wsEndpoint.txt') continue
+      if (file === 'wsEndpoint.txt') continue
 
-			if (
-				absolutePath === curUserDataPath ||
-				absolutePath === reserveUserDataPath
-			) {
-				continue
-			}
+      if (
+        absolutePath === curUserDataPath ||
+        absolutePath === reserveUserDataPath
+      ) {
+        continue
+      }
 
-			const dirExistTimeInMinutes =
-				(Date.now() - new Date(fs.statSync(absolutePath).mtime).getTime()) /
-				60000
+      const dirExistTimeInMinutes =
+        (Date.now() - new Date(fs.statSync(absolutePath).mtime).getTime()) /
+        60000
 
-			if (dirExistTimeInMinutes >= expiredTime) {
-				// NOTE - Remove without check pages
-				try {
-					deleteResource(absolutePath)
-				} catch (err) {
-					Console.error(err)
-				}
-			}
-		}
-	}
+      if (dirExistTimeInMinutes >= expiredTime) {
+        // NOTE - Remove without check pages
+        try {
+          deleteResource(absolutePath)
+        } catch (err) {
+          Console.error(err)
+        }
+      }
+    }
+  }
 } // scanToCleanBrowsers
 
 const scanToCleanPages = (dirPath: string) => {
-	if (fs.existsSync(dirPath)) {
-		let pageList
+  if (fs.existsSync(dirPath)) {
+    let pageList
 
-		try {
-			pageList = fs.readdirSync(`${dirPath}`)
-		} catch (err) {
-			Console.error(err)
-			return
-		}
+    try {
+      pageList = fs.readdirSync(`${dirPath}`)
+    } catch (err) {
+      Console.error(err)
+      return
+    }
 
-		for (const file of pageList) {
-			if (file === 'info') continue
+    for (const file of pageList) {
+      if (file === 'info') continue
 
-			const infoFilePath = path.join(dirPath, `/info/${file.split('.')[0]}.txt`)
-			const url = getTextData(infoFilePath)
+      const infoFilePath = path.join(dirPath, `/info/${file.split('.')[0]}.txt`)
+      const url = getTextData(infoFilePath)
 
-			if (!url) continue
+      if (!url) continue
 
-			const urlInfo = new URL(url)
+      const urlInfo = new URL(url)
 
-			const cacheOption = (
-				ServerConfig.crawl.custom?.(url) ??
-				ServerConfig.crawl.routes[urlInfo.pathname] ??
-				ServerConfig.crawl
-			).cache
+      const cacheOption = (
+        ServerConfig.crawl.custom?.(url) ??
+        ServerConfig.crawl.routes[urlInfo.pathname] ??
+        ServerConfig.crawl
+      ).cache
 
-			const expiredTime = cacheOption.time
+      const expiredTime = cacheOption.time
 
-			if (expiredTime === 'infinite') {
-				continue
-			}
+      if (expiredTime === 'infinite') {
+        continue
+      }
 
-			const cacheFilePath = path.join(dirPath, file)
-			const dirExistTimeInMinutes =
-				(Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
-				1000
+      const cacheFilePath = path.join(dirPath, file)
+      const dirExistTimeInMinutes =
+        (Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
+        1000
 
-			if (dirExistTimeInMinutes >= expiredTime) {
-				try {
-					Promise.all([
-						fs.unlinkSync(cacheFilePath),
-						fs.unlinkSync(infoFilePath),
-					])
-				} catch (err) {
-					Console.error(err)
-				}
-			}
-		}
-	}
-	// else {
-	// res(null)
-	// }
+      if (dirExistTimeInMinutes >= expiredTime) {
+        try {
+          Promise.all([
+            fs.unlinkSync(cacheFilePath),
+            fs.unlinkSync(infoFilePath),
+          ])
+        } catch (err) {
+          Console.error(err)
+        }
+      }
+    }
+  }
+  // else {
+  // res(null)
+  // }
 } // scanToCleanPages
 
 const scanToCleanViews = (
-	dirPath: string,
-	options: {
-		forceToClean?: boolean
-	}
+  dirPath: string,
+  options: {
+    forceToClean?: boolean
+  }
 ) => {
-	if (fs.existsSync(dirPath)) {
-		let viewList
+  if (fs.existsSync(dirPath)) {
+    let viewList
 
-		try {
-			viewList = fs.readdirSync(`${dirPath}`)
-		} catch (err) {
-			Console.error(err)
-			return
-		}
+    try {
+      viewList = fs.readdirSync(`${dirPath}`)
+    } catch (err) {
+      Console.error(err)
+      return
+    }
 
-		options = {
-			forceToClean: false,
-			...options,
-		}
+    options = {
+      forceToClean: false,
+      ...options,
+    }
 
-		for (const file of viewList) {
-			if (file.endsWith('--loader.br')) continue
+    for (const file of viewList) {
+      if (file.endsWith('--loader.br') || file === 'info') continue
 
-			const cacheFilePath = path.join(dirPath, file)
-			const dirExistTimeInMinutes =
-				(Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
-				1000
+      const infoFilePath = path.join(dirPath, `/info/${file.split('.')[0]}.txt`)
+      const url = getTextData(infoFilePath)
 
-			if (options.forceToClean || dirExistTimeInMinutes >= 300) {
-				try {
-					fs.unlinkSync(cacheFilePath)
-				} catch (err) {
-					Console.error(err)
-				}
-			}
-		}
-	}
+      if (!url) continue
+
+      const urlInfo = new URL(url)
+
+      const routeOptions =
+        ServerConfig.routes.list?.[urlInfo.pathname] ??
+        ServerConfig.routes.custom?.(url) ??
+        (ServerConfig.routes as any)?.preview
+
+      const expiredTime = (routeOptions.preview || routeOptions.pointsTo)?.time
+
+      if (!expiredTime || expiredTime === 'infinite') {
+        continue
+      }
+
+      const cacheFilePath = path.join(dirPath, file)
+      const dirExistTimeInMinutes =
+        (Date.now() - new Date(fs.statSync(cacheFilePath).atime).getTime()) /
+        1000
+
+      if (
+        options.forceToClean ||
+        (!expiredTime && dirExistTimeInMinutes >= 300) ||
+        dirExistTimeInMinutes >= expiredTime
+      ) {
+        try {
+          Promise.all([
+            fs.unlinkSync(cacheFilePath),
+            fs.unlinkSync(infoFilePath),
+          ])
+        } catch (err) {
+          Console.error(err)
+        }
+      }
+    }
+  }
 } // scanToCleanViews
 
 const scanToCleanAPIDataCache = async (dirPath: string) => {
-	if (!dirPath) {
-		Console.error('You need to provide dirPath param!')
-		return
-	}
+  if (!dirPath) {
+    Console.error('You need to provide dirPath param!')
+    return
+  }
 
-	let apiCacheList
+  let apiCacheList
 
-	try {
-		apiCacheList = fs.readdirSync(dirPath)
-	} catch (err) {
-		Console.error(err)
-		return
-	}
+  try {
+    apiCacheList = fs.readdirSync(dirPath)
+  } catch (err) {
+    Console.error(err)
+    return
+  }
 
-	if (!apiCacheList || !apiCacheList.length) return
+  if (!apiCacheList || !apiCacheList.length) return
 
-	const chunkSize = 50
+  const chunkSize = 50
 
-	const arrPromise: Promise<string>[] = []
-	const curTime = Date.now()
+  const arrPromise: Promise<string>[] = []
+  const curTime = Date.now()
 
-	for (let i = 0; i < apiCacheList.length; i += chunkSize) {
-		arrPromise.push(
-			new Promise(async (resolve) => {
-				let timeout
-				const arrChunked = apiCacheList.slice(i, i + chunkSize)
-				for (const item of arrChunked) {
-					if (item.includes('.fetch')) continue
+  for (let i = 0; i < apiCacheList.length; i += chunkSize) {
+    arrPromise.push(
+      new Promise(async (resolve) => {
+        let timeout
+        const arrChunked = apiCacheList.slice(i, i + chunkSize)
+        for (const item of arrChunked) {
+          if (item.includes('.fetch')) continue
 
-					const absolutePath = path.join(dirPath, item)
+          const absolutePath = path.join(dirPath, item)
 
-					if (!fs.existsSync(absolutePath)) continue
-					const fileInfo = await getFileInfo(absolutePath)
+          if (!fs.existsSync(absolutePath)) continue
+          const fileInfo = await getFileInfo(absolutePath)
 
-					if (!fileInfo?.size) continue
+          if (!fileInfo?.size) continue
 
-					const fileContent = (() => {
-						const tmpContent = fs.readFileSync(absolutePath)
+          const fileContent = (() => {
+            const tmpContent = fs.readFileSync(absolutePath)
 
-						return JSON.parse(brotliDecompressSync(tmpContent).toString())
-					})()
+            return JSON.parse(brotliDecompressSync(tmpContent).toString())
+          })()
 
-					const expiredTime = fileContent.cache
-						? fileContent.cache.expiredTime
-						: 60000
+          const expiredTime = fileContent.cache
+            ? fileContent.cache.expiredTime
+            : 60000
 
-					if (
-						curTime - new Date(fileInfo.requestedAt).getTime() >=
-						expiredTime
-					) {
-						if (timeout) clearTimeout(timeout)
-						fs.unlink(absolutePath, (err) => {
-							if (err) {
-								Console.error(err)
-								return
-							}
+          if (
+            curTime - new Date(fileInfo.requestedAt).getTime() >=
+            expiredTime
+          ) {
+            if (timeout) clearTimeout(timeout)
+            fs.unlink(absolutePath, (err) => {
+              if (err) {
+                Console.error(err)
+                return
+              }
 
-							timeout = setTimeout(() => {
-								resolve('complete')
-							}, 100)
-						})
-					}
-				}
+              timeout = setTimeout(() => {
+                resolve('complete')
+              }, 100)
+            })
+          }
+        }
 
-				if (timeout) clearTimeout(timeout)
-				timeout = setTimeout(() => {
-					resolve('complete')
-				}, 100)
-			})
-		)
-	}
+        if (timeout) clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          resolve('complete')
+        }, 100)
+      })
+    )
+  }
 
-	await Promise.all(arrPromise)
+  await Promise.all(arrPromise)
 
-	return 'complete'
+  return 'complete'
 } // scanToCleanAPIDataCache
 
 const scanToCleanAPIStoreCache = async (dirPath: string) => {
-	if (!dirPath) {
-		Console.error('You need to provide dirPath param!')
-		return
-	}
+  if (!dirPath) {
+    Console.error('You need to provide dirPath param!')
+    return
+  }
 
-	let apiCacheList
+  let apiCacheList
 
-	try {
-		apiCacheList = fs.readdirSync(dirPath)
-	} catch (err) {
-		Console.error(err)
-		return
-	}
+  try {
+    apiCacheList = fs.readdirSync(dirPath)
+  } catch (err) {
+    Console.error(err)
+    return
+  }
 
-	if (!apiCacheList || !apiCacheList.length) return
+  if (!apiCacheList || !apiCacheList.length) return
 
-	const chunkSize = 50
+  const chunkSize = 50
 
-	const arrPromise: Promise<string>[] = []
-	const curTime = Date.now()
+  const arrPromise: Promise<string>[] = []
+  const curTime = Date.now()
 
-	for (let i = 0; i < apiCacheList.length; i += chunkSize) {
-		arrPromise.push(
-			new Promise(async (resolve) => {
-				let timeout
-				const arrChunked = apiCacheList.slice(i, i + chunkSize)
-				for (const item of arrChunked) {
-					const absolutePath = path.join(dirPath, item)
+  for (let i = 0; i < apiCacheList.length; i += chunkSize) {
+    arrPromise.push(
+      new Promise(async (resolve) => {
+        let timeout
+        const arrChunked = apiCacheList.slice(i, i + chunkSize)
+        for (const item of arrChunked) {
+          const absolutePath = path.join(dirPath, item)
 
-					if (!fs.existsSync(absolutePath)) continue
-					const fileInfo = await getFileInfo(absolutePath)
+          if (!fs.existsSync(absolutePath)) continue
+          const fileInfo = await getFileInfo(absolutePath)
 
-					if (!fileInfo?.size) continue
+          if (!fileInfo?.size) continue
 
-					if (curTime - new Date(fileInfo.requestedAt).getTime() >= 300000) {
-						if (timeout) clearTimeout(timeout)
-						try {
-							fs.unlink(absolutePath, () => {})
-						} catch (err) {
-							Console.error(err)
-						} finally {
-							timeout = setTimeout(() => {
-								resolve('complete')
-							}, 100)
-						}
-					}
-				}
+          if (curTime - new Date(fileInfo.requestedAt).getTime() >= 300000) {
+            if (timeout) clearTimeout(timeout)
+            try {
+              fs.unlink(absolutePath, () => {})
+            } catch (err) {
+              Console.error(err)
+            } finally {
+              timeout = setTimeout(() => {
+                resolve('complete')
+              }, 100)
+            }
+          }
+        }
 
-				if (timeout) clearTimeout(timeout)
-				timeout = setTimeout(() => {
-					resolve('complete')
-				}, 100)
-			})
-		)
-	}
+        if (timeout) clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          resolve('complete')
+        }, 100)
+      })
+    )
+  }
 
-	await Promise.all(arrPromise)
+  await Promise.all(arrPromise)
 
-	return 'complete'
+  return 'complete'
 } // scanToCleanAPIStoreCache
 
 WorkerPool.worker({
-	checkToCleanFile,
-	scanToCleanBrowsers,
-	scanToCleanPages,
-	scanToCleanViews,
-	scanToCleanAPIDataCache,
-	scanToCleanAPIStoreCache,
-	deleteResource,
-	copyResource,
-	finish: () => {
-		return 'finish'
-	},
+  checkToCleanFile,
+  scanToCleanBrowsers,
+  scanToCleanPages,
+  scanToCleanViews,
+  scanToCleanAPIDataCache,
+  scanToCleanAPIStoreCache,
+  deleteResource,
+  copyResource,
+  finish: () => {
+    return 'finish'
+  },
 })
