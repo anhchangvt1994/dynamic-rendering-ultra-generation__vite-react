@@ -13,7 +13,7 @@ export const getPagesPath = () => {
             root = ServerConfig.rootCache
           } else {
             try {
-              fs.mkdirSync(ServerConfig.rootCache)
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
               root = ServerConfig.rootCache
             } catch (err) {
               Console.error(err.message)
@@ -32,7 +32,7 @@ export const getPagesPath = () => {
 
   if (!fs.existsSync(pagesPath)) {
     try {
-      fs.mkdirSync(pagesPath)
+      fs.mkdirSync(pagesPath, { recursive: true })
     } catch (err) {
       Console.error(err)
     }
@@ -40,7 +40,7 @@ export const getPagesPath = () => {
 
   if (fs.existsSync(pagesPath) && !fs.existsSync(`${pagesPath}/info`)) {
     try {
-      fs.mkdirSync(`${pagesPath}/info`)
+      fs.mkdirSync(`${pagesPath}/info`, { recursive: true })
     } catch (err) {
       Console.error(err)
     }
@@ -77,7 +77,7 @@ export const getViewsPath = () => {
 
   if (!fs.existsSync(viewsPath)) {
     try {
-      fs.mkdirSync(viewsPath)
+      fs.mkdirSync(viewsPath, { recursive: true })
     } catch (err) {
       console.error(err)
     }
@@ -85,7 +85,7 @@ export const getViewsPath = () => {
 
   if (fs.existsSync(viewsPath) && !fs.existsSync(`${viewsPath}/info`)) {
     try {
-      fs.mkdirSync(`${viewsPath}/info`)
+      fs.mkdirSync(`${viewsPath}/info`, { recursive: true })
     } catch (err) {
       Console.error(err)
     }

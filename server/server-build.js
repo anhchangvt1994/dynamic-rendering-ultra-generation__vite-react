@@ -16,7 +16,7 @@ if (fs.existsSync(serverDistPath)) {
 	}
 }
 
-spawn(
+const child = spawn(
 	'sucrase',
 	['--quiet ./server/src -d ./server/dist --transforms typescript,imports'],
 	{
@@ -24,3 +24,11 @@ spawn(
 		shell: true,
 	}
 )
+
+child.on('close', (code) => {
+	if (code !== 0) {
+		console.error(`Sucrase exited with code ${code}`)
+		process.exit(code)
+	}
+	console.log('Sucrase build completed successfully')
+})

@@ -13,7 +13,7 @@ var _InitEnv = require('../InitEnv');
             root = _serverconfig2.default.rootCache
           } else {
             try {
-              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache, { recursive: true })
               root = _serverconfig2.default.rootCache
             } catch (err) {
               _ConsoleHandler2.default.error(err.message)
@@ -32,7 +32,7 @@ var _InitEnv = require('../InitEnv');
 
   if (!_fs2.default.existsSync(pagesPath)) {
     try {
-      _fs2.default.mkdirSync(pagesPath)
+      _fs2.default.mkdirSync(pagesPath, { recursive: true })
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }
@@ -40,7 +40,7 @@ var _InitEnv = require('../InitEnv');
 
   if (_fs2.default.existsSync(pagesPath) && !_fs2.default.existsSync(`${pagesPath}/info`)) {
     try {
-      _fs2.default.mkdirSync(`${pagesPath}/info`)
+      _fs2.default.mkdirSync(`${pagesPath}/info`, { recursive: true })
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }
@@ -77,7 +77,7 @@ var _InitEnv = require('../InitEnv');
 
   if (!_fs2.default.existsSync(viewsPath)) {
     try {
-      _fs2.default.mkdirSync(viewsPath)
+      _fs2.default.mkdirSync(viewsPath, { recursive: true })
     } catch (err) {
       console.error(err)
     }
@@ -85,7 +85,7 @@ var _InitEnv = require('../InitEnv');
 
   if (_fs2.default.existsSync(viewsPath) && !_fs2.default.existsSync(`${viewsPath}/info`)) {
     try {
-      _fs2.default.mkdirSync(`${viewsPath}/info`)
+      _fs2.default.mkdirSync(`${viewsPath}/info`, { recursive: true })
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }

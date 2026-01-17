@@ -1,7 +1,11 @@
 import fs from 'fs'
 import net from 'net'
-import path from 'path'
-import ObjectToEnvConverter from '../ObjectToEnvConverter'
+import path, { dirname } from 'path'
+import { fileURLToPath } from 'url'
+import ObjectToEnvConverter from '../ObjectToEnvConverter.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const envPortPath = path.resolve(__dirname, './.env')
 
