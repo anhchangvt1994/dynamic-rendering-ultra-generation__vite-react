@@ -1,9 +1,9 @@
 import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { findFreePort, getPort, setPort } from '../../config/utils/PortHandler'
 import ServerConfig from './server.config'
 import { ENV, ENV_MODE, PROCESS_ENV } from './utils/InitEnv'
+import { findFreePort, getPort, setPort } from './utils/PortHandler'
 
 require('events').EventEmitter.setMaxListeners(200)
 
@@ -31,11 +31,13 @@ const startServer = async () => {
       : getPort('PUPPETEER_SSR_PORT')
 
   if (!port) {
-    port = await findFreePort(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    port = await findFreePort(
+      Number(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    )
     setPort(port, 'PUPPETEER_SSR_PORT')
   }
 
-  PROCESS_ENV.PORT = port
+  PROCESS_ENV.PORT = String(port)
 
   const app = require('uWebSockets.js')./*SSL*/ App({
     key_file_name: 'misc/key.pem',

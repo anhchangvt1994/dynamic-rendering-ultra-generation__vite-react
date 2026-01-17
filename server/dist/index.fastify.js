@@ -7,7 +7,6 @@ var _mimetypes = require('mime-types'); var _mimetypes2 = _interopRequireDefault
 var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _servestatic = require('serve-static'); var _servestatic2 = _interopRequireDefault(_servestatic);
 var _zlib = require('zlib');
-var _PortHandler = require('../../config/utils/PortHandler');
 var _constants = require('./constants');
 var _serverconfig = require('./server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('./utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
@@ -18,6 +17,7 @@ var _DetectLocale = require('./utils/DetectLocale'); var _DetectLocale2 = _inter
 var _DetectRedirect = require('./utils/DetectRedirect'); var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect);
 var _DetectStaticExtension = require('./utils/DetectStaticExtension'); var _DetectStaticExtension2 = _interopRequireDefault(_DetectStaticExtension);
 var _InitEnv = require('./utils/InitEnv');
+var _PortHandler = require('./utils/PortHandler');
 var _SendFile = require('./utils/SendFile'); var _SendFile2 = _interopRequireDefault(_SendFile);
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
@@ -32,11 +32,13 @@ const startServer = async () => {
       : _PortHandler.getPort.call(void 0, 'PUPPETEER_SSR_PORT')
 
   if (!port) {
-    port = await _PortHandler.findFreePort.call(void 0, port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    port = await _PortHandler.findFreePort.call(void 0, 
+      Number(port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    )
     _PortHandler.setPort.call(void 0, port, 'PUPPETEER_SSR_PORT')
   }
 
-  _InitEnv.PROCESS_ENV.PORT = port
+  _InitEnv.PROCESS_ENV.PORT = String(port)
 
   const app = _fastify2.default.call(void 0, )
 

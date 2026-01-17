@@ -5,7 +5,6 @@ var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
 var _mimetypes = require('mime-types'); var _mimetypes2 = _interopRequireDefault(_mimetypes);
 var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _zlib = require('zlib');
-var _PortHandler = require('../../config/utils/PortHandler');
 var _constants = require('./constants');
 var _ConsoleHandler = require('./utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _CookieHandler = require('./utils/CookieHandler');
@@ -15,6 +14,7 @@ var _DetectLocale = require('./utils/DetectLocale'); var _DetectLocale2 = _inter
 var _DetectRedirect = require('./utils/DetectRedirect'); var _DetectRedirect2 = _interopRequireDefault(_DetectRedirect);
 var _DetectStaticExtension = require('./utils/DetectStaticExtension'); var _DetectStaticExtension2 = _interopRequireDefault(_DetectStaticExtension);
 var _InitEnv = require('./utils/InitEnv');
+var _PortHandler = require('./utils/PortHandler');
 
 const ServerConfig = _nullishCoalesce(_optionalChain([require, 'call', _ => _('./server.config'), 'optionalAccess', _2 => _2.default]), () => ( {}))
 
@@ -30,11 +30,13 @@ const startServer = async () => {
       : _PortHandler.getPort.call(void 0, 'PUPPETEER_SSR_PORT')
 
   if (!port) {
-    port = await _PortHandler.findFreePort.call(void 0, port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    port = await _PortHandler.findFreePort.call(void 0, 
+      Number(port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    )
     _PortHandler.setPort.call(void 0, port, 'PUPPETEER_SSR_PORT')
   }
 
-  _InitEnv.PROCESS_ENV.PORT = port
+  _InitEnv.PROCESS_ENV.PORT = String(port)
 
   const app = _express2.default.call(void 0, )
   const server = require('http').createServer(app)
@@ -159,8 +161,8 @@ const startServer = async () => {
           ServerConfig.locale.enable &&
           Boolean(
             !ServerConfig.locale.routes ||
-              !ServerConfig.locale.routes[req.url ] ||
-              ServerConfig.locale.routes[req.url ].enable
+            !ServerConfig.locale.routes[req.url ] ||
+            ServerConfig.locale.routes[req.url ].enable
           )
 
         _CookieHandler.setCookie.call(void 0, 

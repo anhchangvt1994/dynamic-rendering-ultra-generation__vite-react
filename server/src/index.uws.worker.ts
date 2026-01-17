@@ -1,15 +1,15 @@
 import fs from 'fs'
 import path from 'path'
 import { Browser } from 'puppeteer-core'
-import {
-	findFreePort,
-	getPort,
-	setPort,
-} from './../../config/utils/PortHandler'
 import BrowserManager from './puppeteer-ssr/utils/BrowserManager'
 import ServerConfig from './server.config'
 import Console from './utils/ConsoleHandler'
 import { ENV_MODE, PROCESS_ENV } from './utils/InitEnv'
+import {
+	findFreePort,
+	getPort,
+	setPort,
+} from './utils/PortHandler'
 
 const {
 	Worker,
@@ -27,11 +27,11 @@ const startServer = async () => {
 				: getPort('PUPPETEER_SSR_PORT')
 
 		if (!port) {
-			port = await findFreePort(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+			port = await findFreePort(Number(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080))
 			setPort(port, 'PUPPETEER_SSR_PORT')
 		}
 
-		PROCESS_ENV.PORT = port
+		PROCESS_ENV.PORT = String(port)
 
 		const app = require('uWebSockets.js')./*SSL*/ App({
 			key_file_name: 'misc/key.pem',
@@ -132,7 +132,7 @@ const startServer = async () => {
 
 		const port = await findFreePort(workerData?.port ?? 4040)
 
-		PROCESS_ENV.PORT = port
+		PROCESS_ENV.PORT = String(port)
 
 		const app = require('uWebSockets.js')./*SSL*/ App({
 			key_file_name: 'misc/key.pem',

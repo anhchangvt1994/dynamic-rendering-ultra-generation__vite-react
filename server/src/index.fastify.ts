@@ -7,7 +7,6 @@ import mime from 'mime-types'
 import path from 'path'
 import serveStatic from 'serve-static'
 import { brotliCompressSync, gzipSync } from 'zlib'
-import { findFreePort, getPort, setPort } from '../../config/utils/PortHandler'
 import { COOKIE_EXPIRED } from './constants'
 import ServerConfig from './server.config'
 import Console from './utils/ConsoleHandler'
@@ -18,6 +17,7 @@ import detectLocale from './utils/DetectLocale'
 import DetectRedirect from './utils/DetectRedirect'
 import detectStaticExtension from './utils/DetectStaticExtension'
 import { ENV, ENV_MODE, MODE, PROCESS_ENV } from './utils/InitEnv'
+import { findFreePort, getPort, setPort } from './utils/PortHandler'
 import sendFile from './utils/SendFile'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
@@ -32,11 +32,13 @@ const startServer = async () => {
       : getPort('PUPPETEER_SSR_PORT')
 
   if (!port) {
-    port = await findFreePort(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    port = await findFreePort(
+      Number(port || PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    )
     setPort(port, 'PUPPETEER_SSR_PORT')
   }
 
-  PROCESS_ENV.PORT = port
+  PROCESS_ENV.PORT = String(port)
 
   const app = fastify()
 

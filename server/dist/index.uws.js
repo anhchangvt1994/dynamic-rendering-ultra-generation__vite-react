@@ -1,9 +1,9 @@
 "use strict"; function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _child_process = require('child_process');
 var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
 var _path = require('path'); var _path2 = _interopRequireDefault(_path);
-var _PortHandler = require('../../config/utils/PortHandler');
 var _serverconfig = require('./server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _InitEnv = require('./utils/InitEnv');
+var _PortHandler = require('./utils/PortHandler');
 
 require('events').EventEmitter.setMaxListeners(200)
 
@@ -31,11 +31,13 @@ const startServer = async () => {
       : _PortHandler.getPort.call(void 0, 'PUPPETEER_SSR_PORT')
 
   if (!port) {
-    port = await _PortHandler.findFreePort.call(void 0, port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    port = await _PortHandler.findFreePort.call(void 0, 
+      Number(port || _InitEnv.PROCESS_ENV.PUPPETEER_SSR_PORT || 8080)
+    )
     _PortHandler.setPort.call(void 0, port, 'PUPPETEER_SSR_PORT')
   }
 
-  _InitEnv.PROCESS_ENV.PORT = port
+  _InitEnv.PROCESS_ENV.PORT = String(port)
 
   const app = require('uWebSockets.js')./*SSL*/ App({
     key_file_name: 'misc/key.pem',
