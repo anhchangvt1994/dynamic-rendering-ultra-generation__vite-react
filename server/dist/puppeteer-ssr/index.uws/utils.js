@@ -179,9 +179,9 @@ const _setCookie = (res) => {
 
   switch (true) {
     case url.startsWith('/api') ||
-      /^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
-        baseUrl
-      ) ||
+      // /^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
+      //   baseUrl
+      // ) ||
       /\/(wordpress|laravel|wp-includes|php|.env|server.config|[A-Za-z0-9-]+\.(yml))/.test(
         urlLower
       ):
