@@ -17,7 +17,6 @@ export default {
     },
     mixins: {
       liquid_glass: css`
-        /* From https://css.glass */
         background: rgba(255, 255, 255, 0.15);
         border-radius: 16px;
         box-shadow: 0 4px 30px rgba(0, 152, 104, 0.3);
