@@ -14,11 +14,7 @@ import viteProductionConfig, {
   aliasExternal,
 } from './config/vite.production.config'
 
-import {
-  ENV_OBJECT_DEFAULT,
-  promiseENVWriteFileSync,
-} from './config/env/env.mjs'
-import { generateDTS } from './config/types/dts-generator.mjs'
+import { ENV_OBJECT_DEFAULT } from './config/env/env.mjs'
 import { getPort } from './config/utils/PortHandler'
 import vitePrepareConfig from './config/vite.prepare.config'
 
@@ -27,14 +23,6 @@ const PUPPETEER_SSR_PORT = getPort('PUPPETEER_SSR_PORT') || 8080
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  promiseENVWriteFileSync.then(function () {
-    generateDTS({
-      input: ENV_OBJECT_DEFAULT as any,
-      outputDir: './config/types' as any,
-      filename: 'ImportMeta.d.ts' as any,
-    })
-  })
-
   const ViteConfigWithMode = getViteConfigWithMode(mode)
   const config = ViteConfigWithMode?.() ?? {}
 

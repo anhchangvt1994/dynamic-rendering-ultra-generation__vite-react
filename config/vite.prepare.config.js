@@ -1,6 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
+import { ENV_OBJECT_DEFAULT, promiseENVWriteFileSync } from './env/env.mjs'
+import { generateDTS } from './types/dts-generator.mjs'
 
 // NOTE - If you are using ESM, uncomment the following lines
 // import { fileURLToPath } from 'node:url'
@@ -227,8 +229,18 @@ export const handleAutoImport = (enable = false) => {
   ])
 } // handleAutoImport
 
+export const handleImportMetaENV = () => {
+  promiseENVWriteFileSync.then(function () {
+    generateDTS({
+      input: ENV_OBJECT_DEFAULT,
+      outputDir: './config/types',
+      filename: 'ImportMeta.d.ts',
+    })
+  })
+} // handleImportMetaENV
+
 if (process.env.NODE_ENV === 'development') {
-  handleAutoImport(true)
+  Promise.all([handleAutoImport(true), handleImportMetaENV()])
 }
 
 // NOTE - export the prepare configuration

@@ -1,9 +1,12 @@
 import fs from 'fs-extra'
 import path from 'path'
-import { handleAutoImport } from '../../../config/vite.prepare.config'
+import {
+  handleAutoImport,
+  handleImportMetaENV,
+} from '../../../config/vite.prepare.config'
 
 // NOTE - Reset types
-handleAutoImport(true)
+Promise.all([handleAutoImport(true), handleImportMetaENV()])
 
 // NOTE - Reset resource
 if (fs.pathExistsSync(path.resolve(__dirname, '../../../dist'))) {
