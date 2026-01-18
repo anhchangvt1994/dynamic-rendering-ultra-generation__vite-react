@@ -22,7 +22,8 @@
     "format": "npm run prettier:fix && npm run lint:fix",
     "pre-commit": "node config/scripts/pre-commit.mjs",
     "prepare": "node config/scripts/prepare.mjs",
-    "preinstall": "node server/src/utils/GenerateServerInfo.js"
+    "preinstall": "node server/src/utils/GenerateServerInfo.js",
+    "server-build": "node config/scripts/server-build.mjs"
   },
   "engines": {
     "node": ">=20.x.x"
