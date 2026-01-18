@@ -3,13 +3,13 @@ const { spawn } = require('child_process')
 
 const serverDistPath = './server/dist'
 
-if (fs.existsSync(serverDistPath)) {
-  try {
-    fs.emptyDirSync(serverDistPath)
-  } catch (err) {
-    console.error(err)
-  }
-}
+// if (fs.existsSync(serverDistPath)) {
+//   try {
+//     fs.emptyDirSync(serverDistPath)
+//   } catch (err) {
+//     console.error(err)
+//   }
+// }
 
 const child = spawn(
   'sucrase',
