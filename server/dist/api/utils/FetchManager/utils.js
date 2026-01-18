@@ -50,7 +50,7 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
         const headers = new Headers()
         for (const headerKey in init.headers) {
           if (
-            /referer|static-html-path|accept-encoding/.test(
+            /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
               headerKey.toLowerCase()
             )
           )
@@ -65,8 +65,9 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
       }
 
       const response = await fetch(input, {
-        method: 'GET',
-        headers: _optionalChain([init, 'optionalAccess', _2 => _2.headers]),
+        method: _optionalChain([init, 'optionalAccess', _2 => _2.method]) || 'GET',
+        headers: _optionalChain([init, 'optionalAccess', _3 => _3.headers]),
+        body: _optionalChain([init, 'optionalAccess', _4 => _4.body]) || null,
       })
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
@@ -76,17 +77,17 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
 
             const contentEncoding = res.headers.get('content-encoding')
 
-            if (_optionalChain([contentEncoding, 'optionalAccess', _3 => _3.includes, 'call', _4 => _4('gzip')])) {
+            if (_optionalChain([contentEncoding, 'optionalAccess', _5 => _5.includes, 'call', _6 => _6('gzip')])) {
               try {
-                tmpData = _optionalChain([_zlib.gunzipSync.call(void 0, buffer), 'optionalAccess', _5 => _5.toString, 'call', _6 => _6()])
+                tmpData = _optionalChain([_zlib.gunzipSync.call(void 0, buffer), 'optionalAccess', _7 => _7.toString, 'call', _8 => _8()])
               } catch (e) {}
-            } else if (_optionalChain([contentEncoding, 'optionalAccess', _7 => _7.includes, 'call', _8 => _8('deflate')])) {
+            } else if (_optionalChain([contentEncoding, 'optionalAccess', _9 => _9.includes, 'call', _10 => _10('deflate')])) {
               try {
-                tmpData = _optionalChain([_zlib.inflateSync.call(void 0, buffer), 'optionalAccess', _9 => _9.toString, 'call', _10 => _10()])
+                tmpData = _optionalChain([_zlib.inflateSync.call(void 0, buffer), 'optionalAccess', _11 => _11.toString, 'call', _12 => _12()])
               } catch (e2) {}
-            } else if (_optionalChain([contentEncoding, 'optionalAccess', _11 => _11.includes, 'call', _12 => _12('br')])) {
+            } else if (_optionalChain([contentEncoding, 'optionalAccess', _13 => _13.includes, 'call', _14 => _14('br')])) {
               try {
-                tmpData = _optionalChain([_zlib.brotliDecompressSync.call(void 0, buffer), 'optionalAccess', _13 => _13.toString, 'call', _14 => _14()])
+                tmpData = _optionalChain([_zlib.brotliDecompressSync.call(void 0, buffer), 'optionalAccess', _15 => _15.toString, 'call', _16 => _16()])
               } catch (e3) {}
             }
 

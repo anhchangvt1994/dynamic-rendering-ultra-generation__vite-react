@@ -50,7 +50,7 @@ export const fetchData = async (
         const headers = new Headers()
         for (const headerKey in init.headers) {
           if (
-            /referer|static-html-path|accept-encoding/.test(
+            /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
               headerKey.toLowerCase()
             )
           )
@@ -65,8 +65,9 @@ export const fetchData = async (
       }
 
       const response = await fetch(input, {
-        method: 'GET',
+        method: init?.method || 'GET',
         headers: init?.headers,
+        body: init?.body || null,
       })
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
