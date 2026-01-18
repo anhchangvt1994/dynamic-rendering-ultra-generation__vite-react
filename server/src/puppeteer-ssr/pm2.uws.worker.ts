@@ -85,16 +85,17 @@ pm2.connect(false, (err) => {
             ],
             {
               ignored: /$^/,
+              ignoreInitial: true,
               persistent: true,
             }
           ) // /$^/ is match nothing
 
           let timeout
-          watcher.on('change', function (files) {
+          watcher.on('all', function (files) {
             if (timeout) clearTimeout(timeout)
             timeout = setTimeout(() => {
               pm2.reload(PM2_PROCESS_NAME, () => {})
-            }, 100)
+            }, 3000)
           })
         }
       )

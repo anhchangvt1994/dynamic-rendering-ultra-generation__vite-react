@@ -85,16 +85,17 @@ _pm22.default.connect(false, (err) => {
             ],
             {
               ignored: /$^/,
+              ignoreInitial: true,
               persistent: true,
             }
           ) // /$^/ is match nothing
 
           let timeout
-          watcher.on('change', function (files) {
+          watcher.on('all', function (files) {
             if (timeout) clearTimeout(timeout)
             timeout = setTimeout(() => {
               _pm22.default.reload(_constants3.PM2_PROCESS_NAME, () => {})
-            }, 100)
+            }, 3000)
           })
         }
       )
