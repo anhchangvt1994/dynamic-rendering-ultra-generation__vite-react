@@ -35,6 +35,7 @@ const PokemonPage = () => {
     : ''
   const isShowLoading =
     RenderingInfo.loader || (isFetching && (!isFirstLoading || !pokemonState))
+  const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
   const onLoad = (img) => {
     img.classList.add('show')
@@ -77,7 +78,7 @@ const PokemonPage = () => {
         'og:description': `Pokemon ${pokemonState.name || ''}`,
         'og:url': window.location.pathname,
         'og:site_name': `Pokemon ${pokemonState.name || ''}`,
-        'og:image': '',
+        'og:image': ImagePath,
         'og:image:width': '1200',
         'og:image:height': '628',
         robots: 'index, follow',
@@ -97,7 +98,7 @@ const PokemonPage = () => {
         <ImageWrapperStyle>
           {!isShowLoading && pokemonNumber && (
             <ImageStyle
-              src={`https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`}
+              src={ImagePath}
               onLoad={(e) => onLoad(e.target)}
               onError={(e) => onError(e.target)}
               alt={name}

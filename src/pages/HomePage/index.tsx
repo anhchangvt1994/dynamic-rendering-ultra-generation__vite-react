@@ -11,7 +11,7 @@ function HomePage() {
     'og:description': 'Pokemon home page',
     'og:url': window.location.pathname,
     'og:site_name': 'Pokemon',
-    'og:image': '',
+    'og:image': '/images/pikachu_lazy-load-01.webp',
     'og:image:width': '1200',
     'og:image:height': '628',
     robots: 'index, follow',
