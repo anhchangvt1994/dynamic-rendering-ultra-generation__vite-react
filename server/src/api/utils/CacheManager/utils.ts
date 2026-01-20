@@ -392,6 +392,22 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
   return result
 } // getData
 
+export const getDataCompression = async (
+  key: string,
+  compression: 'br' | 'gzip'
+) => {
+  let result
+  const file = `${dataPath}/${key}-${compression}.${compression}`
+
+  try {
+    result = fs.readFileSync(file)
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return result
+} // getDataCompression
+
 export const getStore = async (
   key: string,
   options?: IGetCacheOptionsParam
@@ -492,7 +508,7 @@ export const updateDataStatus = async (key: string, newStatus?: IStatus) => {
   }
 } // updateDataStatus
 
-export const compressData = async (data) => {
+export const compressData = async (key, data) => {
   if (!data) return { br: '', gzip: '' }
 
   const tmpCompressData: { [key: string]: any } = {
@@ -511,12 +527,22 @@ export const compressData = async (data) => {
 
     tmpCompressData.br =
       tmpCompressDataPromise[0].status === 'fulfilled'
-        ? tmpCompressDataPromise[0].value.toString()
+        ? tmpCompressDataPromise[0].value
         : ''
     tmpCompressData.gzip =
       tmpCompressDataPromise[1].status === 'fulfilled'
-        ? tmpCompressDataPromise[1].value.toString()
+        ? tmpCompressDataPromise[1].value
         : ''
+
+    for (const compression in tmpCompressData) {
+      if (tmpCompressData[compression]) {
+        setDataCompression(
+          key,
+          tmpCompressData[compression],
+          compression as any
+        )
+      }
+    }
   } catch (err) {
     Console.error(err)
   }

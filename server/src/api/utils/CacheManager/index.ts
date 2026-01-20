@@ -162,23 +162,19 @@ export const updateDataStatus = async (key: string, newStatus?: IStatus) => {
   })
 } // updateDataStatus
 
-export const compressData = async (data) => {
-  let result = { br: '', gzip: '' }
+export const compressData = async (key, data) => {
+  if (data) {
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
 
-  if (!data) return result
+    try {
+      pool.exec('compressData', [key, JSON.stringify(data)])
+    } catch (err) {
+      Console.error(err)
+    }
 
-  const freePool = await workerManager.getFreePool()
-  const pool = freePool.pool
-
-  try {
-    result = pool.exec('compressData', [JSON.stringify(data)])
-  } catch (err) {
-    Console.error(err)
+    freePool.terminate({
+      force: true,
+    })
   }
-
-  freePool.terminate({
-    force: true,
-  })
-
-  return result
 } // compressData

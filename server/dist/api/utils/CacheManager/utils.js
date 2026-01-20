@@ -392,6 +392,22 @@ if (!_fs2.default.existsSync(storePath)) {
   return result
 }; exports.getData = getData // getData
 
+ const getDataCompression = async (
+  key,
+  compression
+) => {
+  let result
+  const file = `${dataPath}/${key}-${compression}.${compression}`
+
+  try {
+    result = _fs2.default.readFileSync(file)
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return result
+}; exports.getDataCompression = getDataCompression // getDataCompression
+
  const getStore = async (
   key,
   options
@@ -492,7 +508,7 @@ if (!_fs2.default.existsSync(storePath)) {
   }
 }; exports.updateDataStatus = updateDataStatus // updateDataStatus
 
- const compressData = async (data) => {
+ const compressData = async (key, data) => {
   if (!data) return { br: '', gzip: '' }
 
   const tmpCompressData = {
@@ -511,12 +527,22 @@ if (!_fs2.default.existsSync(storePath)) {
 
     tmpCompressData.br =
       tmpCompressDataPromise[0].status === 'fulfilled'
-        ? tmpCompressDataPromise[0].value.toString()
+        ? tmpCompressDataPromise[0].value
         : ''
     tmpCompressData.gzip =
       tmpCompressDataPromise[1].status === 'fulfilled'
-        ? tmpCompressDataPromise[1].value.toString()
+        ? tmpCompressDataPromise[1].value
         : ''
+
+    for (const compression in tmpCompressData) {
+      if (tmpCompressData[compression]) {
+        exports.setDataCompression.call(void 0, 
+          key,
+          tmpCompressData[compression],
+          compression 
+        )
+      }
+    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

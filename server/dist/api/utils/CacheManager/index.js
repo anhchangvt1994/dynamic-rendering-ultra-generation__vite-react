@@ -162,23 +162,19 @@ const workerManager = _WorkerManager2.default.init(
   })
 }; exports.updateDataStatus = updateDataStatus // updateDataStatus
 
- const compressData = async (data) => {
-  let result = { br: '', gzip: '' }
+ const compressData = async (key, data) => {
+  if (data) {
+    const freePool = await workerManager.getFreePool()
+    const pool = freePool.pool
 
-  if (!data) return result
+    try {
+      pool.exec('compressData', [key, JSON.stringify(data)])
+    } catch (err) {
+      _ConsoleHandler2.default.error(err)
+    }
 
-  const freePool = await workerManager.getFreePool()
-  const pool = freePool.pool
-
-  try {
-    result = pool.exec('compressData', [JSON.stringify(data)])
-  } catch (err) {
-    _ConsoleHandler2.default.error(err)
+    freePool.terminate({
+      force: true,
+    })
   }
-
-  freePool.terminate({
-    force: true,
-  })
-
-  return result
 }; exports.compressData = compressData // compressData

@@ -286,19 +286,7 @@ const apiService = (async () => {
                         },
                       })
 
-                      _CacheManager.compressData.call(void 0, result.data)
-                        .then((data) => {
-                          for (const compression in data) {
-                            if (data[compression]) {
-                              _utils.setDataCompression.call(void 0, 
-                                requestInfo.cacheKey,
-                                data[compression],
-                                compression 
-                              )
-                            }
-                          }
-                        })
-                        .catch((err) => _ConsoleHandler2.default.error(err))
+                      _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
                     }
                   })
                 }
@@ -308,7 +296,14 @@ const apiService = (async () => {
 
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-              const data = convertData(cache, contentEncoding)
+              let data = await _utils.getDataCompression.call(void 0, 
+                requestInfo.cacheKey,
+                contentEncoding 
+              )
+
+              if (!data) {
+                data = convertData(cache, contentEncoding)
+              }
 
               if (!res.writableEnded) {
                 res.writableEnded = true
@@ -347,8 +342,6 @@ const apiService = (async () => {
 
           const result = await fetchAPITarget
 
-          const data = convertData(result, contentEncoding)
-
           if (enableCache) {
             _utils.setData.call(void 0, requestInfo.cacheKey, {
               url: fetchUrl,
@@ -361,19 +354,16 @@ const apiService = (async () => {
               },
             })
 
-            _CacheManager.compressData.call(void 0, result.data)
-              .then((data) => {
-                for (const compression in data) {
-                  if (data[compression]) {
-                    _utils.setDataCompression.call(void 0, 
-                      requestInfo.cacheKey,
-                      data[compression],
-                      compression 
-                    )
-                  }
-                }
-              })
-              .catch((err) => _ConsoleHandler2.default.error(err))
+            _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
+          }
+
+          let data = await _utils.getDataCompression.call(void 0, 
+            requestInfo.cacheKey,
+            contentEncoding 
+          )
+
+          if (!data) {
+            data = convertData(result, contentEncoding)
           }
 
           if (requestInfo.relativeCacheKey.length) {

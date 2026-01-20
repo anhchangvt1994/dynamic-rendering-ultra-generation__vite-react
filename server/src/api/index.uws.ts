@@ -11,10 +11,10 @@ import apiLighthouse from './routes/lighthouse/index.uws'
 import { compressData } from './utils/CacheManager'
 import {
   getData as getDataCache,
+  getDataCompression,
   getStore as getStoreCache,
   removeData as removeDataCache,
   setData as setDataCache,
-  setDataCompression,
   setStore as setStoreCache,
   updateDataStatus as updateDataCacheStatus,
 } from './utils/CacheManager/utils'
@@ -286,19 +286,7 @@ const apiService = (async () => {
                         },
                       })
 
-                      compressData(result.data)
-                        .then((data) => {
-                          for (const compression in data) {
-                            if (data[compression]) {
-                              setDataCompression(
-                                requestInfo.cacheKey,
-                                data[compression],
-                                compression as any
-                              )
-                            }
-                          }
-                        })
-                        .catch((err) => Console.error(err))
+                      compressData(requestInfo.cacheKey, result.data)
                     }
                   })
                 }
@@ -308,7 +296,14 @@ const apiService = (async () => {
 
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-              const data = convertData(cache, contentEncoding)
+              let data = await getDataCompression(
+                requestInfo.cacheKey,
+                contentEncoding as any
+              )
+
+              if (!data) {
+                data = convertData(cache, contentEncoding)
+              }
 
               if (!res.writableEnded) {
                 res.writableEnded = true
@@ -347,8 +342,6 @@ const apiService = (async () => {
 
           const result = await fetchAPITarget
 
-          const data = convertData(result, contentEncoding)
-
           if (enableCache) {
             setDataCache(requestInfo.cacheKey, {
               url: fetchUrl,
@@ -361,19 +354,16 @@ const apiService = (async () => {
               },
             })
 
-            compressData(result.data)
-              .then((data) => {
-                for (const compression in data) {
-                  if (data[compression]) {
-                    setDataCompression(
-                      requestInfo.cacheKey,
-                      data[compression],
-                      compression as any
-                    )
-                  }
-                }
-              })
-              .catch((err) => Console.error(err))
+            compressData(requestInfo.cacheKey, result.data)
+          }
+
+          let data = await getDataCompression(
+            requestInfo.cacheKey,
+            contentEncoding as any
+          )
+
+          if (!data) {
+            data = convertData(result, contentEncoding)
           }
 
           if (requestInfo.relativeCacheKey.length) {
