@@ -20,17 +20,24 @@ export const fetchData = async (
 ): Promise<{
   status: number
   data: any
+  compressData: any
   cookies?: string[]
   message?: string
 }> => {
   if (!input) {
     Console.error('URL is required!')
-    return { status: 500, data: {}, message: 'URL is required' }
+    return {
+      status: 500,
+      data: {},
+      compressData: {},
+      message: 'URL is required',
+    }
   }
 
   const response = await new Promise<{
     status: number
     data: any
+    compressData: any
     cookies?: string[]
     message?: string
   }>(async (rootResolve) => {
@@ -41,6 +48,7 @@ export const fetchData = async (
           status: 408,
           message: 'Request Timeout',
           data: {},
+          compressData: {},
         })
       }, timeout)
     }
@@ -109,6 +117,7 @@ export const fetchData = async (
             message: res.statusText,
             cookies: res.headers.getSetCookie(),
             data,
+            compressData: {},
           }
         })
         .catch((err) => {
@@ -117,6 +126,7 @@ export const fetchData = async (
           return {
             status: 500,
             data: {},
+            compressData: {},
             message: 'Server Error',
           }
         })
@@ -124,7 +134,12 @@ export const fetchData = async (
       rootResolve(response)
     } catch (error) {
       Console.error(error)
-      rootResolve({ status: 500, data: {}, message: 'Server Error' })
+      rootResolve({
+        status: 500,
+        data: {},
+        compressData: {},
+        message: 'Server Error',
+      })
     }
   })
 

@@ -18,12 +18,18 @@ export const fetchData = async (
 ): Promise<{
   status: number
   data: any
+  compressData: any
   cookies?: string[]
   message?: string
 }> => {
   if (!input) {
     Console.error('input is required!')
-    return { status: 500, data: {}, message: 'input is required' }
+    return {
+      status: 500,
+      data: {},
+      compressData: {},
+      message: 'input is required',
+    }
   }
 
   const freePool = await workerManager.getFreePool()

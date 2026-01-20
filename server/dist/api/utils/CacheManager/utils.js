@@ -1,5 +1,11 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _crypto = require('crypto'); var _crypto2 = _interopRequireDefault(_crypto);
 var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _util = require('util');
+
+
+
+
+
 var _zlib = require('zlib');
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _PathHandler = require('../../../utils/PathHandler');
@@ -417,6 +423,29 @@ if (!_fs2.default.existsSync(storePath)) {
   return result
 }; exports.setData = setData // setData
 
+ const setDataCompression = async (
+  key,
+  content,
+  compression,
+  options
+) => {
+  let result
+
+  try {
+    result = await exports.set.call(void 0, 
+      dataPath,
+      `${key}-${compression}`,
+      compression,
+      content,
+      options
+    )
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return result
+}; exports.setDataCompression = setDataCompression // setDataCompression
+
  const setStore = async (key, content) => {
   let result
 
@@ -462,3 +491,35 @@ if (!_fs2.default.existsSync(storePath)) {
     _ConsoleHandler2.default.error(err)
   }
 }; exports.updateDataStatus = updateDataStatus // updateDataStatus
+
+ const compressData = async (data) => {
+  if (!data) return { br: '', gzip: '' }
+
+  const tmpCompressData = {
+    br: '',
+    gzip: '',
+  }
+
+  try {
+    const brottliCompressAsync = _util.promisify.call(void 0, _zlib.brotliCompress)
+    const gzipCompressAsync = _util.promisify.call(void 0, _zlib.gzip)
+
+    const tmpCompressDataPromise = await Promise.allSettled([
+      brottliCompressAsync(data),
+      gzipCompressAsync(data),
+    ])
+
+    tmpCompressData.br =
+      tmpCompressDataPromise[0].status === 'fulfilled'
+        ? tmpCompressDataPromise[0].value.toString()
+        : ''
+    tmpCompressData.gzip =
+      tmpCompressDataPromise[1].status === 'fulfilled'
+        ? tmpCompressDataPromise[1].value.toString()
+        : ''
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return tmpCompressData
+}; exports.compressData = compressData // compressData

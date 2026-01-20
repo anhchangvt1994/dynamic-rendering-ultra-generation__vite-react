@@ -1,13 +1,21 @@
 import WorkerPool from 'workerpool'
-import { get, set, getStatus, remove, updateStatus } from './utils'
+import {
+  compressData,
+  get,
+  getStatus,
+  remove,
+  set,
+  updateStatus,
+} from './utils'
 
 WorkerPool.worker({
-	getStatus,
-	updateStatus,
-	get,
-	set,
-	remove,
-	finish: () => {
-		return 'finish'
-	},
+  getStatus,
+  updateStatus,
+  get,
+  set,
+  remove,
+  compressData,
+  finish: () => {
+    return 'finish'
+  },
 })

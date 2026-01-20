@@ -8,6 +8,8 @@ var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
+var _CacheManager = require('./utils/CacheManager');
+
 
 
 
@@ -56,15 +58,17 @@ const convertData = (
 
 
 
+
 ,
   contentEncoding
 ) => {
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, JSON.stringify(result.data))
+        ? (_nullishCoalesce(_optionalChain([result, 'access', _ => _.compressData, 'optionalAccess', _2 => _2.br]), () => (
+            _zlib.brotliCompressSync.call(void 0, JSON.stringify(result.data)))))
         : contentEncoding === 'gzip'
-          ? _zlib.gzipSync.call(void 0, JSON.stringify(result.data))
+          ? (_nullishCoalesce(_optionalChain([result, 'access', _3 => _3.compressData, 'optionalAccess', _4 => _4.gzip]), () => ( _zlib.gzipSync.call(void 0, JSON.stringify(result.data)))))
           : JSON.stringify(result.data)
     default:
       return typeof result.data === 'string'
@@ -98,7 +102,7 @@ const apiService = (async () => {
 
       // NOTE - Get the API information
       const apiInfo =
-        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.getQuery()), 'optionalAccess', _3 => _3.groups]), () => ( {}))
+        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _5 => _5.exec, 'call', _6 => _6(req.getQuery()), 'optionalAccess', _7 => _7.groups]), () => ( {}))
 
       // NOTE - Response 500 Error if the apiInfo is empty
       if (!res.writableEnded && !apiInfo) {
@@ -165,9 +169,9 @@ const apiService = (async () => {
         // NOTE - Handle query string information
         const strQueryString = (() => {
           const thisAPIQueryString = _optionalChain([req
-, 'access', _4 => _4.getUrl, 'call', _5 => _5()
-, 'access', _6 => _6.split, 'call', _7 => _7('?'), 'access', _8 => _8[1]
-, 'optionalAccess', _9 => _9.replace, 'call', _10 => _10(/requestInfo=([^&]*)/g, '')])
+, 'access', _8 => _8.getUrl, 'call', _9 => _9()
+, 'access', _10 => _10.split, 'call', _11 => _11('?'), 'access', _12 => _12[1]
+, 'optionalAccess', _13 => _13.replace, 'call', _14 => _14(/requestInfo=([^&]*)/g, '')])
 
           if (!thisAPIQueryString) return ''
 
@@ -281,6 +285,20 @@ const apiService = (async () => {
                           ...result,
                         },
                       })
+
+                      _CacheManager.compressData.call(void 0, result.data)
+                        .then((data) => {
+                          for (const compression in data) {
+                            if (data[compression]) {
+                              _utils.setDataCompression.call(void 0, 
+                                requestInfo.cacheKey,
+                                data[compression],
+                                compression 
+                              )
+                            }
+                          }
+                        })
+                        .catch((err) => _ConsoleHandler2.default.error(err))
                     }
                   })
                 }
@@ -342,6 +360,20 @@ const apiService = (async () => {
                 ...result,
               },
             })
+
+            _CacheManager.compressData.call(void 0, result.data)
+              .then((data) => {
+                for (const compression in data) {
+                  if (data[compression]) {
+                    _utils.setDataCompression.call(void 0, 
+                      requestInfo.cacheKey,
+                      data[compression],
+                      compression 
+                    )
+                  }
+                }
+              })
+              .catch((err) => _ConsoleHandler2.default.error(err))
           }
 
           if (requestInfo.relativeCacheKey.length) {

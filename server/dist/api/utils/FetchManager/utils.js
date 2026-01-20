@@ -22,13 +22,20 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
 
 
 
+
 ) => {
   if (!input) {
     _ConsoleHandler2.default.error('URL is required!')
-    return { status: 500, data: {}, message: 'URL is required' }
+    return {
+      status: 500,
+      data: {},
+      compressData: {},
+      message: 'URL is required',
+    }
   }
 
   const response = await new Promise
+
 
 
 
@@ -41,6 +48,7 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
           status: 408,
           message: 'Request Timeout',
           data: {},
+          compressData: {},
         })
       }, timeout)
     }
@@ -109,6 +117,7 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
             message: res.statusText,
             cookies: res.headers.getSetCookie(),
             data,
+            compressData: {},
           }
         })
         .catch((err) => {
@@ -117,6 +126,7 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
           return {
             status: 500,
             data: {},
+            compressData: {},
             message: 'Server Error',
           }
         })
@@ -124,7 +134,12 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
       rootResolve(response)
     } catch (error) {
       _ConsoleHandler2.default.error(error)
-      rootResolve({ status: 500, data: {}, message: 'Server Error' })
+      rootResolve({
+        status: 500,
+        data: {},
+        compressData: {},
+        message: 'Server Error',
+      })
     }
   })
 

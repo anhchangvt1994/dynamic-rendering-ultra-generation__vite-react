@@ -8,11 +8,13 @@ import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import apiLighthouse from './routes/lighthouse/index.uws'
+import { compressData } from './utils/CacheManager'
 import {
   getData as getDataCache,
   getStore as getStoreCache,
   removeData as removeDataCache,
   setData as setDataCache,
+  setDataCompression,
   setStore as setStoreCache,
   updateDataStatus as updateDataCacheStatus,
 } from './utils/CacheManager/utils'
@@ -54,6 +56,7 @@ const convertData = (
   result: {
     status: number
     data: any
+    compressData: any
     cookies?: string[]
     message?: string
   },
@@ -62,9 +65,10 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? brotliCompressSync(JSON.stringify(result.data))
+        ? (result.compressData?.br ??
+            brotliCompressSync(JSON.stringify(result.data)))
         : contentEncoding === 'gzip'
-          ? gzipSync(JSON.stringify(result.data))
+          ? (result.compressData?.gzip ?? gzipSync(JSON.stringify(result.data)))
           : JSON.stringify(result.data)
     default:
       return typeof result.data === 'string'
@@ -281,6 +285,20 @@ const apiService = (async () => {
                           ...result,
                         },
                       })
+
+                      compressData(result.data)
+                        .then((data) => {
+                          for (const compression in data) {
+                            if (data[compression]) {
+                              setDataCompression(
+                                requestInfo.cacheKey,
+                                data[compression],
+                                compression as any
+                              )
+                            }
+                          }
+                        })
+                        .catch((err) => Console.error(err))
                     }
                   })
                 }
@@ -342,6 +360,20 @@ const apiService = (async () => {
                 ...result,
               },
             })
+
+            compressData(result.data)
+              .then((data) => {
+                for (const compression in data) {
+                  if (data[compression]) {
+                    setDataCompression(
+                      requestInfo.cacheKey,
+                      data[compression],
+                      compression as any
+                    )
+                  }
+                }
+              })
+              .catch((err) => Console.error(err))
           }
 
           if (requestInfo.relativeCacheKey.length) {

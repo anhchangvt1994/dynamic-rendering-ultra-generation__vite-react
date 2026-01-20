@@ -1,6 +1,12 @@
 import crypto from 'crypto'
 import fs from 'fs'
-import { brotliCompressSync, brotliDecompressSync } from 'zlib'
+import { promisify } from 'util'
+import {
+  brotliCompress,
+  brotliCompressSync,
+  brotliDecompressSync,
+  gzip,
+} from 'zlib'
 import Console from '../../../utils/ConsoleHandler'
 import { getDataPath, getStorePath } from '../../../utils/PathHandler'
 import {
@@ -107,7 +113,7 @@ export const setRequestTimeInfo = async (file: string, value: unknown) => {
 export const getStatus = (
   directory: string,
   key: string,
-  extension: 'json' | 'br'
+  extension: 'json' | 'br' | 'gzip'
 ) => {
   switch (true) {
     case fs.existsSync(`${directory}/${key}.${extension}`):
@@ -146,7 +152,7 @@ export const updateStatus = (
 export const get = async (
   directory: string,
   key: string,
-  extension: 'json' | 'br',
+  extension: 'json' | 'br' | 'gzip',
   options?: IGetCacheOptionsParam
 ): Promise<ICacheResult> => {
   const optionsFormatted = {
@@ -272,7 +278,7 @@ export const get = async (
 export const set = async (
   directory: string,
   key: string,
-  extension: 'json' | 'br',
+  extension: 'json' | 'br' | 'gzip',
   content: string | Buffer | ISetCacheContent,
   options?: ISetCacheOptionsParam
 ): Promise<ICacheResult> => {
@@ -417,6 +423,29 @@ export const setData = async (
   return result
 } // setData
 
+export const setDataCompression = async (
+  key: string,
+  content: string | Buffer | ISetCacheContent,
+  compression: 'br' | 'gzip',
+  options?: ISetCacheOptionsParam
+) => {
+  let result
+
+  try {
+    result = await set(
+      dataPath,
+      `${key}-${compression}`,
+      compression,
+      content,
+      options
+    )
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return result
+} // setDataCompression
+
 export const setStore = async (key: string, content: any) => {
   let result
 
@@ -462,3 +491,35 @@ export const updateDataStatus = async (key: string, newStatus?: IStatus) => {
     Console.error(err)
   }
 } // updateDataStatus
+
+export const compressData = async (data) => {
+  if (!data) return { br: '', gzip: '' }
+
+  const tmpCompressData: { [key: string]: any } = {
+    br: '',
+    gzip: '',
+  }
+
+  try {
+    const brottliCompressAsync = promisify(brotliCompress)
+    const gzipCompressAsync = promisify(gzip)
+
+    const tmpCompressDataPromise = await Promise.allSettled([
+      brottliCompressAsync(data),
+      gzipCompressAsync(data),
+    ])
+
+    tmpCompressData.br =
+      tmpCompressDataPromise[0].status === 'fulfilled'
+        ? tmpCompressDataPromise[0].value.toString()
+        : ''
+    tmpCompressData.gzip =
+      tmpCompressDataPromise[1].status === 'fulfilled'
+        ? tmpCompressDataPromise[1].value.toString()
+        : ''
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return tmpCompressData
+} // compressData

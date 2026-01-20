@@ -20,10 +20,16 @@ const workerManager = _WorkerManager2.default.init(
 
 
 
+
 ) => {
   if (!input) {
     _ConsoleHandler2.default.error('input is required!')
-    return { status: 500, data: {}, message: 'input is required' }
+    return {
+      status: 500,
+      data: {},
+      compressData: {},
+      message: 'input is required',
+    }
   }
 
   const freePool = await workerManager.getFreePool()
