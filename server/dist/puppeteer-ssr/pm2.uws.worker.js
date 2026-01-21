@@ -6,7 +6,7 @@ var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 =
 var _InitEnv = require('../utils/InitEnv');
 var _constants3 = require('./constants');
 
-const CLUSTER_INSTANCES = 1
+const CLUSTER_INSTANCES = 3
 const CLUSTER_KILL_TIMEOUT =
   _InitEnv.PROCESS_ENV.CLUSTER_INSTANCES === 'max' ? 7000 : 2000
 

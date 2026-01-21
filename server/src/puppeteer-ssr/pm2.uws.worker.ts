@@ -6,7 +6,7 @@ import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
 import { PM2_PROCESS_NAME } from './constants'
 
-const CLUSTER_INSTANCES = 1
+const CLUSTER_INSTANCES = 3
 const CLUSTER_KILL_TIMEOUT =
   PROCESS_ENV.CLUSTER_INSTANCES === 'max' ? 7000 : 2000
 
