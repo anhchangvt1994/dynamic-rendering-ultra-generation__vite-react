@@ -93,7 +93,7 @@ const apiService = (async () => {
       })
 
       // NOTE - Handle the Content-Encoding
-      const contentEncoding = (() => {
+      let contentEncoding = (() => {
         const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
         if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
         else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
@@ -302,7 +302,9 @@ const apiService = (async () => {
               )
 
               if (!data) {
-                data = convertData(cache, contentEncoding)
+                data = JSON.stringify(cache.data)
+                contentEncoding = ''
+                // data = convertData(cache, contentEncoding)
               }
 
               if (!res.writableEnded) {
@@ -363,7 +365,8 @@ const apiService = (async () => {
           )
 
           if (!data) {
-            data = convertData(result, contentEncoding)
+            data = JSON.stringify(result.data)
+            contentEncoding = ''
           }
 
           if (requestInfo.relativeCacheKey.length) {
