@@ -36,7 +36,6 @@ const pokemonApi = createApi({
         return proxyApi.get(pokemonDetailEndpoint, {
           expiredTime: 'infinite',
           cacheKey: pokemonDetailEndpoint,
-          enableStore: true,
         })
       },
     }),
