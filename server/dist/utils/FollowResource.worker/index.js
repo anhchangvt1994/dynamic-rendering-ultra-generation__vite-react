@@ -27,6 +27,17 @@ const copyResource = (
   targetPath,
   opts
 ) => {
+  // Validate paths to prevent TypeError
+  if (!path || typeof path !== 'string') {
+    _ConsoleHandler2.default.error('Path can not empty!')
+    return
+  }
+
+  if (!targetPath || typeof targetPath !== 'string') {
+    _ConsoleHandler2.default.error('Target path can not empty!')
+    return
+  }
+
   try {
     _fsextra2.default.emptyDirSync(targetPath)
     _fsextra2.default.copySync(path, targetPath)
@@ -325,10 +336,17 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           if (!_optionalChain([fileInfo, 'optionalAccess', _12 => _12.size])) continue
 
           const fileContent = (() => {
-            const tmpContent = _fs2.default.readFileSync(absolutePath)
-
-            return JSON.parse(_zlib.brotliDecompressSync.call(void 0, tmpContent).toString())
+            try {
+              const tmpContent = _fs2.default.readFileSync(absolutePath)
+              return JSON.parse(_zlib.brotliDecompressSync.call(void 0, tmpContent).toString())
+            } catch (err) {
+              _ConsoleHandler2.default.error(`Failed to decompress file ${absolutePath}:`, err)
+              return null
+            }
           })()
+
+          // Skip if decompression failed
+          if (!fileContent) continue
 
           const expiredTime = fileContent.cache
             ? fileContent.cache.expiredTime

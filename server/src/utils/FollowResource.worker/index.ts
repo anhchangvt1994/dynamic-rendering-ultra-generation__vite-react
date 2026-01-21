@@ -27,6 +27,17 @@ const copyResource = (
   targetPath: string,
   opts: { [key: string]: any }
 ) => {
+  // Validate paths to prevent TypeError
+  if (!path || typeof path !== 'string') {
+    Console.error('Path can not empty!')
+    return
+  }
+
+  if (!targetPath || typeof targetPath !== 'string') {
+    Console.error('Target path can not empty!')
+    return
+  }
+
   try {
     fsExtra.emptyDirSync(targetPath)
     fsExtra.copySync(path, targetPath)
@@ -325,10 +336,17 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
           if (!fileInfo?.size) continue
 
           const fileContent = (() => {
-            const tmpContent = fs.readFileSync(absolutePath)
-
-            return JSON.parse(brotliDecompressSync(tmpContent).toString())
+            try {
+              const tmpContent = fs.readFileSync(absolutePath)
+              return JSON.parse(brotliDecompressSync(tmpContent).toString())
+            } catch (err) {
+              Console.error(`Failed to decompress file ${absolutePath}:`, err)
+              return null
+            }
           })()
+
+          // Skip if decompression failed
+          if (!fileContent) continue
 
           const expiredTime = fileContent.cache
             ? fileContent.cache.expiredTime

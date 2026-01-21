@@ -462,7 +462,15 @@ const puppeteerSSRService = (async () => {
 
             try {
               if (WindowAPIStore !== '{}') {
-                html = _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
+                try {
+                  html = _zlib.brotliDecompressSync.call(void 0, html).toString() || ''
+                } catch (decompressErr) {
+                  _ConsoleHandler2.default.error(
+                    'Failed to decompress HTML for API_STORE:',
+                    decompressErr
+                  )
+                  // Keep original html if decompression fails
+                }
 
                 if (html.includes('window.API_STORE={}')) {
                   html = html.replace(
@@ -493,7 +501,15 @@ const puppeteerSSRService = (async () => {
               if (!enableContentEncoding) {
                 switch (true) {
                   case Buffer.isBuffer(html):
-                    return _zlib.brotliDecompressSync.call(void 0, html).toString()
+                    try {
+                      return _zlib.brotliDecompressSync.call(void 0, html).toString()
+                    } catch (decompressErr) {
+                      _ConsoleHandler2.default.error(
+                        'Failed to decompress HTML buffer:',
+                        decompressErr
+                      )
+                      return html.toString()
+                    }
                   default:
                     return html
                 }

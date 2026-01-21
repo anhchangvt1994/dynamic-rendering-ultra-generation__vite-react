@@ -14,11 +14,24 @@ import {
   regexShallowOptimize,
 } from '../../constants'
 
+// Helper function to safely decompress brotli buffers
+const safeDecompress = (html: any): string => {
+  if (!Buffer.isBuffer(html)) return html
+
+  try {
+    return brotliDecompressSync(html).toString()
+  } catch (err) {
+    console.error('Failed to decompress HTML buffer:', err)
+    // Return the buffer as string if decompression fails
+    return html.toString()
+  }
+}
+
 export const compressContent = async (html: string): Promise<string> => {
   if (!html || PROCESS_ENV.DISABLE_COMPRESS) return html
 
   if (POWER_LEVEL === POWER_LEVEL_LIST.ONE) {
-    if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+    if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
     return html
   }
@@ -49,7 +62,7 @@ export const optimizeContent = async (
   if (!html) return html
   // console.log('start optimize')
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(regexRemoveScriptTag, '')
   html = html.replace(regexRemoveSpecialTag, '')
@@ -207,7 +220,7 @@ export const optimizeContent = async (
 export const scriptOptimizeContent = async (html: string) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(regexRemoveScriptTag, '')
 
@@ -217,7 +230,7 @@ export const scriptOptimizeContent = async (html: string) => {
 export const styleOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(regexRemoveStyleTag, '')
 
@@ -227,7 +240,7 @@ export const styleOptimizeContent = async (html) => {
 export const lowOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(regexLowOptimize, '')
 
@@ -237,7 +250,7 @@ export const lowOptimizeContent = async (html) => {
 export const shallowOptimizeContent = async (html: string) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html
     .replace(regexShallowOptimize, '')
@@ -319,7 +332,7 @@ export const shallowOptimizeContent = async (html: string) => {
 export const deepOptimizeContent = async (html: string) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = brotliDecompressSync(html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   let tmpHTML = html
   try {

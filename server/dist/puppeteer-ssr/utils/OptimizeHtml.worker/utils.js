@@ -14,11 +14,24 @@ var _InitEnv = require('../../../utils/InitEnv');
 
 var _constants3 = require('../../constants');
 
+// Helper function to safely decompress brotli buffers
+const safeDecompress = (html) => {
+  if (!Buffer.isBuffer(html)) return html
+
+  try {
+    return _zlib.brotliDecompressSync.call(void 0, html).toString()
+  } catch (err) {
+    console.error('Failed to decompress HTML buffer:', err)
+    // Return the buffer as string if decompression fails
+    return html.toString()
+  }
+}
+
  const compressContent = async (html) => {
   if (!html || _InitEnv.PROCESS_ENV.DISABLE_COMPRESS) return html
 
   if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.ONE) {
-    if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+    if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
     return html
   }
@@ -49,7 +62,7 @@ var _constants3 = require('../../constants');
   if (!html) return html
   // console.log('start optimize')
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(_constants3.regexRemoveScriptTag, '')
   html = html.replace(_constants3.regexRemoveSpecialTag, '')
@@ -207,7 +220,7 @@ var _constants3 = require('../../constants');
  const scriptOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(_constants3.regexRemoveScriptTag, '')
 
@@ -217,7 +230,7 @@ var _constants3 = require('../../constants');
  const styleOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(_constants3.regexRemoveStyleTag, '')
 
@@ -227,7 +240,7 @@ var _constants3 = require('../../constants');
  const lowOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html.replace(_constants3.regexLowOptimize, '')
 
@@ -237,7 +250,7 @@ var _constants3 = require('../../constants');
  const shallowOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   html = html
     .replace(_constants3.regexShallowOptimize, '')
@@ -319,7 +332,7 @@ var _constants3 = require('../../constants');
  const deepOptimizeContent = async (html) => {
   if (!html) return html
 
-  if (Buffer.isBuffer(html)) html = _zlib.brotliDecompressSync.call(void 0, html).toString()
+  if (Buffer.isBuffer(html)) html = safeDecompress(html)
 
   let tmpHTML = html
   try {

@@ -462,7 +462,15 @@ const puppeteerSSRService = (async () => {
 
             try {
               if (WindowAPIStore !== '{}') {
-                html = brotliDecompressSync(html).toString() || ''
+                try {
+                  html = brotliDecompressSync(html).toString() || ''
+                } catch (decompressErr) {
+                  Console.error(
+                    'Failed to decompress HTML for API_STORE:',
+                    decompressErr
+                  )
+                  // Keep original html if decompression fails
+                }
 
                 if (html.includes('window.API_STORE={}')) {
                   html = html.replace(
@@ -493,7 +501,15 @@ const puppeteerSSRService = (async () => {
               if (!enableContentEncoding) {
                 switch (true) {
                   case Buffer.isBuffer(html):
-                    return brotliDecompressSync(html).toString()
+                    try {
+                      return brotliDecompressSync(html).toString()
+                    } catch (decompressErr) {
+                      Console.error(
+                        'Failed to decompress HTML buffer:',
+                        decompressErr
+                      )
+                      return html.toString()
+                    }
                   default:
                     return html
                 }

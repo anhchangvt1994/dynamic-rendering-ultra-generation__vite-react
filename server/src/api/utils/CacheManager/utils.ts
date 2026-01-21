@@ -82,7 +82,7 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
 } // getFileInfo
 
 export const setRequestTimeInfo = async (file: string, value: unknown) => {
-  if (!file || !fs.existsSync(file)) {
+  if (!file || typeof file !== 'string' || !fs.existsSync(file)) {
     Console.error('File does not exist!')
     return
   }
@@ -115,6 +115,15 @@ export const getStatus = (
   key: string,
   extension: 'json' | 'br' | 'gzip'
 ) => {
+  if (
+    !directory ||
+    typeof directory !== 'string' ||
+    !key ||
+    typeof key !== 'string'
+  ) {
+    return
+  }
+
   switch (true) {
     case fs.existsSync(`${directory}/${key}.${extension}`):
       return 'ready'
@@ -248,13 +257,19 @@ export const get = async (
       tmpContent = fs.readFileSync(file)
     } catch (err) {
       Console.error(err)
+      return null
     }
 
-    if (extension === 'br') {
-      tmpContent = brotliDecompressSync(tmpContent).toString()
-    } else tmpContent = tmpContent.toString('utf8')
+    try {
+      if (extension === 'br') {
+        tmpContent = brotliDecompressSync(tmpContent).toString()
+      } else tmpContent = tmpContent.toString('utf8')
 
-    return JSON.parse(tmpContent as unknown as string)
+      return JSON.parse(tmpContent as unknown as string)
+    } catch (err) {
+      Console.error(`Failed to decompress/parse cache file ${file}:`, err)
+      return null
+    }
   })()
 
   const objContent =
@@ -263,6 +278,19 @@ export const get = async (
           data: content,
         }
       : content
+
+  // If content is null due to decompression/parse error, return minimal result
+  if (content === null) {
+    const curTime = new Date()
+    return {
+      createdAt: info?.createdAt ?? curTime,
+      updatedAt: info?.updatedAt ?? curTime,
+      requestedAt: info?.requestedAt ?? curTime,
+      modifiedAt: info?.modifiedAt ?? curTime,
+      changedAt: info?.changedAt ?? curTime,
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
 
   return {
     createdAt: info.createdAt,
@@ -371,7 +399,7 @@ export const remove = (
     !status || status === 'ready' ? '' : '.' + status
   }.${extension}`
 
-  if (!fs.existsSync(file)) return
+  if (!file || typeof file !== 'string' || !fs.existsSync(file)) return
 
   try {
     fs.unlinkSync(file)

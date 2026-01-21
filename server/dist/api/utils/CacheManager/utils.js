@@ -82,7 +82,7 @@ if (!_fs2.default.existsSync(storePath)) {
 }; exports.getFileInfo = getFileInfo // getFileInfo
 
  const setRequestTimeInfo = async (file, value) => {
-  if (!file || !_fs2.default.existsSync(file)) {
+  if (!file || typeof file !== 'string' || !_fs2.default.existsSync(file)) {
     _ConsoleHandler2.default.error('File does not exist!')
     return
   }
@@ -115,6 +115,15 @@ if (!_fs2.default.existsSync(storePath)) {
   key,
   extension
 ) => {
+  if (
+    !directory ||
+    typeof directory !== 'string' ||
+    !key ||
+    typeof key !== 'string'
+  ) {
+    return
+  }
+
   switch (true) {
     case _fs2.default.existsSync(`${directory}/${key}.${extension}`):
       return 'ready'
@@ -248,13 +257,19 @@ if (!_fs2.default.existsSync(storePath)) {
       tmpContent = _fs2.default.readFileSync(file)
     } catch (err) {
       _ConsoleHandler2.default.error(err)
+      return null
     }
 
-    if (extension === 'br') {
-      tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
-    } else tmpContent = tmpContent.toString('utf8')
+    try {
+      if (extension === 'br') {
+        tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
+      } else tmpContent = tmpContent.toString('utf8')
 
-    return JSON.parse(tmpContent )
+      return JSON.parse(tmpContent )
+    } catch (err) {
+      _ConsoleHandler2.default.error(`Failed to decompress/parse cache file ${file}:`, err)
+      return null
+    }
   })()
 
   const objContent =
@@ -263,6 +278,19 @@ if (!_fs2.default.existsSync(storePath)) {
           data: content,
         }
       : content
+
+  // If content is null due to decompression/parse error, return minimal result
+  if (content === null) {
+    const curTime = new Date()
+    return {
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _12 => _12.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _13 => _13.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _14 => _14.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _15 => _15.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _16 => _16.changedAt]), () => ( curTime)),
+      status: status || optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
 
   return {
     createdAt: info.createdAt,
@@ -371,7 +399,7 @@ if (!_fs2.default.existsSync(storePath)) {
     !status || status === 'ready' ? '' : '.' + status
   }.${extension}`
 
-  if (!_fs2.default.existsSync(file)) return
+  if (!file || typeof file !== 'string' || !_fs2.default.existsSync(file)) return
 
   try {
     _fs2.default.unlinkSync(file)
