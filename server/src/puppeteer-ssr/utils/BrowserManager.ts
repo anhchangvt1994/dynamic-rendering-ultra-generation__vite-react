@@ -95,9 +95,21 @@ const _getBrowserForSubThreads = (() => {
       return undefined
     }
 
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: wsEndpoint,
-    })
+    let browser
+    try {
+      browser = await puppeteer.connect({
+        browserWSEndpoint: wsEndpoint,
+      })
+    } catch (err) {
+      Console.error('Failed to connect to browser via WebSocket:', err.message || err)
+      if (counter < limit) {
+        counter++
+        await new Promise((res) => setTimeout(res, 150))
+        return _get()
+      }
+      counter = 0
+      return undefined
+    }
 
     if ((!browser || !browser.connected) && counter < limit) {
       counter++
