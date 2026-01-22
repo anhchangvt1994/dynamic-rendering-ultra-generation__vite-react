@@ -42,3 +42,4 @@ server/**/utils/Cache.worker/views/*
 server/**/utils/Cache.worker/pages/*
 server/**/api/utils/CacheManager/data/*
 server/**/api/utils/CacheManager/store/*
+server/.env
