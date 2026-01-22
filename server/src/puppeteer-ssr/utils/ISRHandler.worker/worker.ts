@@ -2,31 +2,31 @@ import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
 import apiService from '../../../api/index.crawler'
 import {
-  BANDWIDTH_LEVEL,
-  BANDWIDTH_LEVEL_LIST,
-  COOKIE_EXPIRED,
+    BANDWIDTH_LEVEL,
+    BANDWIDTH_LEVEL_LIST,
+    COOKIE_EXPIRED,
 } from '../../../constants'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { getPagesPath } from '../../../utils/PathHandler'
 import {
-  CACHEABLE_STATUS_CODE,
-  DESKTOP_UA,
-  DURATION_TIMEOUT,
-  MOBILE_UA,
-  puppeteer,
-  regexNotFoundPageID,
-  regexQueryStringSpecialInfo,
+    CACHEABLE_STATUS_CODE,
+    DESKTOP_UA,
+    DURATION_TIMEOUT,
+    MOBILE_UA,
+    puppeteer,
+    regexNotFoundPageID,
+    regexQueryStringSpecialInfo,
 } from '../../constants'
 import { ISSRResult } from '../../types'
 import CacheManager from '../CacheManager.worker/utils'
 import {
-  compressContent,
-  deepOptimizeContent,
-  lowOptimizeContent,
-  scriptOptimizeContent,
-  shallowOptimizeContent,
-  styleOptimizeContent,
+    compressContent,
+    deepOptimizeContent,
+    lowOptimizeContent,
+    scriptOptimizeContent,
+    shallowOptimizeContent,
+    styleOptimizeContent,
 } from '../OptimizeHtml.worker/utils'
 import { getInternalHTML, getInternalScript } from './utils/utils'
 
@@ -301,7 +301,14 @@ const ISRHandler = async (params: IISRHandlerParam) => {
 
     const headers = { ...specialInfo }
 
-    const botInfo = JSON.parse(headers['botInfo'])
+    let botInfo = { isBot: false, name: 'unknown' }
+    try {
+      if (headers['botInfo']) {
+        botInfo = JSON.parse(headers['botInfo'])
+      }
+    } catch (e) {
+      Console.error('Failed to parse botInfo:', e)
+    }
 
     if (!botInfo.isBot) {
       headers['botInfo'] = JSON.stringify({
@@ -338,7 +345,17 @@ const ISRHandler = async (params: IISRHandlerParam) => {
   }
 
   if (wsEndpoint && (!ServerConfig.crawler || [404, 500].includes(status))) {
-    const browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    let browser
+    try {
+      browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    } catch (err) {
+      Console.error('Failed to connect to browser:', err.message)
+      if (hasCache) {
+        const tmpResult = await cacheManager.achieve()
+        return tmpResult
+      }
+      return { status: 500 }
+    }
 
     if (browser && browser.connected) {
       enableOptimizeAndCompressIfRemoteCrawlerFail = true

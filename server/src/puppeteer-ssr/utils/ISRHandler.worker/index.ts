@@ -17,7 +17,7 @@ const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.${resourceExtension}`),
   {
     minWorkers: 1,
-    maxWorkers: 5,
+    maxWorkers: 2, // Reduced from 5 to prevent EAGAIN resource exhaustion
     enableGlobalCounter: !isMainThread,
   },
   ['ISRHandler']

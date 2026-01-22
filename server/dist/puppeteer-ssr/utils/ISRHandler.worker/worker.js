@@ -301,7 +301,14 @@ const ISRHandler = async (params) => {
 
     const headers = { ...specialInfo }
 
-    const botInfo = JSON.parse(headers['botInfo'])
+    let botInfo = { isBot: false, name: 'unknown' }
+    try {
+      if (headers['botInfo']) {
+        botInfo = JSON.parse(headers['botInfo'])
+      }
+    } catch (e) {
+      _ConsoleHandler2.default.error('Failed to parse botInfo:', e)
+    }
 
     if (!botInfo.isBot) {
       headers['botInfo'] = JSON.stringify({
@@ -338,7 +345,17 @@ const ISRHandler = async (params) => {
   }
 
   if (wsEndpoint && (!_serverconfig2.default.crawler || [404, 500].includes(status))) {
-    const browser = await _constants3.puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    let browser
+    try {
+      browser = await _constants3.puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    } catch (err) {
+      _ConsoleHandler2.default.error('Failed to connect to browser:', err.message)
+      if (hasCache) {
+        const tmpResult = await cacheManager.achieve()
+        return tmpResult
+      }
+      return { status: 500 }
+    }
 
     if (browser && browser.connected) {
       enableOptimizeAndCompressIfRemoteCrawlerFail = true

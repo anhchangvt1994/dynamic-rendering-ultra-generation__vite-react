@@ -2,10 +2,10 @@ import Chromium from '@sparticuz/chromium-min'
 import path from 'path'
 import { Browser, Page } from 'puppeteer-core'
 import {
-  POWER_LEVEL,
-  POWER_LEVEL_LIST,
-  SERVER_LESS,
-  resourceExtension,
+    POWER_LEVEL,
+    POWER_LEVEL_LIST,
+    SERVER_LESS,
+    resourceExtension,
 } from '../../constants'
 import ServerConfig from '../../server.config'
 import { getStore, setStore } from '../../store'
@@ -15,10 +15,10 @@ import { ENV_MODE } from '../../utils/InitEnv'
 import { getUserDataPath } from '../../utils/PathHandler'
 import WorkerManager from '../../utils/WorkerManager'
 import {
-  canUseLinuxChromium,
-  chromiumPath,
-  defaultBrowserOptions,
-  puppeteer,
+    canUseLinuxChromium,
+    chromiumPath,
+    defaultBrowserOptions,
+    puppeteer,
 } from '../constants'
 const { parentPort, isMainThread } = require('worker_threads')
 
@@ -86,8 +86,13 @@ const _getBrowserForSubThreads = (() => {
 
     if (!wsEndpoint && counter < limit) {
       counter++
-      // await new Promise((res) => setTimeout(res, 150))
       return _get()
+    }
+
+    // Return undefined if wsEndpoint is still invalid after retries
+    if (!wsEndpoint) {
+      counter = 0
+      return undefined
     }
 
     const browser = await puppeteer.connect({

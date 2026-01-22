@@ -86,8 +86,13 @@ const _getBrowserForSubThreads = (() => {
 
     if (!wsEndpoint && counter < limit) {
       counter++
-      // await new Promise((res) => setTimeout(res, 150))
       return _get()
+    }
+
+    // Return undefined if wsEndpoint is still invalid after retries
+    if (!wsEndpoint) {
+      counter = 0
+      return undefined
     }
 
     const browser = await _constants3.puppeteer.connect({

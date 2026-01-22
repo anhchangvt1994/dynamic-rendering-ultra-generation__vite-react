@@ -21,6 +21,37 @@ const workerManagerPath = _PathHandler.getWorkerManagerPath.call(void 0, )
 const workerOrder = _optionalChain([workerData, 'optionalAccess', _ => _.order]) || 0
 
 const WorkerManager = (() => {
+	const _createPoolWithRetry = async (
+		workerPath,
+		poolOptions,
+		maxRetries = 5,
+		delayMs = 2000
+	) => {
+		// Add initial delay based on worker order to stagger pool creation
+		const initialDelay = workerOrder * 500
+		if (initialDelay > 0) {
+			await new Promise((res) => setTimeout(res, initialDelay))
+		}
+
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			try {
+				return _workerpool2.default.pool(workerPath, poolOptions)
+			} catch (err) {
+				const isEAGAIN = err.code === 'EAGAIN' || _optionalChain([err, 'access', _2 => _2.message, 'optionalAccess', _3 => _3.includes, 'call', _4 => _4('EAGAIN')])
+				if (isEAGAIN) {
+					const waitTime = delayMs * Math.pow(2, attempt) // Exponential backoff
+					_ConsoleHandler2.default.log(`WorkerPool creation failed (attempt ${attempt + 1}/${maxRetries}): EAGAIN - waiting ${waitTime}ms before retry`)
+					await new Promise((res) => setTimeout(res, waitTime))
+				} else {
+					_ConsoleHandler2.default.error('WorkerPool creation failed:', err)
+					return null
+				}
+			}
+		}
+		_ConsoleHandler2.default.error(`WorkerPool creation failed after ${maxRetries} attempts`)
+		return null
+	}
+
 	return {
 		init: (
 			workerPath,
@@ -37,25 +68,39 @@ const WorkerManager = (() => {
 
 			let rootCounter = 0
 
-			let curPool = _workerpool2.default.pool(workerPath, initOptions)
+			let curPool = null
+			
+			// Initialize pool asynchronously with retry
+			const initPool = async () => {
+				curPool = await _createPoolWithRetry(workerPath, initOptions)
+				if (!curPool) {
+					_ConsoleHandler2.default.error('Failed to create WorkerPool for:', workerPath)
+					return
+				}
+				
+				try {
+					if (instanceTaskList && instanceTaskList.length) {
+						const promiseTaskList = []
+						for (const task of instanceTaskList) {
+							promiseTaskList.push(curPool.exec(task, []))
+						}
+
+						Promise.all(promiseTaskList).catch((err) => {
+							_ConsoleHandler2.default.error('Instance task error:', err)
+						})
+					}
+				} catch (err) {
+					_ConsoleHandler2.default.error(err)
+				}
+			}
+			
+			// Start initialization
+			initPool()
 
 			let terminate
 
 
 
-
-			try {
-				if (instanceTaskList && instanceTaskList.length) {
-					const promiseTaskList = []
-					for (const task of instanceTaskList) {
-						promiseTaskList.push(curPool.exec(task, []))
-					}
-
-					Promise.all(promiseTaskList)
-				}
-			} catch (err) {
-				_ConsoleHandler2.default.error(err)
-			}
 
 			const _getCounterIncreased = async () => {
 				if (!initOptions.enableGlobalCounter) return rootCounter++
@@ -126,11 +171,14 @@ const WorkerManager = (() => {
 
 						if (timeout) clearTimeout(timeout)
 						timeout = setTimeout(async () => {
-							curPool = _workerpool2.default.pool(workerPath, initOptions)
-							terminate = _getTerminate(curPool)
+							const newPool = await _createPoolWithRetry(workerPath, initOptions)
+							if (newPool) {
+								curPool = newPool
+								terminate = _getTerminate(curPool)
+							}
 
 							try {
-								if (instanceTaskList && instanceTaskList.length) {
+								if (curPool && instanceTaskList && instanceTaskList.length) {
 									const promiseTaskList = []
 									for (const task of instanceTaskList) {
 										promiseTaskList.push(curPool.exec(task, []))
@@ -166,7 +214,16 @@ const WorkerManager = (() => {
 				}
 			}
 
-			terminate = _getTerminate(curPool)
+			// Initialize terminate after pool is ready (may be null initially)
+			const initTerminate = () => {
+				if (curPool) {
+					terminate = _getTerminate(curPool)
+				} else {
+					// Retry later if pool not ready
+					setTimeout(initTerminate, 500)
+				}
+			}
+			setTimeout(initTerminate, 100)
 
 			const _getFreePool
 
@@ -175,6 +232,31 @@ const WorkerManager = (() => {
 					options = {
 						delay: 0,
 						...options,
+					}
+
+					// Wait for pool to be initialized
+					let waitAttempts = 0
+					const maxWaitAttempts = 30 // 30 * 200ms = 6 seconds max wait
+					while (!curPool && waitAttempts < maxWaitAttempts) {
+						await new Promise((res) => setTimeout(res, 200))
+						waitAttempts++
+					}
+
+					if (!curPool) {
+						_ConsoleHandler2.default.error('WorkerPool not initialized after waiting')
+						return null
+					}
+
+					// Wait for terminate to be initialized
+					waitAttempts = 0
+					while (!terminate && waitAttempts < maxWaitAttempts) {
+						await new Promise((res) => setTimeout(res, 200))
+						waitAttempts++
+					}
+
+					if (!terminate) {
+						_ConsoleHandler2.default.error('Terminate handler not initialized')
+						return null
 					}
 
 					const counter = await _getCounterIncreased()
@@ -187,7 +269,7 @@ const WorkerManager = (() => {
 
 						terminate.cancel()
 					} else {
-						terminate.cancel()
+						_optionalChain([terminate, 'optionalAccess', _5 => _5.cancel, 'call', _6 => _6()])
 					}
 
 					return {
