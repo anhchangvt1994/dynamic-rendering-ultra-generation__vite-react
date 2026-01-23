@@ -7,6 +7,7 @@ import {
 } from './styles'
 
 const PokemonCard = ({ pokemon }) => {
+  const getSlugUnderScore = useCallback(getCustomSlug('_'), [])
   const onLoad = (img) => {
     img.classList.add('show')
   }
@@ -26,7 +27,7 @@ const PokemonCard = ({ pokemon }) => {
           alt={pokemon.name}
           onLoad={(e) => onLoad(e.target)}
           onError={(e) => onError(e.target)}
-          src={`https://projectpokemon.org/images/normal-sprite/${getSlug(pokemon.name)}.gif`}
+          src={`https://projectpokemon.org/images/normal-sprite/${getSlugUnderScore(pokemon.name)}.gif`}
           height={60}
         />
       </ImageWrapperStyle>

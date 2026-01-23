@@ -23,25 +23,28 @@ function HomePage() {
   const limit = 20
   const [offset, setOffset] = useState(0)
   const cacheKey = getPokemonListPath(limit, offset)
+  const observer = React.useRef<any>(null)
+  const bottomLineRef = useRef<HTMLDivElement>(null)
+
   const [pokemonListState, setPokemonListState] = useState(
     getAPIStore(cacheKey)?.results ?? []
   )
   const { data, isFetching } = useGetPokemonListQuery({ limit, offset })
-
-  const enablePagination = data?.count ? offset < data.count : false
-
   const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
   const [isLoading, setIsLoading] = useState(isFetching)
+
+  const hasBottomRef = !!bottomLineRef.current
   const isShowLoading =
     RenderingInfo.loader ||
     (isLoading && (!isFirstTimeLoading || !pokemonListState))
-  const bottomLineRef = useRef<HTMLDivElement>(null)
-  const hasBottomRef = !!bottomLineRef.current
+
+  const enablePagination = data?.count ? offset < data.count : false
   const enableToShowBottomLine =
     !isShowLoading &&
     enablePagination &&
     pokemonListState.length - 20 === offset
-  const observer = React.useRef<any>(null)
+  const enableToShowInfinityLoading =
+    !data || data.count <= pokemonListState.length ? false : true
 
   const pokemonList =
     isShowLoading && (!pokemonListState || !pokemonListState.length)
@@ -95,11 +98,8 @@ function HomePage() {
   return (
     <HomePageStyle className="home-page">
       <PokemonListStyle>{pokemonList}</PokemonListStyle>
-      {enableToShowBottomLine ? (
-        <BottomLineStyle ref={bottomLineRef} />
-      ) : (
-        <InfinityLoading />
-      )}
+      {enableToShowBottomLine && <BottomLineStyle ref={bottomLineRef} />}
+      {enableToShowInfinityLoading && <InfinityLoading />}
     </HomePageStyle>
   )
 }
