@@ -1,7 +1,9 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
+import InfinityLoading from 'components/common/InfinityLoading'
 import PokemonCard from 'components/home-page/pokemon-card'
 import PokemonCardLoading from 'components/home-page/pokemon-card/loading'
 import useScrollInfinity from 'hooks/useScrollInfinity'
+import { getPokemonListPath } from 'utils/ApiHelper'
 import { BottomLineStyle, HomePageStyle, PokemonListStyle } from './styles'
 
 function HomePage() {
@@ -20,8 +22,9 @@ function HomePage() {
 
   const limit = 20
   const [offset, setOffset] = useState(0)
+  const cacheKey = getPokemonListPath(limit, offset)
   const [pokemonListState, setPokemonListState] = useState(
-    getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_LIST)?.results ?? []
+    getAPIStore(cacheKey)?.results ?? []
   )
   const { data, isFetching } = useGetPokemonListQuery({ limit, offset })
 
@@ -35,7 +38,6 @@ function HomePage() {
   const bottomLineRef = useRef<HTMLDivElement>(null)
   const hasBottomRef = !!bottomLineRef.current
   const enableToShowBottomLine =
-    hasBottomRef &&
     !isShowLoading &&
     enablePagination &&
     pokemonListState.length - 20 === offset
@@ -58,7 +60,7 @@ function HomePage() {
     if (data) {
       if (!data || !data.results || !data.results.length) return
 
-      if (!pokemonListState || pokemonListState.length < offset) {
+      if (!pokemonListState || pokemonListState.length === offset) {
         setPokemonListState([...pokemonListState, ...data.results])
       } else {
         setPokemonListState(data.results)
@@ -93,7 +95,11 @@ function HomePage() {
   return (
     <HomePageStyle className="home-page">
       <PokemonListStyle>{pokemonList}</PokemonListStyle>
-      {enableToShowBottomLine && <BottomLineStyle ref={bottomLineRef} />}
+      {enableToShowBottomLine ? (
+        <BottomLineStyle ref={bottomLineRef} />
+      ) : (
+        <InfinityLoading />
+      )}
     </HomePageStyle>
   )
 }

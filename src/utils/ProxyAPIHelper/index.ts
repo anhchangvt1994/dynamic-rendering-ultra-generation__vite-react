@@ -55,8 +55,6 @@ export const ProxyAPI = (() => {
           ...config,
         }
 
-        console.log(requestInfo)
-
         return `/api?requestInfo=${encodeRequestInfo(requestInfo)}`
       } // _get
 
