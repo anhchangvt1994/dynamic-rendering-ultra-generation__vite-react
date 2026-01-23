@@ -8,6 +8,10 @@ const getApiProxyUrl = functionGenerator(
   import.meta.env.API_PROXY_URL_GET_FUNCTION
 )
 
+const getPokemonListPath = functionGenerator(
+  import.meta.env.API_PATH_GET_POKEMON_LIST_FUNCTION
+)
+
 const getPokemonDetailPath = functionGenerator(
   import.meta.env.API_PATH_GET_POKEMON_DETAIL_FUNCTION
 )
@@ -18,12 +22,14 @@ const pokemonApi = createApi({
     baseUrl: getApiProxyUrl(),
   }),
   endpoints: (builder) => ({
-    [import.meta.env.API_ENDPOINT_GET_POKEMON_LIST]: builder.query<any, void>({
-      query: () =>
-        proxyApi.get(import.meta.env.API_PATH_GET_POKEMON_LIST, {
+    [import.meta.env.API_ENDPOINT_GET_POKEMON_LIST]: builder.query<
+      any,
+      { limit: number; offset: number }
+    >({
+      query: ({ limit, offset }) =>
+        proxyApi.get(getPokemonListPath(limit, offset), {
           expiredTime: 'infinite',
           cacheKey: import.meta.env.API_ENDPOINT_GET_POKEMON_LIST,
-          enableStore: true,
         }),
     }),
     [import.meta.env.API_ENDPOINT_GET_POKEMON_DETAIL]: builder.query<

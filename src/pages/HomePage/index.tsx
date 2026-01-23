@@ -1,7 +1,8 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import PokemonCard from 'components/home-page/pokemon-card'
 import PokemonCardLoading from 'components/home-page/pokemon-card/loading'
-import { PokemonListStyle } from './styles'
+import useScrollInfinity from 'hooks/useScrollInfinity'
+import { BottomLineStyle, HomePageStyle, PokemonListStyle } from './styles'
 
 function HomePage() {
   setSeoTag({
@@ -17,28 +18,51 @@ function HomePage() {
     robots: 'index, follow',
   })
 
+  const limit = 20
+  const [offset, setOffset] = useState(0)
   const [pokemonListState, setPokemonListState] = useState(
-    getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_LIST)?.results ?? {}
+    getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_LIST)?.results ?? []
   )
+  const { data, isFetching } = useGetPokemonListQuery({ limit, offset })
 
-  const { data, isFetching } = useGetPokemonListQuery()
+  const enablePagination = data?.count ? offset < data.count : false
+
   const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
   const [isLoading, setIsLoading] = useState(isFetching)
   const isShowLoading =
     RenderingInfo.loader ||
     (isLoading && (!isFirstTimeLoading || !pokemonListState))
+  const bottomLineRef = useRef<HTMLDivElement>(null)
+  const hasBottomRef = !!bottomLineRef.current
+  const enableToShowBottomLine =
+    hasBottomRef &&
+    !isShowLoading &&
+    enablePagination &&
+    pokemonListState.length - 20 === offset
+  const observer = React.useRef<any>(null)
 
-  const pokemonList = isShowLoading
-    ? Array.from({ length: 8 }).map((_, index) => (
-        <PokemonCardLoading key={index} />
-      ))
-    : pokemonListState?.map?.((pokemon) => (
-        <PokemonCard key={pokemon.name} pokemon={pokemon} />
-      ))
+  const pokemonList =
+    isShowLoading && (!pokemonListState || !pokemonListState.length)
+      ? Array.from({ length: 8 }).map((_, index) => (
+          <PokemonCardLoading key={index} />
+        ))
+      : pokemonListState?.map?.((pokemon) => (
+          <PokemonCard key={pokemon.name} pokemon={pokemon} />
+        ))
+
+  const handlePageChange = () => {
+    if (!isFetching) setOffset(offset + limit)
+  } // handlePageChange
 
   useEffect(() => {
     if (data) {
-      setPokemonListState(data.results)
+      if (!data || !data.results || !data.results.length) return
+
+      if (!pokemonListState || pokemonListState.length < offset) {
+        setPokemonListState([...pokemonListState, ...data.results])
+      } else {
+        setPokemonListState(data.results)
+      }
     }
   }, [JSON.stringify(data)])
 
@@ -50,10 +74,27 @@ function HomePage() {
     }
   }, [isFetching])
 
+  useScrollInfinity(
+    (initObserver, getOnIntersection) => {
+      const onIntersection = getOnIntersection(handlePageChange)
+
+      if (enablePagination)
+        observer.current = initObserver(bottomLineRef.current, onIntersection)
+
+      return () => {
+        if (observer.current) {
+          observer.current.disconnect()
+        }
+      }
+    },
+    [offset, isFetching, hasBottomRef, enablePagination]
+  )
+
   return (
-    <div className="home-page">
+    <HomePageStyle className="home-page">
       <PokemonListStyle>{pokemonList}</PokemonListStyle>
-    </div>
+      {enableToShowBottomLine && <BottomLineStyle ref={bottomLineRef} />}
+    </HomePageStyle>
   )
 }
 

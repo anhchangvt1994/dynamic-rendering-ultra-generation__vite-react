@@ -1,3 +1,7 @@
+export const HomePageStyle = styled.div`
+  position: relative;
+`
+
 export const PokemonListStyle = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -5,3 +9,5 @@ export const PokemonListStyle = styled.div`
   gap: 16px;
   padding: 16px 0;
 `
+
+export const BottomLineStyle = styled.div``

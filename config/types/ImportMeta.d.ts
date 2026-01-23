@@ -37,7 +37,7 @@ interface Env {
     STYLE_MIXINS_LIQUID_GLASS:            string[];
     API_PROXY_URL_GET_FUNCTION:           string;
     API_BASE_URL:                         string;
-    API_PATH_GET_POKEMON_LIST:            string;
+    API_PATH_GET_POKEMON_LIST_FUNCTION:   string;
     API_PATH_GET_POKEMON_DETAIL_FUNCTION: string;
     API_REDUCER_PATH_POKEMON:             string;
     API_ENDPOINT_GET_POKEMON_LIST:        string;

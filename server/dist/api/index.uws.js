@@ -302,9 +302,7 @@ const apiService = (async () => {
               )
 
               if (!data) {
-                data = JSON.stringify(cache.data)
-                contentEncoding = ''
-                // data = convertData(cache, contentEncoding)
+                data = convertData(cache, contentEncoding)
               }
 
               if (!res.writableEnded) {
@@ -365,8 +363,7 @@ const apiService = (async () => {
           )
 
           if (!data) {
-            data = JSON.stringify(result.data)
-            contentEncoding = ''
+            data = convertData(result, contentEncoding)
           }
 
           if (requestInfo.relativeCacheKey.length) {
