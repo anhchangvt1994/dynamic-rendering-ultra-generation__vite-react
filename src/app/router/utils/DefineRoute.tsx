@@ -28,11 +28,11 @@ const defineRoute = (
         }
 
         if (LocaleInfo.langSelected || LocaleInfo.countrySelected) {
-          if (
-            (routes[i] && routes[i].path === '*') ||
-            (routes[i] && routes[i].path === import.meta.env.ROUTER_LOGIN_PATH)
-          )
-            continue
+          // if (
+          //   (routes[i] && routes[i].path === '*') ||
+          //   (routes[i] && routes[i].path === import.meta.env.ROUTER_LOGIN_PATH)
+          // )
+          //   continue
 
           routes[i].path =
             routes[i].path === '/' ? ':locale' : `:locale/${routes[i].path}`

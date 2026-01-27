@@ -23,6 +23,13 @@ export default {
         backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
       `,
+      read_more_multiple_line: (css, line = 2) => css`
+        display: -webkit-box;
+        -webkit-line-clamp: ${line};
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      `,
     },
   },
 }

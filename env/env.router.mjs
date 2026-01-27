@@ -13,20 +13,17 @@ export default {
       get_path: (name) => `/pokemon/${name}`,
       id: 'PokemonPage',
     },
-    content: {
-      path: ':slugs',
+    blogs: {
+      path: 'blogs',
+      get_path: '/blogs',
+      id: 'BlogPage',
     },
-    content_comment: {
-      path: 'comment',
+    blog_detail: {
+      path: 'blogs/:slug',
+      get_path: (slug) => `/blogs/${slug}`,
+      id: 'BlogDetailPage',
     },
-    comment: {
-      path: 'comment/detail',
-      id: 'CommentPage',
-    },
-    login: {
-      path: 'login',
-      id: 'LoginPage',
-    },
+
     not_found: {
       path: '*',
     },
