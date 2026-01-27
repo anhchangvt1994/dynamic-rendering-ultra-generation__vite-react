@@ -145,7 +145,6 @@ const startServer = async () => {
     }
 
     ;(await require('./api/index.uws').default).init(app)
-    ;(await require('./admin/index.uws').default).init(app)
     ;(await require('./puppeteer-ssr/index.uws').default).init(app)
 
     app.listen(Number(port), (token) => {

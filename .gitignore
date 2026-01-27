@@ -43,4 +43,4 @@ server/**/utils/Cache.worker/pages/*
 server/**/api/utils/CacheManager/data/*
 server/**/api/utils/CacheManager/store/*
 server/.env
-server/admin
+admin
