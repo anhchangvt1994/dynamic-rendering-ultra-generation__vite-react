@@ -9,9 +9,14 @@ export default {
     path: {
       get_pokemon_list: (limit = 20, offset = 0) =>
         `/pokemon?limit${limit}&offset=${offset}`,
+
       get_pokemon_detail: (name) => `/pokemon/${name}`,
+
       get_pokemon_blogs:
         '/articles?fields=title,slug,content&populate[coverImage][fields]=id,name,url',
+
+      get_pokemon_blog_detail: (slug) =>
+        `/articles?filters[slug][$eq]=${slug}&fields=title,slug,content&populate[coverImage][fields]=id,name,url`,
     },
     reducer_path: {
       pokemon: 'pokemonApi',
@@ -21,6 +26,7 @@ export default {
       get_pokemon_list: 'getPokemonList',
       get_pokemon_detail: 'getPokemonDetail',
       get_pokemon_blogs: 'getPokemonBlogs',
+      get_pokemon_blog_detail: 'getPokemonBlogDetail',
     },
   },
 }
