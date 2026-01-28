@@ -30,7 +30,7 @@ const ServerConfig = defineServerConfig({
             name: 'blog-page',
           },
         }
-      else if (pathSlitted[0] === '')
+      else if (!pathSlitted[0])
         return {
           loader: {
             name: 'home-page',

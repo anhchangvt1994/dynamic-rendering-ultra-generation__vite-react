@@ -13,6 +13,10 @@ const BlogCard = (props) => {
     import.meta.env.ROUTER_BLOG_DETAIL_GET_PATH_FUNCTION
   )
 
+  const description = content?.[0]?.['children']?.reduce((desc, item) => {
+    return desc + (item?.['text'] ?? '')
+  }, '')
+
   return (
     <BlogCardStyle href={getBlogDetailPath(slug)}>
       <ImageWrapperStyle>
@@ -25,9 +29,7 @@ const BlogCard = (props) => {
       </ImageWrapperStyle>
       <BodyStyle>
         <TitleStyle>{title}</TitleStyle>
-        <DescriptionStyle>
-          {content?.[0]?.['children']?.[0]?.['text'] ?? ''}
-        </DescriptionStyle>
+        <DescriptionStyle>{description}</DescriptionStyle>
       </BodyStyle>
     </BlogCardStyle>
   )
