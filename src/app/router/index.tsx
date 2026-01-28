@@ -48,6 +48,10 @@ const routes: RouteObjectCustomize[] = defineRoute([
         element: withLazy(() => import('pages/BlogPage')),
       }, // Blog Page
       {
+        path: import.meta.env.ROUTER_BLOG_DETAIL_PATH,
+        element: withLazy(() => import('pages/BlogDetailPage')),
+      }, // Blog Detail Page
+      {
         path: import.meta.env.ROUTER_NOT_FOUND_PATH,
         element: <NotFoundPage />,
       },
