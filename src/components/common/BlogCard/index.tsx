@@ -16,7 +16,12 @@ const BlogCard = (props) => {
   return (
     <BlogCardStyle href={getBlogDetailPath(slug)}>
       <ImageWrapperStyle>
-        <img src={`${import.meta.env.HOST}${coverImage.url}`} alt={title} />
+        <img
+          src={`${import.meta.env.HOST}${coverImage.url}`}
+          height={100}
+          width={100}
+          alt={title}
+        />
       </ImageWrapperStyle>
       <BodyStyle>
         <TitleStyle>{title}</TitleStyle>

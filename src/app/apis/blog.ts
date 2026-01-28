@@ -14,7 +14,7 @@ const blogApi = createApi({
       query: () =>
         proxyApi.get(import.meta.env.API_PATH_GET_POKEMON_BLOGS, {
           expiredTime: 'infinite',
-          cacheKey: import.meta.env.API_PATH_GET_POKEMON_BLOGS,
+          cacheKey: import.meta.env.API_ENDPOINT_GET_POKEMON_BLOGS,
           enableStore: true,
         }),
     }),

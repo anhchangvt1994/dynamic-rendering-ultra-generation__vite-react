@@ -18,19 +18,24 @@ const ServerConfig = defineServerConfig({
       const urlInfo = new URL(url)
       const pathSlitted = urlInfo.pathname.trim().split('/')
 
-      if (pathSlitted.length <= 2 && pathSlitted[0] === '') {
-        return {
-          loader: {
-            name: 'home-page',
-          },
-        }
-      } else if (pathSlitted.length === 3 && pathSlitted[1] === 'pokemon') {
+      if (pathSlitted[1] === 'pokemon')
         return {
           loader: {
             name: 'pokemon-page',
           },
         }
-      }
+      else if (pathSlitted[1] === 'blogs')
+        return {
+          loader: {
+            name: 'blog-page',
+          },
+        }
+      else if (pathSlitted[0] === '')
+        return {
+          loader: {
+            name: 'home-page',
+          },
+        }
     },
   },
   api: {
