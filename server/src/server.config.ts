@@ -24,13 +24,20 @@ const ServerConfig = defineServerConfig({
             name: 'pokemon-page',
           },
         }
-      else if (pathSlitted[1] === 'blogs')
-        return {
-          loader: {
-            name: 'blog-page',
-          },
-        }
-      else if (!pathSlitted[0])
+      else if (pathSlitted[1] === 'blogs') {
+        if (pathSlitted[2])
+          return {
+            loader: {
+              name: 'blog-detail-page',
+            },
+          }
+        else
+          return {
+            loader: {
+              name: 'blog-page',
+            },
+          }
+      } else if (!pathSlitted[0])
         return {
           loader: {
             name: 'home-page',

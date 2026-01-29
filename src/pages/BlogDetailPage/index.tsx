@@ -1,21 +1,21 @@
 import { useGetPokemonBlogDetailQuery } from 'app/apis/blog'
-import { functionGenerator } from 'utils/EnvHelper'
-import { BlogDetailPageStyle } from './styles'
+import { getBlogDetailPath } from 'utils/ApiHelper'
+import BlogDetailLoading from './loading'
+import { BlogDetailPageStyle, ImageStyle, TitleStyle } from './styles'
+import { generateDescription } from './utils'
 
 const BlogDetailPage = () => {
   const route = useRoute()
   const { slug } = route.params
-  const getPokemonBlogDetailPath = functionGenerator(
-    import.meta.env.API_PATH_GET_POKEMON_BLOG_DETAIL_FUNCTION
-  )
   const { data, isFetching } = useGetPokemonBlogDetailQuery(slug)
   const [blogDetailState, setBlogDetailState] = useState(
-    getAPIStore(getPokemonBlogDetailPath(slug))?.data?.[0]
+    getAPIStore(getBlogDetailPath(slug))?.data?.[0]
   )
   const [isFirstLoading, setIsFirstLoading] = useState(isFetching)
   const isShowLoading =
     RenderingInfo.loader ||
     (isFetching && (!isFirstLoading || !blogDetailState))
+  const description = generateDescription(blogDetailState?.content || [])
 
   useEffect(() => {
     if (data && !isFetching) {
@@ -28,7 +28,28 @@ const BlogDetailPage = () => {
   }, [isFetching])
 
   return (
-    <BlogDetailPageStyle>{JSON.stringify(blogDetailState)}</BlogDetailPageStyle>
+    <BlogDetailPageStyle>
+      {isShowLoading ? (
+        <BlogDetailLoading />
+      ) : (
+        <>
+          {blogDetailState?.title && (
+            <TitleStyle>{blogDetailState.title}</TitleStyle>
+          )}
+
+          {blogDetailState?.coverImage?.url && (
+            <ImageStyle>
+              <img
+                src={`${import.meta.env.HOST}${blogDetailState.coverImage.url}`}
+                alt={blogDetailState.title}
+              />
+            </ImageStyle>
+          )}
+
+          {description}
+        </>
+      )}
+    </BlogDetailPageStyle>
   )
 }
 

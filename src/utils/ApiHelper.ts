@@ -11,3 +11,7 @@ export const getPokemonListPath = functionGenerator(
 export const getPokemonDetailPath = functionGenerator(
   import.meta.env.API_PATH_GET_POKEMON_DETAIL_FUNCTION
 )
+
+export const getBlogDetailPath = functionGenerator(
+  import.meta.env.API_PATH_GET_POKEMON_BLOG_DETAIL_FUNCTION
+)

@@ -6,6 +6,7 @@ import {
   ImageWrapperStyle,
   TitleStyle,
 } from './styles'
+import { generateShortDescription } from './utils'
 
 const BlogCard = (props) => {
   const { coverImage = {}, slug = '', title = '', content = [] } = props
@@ -13,9 +14,8 @@ const BlogCard = (props) => {
     import.meta.env.ROUTER_BLOG_DETAIL_GET_PATH_FUNCTION
   )
 
-  const description = content?.[0]?.['children']?.reduce((desc, item) => {
-    return desc + (item?.['text'] ?? '')
-  }, '')
+  const description =
+    content && content.length > 0 ? generateShortDescription(content) : ''
 
   return (
     <BlogCardStyle href={getBlogDetailPath(slug)}>
