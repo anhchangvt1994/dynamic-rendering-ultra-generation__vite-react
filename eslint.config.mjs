@@ -78,6 +78,7 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
       'react/jsx-no-undef': ['error', { allowGlobals: true }],
       'react/prop-types': 'off',
+      'react/display-name': 'off',
     },
     settings: {
       react: {
