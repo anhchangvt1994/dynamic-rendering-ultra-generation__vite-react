@@ -18,6 +18,7 @@ ServerStore.init()
 const routes: RouteObjectCustomize[] = defineRoute([
   {
     path: import.meta.env.ROUTER_BASE_PATH,
+    id: import.meta.env.ROUTER_HOME_ID,
     element: (
       <LoadingInfoProvider>
         <ServerRouterHandler>
@@ -46,6 +47,7 @@ const routes: RouteObjectCustomize[] = defineRoute([
       {
         path: import.meta.env.ROUTER_BLOGS_PATH,
         element: withLazy(() => import('pages/BlogPage')),
+        id: import.meta.env.ROUTER_BLOGS_ID,
       }, // Blog Page
       {
         path: import.meta.env.ROUTER_BLOG_DETAIL_PATH,

@@ -8,6 +8,9 @@ const Image = (props) => {
     width = '100%',
     height = '100%',
   } = props
+
+  const isSrcValid = !!src && !/\/\.(jpg|jpeg|gif|png|webp|svg|ico)/g.test(src)
+
   const onLoad = (img) => {
     img.classList.add('show')
   }
@@ -18,7 +21,7 @@ const Image = (props) => {
 
   return (
     <ImageWrapperStyle className="image-wrapper">
-      {!!src && (
+      {isSrcValid && (
         <ImageStyle
           className="image"
           src={src}

@@ -1,14 +1,16 @@
 import { AvatarStyle, HeaderBackgroundStyle, HeaderStyle } from './styles'
 
-const Header = () => {
+const Header = (props) => {
+  const { onClickMenu = () => {}, onClickSearch = () => {} } = props
+
   return (
     <HeaderStyle>
       <HeaderBackgroundStyle>
-        <div className="left">
-          <span>Poke</span>
+        <div className="left" onClick={onClickMenu}>
+          <span className="material-symbols-outlined">menu</span>
         </div>
-        <div className="right">
-          <span>Monster</span>
+        <div className="right" onClick={onClickSearch}>
+          <span className="material-symbols-outlined">search</span>
         </div>
       </HeaderBackgroundStyle>
       <AvatarStyle

@@ -26,7 +26,6 @@ export const HeaderBackgroundStyle = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Pokemon Hollow', sans-serif;
     position: absolute;
     height: 100%;
     width: calc(50% - 2px);
@@ -35,6 +34,10 @@ export const HeaderBackgroundStyle = styled.div`
     border-radius: 0;
     color: #ffffff;
     font-size: 24px;
+
+    & .material-symbols-outlined {
+      font-size: 32px;
+    }
   }
 
   .left {
