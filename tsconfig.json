@@ -8,7 +8,9 @@
     "package.json",
     "package-lock.json",
     "yarn-lock.json",
-    "vite.config.mts"
+    "vite.config.mts",
+    "admin/**",
+    "server/admin/**"
   ],
   "compilerOptions": {
     "useDefineForClassFields": true,

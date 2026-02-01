@@ -1,4 +1,4 @@
-import Header from 'components/common/header'
+import Header from 'components/common/Header'
 import LoadingPageComponent from 'components/LoadingPageComponent'
 import { BodyStyle, ContentStyle, MainContainerStyle } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'

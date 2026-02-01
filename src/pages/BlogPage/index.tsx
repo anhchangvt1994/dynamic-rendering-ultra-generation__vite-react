@@ -5,11 +5,13 @@ import { BlogPageStyled } from './styles'
 
 const BlogPage = () => {
   const [blogListState, setBlogListState] = useState(
-    getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_BLOGS)
+    getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_BLOGS)?.data ?? []
   )
   const { data, isFetching } = useGetPokemonBlogsQuery()
-  const [isLoading, setIsLoading] = useState(isFetching)
-  const isShowLoading = RenderingInfo.loader || isLoading
+  const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
+  const isShowLoading =
+    RenderingInfo.loader ||
+    (isFetching && (!isFirstTimeLoading || !blogListState))
 
   const blogList = isShowLoading
     ? Array.from({ length: 8 }).map((_, index) => (
@@ -24,7 +26,7 @@ const BlogPage = () => {
   }, [JSON.stringify(data)])
 
   useEffect(() => {
-    setIsLoading(isFetching)
+    if (isFirstTimeLoading) setIsFirstTimeLoading(false)
   }, [isFetching])
 
   return <BlogPageStyled>{blogList}</BlogPageStyled>

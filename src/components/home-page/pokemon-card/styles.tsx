@@ -17,6 +17,54 @@ export const PokemonCardStyle = styled(LinkCustom)`
     rgb(6, 65, 168, 0.1),
     rgb(0, 255, 187, 0.1)
   );
+
+  .image-wrapper {
+    width: 100%;
+    height: 60px;
+
+    &::before,
+    &::after {
+      display: block;
+      content: none;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 120px;
+      height: 60px;
+      transform: translateX(-50%);
+      z-index: -1;
+    }
+
+    &::before {
+      content: '';
+      background: url('/images/pikachu-02.webp') no-repeat center center;
+      background-size: contain;
+    }
+
+    &::after {
+      background: url('/images/pokemon-02.webp') no-repeat center center;
+      background-size: contain;
+    }
+
+    &:has(.show) {
+      &::before {
+        content: none;
+      }
+    }
+
+    &:has(.error) {
+      &::before {
+        content: none;
+      }
+      &::after {
+        content: '';
+      }
+    }
+  }
+
+  .image {
+    object-fit: scale-down;
+  }
 `
 
 export const PokemonCardLoadingStyle = styled.div`
@@ -38,70 +86,6 @@ export const PokemonCardLoadingStyle = styled.div`
     rgb(6, 65, 168, 0.1),
     rgb(0, 255, 187, 0.1)
   );
-`
-
-export const ImageWrapperStyle = styled.div`
-  position: relative;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  height: 60px;
-  z-index: 0;
-
-  &::before,
-  &::after {
-    display: block;
-    content: none;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 120px;
-    height: 60px;
-    transform: translateX(-50%);
-    z-index: -1;
-  }
-
-  &::before {
-    content: '';
-    background: url('/images/pikachu-02.webp') no-repeat center center;
-    background-size: contain;
-  }
-
-  &::after {
-    background: url('/images/pokemon-02.webp') no-repeat center center;
-    background-size: contain;
-  }
-
-  &:has(.show) {
-    &::before {
-      content: none;
-    }
-  }
-
-  &:has(.error) {
-    &::before {
-      content: none;
-    }
-    &::after {
-      content: '';
-    }
-  }
-`
-
-export const ImageStyle = styled.img`
-  display: none;
-  position: relative;
-  max-width: 100%;
-  max-height: 100%;
-
-  &.show {
-    display: block;
-  }
-`
-
-export const ImageLoadingStyle = styled.img`
-  max-width: 70%;
-  height: 60px;
 `
 
 export const NameStyle = styled.div`

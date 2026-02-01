@@ -31,12 +31,11 @@ function HomePage() {
   )
   const { data, isFetching } = useGetPokemonListQuery({ limit, offset })
   const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
-  const [isLoading, setIsLoading] = useState(isFetching)
 
   const hasBottomRef = !!bottomLineRef.current
   const isShowLoading =
     RenderingInfo.loader ||
-    (isLoading && (!isFirstTimeLoading || !pokemonListState))
+    (isFetching && (!isFirstTimeLoading || !pokemonListState))
 
   const enablePagination = data?.count ? offset < data.count : false
   const enableToShowBottomLine =
@@ -72,8 +71,6 @@ function HomePage() {
   }, [JSON.stringify(data)])
 
   useEffect(() => {
-    setIsLoading(isFetching)
-
     if (isFirstTimeLoading) {
       setIsFirstTimeLoading(false)
     }

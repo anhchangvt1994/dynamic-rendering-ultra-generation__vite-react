@@ -13,10 +13,10 @@ export default {
       get_pokemon_detail: (name) => `/pokemon/${name}`,
 
       get_pokemon_blogs:
-        '/articles?fields=title,slug,content&populate[coverImage][fields]=id,name,url',
+        '/articles?fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash',
 
       get_pokemon_blog_detail: (slug) =>
-        `/articles?filters[slug][$eq]=${slug}&fields=title,slug,content&populate[coverImage][fields]=id,name,url`,
+        `/articles?filters[slug][$eq]=${slug}&fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash`,
     },
     reducer_path: {
       pokemon: 'pokemonApi',

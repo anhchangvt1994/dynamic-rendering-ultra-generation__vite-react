@@ -45,3 +45,4 @@ server/**/api/utils/CacheManager/store/*
 server/.env
 admin
 tsconfig.tsbuildinfo
+.kilocodemodes

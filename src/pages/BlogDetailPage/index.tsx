@@ -1,7 +1,8 @@
 import { useGetPokemonBlogDetailQuery } from 'app/apis/blog'
+import Image from 'components/common/Image'
 import { getBlogDetailPath } from 'utils/ApiHelper'
 import BlogDetailLoading from './loading'
-import { BlogDetailPageStyle, ImageStyle, TitleStyle } from './styles'
+import { BlogDetailPageStyle, TitleStyle } from './styles'
 import { generateDescription } from './utils'
 
 const BlogDetailPage = () => {
@@ -36,14 +37,12 @@ const BlogDetailPage = () => {
           {blogDetailState?.title && (
             <TitleStyle>{blogDetailState.title}</TitleStyle>
           )}
-
           {blogDetailState?.coverImage?.url && (
-            <ImageStyle>
-              <img
-                src={`${import.meta.env.HOST}${blogDetailState.coverImage.url}`}
-                alt={blogDetailState.title}
-              />
-            </ImageStyle>
+            <Image
+              hash={blogDetailState.coverImage.blurhash || ''}
+              src={`${import.meta.env.HOST}${blogDetailState.coverImage.url}`}
+              alt={blogDetailState.title}
+            />
           )}
 
           {description}

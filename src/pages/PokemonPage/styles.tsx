@@ -1,4 +1,50 @@
-export const PokemonPageStyle = styled.div``
+export const PokemonPageStyle = styled.div`
+  .image-wrapper {
+    display: flex;
+    justify-content: center;
+    height: 150px;
+    z-index: 0;
+
+    &::before,
+    &::after {
+      display: block;
+      content: none;
+      width: 150px;
+      height: 150px;
+      z-index: -1;
+    }
+
+    &::before {
+      content: '';
+      background: url('/images/pikachu-02.webp') no-repeat center center;
+      background-size: contain;
+    }
+
+    &::after {
+      background: url('/images/pokemon-02.webp') no-repeat center center;
+      background-size: contain;
+    }
+
+    &:has(.show) {
+      &::before {
+        content: none;
+      }
+    }
+
+    &:has(.error) {
+      &::before {
+        content: none;
+      }
+      &::after {
+        content: '';
+      }
+    }
+  }
+
+  .image {
+    height: 150px;
+  }
+`
 
 export const HeaderStyle = styled.div`
   position: sticky;
@@ -34,60 +80,6 @@ export const BackIconStyle = styled.span`
 export const BodyStyle = styled.div`
   position: relative;
   padding: 16px 0;
-`
-
-export const ImageWrapperStyle = styled.div`
-  position: relative;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  height: 150px;
-  z-index: 0;
-
-  &::before,
-  &::after {
-    display: block;
-    content: none;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 150px;
-    height: 150px;
-    transform: translateX(-50%);
-    z-index: -1;
-  }
-
-  &::before {
-    content: '';
-    background: url('/images/pikachu-02.webp') no-repeat center center;
-    background-size: contain;
-  }
-
-  &::after {
-    background: url('/images/pokemon-02.webp') no-repeat center center;
-    background-size: contain;
-  }
-
-  &:has(.show) {
-    &::before {
-      content: none;
-    }
-  }
-
-  &:has(.error) {
-    &::before {
-      content: none;
-    }
-    &::after {
-      content: '';
-    }
-  }
-`
-
-export const ImageStyle = styled.img`
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
 `
 
 export const NameStyle = styled.div`

@@ -1,4 +1,3 @@
-import fs from 'fs'
 import { parse, parseForESLint } from '@typescript-eslint/parser'
 import eslintAirBnb from 'eslint-config-airbnb'
 import eslintAirBnbTs from 'eslint-config-airbnb-typescript'
@@ -6,6 +5,7 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import react from 'eslint-plugin-react'
 import airBnbHooks from 'eslint-plugin-react-hooks'
+import fs from 'fs'
 
 const EslintAutoImportType = JSON.parse(
   fs.readFileSync(
@@ -21,6 +21,9 @@ const EslintAutoImport = JSON.parse(
 )
 
 export default [
+  {
+    ignores: ['admin/**', 'server/admin/**'],
+  },
   airBnbHooks.configs['recommended-latest'],
   eslintConfigPrettier,
   {

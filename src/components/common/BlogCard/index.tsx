@@ -1,9 +1,9 @@
 import { functionGenerator } from 'utils/EnvHelper'
+import Image from '../Image'
 import {
   BlogCardStyle,
   BodyStyle,
   DescriptionStyle,
-  ImageWrapperStyle,
   TitleStyle,
 } from './styles'
 import { generateShortDescription } from './utils'
@@ -19,14 +19,13 @@ const BlogCard = (props) => {
 
   return (
     <BlogCardStyle href={getBlogDetailPath(slug)}>
-      <ImageWrapperStyle>
-        <img
-          src={`${import.meta.env.HOST}${coverImage.url}`}
-          height={100}
-          width={100}
-          alt={title}
-        />
-      </ImageWrapperStyle>
+      <Image
+        hash={coverImage?.blurhash ?? ''}
+        src={`${import.meta.env.HOST}${coverImage?.url ?? 'null.jpg'}`}
+        height={'100%'}
+        width={'100%'}
+        alt={title}
+      />
       <BodyStyle>
         <TitleStyle>{title}</TitleStyle>
         <DescriptionStyle>{description}</DescriptionStyle>

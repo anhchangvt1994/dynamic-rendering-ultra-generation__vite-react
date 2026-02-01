@@ -1,24 +1,14 @@
 export const BlogDetailPageStyle = styled.div`
   color: #ffffff;
   padding: 16px 0;
-`
 
-export const ImageStyle = styled.div`
-  position: relative;
-  width: calc(100% - 16px);
-  padding-bottom: calc(100% * 13 / 16);
-  overflow: hidden;
-  margin: 0 auto 16px;
-  border-radius: 8px;
-
-  img {
-    position: absolute;
-    width: 100%;
-    max-width: none;
-    max-height: none;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+  .image-wrapper {
+    position: relative;
+    width: calc(100% - 16px);
+    padding-bottom: calc(100% * 13 / 16);
+    overflow: hidden;
+    margin: 0 auto 16px;
+    border-radius: 8px;
   }
 `
 

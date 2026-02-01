@@ -9,6 +9,33 @@ export const BlogCardStyle = styled.a`
   overflow: hidden;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   flex: 0 0 calc(50% - 8px);
+
+  .image-wrapper {
+    display: flex;
+    justify-content: center;
+    z-index: 0;
+    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+    border-radius: 0;
+
+    &:has(.show) {
+      &::before {
+        content: none;
+      }
+    }
+
+    &:has(.error) {
+      &::before {
+        content: none;
+      }
+      &::after {
+        content: '';
+      }
+    }
+  }
+
+  .image {
+    object-fit: cover;
+  }
 `
 
 export const ImageWrapperStyle = styled.div`

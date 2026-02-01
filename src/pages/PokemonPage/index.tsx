@@ -1,5 +1,6 @@
 import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
+import Image from 'components/common/Image'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
@@ -9,8 +10,6 @@ import {
   BackIconStyle,
   BodyStyle,
   HeaderStyle,
-  ImageStyle,
-  ImageWrapperStyle,
   NameLoadingStyle,
   NameStyle,
   PokemonPageStyle,
@@ -95,16 +94,14 @@ const PokemonPage = () => {
       </HeaderStyle>
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
-        <ImageWrapperStyle>
-          {!isShowLoading && pokemonNumber && (
-            <ImageStyle
-              src={ImagePath}
-              onLoad={(e) => onLoad(e.target)}
-              onError={(e) => onError(e.target)}
-              alt={name}
-            />
-          )}
-        </ImageWrapperStyle>
+        <Image
+          src={ImagePath}
+          onLoad={(e) => onLoad(e.target)}
+          onError={(e) => onError(e.target)}
+          alt={name}
+          width={'100%'}
+          height={150}
+        />
         {isShowLoading ? (
           <NameLoadingStyle>
             <div className="stage">
