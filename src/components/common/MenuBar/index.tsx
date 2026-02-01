@@ -32,6 +32,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       key={menu.id}
       className={`${menu.id === route.id ? 'is-active' : ''}`}
       to={menu.path}
+      onClick={onClose}
     >
       <span className="material-symbols-outlined">{menu.icon}</span>
       <span>{menu.title}</span>

@@ -4,6 +4,7 @@ function LinkCustom(props: any) {
   const { children, ...linkProps } = props
 
   const onClick = (ev) => {
+    linkProps.onClick?.(ev)
     if (ev.target.pathname === location.pathname) {
       ev.preventDefault()
       return
