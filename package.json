@@ -23,7 +23,8 @@
     "pre-commit": "node config/scripts/pre-commit.mjs",
     "prepare": "node config/scripts/prepare.mjs",
     "preinstall": "node server/src/utils/GenerateServerInfo.js",
-    "server-build": "node config/scripts/server-build.mjs"
+    "server-build": "node config/scripts/server-build.mjs",
+    "start:sgen": "node config/scripts/start-sitemap-generator.mjs"
   },
   "engines": {
     "node": ">=20.x.x"

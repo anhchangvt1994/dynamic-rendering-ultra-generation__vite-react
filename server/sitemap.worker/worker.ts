@@ -1,7 +1,16 @@
 import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
-import { puppeteer, regexNotFoundPageID } from '../src/puppeteer-ssr/constants'
+import {
+  defaultBrowserOptions,
+  puppeteer,
+} from '../src/puppeteer-ssr/constants'
 import Console from '../src/utils/ConsoleHandler'
+import { PROCESS_ENV } from '../src/utils/InitEnv'
+
+interface ICrawlHandlerParams {
+  url: string
+  wsEndpoint?: string
+}
 
 const _getSafePage = (page: Page) => {
   const SafePage = page
@@ -12,117 +21,123 @@ const _getSafePage = (page: Page) => {
   }
 } // _getSafePage
 
-const waitResponse = (() => {
-  return async (page: Page, url: string, duration: number) => {
-    const waitUntil = 'domcontentloaded'
-
-    // console.log(url.split('?')[0])
-    let hasRedirected = false
-    const safePage = _getSafePage(page)
-    safePage()?.on('response', (response) => {
-      const status = response.status()
-      //[301, 302, 303, 307, 308]
-      if (status >= 300 && status <= 399) {
-        hasRedirected = true
-      }
-    })
-
-    let response
-    try {
-      response = await new Promise(async (resolve, reject) => {
-        let pendingRequests = 0
-
-        const result = await new Promise<any>((resolveAfterPageLoad) => {
-          safePage()
-            ?.goto(url, {
-              waitUntil,
-              timeout: 30000,
-            })
-            .then((res) => resolveAfterPageLoad(res))
-            .catch((err) => {
-              reject(err)
-            })
-        })
-
-        // console.log(`finish page load: `, url.split('?')[0])
-
-        // WorkerPool.workerEmit('waitResponse_01')
-        const waitForNavigate = (() => {
-          let counter = 0
-          return async () => {
-            if (hasRedirected) {
-              if (counter < 3) {
-                counter++
-                hasRedirected = false
-                return new Promise(async (resolveAfterNavigate) => {
-                  try {
-                    await safePage()?.waitForSelector('body')
-                    // await new Promise((resWaitForNavigate) =>
-                    // 	setTimeout(resWaitForNavigate, 2000)
-                    // )
-                    const navigateResult = await waitForNavigate()
-
-                    resolveAfterNavigate(navigateResult)
-                  } catch (err) {
-                    Console.error(err.message)
-                    resolveAfterNavigate('fail')
-                  }
-                })
-              } else {
-                return 'fail'
-              }
-            } else return 'finish'
-          }
-        })()
-
-        const navigateResult = await waitForNavigate()
-
-        // console.log(`finish page navigate: `, url.split('?')[0])
-
-        // WorkerPool.workerEmit('waitResponse_02')
-
-        if (navigateResult === 'fail') return resolve(result)
-
-        safePage()?.removeAllListeners('response')
-
-        const html = (await safePage()?.content()) ?? ''
-
-        if (regexNotFoundPageID.test(html)) return resolve(result)
-
-        // console.log(`finish all page: `, url.split('?')[0])
-
-        setTimeout(() => {
-          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 500)
-      })
-    } catch (err) {
-      // console.log(err.message)
-      // console.log('-------')
-      throw err
-    }
-
-    return response
-  }
-})() // waitResponse
-
-const crawlHandler = async (params) => {
-  const { url, wsEndpoint } = params
-
-  if (!url || !wsEndpoint) return
+const crawlHandler = async (params: ICrawlHandlerParams) => {
+  const { url } = params
+  if (!url) return
 
   let html = ''
   let status = 200
   let browser
+
   try {
-    browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    browser = await puppeteer.launch({
+      ...defaultBrowserOptions,
+      headless: true,
+    })
   } catch (err) {
-    Console.error('Failed to connect to browser:', err.message)
+    Console.error('Failed to launch browser:', err.message)
     return { status: 500 }
   }
 
   if (browser && browser.connected) {
     const page = await browser.newPage()
+
+    if (!page) {
+      return { status: 500 }
+    }
+
     const safePage = _getSafePage(page)
+
+    try {
+      await Promise.all([
+        safePage()?.setUserAgent(
+          'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+        ),
+        safePage()?.waitForNetworkIdle({ idleTime: 150 }),
+        safePage()?.setCacheEnabled(false),
+        safePage()?.setRequestInterception(true),
+        safePage()?.evaluateOnNewDocument(() => {
+          const getContext = HTMLCanvasElement.prototype.getContext
+          HTMLCanvasElement.prototype.getContext = function (type) {
+            if (type === '2d' || type === 'webgl') {
+              return null
+            }
+            return getContext.call(this, type)
+          }
+        }),
+      ])
+
+      safePage()?.on('request', async (req) => {
+        const resourceType = req.resourceType()
+
+        if (resourceType === 'stylesheet') {
+          req.respond({ status: 200, body: 'aborted' })
+        } else if (
+          /(socket.io.min.js)+(?:$)|data:image\/[a-z]*.?\;base64/.test(url) ||
+          /googletagmanager.com|connect.facebook.net|asia.creativecdn.com|static.hotjar.com|deqik.com|contineljs.com|googleads.g.doubleclick.net|analytics.tiktok.com|google.com|gstatic.com|static.airbridge.io|googleadservices.com|google-analytics.com|sg.mmstat.com|t.contentsquare.net|accounts.google.com|browser.sentry-cdn.com|bat.bing.com|tr.snapchat.com|ct.pinterest.com|criteo.com|webchat.caresoft.vn|tags.creativecdn.com|script.crazyegg.com|tags.tiqcdn.com|trc.taboola.com|securepubads.g.doubleclick.net|partytown/.test(
+            req.url()
+          ) ||
+          ['font', 'image', 'media', 'imageset'].includes(resourceType)
+        ) {
+          req.abort()
+        }
+      })
+
+      let response
+
+      try {
+        response = await safePage()?.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        })
+      } catch (err) {
+        Console.log('ISRHandler line 341:')
+        Console.error('err name: ', err.name)
+        Console.error('err message: ', err.message)
+        throw new Error('Internal Error')
+      } finally {
+        status = response?.status?.() ?? status
+        if (status !== 200) return { status }
+
+        Console.log(`Internal crawler status: ${status}`)
+      }
+    } catch (err) {
+      Console.error('Error during page setup:', err.message)
+      safePage()?.close()
+      return { status: 500 }
+    }
+
+    try {
+      html = (await safePage()?.content()) ?? ''
+      safePage()?.close()
+    } catch (err) {
+      Console.log('ISRHandler line 315:')
+      Console.error(err)
+      safePage()?.close()
+
+      return
+    }
+
+    // Extract href URLs from <a> tags in HTML
+    // Handle both quoted and unquoted href values (e.g., href="/path" or href=/path)
+    const linkRegex = /<a\s+[^>]*href\s*=\s*["']?([^"'\s>]+)["']?[^>]*>/gi
+    const links: string[] = []
+    let match
+
+    Console.log(`Extracting links from HTML, length: ${html?.length || 0}`)
+
+    while ((match = linkRegex.exec(html || '')) !== null) {
+      const href = match[1]
+      // Filter: href starts with "/" or starts with host
+      const host = PROCESS_ENV.HOST || ''
+      if (href.startsWith('/') || (host && href.startsWith(host))) {
+        links.push(href)
+      }
+    }
+
+    Console.log(`Found ${links.length} links to crawl`)
+
+    return { status, data: links }
   }
 } // crawlHandler
 
