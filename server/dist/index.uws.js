@@ -5,6 +5,8 @@ var _serverconfig = require('./server.config'); var _serverconfig2 = _interopReq
 var _InitEnv = require('./utils/InitEnv');
 var _PortHandler = require('./utils/PortHandler');
 
+console.log(_InitEnv.PROCESS_ENV.BASE_URL)
+
 require('events').EventEmitter.setMaxListeners(200)
 
 const setupCors = (res) => {
