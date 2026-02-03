@@ -8,6 +8,10 @@ import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getPagesPath } from '../../../utils/PathHandler'
+import {
+  regexQueryStringSpecialInfo,
+  regexQueryStringSpecialInfoWithoutDeviceInfo,
+} from '../../constants'
 import { ISSRResult } from '../../types'
 import ISRHandler from '../ISRHandler.worker'
 import {
@@ -339,8 +343,15 @@ const ISRGenerator = async ({
           waitingToCrawlList.delete(ISRHandlerParams.url)
         }
 
+        const specialInfo =
+          regexQueryStringSpecialInfoWithoutDeviceInfo.exec(
+            ISRHandlerParams.url
+          )?.groups ?? {}
+
+        console.log(regexQueryStringSpecialInfo.exec(ISRHandlerParams.url))
+
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
-        new Promise(async (res) => {
+        const resultPromise = new Promise<ISSRResult>(async (res) => {
           const handle = (() => {
             if (SERVER_LESS)
               return fetchData(
@@ -446,11 +457,15 @@ const ISRGenerator = async ({
           res(result)
         })
 
-        // if (tmpResult && tmpResult.status) result = tmpResult
-        // else {
-        //   const tmpResult = await cacheManager.achieve()
-        //   result = tmpResult || result
-        // }
+        console.log('specialInfo', specialInfo)
+        if (specialInfo.botInfo?.['name'] === 'sitemap-crawler') {
+          const tmpResult = await resultPromise
+          if (tmpResult && tmpResult.status) result = tmpResult
+          else {
+            const tmpResult = await cacheManager.achieve()
+            result = tmpResult || result
+          }
+        }
       }
       // NOTE - Uncomment this logic if you need the second bot waiting for the first bot result
       // else if (!isSkipWaiting) {

@@ -1,9 +1,6 @@
 import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
-import {
-  defaultBrowserOptions,
-  puppeteer,
-} from '../src/puppeteer-ssr/constants'
+import { puppeteer } from '../src/puppeteer-ssr/constants'
 import Console from '../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../src/utils/InitEnv'
 
@@ -22,20 +19,18 @@ const _getSafePage = (page: Page) => {
 } // _getSafePage
 
 const crawlHandler = async (params: ICrawlHandlerParams) => {
-  const { url } = params
-  if (!url) return
+  const { url, wsEndpoint } = params
+
+  if (!url || !wsEndpoint) return
 
   let html = ''
   let status = 200
   let browser
 
   try {
-    browser = await puppeteer.launch({
-      ...defaultBrowserOptions,
-      headless: true,
-    })
+    browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
   } catch (err) {
-    Console.error('Failed to launch browser:', err.message)
+    Console.error('Failed to connect to browser:', err.message)
     return { status: 500 }
   }
 
@@ -56,6 +51,9 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
         safePage()?.waitForNetworkIdle({ idleTime: 150 }),
         safePage()?.setCacheEnabled(false),
         safePage()?.setRequestInterception(true),
+        safePage()?.setExtraHTTPHeaders({
+          service: 'sitemap-crawler',
+        }),
         safePage()?.evaluateOnNewDocument(() => {
           const getContext = HTMLCanvasElement.prototype.getContext
           HTMLCanvasElement.prototype.getContext = function (type) {
@@ -80,6 +78,8 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
           ['font', 'image', 'media', 'imageset'].includes(resourceType)
         ) {
           req.abort()
+        } else {
+          req.continue()
         }
       })
 
@@ -131,7 +131,10 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
       // Filter: href starts with "/" or starts with host
       const host = PROCESS_ENV.HOST || ''
       if (href.startsWith('/') || (host && href.startsWith(host))) {
-        links.push(href)
+        const hrefFormatted = href.startsWith('/')
+          ? PROCESS_ENV.HOST.replace(/\/$/g, '') + href
+          : href
+        links.push(hrefFormatted)
       }
     }
 

@@ -1,12 +1,61 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { FREQ_DEFAULT, FREQ_PATH_LIST } from '../../sitemap.worker/constants'
+import Console from '../../src/utils/ConsoleHandler'
+import { PROCESS_ENV } from '../../src/utils/InitEnv'
 
 const SITEMAP_DIR = path.join(__dirname, '..', '..', 'sitemap')
 const SITEMAP_FILE = path.join(SITEMAP_DIR, 'sitemap.xml')
 
-export const saveUrlToSitemap = (
-  url: string,
-  lastmod?: string,
+export const normalizeUrl = (url: string): string => {
+  if (!url) return ''
+  return url.replace(/\/$/, '') || url
+} // normalizeUrl
+
+// Get today's date in ISO 8601 format (YYYY-MM-DD)
+export const getTodayDate = (): string => {
+  return new Date().toISOString().split('T')[0]
+} // getTodayDate
+
+// Determine priority based on URL path
+export const getPriority = (url: string): number => {
+  const path = url.replace(PROCESS_ENV.HOST, '')
+  // Homepage has highest priority
+  if (path === '' || path === '/') {
+    return 1.0
+  }
+  // Main pages (blogs, etc.)
+  if (path === '/blogs' || path === '/blog' || path === '/index') {
+    return 0.8
+  }
+  // Detail pages have lower priority
+  return 0.6
+} // getPriority
+
+// Determine changefreq based on URL path
+export const getChangeFreq = (url: string): 'daily' | 'weekly' | 'monthly' => {
+  const path = url.replace(PROCESS_ENV.HOST, '')
+
+  let changeFreq = FREQ_DEFAULT
+
+  for (const key in FREQ_PATH_LIST) {
+    const checkFreqFactory = FREQ_PATH_LIST[key] as any
+
+    if (
+      (typeof checkFreqFactory === 'function' && checkFreqFactory(path)) ||
+      (checkFreqFactory.length && checkFreqFactory.includes(path))
+    ) {
+      changeFreq = key
+      break
+    }
+  }
+
+  return changeFreq as any
+} // getChangeFreq
+
+export const saveUrlToSitemap = (params: {
+  url: string
+  lastmod?: string
   changefreq?:
     | 'always'
     | 'hourly'
@@ -14,11 +63,18 @@ export const saveUrlToSitemap = (
     | 'weekly'
     | 'monthly'
     | 'yearly'
-    | 'never',
+    | 'never'
   priority?: number
-): void => {
+}): void => {
+  const { url = '', lastmod = '', changefreq = '', priority = 0 } = params
+
+  if (!url) {
+    Console.error('Need provide `url`')
+    return
+  }
+
   // Normalize URL by removing trailing slashes
-  const normalizedUrl = url.replace(/\/$/, '') || url
+  const normalizedUrl = normalizeUrl(url)
 
   // Build optional XML elements
   let newUrl = `  <url>\n    <loc>${normalizedUrl}</loc>`
@@ -63,4 +119,4 @@ export const saveUrlToSitemap = (
 
   // Write back
   fs.writeFileSync(SITEMAP_FILE, content)
-}
+} // saveUrlToSitemap

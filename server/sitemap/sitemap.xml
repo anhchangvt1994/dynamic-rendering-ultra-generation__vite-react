@@ -1,135 +1,135 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://anhchangvt1994.com</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>http://localhost:8080</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/bulbasaur</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/bulbasaur</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/blogs</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>http://localhost:8080/blogs</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/ivysaur</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/ivysaur</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/venusaur</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/venusaur</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/charmander</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/charmander</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/charmeleon</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/charmeleon</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/charizard</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/charizard</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/squirtle</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/squirtle</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/wartortle</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/wartortle</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/blastoise</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/blastoise</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/caterpie</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/caterpie</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/metapod</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/metapod</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/butterfree</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/butterfree</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/weedle</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/weedle</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/kakuna</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/kakuna</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/beedrill</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/beedrill</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/pidgey</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/pidgey</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/pidgeotto</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/pidgeotto</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/pidgeot</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/pidgeot</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/rattata</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/rattata</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://anhchangvt1994.com/pokemon/raticate</loc>
-    <lastmod>2026-02-02</lastmod>
-    <changefreq>weekly</changefreq>
+    <loc>http://localhost:8080/pokemon/raticate</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
 </urlset>

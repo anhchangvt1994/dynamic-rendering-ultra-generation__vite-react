@@ -260,6 +260,7 @@ const puppeteerSSRService = (async () => {
           res,
           simulateBot: !botInfo.isBot,
           isISR: true,
+          botNickName: req.getHeader('service'),
         })
 
         if (botInfo.isBot) {

@@ -1,5 +1,27 @@
+import path from 'path'
+import BrowserManager from '../src/puppeteer-ssr/utils/BrowserManager'
+import Console from '../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../src/utils/InitEnv'
-import { crawlWorker, saveUrlToSitemap } from './utils'
+import WorkerManager from '../src/utils/WorkerManager'
+import { saveUrlToSitemapWorker } from './utils'
+import { ICrawlHandlerParams } from './utils/types'
+import {
+  getChangeFreq,
+  getPriority,
+  getTodayDate,
+  normalizeUrl,
+} from './utils/utils'
+
+const workerManager = WorkerManager.init(
+  path.resolve(__dirname, `./worker.ts`),
+  {
+    minWorkers: 1,
+    maxWorkers: 2,
+  },
+  ['crawlHandler']
+)
+
+const browserManager = BrowserManager()
 
 // Use console.error for logging
 const error = (...args: any[]) => console.error('[SITEMAP ERROR]', ...args)
@@ -7,65 +29,48 @@ const error = (...args: any[]) => console.error('[SITEMAP ERROR]', ...args)
 const HOST = PROCESS_ENV.HOST
 const visitedUrls = new Set()
 
-// Normalize URL by removing trailing slashes
-const normalizeUrl = (url: string): string => {
-  if (!url) return ''
-  return url.replace(/\/$/, '') || url
-}
-
-// Get today's date in ISO 8601 format (YYYY-MM-DD)
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0]
-}
-
-// Determine changefreq based on URL path
-const getChangeFreq = (url: string): 'daily' | 'weekly' | 'monthly' => {
-  const path = url.replace(HOST, '')
-  // Blog and index pages change more frequently
-  if (
-    path === '' ||
-    path === '/blogs' ||
-    path === '/blog' ||
-    path === '/index'
-  ) {
-    return 'daily'
-  }
-  // Detail pages change less frequently
-  return 'weekly'
-}
-
-// Determine priority based on URL path
-const getPriority = (url: string): number => {
-  const path = url.replace(HOST, '')
-  // Homepage has highest priority
-  if (path === '' || path === '/') {
-    return 1.0
-  }
-  // Main pages (blogs, etc.)
-  if (path === '/blogs' || path === '/blog' || path === '/index') {
-    return 0.8
-  }
-  // Detail pages have lower priority
-  return 0.6
-}
-
 // Use crawlWorker for URL crawling (uses worker pool with regex-based link extraction)
-const crawlPage = async (url: string) => {
-  if (!url) return { status: 500, data: [] }
+export const crawlWorker = async (params: ICrawlHandlerParams) => {
+  if (!browserManager || !params) {
+    Console.error('Need provide `params`!')
+    return
+  }
+
+  const browser = await browserManager.get()
+
+  const wsEndpoint =
+    browser && browser.connected ? browser.wsEndpoint() : undefined
+
+  if (!wsEndpoint) return
+
+  if (!params.url) {
+    Console.error('Need provide `params.url`!')
+    return
+  }
+
+  const freePool = await workerManager.getFreePool()
+
+  let result
+  const pool = freePool.pool
 
   try {
-    const result = await crawlWorker({ url })
-    // crawlWorker returns { data: links } from worker
-    // The worker returns { status, data: links }
-    if (result && result.data) {
-      return { status: 200, data: result.data }
-    }
-    return { status: 500, data: [] }
+    // Pass params without wsEndpoint since worker launches its own browser
+    result = await pool.exec('crawlHandler', [
+      { url: params.url, baseUrl: PROCESS_ENV.BASE_URL, wsEndpoint },
+    ])
   } catch (err) {
-    error('Failed to crawl page:', err.message)
-    return { status: 500, data: [] }
+    Console.error(err)
+    result = {
+      data: [],
+    }
   }
-}
+
+  freePool.terminate({
+    force: true,
+  })
+
+  return result
+} // crawlWorker
 
 const generateSitemap = async (url: string) => {
   if (!url) {
@@ -89,9 +94,9 @@ const generateSitemap = async (url: string) => {
   const changefreq = getChangeFreq(url)
   const priority = getPriority(url)
 
-  saveUrlToSitemap(url, lastmod, changefreq, priority)
+  saveUrlToSitemapWorker({ url, lastmod, changefreq, priority })
 
-  const result = await crawlPage(url)
+  const result = await crawlWorker({ url })
   const urlList = result.data || []
 
   if (urlList && urlList.length) {

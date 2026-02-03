@@ -123,6 +123,8 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
   /<(a|button|input)([^>]*)(\/|)>([\s\S]*?)<\/(a|button)>/g; exports.regexHandleAttrsInteractiveTag = regexHandleAttrsInteractiveTag
  const regexQueryStringSpecialInfo =
   /botInfo=(?<botInfo>[^&]*)&deviceInfo=(?<deviceInfo>[^&]*)&localeInfo=(?<localeInfo>[^&]*)&environmentInfo=(?<environmentInfo>[^&]*)/; exports.regexQueryStringSpecialInfo = regexQueryStringSpecialInfo
+ const regexQueryStringSpecialInfoWithoutDeviceInfo =
+  /botInfo=(?<botInfo>[^&]*)&localeInfo=(?<localeInfo>[^&]*)&environmentInfo=(?<environmentInfo>[^&]*)/; exports.regexQueryStringSpecialInfoWithoutDeviceInfo = regexQueryStringSpecialInfoWithoutDeviceInfo
 
  const MAX_WORKERS = _InitEnv.PROCESS_ENV.MAX_WORKERS
   ? Number(_InitEnv.PROCESS_ENV.MAX_WORKERS)

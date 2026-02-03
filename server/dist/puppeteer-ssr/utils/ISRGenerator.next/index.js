@@ -9,6 +9,10 @@ var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHand
 var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
 
+
+
+var _constants3 = require('../../constants');
+
 var _ISRHandlerworker = require('../ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
 
 
@@ -339,8 +343,15 @@ const ISRGenerator = async ({
           waitingToCrawlList.delete(ISRHandlerParams.url)
         }
 
+        const specialInfo =
+          _nullishCoalesce(_optionalChain([_constants3.regexQueryStringSpecialInfoWithoutDeviceInfo, 'access', _5 => _5.exec, 'call', _6 => _6(
+            ISRHandlerParams.url
+          ), 'optionalAccess', _7 => _7.groups]), () => ( {}))
+
+        console.log(_constants3.regexQueryStringSpecialInfo.exec(ISRHandlerParams.url))
+
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
-        new Promise(async (res) => {
+        const resultPromise = new Promise(async (res) => {
           const handle = (() => {
             if (_constants.SERVER_LESS)
               return fetchData(
@@ -446,11 +457,15 @@ const ISRGenerator = async ({
           res(result)
         })
 
-        // if (tmpResult && tmpResult.status) result = tmpResult
-        // else {
-        //   const tmpResult = await cacheManager.achieve()
-        //   result = tmpResult || result
-        // }
+        console.log('specialInfo', specialInfo)
+        if (_optionalChain([specialInfo, 'access', _8 => _8.botInfo, 'optionalAccess', _9 => _9['name']]) === 'sitemap-crawler') {
+          const tmpResult = await resultPromise
+          if (tmpResult && tmpResult.status) result = tmpResult
+          else {
+            const tmpResult = await cacheManager.achieve()
+            result = tmpResult || result
+          }
+        }
       }
       // NOTE - Uncomment this logic if you need the second bot waiting for the first bot result
       // else if (!isSkipWaiting) {

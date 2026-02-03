@@ -1,51 +1,50 @@
 import path from 'path'
-import { resourceExtension } from '../../src/constants'
 import Console from '../../src/utils/ConsoleHandler'
 import WorkerManager from '../../src/utils/WorkerManager'
-import { ICrawlHandlerParams } from './types'
-import { saveUrlToSitemap } from './utils'
 
 const workerManager = WorkerManager.init(
-  path.resolve(__dirname, `./worker.${resourceExtension}`),
+  path.resolve(__dirname, `./worker.ts`),
   {
     minWorkers: 1,
     maxWorkers: 2,
   },
-  ['crawlHandler']
+  ['saveUrlToSitemap']
 )
 
-export { saveUrlToSitemap }
-
-export const crawlWorker = async (params: ICrawlHandlerParams) => {
+export const saveUrlToSitemapWorker = async (params: {
+  url: string
+  lastmod?: string
+  changefreq?:
+    | 'always'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'monthly'
+    | 'yearly'
+    | 'never'
+  priority?: number
+}) => {
   if (!params) {
     Console.error('Need provide `params`!')
     return
   }
 
   if (!params.url) {
-    Console.error('Need provide `params.url`!')
+    Console.error('Need provide `url`')
     return
   }
 
   const freePool = await workerManager.getFreePool()
 
-  let result
   const pool = freePool.pool
 
   try {
-    console.log('params.url', params.url)
-    // Pass params without wsEndpoint since worker launches its own browser
-    result = await pool.exec('crawlHandler', [{ url: params.url }])
+    await pool.exec('saveUrlToSitemap', [params])
   } catch (err) {
     Console.error(err)
-    result = {
-      data: [],
-    }
   }
 
   freePool.terminate({
     force: true,
   })
-
-  return result
-}
+} // saveUrlToSitemapWorker

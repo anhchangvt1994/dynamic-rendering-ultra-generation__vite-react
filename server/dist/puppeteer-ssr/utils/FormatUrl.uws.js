@@ -9,7 +9,9 @@ var _InitEnv = require('../../utils/InitEnv');
     res,
     simulateBot,
     isISR,
+    botNickName,
   }
+
 
 
 
@@ -59,10 +61,17 @@ var _InitEnv = require('../../utils/InitEnv');
   let botInfoStringify
 
   if (simulateBot) {
-    botInfoStringify = JSON.stringify({
+    const botInfoFormatted = {
       isBot: true,
       name: 'puppeteer-ssr',
-    } )
+    }
+
+    if (botNickName) {
+      botInfoFormatted['nickName'] = botNickName
+    }
+
+    botInfoStringify = JSON.stringify(botInfoFormatted )
+    console.log(botInfoFormatted)
   } else {
     botInfoStringify = JSON.stringify(_optionalChain([res, 'access', _7 => _7.cookies, 'optionalAccess', _8 => _8.botInfo]))
   }
