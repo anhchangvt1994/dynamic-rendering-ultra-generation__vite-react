@@ -9,13 +9,11 @@ export const convertUrlHeaderToQueryString = (
     res,
     simulateBot,
     isISR,
-    botNickName,
   }: {
     url: string
     res?: HttpResponse
     simulateBot?: boolean
     isISR?: boolean
-    botNickName?: string
   } = {
     url: '',
     simulateBot: false,
@@ -66,12 +64,7 @@ export const convertUrlHeaderToQueryString = (
       name: 'puppeteer-ssr',
     }
 
-    if (botNickName) {
-      botInfoFormatted['nickName'] = botNickName
-    }
-
     botInfoStringify = JSON.stringify(botInfoFormatted as IBotInfo)
-    console.log(botInfoFormatted)
   } else {
     botInfoStringify = JSON.stringify(res.cookies?.botInfo)
   }

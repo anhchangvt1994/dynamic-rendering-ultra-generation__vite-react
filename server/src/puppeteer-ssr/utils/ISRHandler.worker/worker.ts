@@ -2,31 +2,31 @@ import { Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
 import apiService from '../../../api/index.crawler'
 import {
-    BANDWIDTH_LEVEL,
-    BANDWIDTH_LEVEL_LIST,
-    COOKIE_EXPIRED,
+  BANDWIDTH_LEVEL,
+  BANDWIDTH_LEVEL_LIST,
+  COOKIE_EXPIRED,
 } from '../../../constants'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { getPagesPath } from '../../../utils/PathHandler'
 import {
-    CACHEABLE_STATUS_CODE,
-    DESKTOP_UA,
-    DURATION_TIMEOUT,
-    MOBILE_UA,
-    puppeteer,
-    regexNotFoundPageID,
-    regexQueryStringSpecialInfo,
+  CACHEABLE_STATUS_CODE,
+  DESKTOP_UA,
+  DURATION_TIMEOUT,
+  MOBILE_UA,
+  puppeteer,
+  regexNotFoundPageID,
+  regexQueryStringSpecialInfo,
 } from '../../constants'
 import { ISSRResult } from '../../types'
 import CacheManager from '../CacheManager.worker/utils'
 import {
-    compressContent,
-    deepOptimizeContent,
-    lowOptimizeContent,
-    scriptOptimizeContent,
-    shallowOptimizeContent,
-    styleOptimizeContent,
+  compressContent,
+  deepOptimizeContent,
+  lowOptimizeContent,
+  scriptOptimizeContent,
+  shallowOptimizeContent,
+  styleOptimizeContent,
 } from '../OptimizeHtml.worker/utils'
 import { getInternalHTML, getInternalScript } from './utils/utils'
 

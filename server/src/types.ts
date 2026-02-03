@@ -1,7 +1,6 @@
 export interface IBotInfo {
   isBot: boolean
   name: string
-  nickName?: string
 }
 
 export interface IDeviceInfo {

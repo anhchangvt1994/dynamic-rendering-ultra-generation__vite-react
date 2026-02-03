@@ -18,7 +18,7 @@ const BlogCard = (props) => {
     content && content.length > 0 ? generateShortDescription(content) : ''
 
   return (
-    <BlogCardStyle href={getBlogDetailPath(slug)}>
+    <BlogCardStyle to={getBlogDetailPath(slug)}>
       <Image
         hash={coverImage?.blurhash ?? ''}
         src={`${import.meta.env.HOST}${coverImage?.url ?? 'null.jpg'}`}

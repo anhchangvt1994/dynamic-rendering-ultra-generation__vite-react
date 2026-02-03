@@ -8,9 +8,6 @@ var _serverconfig = require('../../../server.config'); var _serverconfig2 = _int
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
-
-
-
 var _constants3 = require('../../constants');
 
 var _ISRHandlerworker = require('../ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
@@ -86,6 +83,11 @@ const ISRGenerator = async ({
   isSkipWaiting = false,
   ...ISRHandlerParams
 }) => {
+  if (!ISRHandlerParams.url.includes('&renderingInfo')) {
+    ISRHandlerParams.url =
+      ISRHandlerParams.url + `&renderingInfo={"type":"ISR"}`
+  }
+
   const cacheManager = _utils4.default.call(void 0, ISRHandlerParams.url, pagesPath)
   if (!_InitEnv.PROCESS_ENV.BASE_URL) {
     _ConsoleHandler2.default.error('Missing base url!')
@@ -348,8 +350,6 @@ const ISRGenerator = async ({
             ISRHandlerParams.url
           ), 'optionalAccess', _7 => _7.groups]), () => ( {}))
 
-        console.log(_constants3.regexQueryStringSpecialInfo.exec(ISRHandlerParams.url))
-
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
         const resultPromise = new Promise(async (res) => {
           const handle = (() => {
@@ -457,8 +457,11 @@ const ISRGenerator = async ({
           res(result)
         })
 
-        console.log('specialInfo', specialInfo)
-        if (_optionalChain([specialInfo, 'access', _8 => _8.botInfo, 'optionalAccess', _9 => _9['name']]) === 'sitemap-crawler') {
+        const botInfo = specialInfo.botInfo
+          ? JSON.parse(specialInfo.botInfo)
+          : {}
+
+        if (botInfo['name'] === 'sitemap-crawler') {
           const tmpResult = await resultPromise
           if (tmpResult && tmpResult.status) result = tmpResult
           else {

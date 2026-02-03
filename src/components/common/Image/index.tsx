@@ -35,7 +35,7 @@ const Image = (props) => {
           onError={(e) => onError(e.target)}
         />
       )}
-      {!!hash && (
+      {RenderingInfo.type === 'CSR' && !!hash && (
         <BlurhashStyle
           className="blurhash"
           hash={hash}

@@ -6,9 +6,7 @@ const generateReadMoreMultipleLineStyle = functionGenerator(
 )
 
 // Styled component that explicitly forwards the href prop
-export const BlogCardStyle = styled.a.attrs({
-  href: undefined, // Declare href as an attribute so it gets forwarded
-})`
+export const BlogCardStyle = styled(LinkCustom)`
   overflow: hidden;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   flex: 0 0 calc(50% - 8px);

@@ -8,10 +8,7 @@ import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getPagesPath } from '../../../utils/PathHandler'
-import {
-  regexQueryStringSpecialInfo,
-  regexQueryStringSpecialInfoWithoutDeviceInfo,
-} from '../../constants'
+import { regexQueryStringSpecialInfoWithoutDeviceInfo } from '../../constants'
 import { ISSRResult } from '../../types'
 import ISRHandler from '../ISRHandler.worker'
 import {
@@ -86,6 +83,11 @@ const ISRGenerator = async ({
   isSkipWaiting = false,
   ...ISRHandlerParams
 }: IISRGeneratorParams): Promise<ISSRResult> => {
+  if (!ISRHandlerParams.url.includes('&renderingInfo')) {
+    ISRHandlerParams.url =
+      ISRHandlerParams.url + `&renderingInfo={"type":"ISR"}`
+  }
+
   const cacheManager = CacheManager(ISRHandlerParams.url, pagesPath)
   if (!PROCESS_ENV.BASE_URL) {
     Console.error('Missing base url!')
@@ -348,8 +350,6 @@ const ISRGenerator = async ({
             ISRHandlerParams.url
           )?.groups ?? {}
 
-        console.log(regexQueryStringSpecialInfo.exec(ISRHandlerParams.url))
-
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
         const resultPromise = new Promise<ISSRResult>(async (res) => {
           const handle = (() => {
@@ -457,8 +457,11 @@ const ISRGenerator = async ({
           res(result)
         })
 
-        console.log('specialInfo', specialInfo)
-        if (specialInfo.botInfo?.['name'] === 'sitemap-crawler') {
+        const botInfo = specialInfo.botInfo
+          ? JSON.parse(specialInfo.botInfo)
+          : {}
+
+        if (botInfo['name'] === 'sitemap-crawler') {
           const tmpResult = await resultPromise
           if (tmpResult && tmpResult.status) result = tmpResult
           else {
