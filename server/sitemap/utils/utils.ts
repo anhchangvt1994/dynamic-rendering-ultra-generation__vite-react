@@ -1,11 +1,13 @@
 import fs from 'node:fs'
-import path from 'node:path'
-import { FREQ_DEFAULT, FREQ_PATH_LIST } from '../../sitemap.worker/constants'
+import path from 'path'
+import {
+  FREQ_DEFAULT,
+  FREQ_PATH_LIST,
+  SITEMAP_DIR,
+  SITEMAP_FILE,
+} from '../../sitemap/constants'
 import Console from '../../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../src/utils/InitEnv'
-
-const SITEMAP_DIR = path.join(__dirname, '..', '..', 'sitemap')
-const SITEMAP_FILE = path.join(SITEMAP_DIR, 'sitemap.xml')
 
 export const normalizeUrl = (url: string): string => {
   if (!url) return ''
@@ -120,3 +122,10 @@ export const saveUrlToSitemap = (params: {
   // Write back
   fs.writeFileSync(SITEMAP_FILE, content)
 } // saveUrlToSitemap
+
+export const generateFilePath = (name): string => {
+  if (!name) return ''
+
+  const filePath = path.join(SITEMAP_DIR, name)
+  return ''
+} // generateFilePath

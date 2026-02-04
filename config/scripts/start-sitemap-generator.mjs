@@ -6,7 +6,7 @@ async function runScript() {
 
     await runCommand('./node_modules/.bin/cross-env', [
       'ENV=production',
-      'node -r sucrase/register server/sitemap.worker/index.ts',
+      'node -r sucrase/register server/sitemap/index.ts',
     ])
   } catch (err) {
     console.error(err.message)
