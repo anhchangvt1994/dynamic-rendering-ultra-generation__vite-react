@@ -57,6 +57,7 @@ export const getChangeFreq = (url: string): 'daily' | 'weekly' | 'monthly' => {
 } // getChangeFreq
 
 export const saveUrlToSitemap = (params: {
+  file: string
   url: string
   lastmod?: string
   changefreq?:
@@ -69,7 +70,13 @@ export const saveUrlToSitemap = (params: {
     | 'never'
   priority?: number
 }): void => {
-  const { url = '', lastmod = '', changefreq = '', priority = 0 } = params
+  const {
+    file = '',
+    url = '',
+    lastmod = '',
+    changefreq = '',
+    priority = 0,
+  } = params
 
   if (!url) {
     Console.error('Need provide `url`')
@@ -96,21 +103,16 @@ export const saveUrlToSitemap = (params: {
 
   newUrl += `\n  </url>\n`
 
-  // Create directory if not exists
-  if (!fs.existsSync(SITEMAP_DIR)) {
-    fs.mkdirSync(SITEMAP_DIR, { recursive: true })
-  }
-
   // Create file with header if not exists
-  if (!fs.existsSync(SITEMAP_FILE)) {
+  if (!fs.existsSync(file)) {
     fs.writeFileSync(
-      SITEMAP_FILE,
+      file,
       '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</urlset>'
     )
   }
 
   // Read current content
-  let content = fs.readFileSync(SITEMAP_FILE, 'utf-8')
+  let content = fs.readFileSync(file, 'utf-8')
 
   // Check for duplicate (using normalized URL)
   if (content.includes(`<loc>${normalizedUrl}</loc>`)) {
@@ -152,15 +154,12 @@ export const generateMainSitemapPath = (() => {
       }
     }
 
-    if (
-      isFinish &&
-      filePath === SITEMAP_FILE_RENEW &&
-      fs.existsSync(SITEMAP_FILE_RENEW)
-    ) {
-      fs.renameSync(SITEMAP_FILE_RENEW, SITEMAP_FILE)
-      filePath = SITEMAP_FILE
-    }
-
     return filePath
   }
 })() // generateMainSitemapPath
+
+export const handleFinishCrawlSitemap = () => {
+  if (fs.existsSync(SITEMAP_FILE_RENEW)) {
+    fs.renameSync(SITEMAP_FILE_RENEW, SITEMAP_FILE)
+  }
+} // handleFinishCrawlSitemap

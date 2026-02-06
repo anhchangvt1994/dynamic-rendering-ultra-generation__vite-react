@@ -12,6 +12,7 @@ const workerManager = WorkerManager.init(
 )
 
 export const saveUrlToSitemapWorker = async (params: {
+  file: string
   url: string
   lastmod?: string
   changefreq?:

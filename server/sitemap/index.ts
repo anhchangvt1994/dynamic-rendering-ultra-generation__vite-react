@@ -3,14 +3,10 @@ import BrowserManager from '../src/puppeteer-ssr/utils/BrowserManager'
 import Console from '../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../src/utils/InitEnv'
 import WorkerManager from '../src/utils/WorkerManager'
+import generateSitemapInfo from './injector'
 import { saveUrlToSitemapWorker } from './utils'
 import { ICrawlHandlerParams } from './utils/types'
-import {
-  getChangeFreq,
-  getPriority,
-  getTodayDate,
-  normalizeUrl,
-} from './utils/utils'
+import { normalizeUrl } from './utils/utils'
 
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.ts`),
@@ -27,7 +23,6 @@ const browserManager = BrowserManager()
 const error = (...args: any[]) => console.error('[SITEMAP ERROR]', ...args)
 
 const HOST = PROCESS_ENV.HOST
-const visitedUrls = new Set()
 
 // Use crawlWorker for URL crawling (uses worker pool with regex-based link extraction)
 export const crawlWorker = async (params: ICrawlHandlerParams) => {
@@ -78,21 +73,13 @@ const generateSitemap = async (url: string) => {
     return
   }
 
-  // Always normalize the URL for consistent handling
-  const normalizedUrl = normalizeUrl(url)
+  const sitemapInfo = generateSitemapInfo(url)
 
-  // Skip if already visited
-  if (visitedUrls.has(normalizedUrl)) {
+  if (!sitemapInfo) {
     return
   }
 
-  // Mark as visited
-  visitedUrls.add(normalizedUrl)
-
-  // Get metadata for this URL
-  const lastmod = getTodayDate()
-  const changefreq = getChangeFreq(url)
-  const priority = getPriority(url)
+  const { loc, lastmod, changefreq, priority } = sitemapInfo
 
   saveUrlToSitemapWorker({ url, lastmod, changefreq, priority })
 
