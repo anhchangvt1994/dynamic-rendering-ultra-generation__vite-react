@@ -5,6 +5,7 @@ import {
   FREQ_PATH_LIST,
   SITEMAP_DIR,
   SITEMAP_FILE,
+  SITEMAP_FILE_RENEW,
 } from '../../sitemap/constants'
 import Console from '../../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../src/utils/InitEnv'
@@ -123,9 +124,43 @@ export const saveUrlToSitemap = (params: {
   fs.writeFileSync(SITEMAP_FILE, content)
 } // saveUrlToSitemap
 
-export const generateFilePath = (name): string => {
+export const generateSubSitemapPath = (name): string => {
   if (!name) return ''
 
-  const filePath = path.join(SITEMAP_DIR, name)
-  return ''
-} // generateFilePath
+  const filePath = path.join(SITEMAP_DIR + '/sitemaps', name + '.xml')
+
+  if (!fs.existsSync(path.dirname(filePath))) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  }
+
+  return filePath
+} // generateSubSitemapPath
+
+export const generateMainSitemapPath = (() => {
+  let filePath = ''
+
+  return (): string => {
+    if (!filePath) {
+      if (fs.existsSync(SITEMAP_FILE)) {
+        if (fs.existsSync(SITEMAP_FILE_RENEW)) {
+          fs.rmSync(SITEMAP_FILE_RENEW)
+        }
+
+        filePath = SITEMAP_FILE_RENEW
+      } else {
+        filePath = SITEMAP_FILE
+      }
+    }
+
+    if (
+      isFinish &&
+      filePath === SITEMAP_FILE_RENEW &&
+      fs.existsSync(SITEMAP_FILE_RENEW)
+    ) {
+      fs.renameSync(SITEMAP_FILE_RENEW, SITEMAP_FILE)
+      filePath = SITEMAP_FILE
+    }
+
+    return filePath
+  }
+})() // generateMainSitemapPath
