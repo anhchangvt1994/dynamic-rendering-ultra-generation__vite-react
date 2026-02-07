@@ -1,6 +1,8 @@
 export interface ISitemapInfo {
   file: string
+  mainFile: string
   loc: string
+  mainLoc: string
   lastmod: string
   changefreq:
     | 'always'

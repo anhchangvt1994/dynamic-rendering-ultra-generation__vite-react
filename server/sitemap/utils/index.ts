@@ -13,7 +13,7 @@ const workerManager = WorkerManager.init(
 
 export const saveUrlToSitemapWorker = async (params: {
   file: string
-  url: string
+  loc: string
   lastmod?: string
   changefreq?:
     | 'always'
@@ -30,8 +30,8 @@ export const saveUrlToSitemapWorker = async (params: {
     return
   }
 
-  if (!params.url) {
-    Console.error('Need provide `url`')
+  if (!params.loc) {
+    Console.error('Need provide `loc`')
     return
   }
 

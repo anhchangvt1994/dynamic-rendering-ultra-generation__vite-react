@@ -3,9 +3,10 @@ import path from 'path'
 import {
   FREQ_DEFAULT,
   FREQ_PATH_LIST,
-  SITEMAP_DIR,
   SITEMAP_FILE,
   SITEMAP_FILE_RENEW,
+  SITEMAPS_DIR,
+  SITEMAPS_RENEW_DIR,
 } from '../../sitemap/constants'
 import Console from '../../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../src/utils/InitEnv'
@@ -58,7 +59,7 @@ export const getChangeFreq = (url: string): 'daily' | 'weekly' | 'monthly' => {
 
 export const saveUrlToSitemap = (params: {
   file: string
-  url: string
+  loc: string
   lastmod?: string
   changefreq?:
     | 'always'
@@ -72,19 +73,19 @@ export const saveUrlToSitemap = (params: {
 }): void => {
   const {
     file = '',
-    url = '',
+    loc = '',
     lastmod = '',
     changefreq = '',
     priority = 0,
   } = params
 
-  if (!url) {
-    Console.error('Need provide `url`')
+  if (!loc) {
+    Console.error('Need provide `loc`')
     return
   }
 
   // Normalize URL by removing trailing slashes
-  const normalizedUrl = normalizeUrl(url)
+  const normalizedUrl = normalizeUrl(loc)
 
   // Build optional XML elements
   let newUrl = `  <url>\n    <loc>${normalizedUrl}</loc>`
@@ -123,31 +124,41 @@ export const saveUrlToSitemap = (params: {
   content = content.replace('</urlset>', `${newUrl}</urlset>`)
 
   // Write back
-  fs.writeFileSync(SITEMAP_FILE, content)
+  fs.writeFileSync(file, content)
 } // saveUrlToSitemap
 
-export const generateSubSitemapPath = (name): string => {
-  if (!name) return ''
-
-  const filePath = path.join(SITEMAP_DIR + '/sitemaps', name + '.xml')
-
-  if (!fs.existsSync(path.dirname(filePath))) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+export const generateSubSitemapPath = (() => {
+  if (fs.existsSync(SITEMAPS_RENEW_DIR)) {
+    fs.rmSync(SITEMAPS_RENEW_DIR, { recursive: true, force: true })
   }
 
-  return filePath
-} // generateSubSitemapPath
+  return (name): string => {
+    if (!name) return ''
+
+    let filePath = path.join(SITEMAPS_DIR, name + '.xml')
+
+    if (fs.existsSync(filePath)) {
+      filePath = path.join(SITEMAPS_RENEW_DIR, name + '.xml')
+    }
+
+    if (!fs.existsSync(path.dirname(filePath))) {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    }
+
+    return filePath
+  }
+})() // generateSubSitemapPath
 
 export const generateMainSitemapPath = (() => {
   let filePath = ''
 
+  if (fs.existsSync(SITEMAP_FILE_RENEW)) {
+    fs.unlinkSync(SITEMAP_FILE_RENEW)
+  }
+
   return (): string => {
     if (!filePath) {
       if (fs.existsSync(SITEMAP_FILE)) {
-        if (fs.existsSync(SITEMAP_FILE_RENEW)) {
-          fs.rmSync(SITEMAP_FILE_RENEW)
-        }
-
         filePath = SITEMAP_FILE_RENEW
       } else {
         filePath = SITEMAP_FILE
@@ -159,7 +170,19 @@ export const generateMainSitemapPath = (() => {
 })() // generateMainSitemapPath
 
 export const handleFinishCrawlSitemap = () => {
+  if (fs.existsSync(SITEMAPS_RENEW_DIR)) {
+    if (fs.existsSync(SITEMAPS_DIR)) {
+      fs.rmSync(SITEMAPS_DIR, { recursive: true, force: true })
+    }
+
+    fs.renameSync(SITEMAPS_RENEW_DIR, SITEMAPS_DIR)
+  }
+
   if (fs.existsSync(SITEMAP_FILE_RENEW)) {
+    if (fs.existsSync(SITEMAP_FILE)) {
+      fs.unlinkSync(SITEMAP_FILE)
+    }
+
     fs.renameSync(SITEMAP_FILE_RENEW, SITEMAP_FILE)
   }
 } // handleFinishCrawlSitemap

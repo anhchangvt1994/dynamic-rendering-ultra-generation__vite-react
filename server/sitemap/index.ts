@@ -6,7 +6,7 @@ import WorkerManager from '../src/utils/WorkerManager'
 import generateSitemapInfo from './injector'
 import { saveUrlToSitemapWorker } from './utils'
 import { ICrawlHandlerParams } from './utils/types'
-import { normalizeUrl } from './utils/utils'
+import { handleFinishCrawlSitemap, normalizeUrl } from './utils/utils'
 
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.ts`),
@@ -79,9 +79,20 @@ const generateSitemap = async (url: string) => {
     return
   }
 
-  const { loc, lastmod, changefreq, priority } = sitemapInfo
+  const { file, mainFile, loc, mainLoc, lastmod, changefreq, priority } =
+    sitemapInfo
 
-  saveUrlToSitemapWorker({ url, lastmod, changefreq, priority })
+  saveUrlToSitemapWorker({ file, loc, lastmod, changefreq, priority })
+
+  if (mainFile && mainLoc) {
+    saveUrlToSitemapWorker({
+      file: mainFile,
+      loc: mainLoc,
+      lastmod,
+      changefreq,
+      priority,
+    })
+  }
 
   const result = await crawlWorker({ url })
   const urlList = result.data || []
@@ -89,11 +100,7 @@ const generateSitemap = async (url: string) => {
   if (urlList && urlList.length) {
     for (const link of urlList) {
       if (!link) continue
-      const normalizedLink = normalizeUrl(link)
-      // Skip if already visited
-      if (visitedUrls.has(normalizedLink)) {
-        continue
-      }
+
       await generateSitemap(link)
     }
   }
@@ -101,6 +108,7 @@ const generateSitemap = async (url: string) => {
 
 generateSitemap(normalizeUrl(HOST))
   .then(() => {
+    handleFinishCrawlSitemap()
     process.exit(0)
   })
   .catch((err) => {

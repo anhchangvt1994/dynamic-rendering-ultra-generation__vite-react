@@ -2,7 +2,7 @@ import {
   getApiProxyUrl,
   getPokemonDetailPath,
   getPokemonListPath,
-} from 'utils/ApiHelper'
+} from 'utils/ApiHelper';
 
 const proxyApi = ProxyAPI.init({
   targetBaseUrl: import.meta.env.API_BASE_URL,
@@ -19,11 +19,12 @@ const pokemonApi = createApi({
       { limit: number; offset: number }
     >({
       query: ({ limit, offset }) => {
-        const pokemonListEndpoint = getPokemonListPath(limit, offset)
+        const limitFinal = RenderingInfo.type !== 'ISR' ? limit : 500
+        const pokemonListEndpoint = getPokemonListPath(limitFinal, offset)
         return proxyApi.get(pokemonListEndpoint, {
-          expiredTime: 'infinite',
+          expiredTime: RenderingInfo.type !== 'ISR' ? 'infinite' : 0,
           cacheKey: pokemonListEndpoint,
-          enableStore: true,
+          enableStore: RenderingInfo.type !== 'ISR',
         })
       },
     }),

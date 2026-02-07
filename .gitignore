@@ -46,3 +46,5 @@ server/.env
 admin
 tsconfig.tsbuildinfo
 .kilocodemodes
+sitemap.xml
+server/sitemap/sitemaps/*

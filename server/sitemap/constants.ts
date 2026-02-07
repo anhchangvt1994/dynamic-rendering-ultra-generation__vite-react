@@ -1,6 +1,13 @@
 import path from 'path'
 
-export const SITEMAP_DIR = path.join(__dirname, '..', '..', 'sitemap')
+export const SITEMAP_DIR = path.join(__dirname, '..', 'sitemap')
+export const SITEMAPS_DIR = path.join(__dirname, '..', 'sitemap', 'sitemaps')
+export const SITEMAPS_RENEW_DIR = path.join(
+  __dirname,
+  '..',
+  'sitemap',
+  'sitemaps-renew'
+)
 export const SITEMAP_FILE = path.join(SITEMAP_DIR, 'sitemap.xml')
 export const SITEMAP_FILE_RENEW = path.join(SITEMAP_DIR, 'sitemap.renew.xml')
 
