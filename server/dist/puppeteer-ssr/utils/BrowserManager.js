@@ -67,15 +67,6 @@ const _deleteUserDataDir = async (dir) => {
   }
 } // _deleteUserDataDir
 
-const _getSafePage = (page) => {
-  let SafePage = page
-
-  return () => {
-    if (SafePage && SafePage.isClosed()) return
-    return SafePage
-  }
-} // _getSafePage
-
 const _getBrowserForSubThreads = (() => {
   const limit = 3
   let counter = 0
@@ -101,7 +92,10 @@ const _getBrowserForSubThreads = (() => {
         browserWSEndpoint: wsEndpoint,
       })
     } catch (err) {
-      _ConsoleHandler2.default.error('Failed to connect to browser via WebSocket:', err.message || err)
+      _ConsoleHandler2.default.error(
+        'Failed to connect to browser via WebSocket:',
+        err.message || err
+      )
       if (counter < limit) {
         counter++
         await new Promise((res) => setTimeout(res, 150))
@@ -126,6 +120,8 @@ const _getBrowserForSubThreads = (() => {
 })() // _getBrowserForSubThreads
 
 let browserManager
+const closedBrowserNeedDoubleCheck = new Map()
+
 function BrowserManager() {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !_constants3.canUseLinuxChromium) return
 
@@ -147,6 +143,22 @@ function BrowserManager() {
     let retryCounter = 0
 
     const __launch = async (options) => {
+      if (closedBrowserNeedDoubleCheck.size) {
+        for (const [
+          wsEndpoint,
+          browser,
+        ] of closedBrowserNeedDoubleCheck.entries()) {
+          if (browser) {
+            try {
+              await _optionalChain([browser, 'access', _ => _.close, 'optionalCall', _2 => _2()])
+              _optionalChain([browser, 'access', _3 => _3.process, 'call', _4 => _4(), 'optionalAccess', _5 => _5.kill, 'optionalCall', _6 => _6('SIGKILL')])
+            } catch (e) {}
+          }
+
+          closedBrowserNeedDoubleCheck.delete(wsEndpoint)
+        }
+      }
+
       options = {
         retry: false,
         ...options,
@@ -291,19 +303,30 @@ function BrowserManager() {
                   // if (closePageTimeout) clearTimeout(closePageTimeout)
 
                   if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                  if (tabsClosed === maxRequestPerBrowser) {
+                  if (tabsClosed >= maxRequestPerBrowser) {
+                    closedBrowserNeedDoubleCheck.set(
+                      browser.wsEndpoint(),
+                      browser
+                    )
+
                     browser.close().then(() => {
                       browser.emit('closed', true)
                       _ConsoleHandler2.default.log('Browser closed')
                     })
+                    browser.process().kill('SIGKILL')
                   } else {
                     closeBrowserTimeout = setTimeout(() => {
                       if (!browser.connected) return
+                      closedBrowserNeedDoubleCheck.set(
+                        browser.wsEndpoint(),
+                        browser
+                      )
                       browser.close().then(() => {
                         browser.emit('closed', true)
                         _ConsoleHandler2.default.log('Browser closed')
                       })
-                    }, 60000)
+                      browser.process().kill('SIGKILL')
+                    }, 30000)
                   }
                 } catch (err) {
                   _ConsoleHandler2.default.log('BrowserManager line 261')
@@ -365,6 +388,10 @@ function BrowserManager() {
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
 
+      if (browser && !closedBrowserNeedDoubleCheck.has(browser.wsEndpoint())) {
+        closedBrowserNeedDoubleCheck.set(browser.wsEndpoint(), browser)
+      }
+
       return browser 
     } // _get
 
@@ -380,7 +407,7 @@ function BrowserManager() {
           return _newPage()
         }
 
-        const page = await _optionalChain([browser, 'optionalAccess', _ => _.newPage, 'optionalCall', _2 => _2()])
+        const page = await _optionalChain([browser, 'optionalAccess', _7 => _7.newPage, 'optionalCall', _8 => _8()])
 
         if (!page) {
           browser.close()

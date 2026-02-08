@@ -10,6 +10,7 @@ import {
 } from '../../sitemap/constants'
 import Console from '../../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../src/utils/InitEnv'
+const { isMainThread } = require('worker_threads')
 
 export const normalizeUrl = (url: string): string => {
   if (!url) return ''
@@ -128,18 +129,22 @@ export const saveUrlToSitemap = (params: {
 } // saveUrlToSitemap
 
 export const generateSubSitemapPath = (() => {
-  if (fs.existsSync(SITEMAPS_RENEW_DIR)) {
-    fs.rmSync(SITEMAPS_RENEW_DIR, { recursive: true, force: true })
+  if (!isMainThread) return
+
+  let sitemapsDir = SITEMAPS_DIR
+
+  if (fs.existsSync(sitemapsDir)) {
+    sitemapsDir = SITEMAPS_RENEW_DIR
+
+    if (fs.existsSync(sitemapsDir)) {
+      fs.rmSync(sitemapsDir, { recursive: true, force: true })
+    }
   }
 
   return (name): string => {
     if (!name) return ''
 
-    let filePath = path.join(SITEMAPS_DIR, name + '.xml')
-
-    if (fs.existsSync(filePath)) {
-      filePath = path.join(SITEMAPS_RENEW_DIR, name + '.xml')
-    }
+    let filePath = path.join(sitemapsDir, name + '.xml')
 
     if (!fs.existsSync(path.dirname(filePath))) {
       fs.mkdirSync(path.dirname(filePath), { recursive: true })
@@ -150,6 +155,8 @@ export const generateSubSitemapPath = (() => {
 })() // generateSubSitemapPath
 
 export const generateMainSitemapPath = (() => {
+  if (!isMainThread) return
+
   let filePath = ''
 
   if (fs.existsSync(SITEMAP_FILE_RENEW)) {

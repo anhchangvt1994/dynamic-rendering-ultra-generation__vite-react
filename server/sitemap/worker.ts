@@ -91,7 +91,7 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
           timeout: 30000,
         })
       } catch (err) {
-        Console.log('ISRHandler line 341:')
+        Console.log('crawlHandler: Error during page goto')
         Console.error('err name: ', err.name)
         Console.error('err message: ', err.message)
         throw new Error('Internal Error')

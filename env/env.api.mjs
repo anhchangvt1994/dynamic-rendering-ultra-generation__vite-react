@@ -8,7 +8,7 @@ export default {
     base_strapi_url: 'https://anhchangvt1994.com/strapi',
     path: {
       get_pokemon_list: (limit = 20, offset = 0) =>
-        `/pokemon?limit${limit}&offset=${offset}`,
+        `/pokemon?limit=${limit}&offset=${offset}`,
 
       get_pokemon_detail: (name) => `/pokemon/${name}`,
 

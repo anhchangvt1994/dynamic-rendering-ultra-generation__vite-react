@@ -2,10 +2,10 @@ import Chromium from '@sparticuz/chromium-min'
 import path from 'path'
 import { Browser, Page } from 'puppeteer-core'
 import {
-    POWER_LEVEL,
-    POWER_LEVEL_LIST,
-    SERVER_LESS,
-    resourceExtension,
+  POWER_LEVEL,
+  POWER_LEVEL_LIST,
+  SERVER_LESS,
+  resourceExtension,
 } from '../../constants'
 import ServerConfig from '../../server.config'
 import { getStore, setStore } from '../../store'
@@ -15,10 +15,10 @@ import { ENV_MODE } from '../../utils/InitEnv'
 import { getUserDataPath } from '../../utils/PathHandler'
 import WorkerManager from '../../utils/WorkerManager'
 import {
-    canUseLinuxChromium,
-    chromiumPath,
-    defaultBrowserOptions,
-    puppeteer,
+  canUseLinuxChromium,
+  chromiumPath,
+  defaultBrowserOptions,
+  puppeteer,
 } from '../constants'
 const { parentPort, isMainThread } = require('worker_threads')
 
@@ -67,15 +67,6 @@ const _deleteUserDataDir = async (dir: string) => {
   }
 } // _deleteUserDataDir
 
-const _getSafePage = (page: Page | undefined) => {
-  let SafePage = page
-
-  return () => {
-    if (SafePage && SafePage.isClosed()) return
-    return SafePage
-  }
-} // _getSafePage
-
 const _getBrowserForSubThreads = (() => {
   const limit = 3
   let counter = 0
@@ -101,7 +92,10 @@ const _getBrowserForSubThreads = (() => {
         browserWSEndpoint: wsEndpoint,
       })
     } catch (err) {
-      Console.error('Failed to connect to browser via WebSocket:', err.message || err)
+      Console.error(
+        'Failed to connect to browser via WebSocket:',
+        err.message || err
+      )
       if (counter < limit) {
         counter++
         await new Promise((res) => setTimeout(res, 150))
@@ -126,6 +120,8 @@ const _getBrowserForSubThreads = (() => {
 })() // _getBrowserForSubThreads
 
 let browserManager: IBrowser | undefined
+const closedBrowserNeedDoubleCheck = new Map<string, Browser>()
+
 function BrowserManager(): IBrowser | undefined {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !canUseLinuxChromium) return
 
@@ -147,6 +143,22 @@ function BrowserManager(): IBrowser | undefined {
     let retryCounter = 0
 
     const __launch = async (options?: { retry: boolean }) => {
+      if (closedBrowserNeedDoubleCheck.size) {
+        for (const [
+          wsEndpoint,
+          browser,
+        ] of closedBrowserNeedDoubleCheck.entries()) {
+          if (browser) {
+            try {
+              await browser.close?.()
+              browser.process()?.kill?.('SIGKILL')
+            } catch {}
+          }
+
+          closedBrowserNeedDoubleCheck.delete(wsEndpoint)
+        }
+      }
+
       options = {
         retry: false,
         ...options,
@@ -291,19 +303,30 @@ function BrowserManager(): IBrowser | undefined {
                   // if (closePageTimeout) clearTimeout(closePageTimeout)
 
                   if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                  if (tabsClosed === maxRequestPerBrowser) {
+                  if (tabsClosed >= maxRequestPerBrowser) {
+                    closedBrowserNeedDoubleCheck.set(
+                      browser.wsEndpoint(),
+                      browser
+                    )
+
                     browser.close().then(() => {
                       browser.emit('closed', true)
                       Console.log('Browser closed')
                     })
+                    browser.process().kill('SIGKILL')
                   } else {
                     closeBrowserTimeout = setTimeout(() => {
                       if (!browser.connected) return
+                      closedBrowserNeedDoubleCheck.set(
+                        browser.wsEndpoint(),
+                        browser
+                      )
                       browser.close().then(() => {
                         browser.emit('closed', true)
                         Console.log('Browser closed')
                       })
-                    }, 60000)
+                      browser.process().kill('SIGKILL')
+                    }, 30000)
                   }
                 } catch (err) {
                   Console.log('BrowserManager line 261')
@@ -363,6 +386,10 @@ function BrowserManager(): IBrowser | undefined {
           })
         }, 3000)
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
+      }
+
+      if (browser && !closedBrowserNeedDoubleCheck.has(browser.wsEndpoint())) {
+        closedBrowserNeedDoubleCheck.set(browser.wsEndpoint(), browser)
       }
 
       return browser as Browser
