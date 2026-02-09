@@ -60,6 +60,9 @@ export const crawlWorker = async (params: ICrawlHandlerParams) => {
     }
   }
 
+  const url = params.url.split('?')[0]
+  browser?.emit('closePage', url)
+
   freePool.terminate({
     force: true,
   })

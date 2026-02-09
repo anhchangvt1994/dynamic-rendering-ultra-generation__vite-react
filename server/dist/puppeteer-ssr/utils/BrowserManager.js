@@ -23,6 +23,7 @@ var _constants3 = require('../constants');
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
+const browserActiveList = new Map()
 
 
 
@@ -120,7 +121,6 @@ const _getBrowserForSubThreads = (() => {
 })() // _getBrowserForSubThreads
 
 let browserManager
-const closedBrowserNeedDoubleCheck = new Map()
 
 function BrowserManager() {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !_constants3.canUseLinuxChromium) return
@@ -143,25 +143,20 @@ function BrowserManager() {
     let retryCounter = 0
 
     const __launch = async (options) => {
-      if (closedBrowserNeedDoubleCheck.size) {
-        for (const [
-          wsEndpoint,
-          browser,
-        ] of closedBrowserNeedDoubleCheck.entries()) {
-          if (browser) {
-            try {
-              await _optionalChain([browser, 'access', _ => _.close, 'optionalCall', _2 => _2()])
-              _optionalChain([browser, 'access', _3 => _3.process, 'call', _4 => _4(), 'optionalAccess', _5 => _5.kill, 'optionalCall', _6 => _6('SIGKILL')])
-            } catch (e) {}
-          }
-
-          closedBrowserNeedDoubleCheck.delete(wsEndpoint)
-        }
-      }
-
       options = {
         retry: false,
         ...options,
+      }
+
+      for (const [wsEndpoint, browserActive] of browserActiveList) {
+        if (!browserActive) continue
+
+        const pages = await browserActive.pages()
+
+        if (pages.length <= 1) {
+          browserActiveList.delete(wsEndpoint)
+          await browserActive.close()
+        }
       }
 
       totalRequests = 0
@@ -284,6 +279,7 @@ function BrowserManager() {
         try {
           let tabsClosed = 0
           const browser = (await browserLaunch) 
+          browserActiveList.set(browser.wsEndpoint(), browser)
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           _store.setStore.call(void 0, 'browser', browserStore)
@@ -298,40 +294,31 @@ function BrowserManager() {
             const currentWsEndpoint = _store.getStore.call(void 0, 'browser').wsEndpoint
 
             if (!_constants.SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
-              if (browser.connected)
-                try {
-                  // if (closePageTimeout) clearTimeout(closePageTimeout)
+              try {
+                // if (closePageTimeout) clearTimeout(closePageTimeout)
 
-                  if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                  if (tabsClosed >= maxRequestPerBrowser) {
-                    closedBrowserNeedDoubleCheck.set(
-                      browser.wsEndpoint(),
-                      browser
-                    )
+                if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
+                if (tabsClosed >= maxRequestPerBrowser) {
+                  _optionalChain([browser, 'optionalAccess', _ => _.close, 'optionalCall', _2 => _2(), 'access', _3 => _3.then, 'call', _4 => _4(() => {
+                    browser.emit('closed', true)
+                    _ConsoleHandler2.default.log('Browser closed')
+                  })])
+                  browser.process().kill('SIGKILL')
+                } else {
+                  closeBrowserTimeout = setTimeout(() => {
+                    // if (!browser.connected) return
 
-                    browser.close().then(() => {
+                    _optionalChain([browser, 'optionalAccess', _5 => _5.close, 'optionalCall', _6 => _6(), 'access', _7 => _7.then, 'call', _8 => _8(() => {
                       browser.emit('closed', true)
                       _ConsoleHandler2.default.log('Browser closed')
-                    })
+                    })])
                     browser.process().kill('SIGKILL')
-                  } else {
-                    closeBrowserTimeout = setTimeout(() => {
-                      if (!browser.connected) return
-                      closedBrowserNeedDoubleCheck.set(
-                        browser.wsEndpoint(),
-                        browser
-                      )
-                      browser.close().then(() => {
-                        browser.emit('closed', true)
-                        _ConsoleHandler2.default.log('Browser closed')
-                      })
-                      browser.process().kill('SIGKILL')
-                    }, 30000)
-                  }
-                } catch (err) {
-                  _ConsoleHandler2.default.log('BrowserManager line 261')
-                  _ConsoleHandler2.default.error(err)
+                  }, 30000)
                 }
+              } catch (err) {
+                _ConsoleHandler2.default.log('BrowserManager line 261')
+                _ConsoleHandler2.default.error(err)
+              }
             }
             // else {
             // 	if (closePageTimeout) clearTimeout(closePageTimeout)
@@ -388,10 +375,6 @@ function BrowserManager() {
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
 
-      if (browser && !closedBrowserNeedDoubleCheck.has(browser.wsEndpoint())) {
-        closedBrowserNeedDoubleCheck.set(browser.wsEndpoint(), browser)
-      }
-
       return browser 
     } // _get
 
@@ -407,7 +390,7 @@ function BrowserManager() {
           return _newPage()
         }
 
-        const page = await _optionalChain([browser, 'optionalAccess', _7 => _7.newPage, 'optionalCall', _8 => _8()])
+        const page = await _optionalChain([browser, 'optionalAccess', _9 => _9.newPage, 'optionalCall', _10 => _10()])
 
         if (!page) {
           browser.close()

@@ -78,7 +78,7 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
 ]; exports.optionArgs = optionArgs
 
  const defaultBrowserOptions = {
-  headless: false,
+  headless: 'shell',
   // defaultViewport: {
   //   width: WINDOW_VIEWPORT_WIDTH,
   //   height: WINDOW_VIEWPORT_HEIGHT,

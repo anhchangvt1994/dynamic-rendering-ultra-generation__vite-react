@@ -23,6 +23,7 @@ import {
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = getUserDataPath()
+const browserActiveList = new Map<string, Browser>()
 
 export interface IBrowser {
   get: () => Promise<Browser | undefined>
@@ -120,7 +121,6 @@ const _getBrowserForSubThreads = (() => {
 })() // _getBrowserForSubThreads
 
 let browserManager: IBrowser | undefined
-const closedBrowserNeedDoubleCheck = new Map<string, Browser>()
 
 function BrowserManager(): IBrowser | undefined {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !canUseLinuxChromium) return
@@ -143,25 +143,20 @@ function BrowserManager(): IBrowser | undefined {
     let retryCounter = 0
 
     const __launch = async (options?: { retry: boolean }) => {
-      if (closedBrowserNeedDoubleCheck.size) {
-        for (const [
-          wsEndpoint,
-          browser,
-        ] of closedBrowserNeedDoubleCheck.entries()) {
-          if (browser) {
-            try {
-              await browser.close?.()
-              browser.process()?.kill?.('SIGKILL')
-            } catch {}
-          }
-
-          closedBrowserNeedDoubleCheck.delete(wsEndpoint)
-        }
-      }
-
       options = {
         retry: false,
         ...options,
+      }
+
+      for (const [wsEndpoint, browserActive] of browserActiveList) {
+        if (!browserActive) continue
+
+        const pages = await browserActive.pages()
+
+        if (pages.length <= 1) {
+          browserActiveList.delete(wsEndpoint)
+          await browserActive.close()
+        }
       }
 
       totalRequests = 0
@@ -284,6 +279,7 @@ function BrowserManager(): IBrowser | undefined {
         try {
           let tabsClosed = 0
           const browser: Browser = (await browserLaunch) as Browser
+          browserActiveList.set(browser.wsEndpoint(), browser)
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           setStore('browser', browserStore)
@@ -298,40 +294,31 @@ function BrowserManager(): IBrowser | undefined {
             const currentWsEndpoint = getStore('browser').wsEndpoint
 
             if (!SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
-              if (browser.connected)
-                try {
-                  // if (closePageTimeout) clearTimeout(closePageTimeout)
+              try {
+                // if (closePageTimeout) clearTimeout(closePageTimeout)
 
-                  if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                  if (tabsClosed >= maxRequestPerBrowser) {
-                    closedBrowserNeedDoubleCheck.set(
-                      browser.wsEndpoint(),
-                      browser
-                    )
+                if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
+                if (tabsClosed >= maxRequestPerBrowser) {
+                  browser?.close?.().then(() => {
+                    browser.emit('closed', true)
+                    Console.log('Browser closed')
+                  })
+                  browser.process().kill('SIGKILL')
+                } else {
+                  closeBrowserTimeout = setTimeout(() => {
+                    // if (!browser.connected) return
 
-                    browser.close().then(() => {
+                    browser?.close?.().then(() => {
                       browser.emit('closed', true)
                       Console.log('Browser closed')
                     })
                     browser.process().kill('SIGKILL')
-                  } else {
-                    closeBrowserTimeout = setTimeout(() => {
-                      if (!browser.connected) return
-                      closedBrowserNeedDoubleCheck.set(
-                        browser.wsEndpoint(),
-                        browser
-                      )
-                      browser.close().then(() => {
-                        browser.emit('closed', true)
-                        Console.log('Browser closed')
-                      })
-                      browser.process().kill('SIGKILL')
-                    }, 30000)
-                  }
-                } catch (err) {
-                  Console.log('BrowserManager line 261')
-                  Console.error(err)
+                  }, 30000)
                 }
+              } catch (err) {
+                Console.log('BrowserManager line 261')
+                Console.error(err)
+              }
             }
             // else {
             // 	if (closePageTimeout) clearTimeout(closePageTimeout)
@@ -386,10 +373,6 @@ function BrowserManager(): IBrowser | undefined {
           })
         }, 3000)
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
-      }
-
-      if (browser && !closedBrowserNeedDoubleCheck.has(browser.wsEndpoint())) {
-        closedBrowserNeedDoubleCheck.set(browser.wsEndpoint(), browser)
       }
 
       return browser as Browser
