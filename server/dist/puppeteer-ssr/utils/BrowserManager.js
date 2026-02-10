@@ -23,7 +23,7 @@ var _constants3 = require('../constants');
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
-const browserActiveList = new Map()
+const browserActiveList = new Map([])
 
 
 
@@ -146,17 +146,6 @@ function BrowserManager() {
       options = {
         retry: false,
         ...options,
-      }
-
-      for (const [wsEndpoint, browserActive] of browserActiveList) {
-        if (!browserActive) continue
-
-        const pages = await browserActive.pages()
-
-        if (pages.length <= 1) {
-          browserActiveList.delete(wsEndpoint)
-          await browserActive.close()
-        }
       }
 
       totalRequests = 0
@@ -299,20 +288,27 @@ function BrowserManager() {
 
                 if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
                 if (tabsClosed >= maxRequestPerBrowser) {
-                  _optionalChain([browser, 'optionalAccess', _ => _.close, 'optionalCall', _2 => _2(), 'access', _3 => _3.then, 'call', _4 => _4(() => {
-                    browser.emit('closed', true)
-                    _ConsoleHandler2.default.log('Browser closed')
-                  })])
-                  browser.process().kill('SIGKILL')
-                } else {
-                  closeBrowserTimeout = setTimeout(() => {
-                    // if (!browser.connected) return
+                  const pages = await browser.pages()
 
-                    _optionalChain([browser, 'optionalAccess', _5 => _5.close, 'optionalCall', _6 => _6(), 'access', _7 => _7.then, 'call', _8 => _8(() => {
+                  if (pages.length <= 1) {
+                    _optionalChain([browser, 'optionalAccess', _ => _.close, 'optionalCall', _2 => _2(), 'access', _3 => _3.then, 'call', _4 => _4(() => {
                       browser.emit('closed', true)
                       _ConsoleHandler2.default.log('Browser closed')
                     })])
                     browser.process().kill('SIGKILL')
+                  }
+                } else {
+                  closeBrowserTimeout = setTimeout(async () => {
+                    // if (!browser.connected) return
+                    const pages = await browser.pages()
+
+                    if (pages.length <= 1) {
+                      _optionalChain([browser, 'optionalAccess', _5 => _5.close, 'optionalCall', _6 => _6(), 'access', _7 => _7.then, 'call', _8 => _8(() => {
+                        browser.emit('closed', true)
+                        _ConsoleHandler2.default.log('Browser closed')
+                      })])
+                      browser.process().kill('SIGKILL')
+                    }
                   }, 30000)
                 }
               } catch (err) {
@@ -373,6 +369,19 @@ function BrowserManager() {
           })
         }, 3000)
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
+      }
+
+      if (browserActiveList.size > 2) {
+        for (const [wsEndpoint, browserActive] of browserActiveList) {
+          if (!browserActive) continue
+
+          const pages = await browserActive.pages()
+
+          if (pages.length <= 1) {
+            browserActiveList.delete(wsEndpoint)
+            browserActive.close()
+          }
+        }
       }
 
       return browser 

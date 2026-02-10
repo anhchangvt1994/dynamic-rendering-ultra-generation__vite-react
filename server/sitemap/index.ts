@@ -6,7 +6,7 @@ import WorkerManager from '../src/utils/WorkerManager'
 import generateSitemapInfo from './injector'
 import { saveUrlToSitemapWorker } from './utils'
 import { ICrawlHandlerParams } from './utils/types'
-import { handleFinishCrawlSitemap, normalizeUrl } from './utils/utils'
+import { delay, handleFinishCrawlSitemap, normalizeUrl } from './utils/utils'
 
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.ts`),
@@ -70,6 +70,7 @@ export const crawlWorker = async (params: ICrawlHandlerParams) => {
   return result
 } // crawlWorker
 
+let counter = 0
 const generateSitemap = async (url: string) => {
   if (!url) {
     error('No URL provided')
@@ -98,13 +99,19 @@ const generateSitemap = async (url: string) => {
   }
 
   const result = await crawlWorker({ url })
-  const urlList = result.data || []
+  const urlList = result?.data || []
 
   if (urlList && urlList.length) {
     for (const link of urlList) {
       if (!link) continue
 
-      await generateSitemap(link)
+      generateSitemap(link)
+      counter++
+
+      if (counter === 10) {
+        await delay()
+        counter = 0
+      }
     }
   }
 }

@@ -193,3 +193,7 @@ export const handleFinishCrawlSitemap = () => {
     fs.renameSync(SITEMAP_FILE_RENEW, SITEMAP_FILE)
   }
 } // handleFinishCrawlSitemap
+
+export const delay = async (timing = 5000) => {
+  return new Promise((res) => setTimeout(res, timing))
+} // delay

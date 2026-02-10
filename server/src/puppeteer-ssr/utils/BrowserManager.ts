@@ -23,7 +23,7 @@ import {
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = getUserDataPath()
-const browserActiveList = new Map<string, Browser>()
+const browserActiveList = new Map<string, Browser>([])
 
 export interface IBrowser {
   get: () => Promise<Browser | undefined>
@@ -146,17 +146,6 @@ function BrowserManager(): IBrowser | undefined {
       options = {
         retry: false,
         ...options,
-      }
-
-      for (const [wsEndpoint, browserActive] of browserActiveList) {
-        if (!browserActive) continue
-
-        const pages = await browserActive.pages()
-
-        if (pages.length <= 1) {
-          browserActiveList.delete(wsEndpoint)
-          await browserActive.close()
-        }
       }
 
       totalRequests = 0
@@ -299,20 +288,27 @@ function BrowserManager(): IBrowser | undefined {
 
                 if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
                 if (tabsClosed >= maxRequestPerBrowser) {
-                  browser?.close?.().then(() => {
-                    browser.emit('closed', true)
-                    Console.log('Browser closed')
-                  })
-                  browser.process().kill('SIGKILL')
-                } else {
-                  closeBrowserTimeout = setTimeout(() => {
-                    // if (!browser.connected) return
+                  const pages = await browser.pages()
 
+                  if (pages.length <= 1) {
                     browser?.close?.().then(() => {
                       browser.emit('closed', true)
                       Console.log('Browser closed')
                     })
                     browser.process().kill('SIGKILL')
+                  }
+                } else {
+                  closeBrowserTimeout = setTimeout(async () => {
+                    // if (!browser.connected) return
+                    const pages = await browser.pages()
+
+                    if (pages.length <= 1) {
+                      browser?.close?.().then(() => {
+                        browser.emit('closed', true)
+                        Console.log('Browser closed')
+                      })
+                      browser.process().kill('SIGKILL')
+                    }
                   }, 30000)
                 }
               } catch (err) {
@@ -373,6 +369,19 @@ function BrowserManager(): IBrowser | undefined {
           })
         }, 3000)
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
+      }
+
+      if (browserActiveList.size > 2) {
+        for (const [wsEndpoint, browserActive] of browserActiveList) {
+          if (!browserActive) continue
+
+          const pages = await browserActive.pages()
+
+          if (pages.length <= 1) {
+            browserActiveList.delete(wsEndpoint)
+            browserActive.close()
+          }
+        }
       }
 
       return browser as Browser
