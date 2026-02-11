@@ -17,7 +17,7 @@ const workerManager = WorkerManager.init(
   ['crawlHandler']
 )
 
-const browserManager = BrowserManager()
+const browserManager = BrowserManager({ isSubThread: true })
 
 // Use console.error for logging
 const error = (...args: any[]) => console.error('[SITEMAP ERROR]', ...args)
@@ -105,12 +105,14 @@ const generateSitemap = async (url: string) => {
     for (const link of urlList) {
       if (!link) continue
 
-      generateSitemap(link)
+      await generateSitemap(link)
       counter++
 
-      if (counter === 10) {
+      if (counter === 9) {
         await delay()
         counter = 0
+      } else {
+        await delay(0)
       }
     }
   }

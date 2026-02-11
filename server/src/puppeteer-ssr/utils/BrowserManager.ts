@@ -23,7 +23,7 @@ import {
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = getUserDataPath()
-const browserActiveList = new Map<string, Browser>([])
+const browserActiveList = new Set<Browser>([])
 
 export interface IBrowser {
   get: () => Promise<Browser | undefined>
@@ -72,8 +72,6 @@ const _getBrowserForSubThreads = (() => {
   const limit = 3
   let counter = 0
   const _get = async () => {
-    if (isMainThread) return
-
     const wsEndpoint = getTextData(`${userDataPath}/wsEndpoint.txt`)
 
     if (!wsEndpoint && counter < limit) {
@@ -122,13 +120,15 @@ const _getBrowserForSubThreads = (() => {
 
 let browserManager: IBrowser | undefined
 
-function BrowserManager(): IBrowser | undefined {
+function BrowserManager(options: {
+  isSubThread: boolean
+}): IBrowser | undefined {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !canUseLinuxChromium) return
 
   if (browserManager) return browserManager
   else browserManager = this
 
-  if (isMainThread) {
+  if (!options.isSubThread && isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
     // const strUserDataDir = userDataDir()
     let strUserDataDir: string
@@ -268,7 +268,7 @@ function BrowserManager(): IBrowser | undefined {
         try {
           let tabsClosed = 0
           const browser: Browser = (await browserLaunch) as Browser
-          browserActiveList.set(browser.wsEndpoint(), browser)
+          browserActiveList.add(browser)
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           setStore('browser', browserStore)
@@ -283,38 +283,32 @@ function BrowserManager(): IBrowser | undefined {
             const currentWsEndpoint = getStore('browser').wsEndpoint
 
             if (!SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
-              try {
-                // if (closePageTimeout) clearTimeout(closePageTimeout)
+              if (browser.connected)
+                try {
+                  // if (closePageTimeout) clearTimeout(closePageTimeout)
 
-                if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                if (tabsClosed >= maxRequestPerBrowser) {
-                  const pages = await browser.pages()
-
-                  if (pages.length <= 1) {
-                    browser?.close?.().then(() => {
+                  if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
+                  if (tabsClosed === maxRequestPerBrowser) {
+                    browser.close().then(() => {
                       browser.emit('closed', true)
                       Console.log('Browser closed')
                     })
                     browser.process().kill('SIGKILL')
-                  }
-                } else {
-                  closeBrowserTimeout = setTimeout(async () => {
-                    // if (!browser.connected) return
-                    const pages = await browser.pages()
+                  } else {
+                    closeBrowserTimeout = setTimeout(() => {
+                      if (!browser.connected) return
 
-                    if (pages.length <= 1) {
-                      browser?.close?.().then(() => {
+                      browser.close().then(() => {
                         browser.emit('closed', true)
                         Console.log('Browser closed')
                       })
                       browser.process().kill('SIGKILL')
-                    }
-                  }, 30000)
+                    }, 60000)
+                  }
+                } catch (err) {
+                  Console.log('BrowserManager line 261')
+                  Console.error(err)
                 }
-              } catch (err) {
-                Console.log('BrowserManager line 261')
-                Console.error(err)
-              }
             }
             // else {
             // 	if (closePageTimeout) clearTimeout(closePageTimeout)
@@ -371,15 +365,33 @@ function BrowserManager(): IBrowser | undefined {
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
 
-      if (browserActiveList.size > 2) {
-        for (const [wsEndpoint, browserActive] of browserActiveList) {
+      if (browserActiveList.size > 1) {
+        for (const browserActive of browserActiveList) {
           if (!browserActive) continue
 
-          const pages = await browserActive.pages()
+          if (!browserActive.connected) {
+            browserActiveList.delete(browserActive)
+            continue
+          }
 
-          if (pages.length <= 1) {
-            browserActiveList.delete(wsEndpoint)
+          const pages = await browser.pages()
+
+          if (!pages.length) {
+            browserActiveList.delete(browserActive)
             browserActive.close()
+            browser.process().kill('SIGKILL')
+          } else if (pages.length === 1) {
+            const isActive = await pages[0].evaluate(() => {
+              return document.visibilityState === 'visible'
+            })
+
+            console.log('isActive', isActive)
+
+            if (!isActive) {
+              browserActiveList.delete(browserActive)
+              browserActive.close()
+              browser.process().kill('SIGKILL')
+            }
           }
         }
       }
@@ -395,6 +407,7 @@ function BrowserManager(): IBrowser | undefined {
 
         if (!browser.connected) {
           browser.close()
+          browser.process().kill('SIGKILL')
           __launch()
           return _newPage()
         }
@@ -403,6 +416,7 @@ function BrowserManager(): IBrowser | undefined {
 
         if (!page) {
           browser.close()
+          browser.process().kill('SIGKILL')
           __launch()
           return _newPage()
         }
@@ -426,10 +440,41 @@ function BrowserManager(): IBrowser | undefined {
     }
   } else {
     const _get = async () => {
-      parentPort.postMessage({
+      parentPort?.postMessage({
         name: 'getBrowser',
       })
       const browser = await _getBrowserForSubThreads()
+
+      if (browserActiveList.size > 1) {
+        for (const browserActive of browserActiveList) {
+          if (!browserActive) continue
+
+          if (!browserActive.connected) {
+            browserActiveList.delete(browserActive)
+            continue
+          }
+
+          const pages = await browser.pages()
+
+          if (!pages.length) {
+            browserActiveList.delete(browserActive)
+            browserActive.close()
+            browser.process().kill('SIGKILL')
+          } else if (pages.length === 1) {
+            const isActive = await pages[0].evaluate(() => {
+              return document.visibilityState === 'visible'
+            })
+
+            console.log('isActive', isActive)
+
+            if (!isActive) {
+              browserActiveList.delete(browserActive)
+              browserActive.close()
+              browser.process().kill('SIGKILL')
+            }
+          }
+        }
+      }
 
       return browser as Browser
     } // _get
@@ -440,11 +485,16 @@ function BrowserManager(): IBrowser | undefined {
   }
 }
 
-export default () => {
+export default (options?: { isSubThread?: boolean }) => {
   if (ENV_MODE === 'development') return
 
   if (browserManager) return browserManager
 
-  browserManager = BrowserManager()
+  const _options = {
+    isSubThread: false,
+    ...(options || {}),
+  }
+
+  browserManager = BrowserManager(_options)
   return browserManager
 }

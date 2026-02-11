@@ -194,6 +194,6 @@ export const handleFinishCrawlSitemap = () => {
   }
 } // handleFinishCrawlSitemap
 
-export const delay = async (timing = 5000) => {
+export const delay = (timing = 5000) => {
   return new Promise((res) => setTimeout(res, timing))
 } // delay

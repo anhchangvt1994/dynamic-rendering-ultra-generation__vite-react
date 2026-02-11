@@ -48,7 +48,7 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
         safePage()?.setUserAgent(
           'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
         ),
-        safePage()?.waitForNetworkIdle({ idleTime: 150 }),
+        safePage()?.waitForNetworkIdle({ idleTime: 500 }),
         safePage()?.setCacheEnabled(false),
         safePage()?.setRequestInterception(true),
         safePage()?.setExtraHTTPHeaders({
@@ -88,7 +88,7 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
       try {
         response = await safePage()?.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 30000,
+          timeout: 60000,
         })
       } catch (err) {
         Console.log('crawlHandler: Error during page goto')

@@ -23,7 +23,7 @@ var _constants3 = require('../constants');
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
-const browserActiveList = new Map([])
+const browserActiveList = new Set([])
 
 
 
@@ -72,8 +72,6 @@ const _getBrowserForSubThreads = (() => {
   const limit = 3
   let counter = 0
   const _get = async () => {
-    if (isMainThread) return
-
     const wsEndpoint = _FileHandler.getTextData.call(void 0, `${userDataPath}/wsEndpoint.txt`)
 
     if (!wsEndpoint && counter < limit) {
@@ -122,13 +120,15 @@ const _getBrowserForSubThreads = (() => {
 
 let browserManager
 
-function BrowserManager() {
+function BrowserManager(options
+
+) {
   if (process.env.PUPPETEER_SKIP_DOWNLOAD && !_constants3.canUseLinuxChromium) return
 
   if (browserManager) return browserManager
   else browserManager = this
 
-  if (isMainThread) {
+  if (!options.isSubThread && isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
     // const strUserDataDir = userDataDir()
     let strUserDataDir
@@ -268,7 +268,7 @@ function BrowserManager() {
         try {
           let tabsClosed = 0
           const browser = (await browserLaunch) 
-          browserActiveList.set(browser.wsEndpoint(), browser)
+          browserActiveList.add(browser)
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           _store.setStore.call(void 0, 'browser', browserStore)
@@ -283,38 +283,32 @@ function BrowserManager() {
             const currentWsEndpoint = _store.getStore.call(void 0, 'browser').wsEndpoint
 
             if (!_constants.SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
-              try {
-                // if (closePageTimeout) clearTimeout(closePageTimeout)
+              if (browser.connected)
+                try {
+                  // if (closePageTimeout) clearTimeout(closePageTimeout)
 
-                if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                if (tabsClosed >= maxRequestPerBrowser) {
-                  const pages = await browser.pages()
-
-                  if (pages.length <= 1) {
-                    _optionalChain([browser, 'optionalAccess', _ => _.close, 'optionalCall', _2 => _2(), 'access', _3 => _3.then, 'call', _4 => _4(() => {
+                  if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
+                  if (tabsClosed === maxRequestPerBrowser) {
+                    browser.close().then(() => {
                       browser.emit('closed', true)
                       _ConsoleHandler2.default.log('Browser closed')
-                    })])
+                    })
                     browser.process().kill('SIGKILL')
-                  }
-                } else {
-                  closeBrowserTimeout = setTimeout(async () => {
-                    // if (!browser.connected) return
-                    const pages = await browser.pages()
+                  } else {
+                    closeBrowserTimeout = setTimeout(() => {
+                      if (!browser.connected) return
 
-                    if (pages.length <= 1) {
-                      _optionalChain([browser, 'optionalAccess', _5 => _5.close, 'optionalCall', _6 => _6(), 'access', _7 => _7.then, 'call', _8 => _8(() => {
+                      browser.close().then(() => {
                         browser.emit('closed', true)
                         _ConsoleHandler2.default.log('Browser closed')
-                      })])
+                      })
                       browser.process().kill('SIGKILL')
-                    }
-                  }, 30000)
+                    }, 60000)
+                  }
+                } catch (err) {
+                  _ConsoleHandler2.default.log('BrowserManager line 261')
+                  _ConsoleHandler2.default.error(err)
                 }
-              } catch (err) {
-                _ConsoleHandler2.default.log('BrowserManager line 261')
-                _ConsoleHandler2.default.error(err)
-              }
             }
             // else {
             // 	if (closePageTimeout) clearTimeout(closePageTimeout)
@@ -371,15 +365,33 @@ function BrowserManager() {
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
 
-      if (browserActiveList.size > 2) {
-        for (const [wsEndpoint, browserActive] of browserActiveList) {
+      if (browserActiveList.size > 1) {
+        for (const browserActive of browserActiveList) {
           if (!browserActive) continue
 
-          const pages = await browserActive.pages()
+          if (!browserActive.connected) {
+            browserActiveList.delete(browserActive)
+            continue
+          }
 
-          if (pages.length <= 1) {
-            browserActiveList.delete(wsEndpoint)
+          const pages = await browser.pages()
+
+          if (!pages.length) {
+            browserActiveList.delete(browserActive)
             browserActive.close()
+            browser.process().kill('SIGKILL')
+          } else if (pages.length === 1) {
+            const isActive = await pages[0].evaluate(() => {
+              return document.visibilityState === 'visible'
+            })
+
+            console.log('isActive', isActive)
+
+            if (!isActive) {
+              browserActiveList.delete(browserActive)
+              browserActive.close()
+              browser.process().kill('SIGKILL')
+            }
           }
         }
       }
@@ -395,14 +407,16 @@ function BrowserManager() {
 
         if (!browser.connected) {
           browser.close()
+          browser.process().kill('SIGKILL')
           __launch()
           return _newPage()
         }
 
-        const page = await _optionalChain([browser, 'optionalAccess', _9 => _9.newPage, 'optionalCall', _10 => _10()])
+        const page = await _optionalChain([browser, 'optionalAccess', _ => _.newPage, 'optionalCall', _2 => _2()])
 
         if (!page) {
           browser.close()
+          browser.process().kill('SIGKILL')
           __launch()
           return _newPage()
         }
@@ -426,10 +440,41 @@ function BrowserManager() {
     }
   } else {
     const _get = async () => {
-      parentPort.postMessage({
+      _optionalChain([parentPort, 'optionalAccess', _3 => _3.postMessage, 'call', _4 => _4({
         name: 'getBrowser',
-      })
+      })])
       const browser = await _getBrowserForSubThreads()
+
+      if (browserActiveList.size > 1) {
+        for (const browserActive of browserActiveList) {
+          if (!browserActive) continue
+
+          if (!browserActive.connected) {
+            browserActiveList.delete(browserActive)
+            continue
+          }
+
+          const pages = await browser.pages()
+
+          if (!pages.length) {
+            browserActiveList.delete(browserActive)
+            browserActive.close()
+            browser.process().kill('SIGKILL')
+          } else if (pages.length === 1) {
+            const isActive = await pages[0].evaluate(() => {
+              return document.visibilityState === 'visible'
+            })
+
+            console.log('isActive', isActive)
+
+            if (!isActive) {
+              browserActiveList.delete(browserActive)
+              browserActive.close()
+              browser.process().kill('SIGKILL')
+            }
+          }
+        }
+      }
 
       return browser 
     } // _get
@@ -440,11 +485,16 @@ function BrowserManager() {
   }
 }
 
-exports. default = () => {
+exports. default = (options) => {
   if (_InitEnv.ENV_MODE === 'development') return
 
   if (browserManager) return browserManager
 
-  browserManager = BrowserManager()
+  const _options = {
+    isSubThread: false,
+    ...(options || {}),
+  }
+
+  browserManager = BrowserManager(_options)
   return browserManager
 }

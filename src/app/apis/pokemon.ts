@@ -19,7 +19,7 @@ const pokemonApi = createApi({
       { limit: number; offset: number }
     >({
       query: ({ limit, offset }) => {
-        const limitFinal = RenderingInfo.type !== 'ISR' ? limit : 500
+        const limitFinal = RenderingInfo.type !== 'ISR' ? limit : 200
 
         const pokemonListEndpoint = getPokemonListPath(limitFinal, offset)
         return proxyApi.get(pokemonListEndpoint, {
