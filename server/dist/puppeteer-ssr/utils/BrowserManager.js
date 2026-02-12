@@ -147,14 +147,17 @@ function BrowserManager(options
         retry: false,
         ...options,
       }
+      console.log('launch new browser')
 
       totalRequests = 0
 
       if (!options.retry) {
         strUserDataDir = userDataDir()
+
         selfUserDataDirPath =
           reserveUserDataDirPath ||
           `${strUserDataDir}${_serverconfig2.default.isRemoteCrawler ? '_remote' : ''}`
+
         reserveUserDataDirPath = `${strUserDataDir}_reserve${
           _serverconfig2.default.isRemoteCrawler ? '_remote' : ''
         }`
@@ -273,6 +276,8 @@ function BrowserManager(options
           browserStore.wsEndpoint = browser.wsEndpoint()
           _store.setStore.call(void 0, 'browser', browserStore)
 
+          console.log('browserStore.wsEndpoint', browserStore.wsEndpoint)
+
           _FileHandler.setTextData.call(void 0, `${userDataPath}/wsEndpoint.txt`, browserStore.wsEndpoint)
 
           // let closePageTimeout: NodeJS.Timeout
@@ -281,6 +286,11 @@ function BrowserManager(options
           browser.on('closePage', async (url) => {
             tabsClosed++
             const currentWsEndpoint = _store.getStore.call(void 0, 'browser').wsEndpoint
+
+            console.log('tabsClosed', tabsClosed)
+
+            console.log('currentWsEndpoint', currentWsEndpoint)
+            console.log('browser.wsEndpoint()', browser.wsEndpoint())
 
             if (!_constants.SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
               if (browser.connected)
@@ -373,26 +383,6 @@ function BrowserManager(options
             browserActiveList.delete(browserActive)
             continue
           }
-
-          const pages = await browser.pages()
-
-          if (!pages.length) {
-            browserActiveList.delete(browserActive)
-            browserActive.close()
-            browser.process().kill('SIGKILL')
-          } else if (pages.length === 1) {
-            const isActive = await pages[0].evaluate(() => {
-              return document.visibilityState === 'visible'
-            })
-
-            console.log('isActive', isActive)
-
-            if (!isActive) {
-              browserActiveList.delete(browserActive)
-              browserActive.close()
-              browser.process().kill('SIGKILL')
-            }
-          }
         }
       }
 
@@ -452,26 +442,6 @@ function BrowserManager(options
           if (!browserActive.connected) {
             browserActiveList.delete(browserActive)
             continue
-          }
-
-          const pages = await browser.pages()
-
-          if (!pages.length) {
-            browserActiveList.delete(browserActive)
-            browserActive.close()
-            browser.process().kill('SIGKILL')
-          } else if (pages.length === 1) {
-            const isActive = await pages[0].evaluate(() => {
-              return document.visibilityState === 'visible'
-            })
-
-            console.log('isActive', isActive)
-
-            if (!isActive) {
-              browserActiveList.delete(browserActive)
-              browserActive.close()
-              browser.process().kill('SIGKILL')
-            }
           }
         }
       }

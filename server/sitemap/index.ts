@@ -17,7 +17,7 @@ const workerManager = WorkerManager.init(
   ['crawlHandler']
 )
 
-const browserManager = BrowserManager({ isSubThread: true })
+const browserManager = BrowserManager()
 
 // Use console.error for logging
 const error = (...args: any[]) => console.error('[SITEMAP ERROR]', ...args)
