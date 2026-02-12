@@ -6,7 +6,6 @@ var _workerpool = require('workerpool'); var _workerpool2 = _interopRequireDefau
 var _zlib = require('zlib');
 var _constants = require('../../puppeteer-ssr/constants');
 var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
-
 var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _FileHandler = require('../FileHandler');
 var _utils = require('./utils');
@@ -180,10 +179,8 @@ const scanToCleanBrowsers = async (
   }
 } // scanToCleanBrowsers
 
-const scanToCleanOutdateBrowsers = async (
-  outdateBrowser
-) => {
-  if (!outdateBrowser || !outdateBrowser.size) return
+const scanToCleanOutdateBrowsers = async (outdateBrowser) => {
+  if (!outdateBrowser || !outdateBrowser.length) return
 
   for (const wsEndpoint of outdateBrowser) {
     if (!wsEndpoint) continue

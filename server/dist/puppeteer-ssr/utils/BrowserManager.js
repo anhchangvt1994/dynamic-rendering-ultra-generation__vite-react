@@ -145,7 +145,6 @@ function BrowserManager(options
         retry: false,
         ...options,
       }
-      console.log('launch new browser')
 
       totalRequests = 0
 

@@ -120,6 +120,8 @@ const workerManager = (() => {
 
     try {
       await pool.exec('scanToCleanBrowsers', Array.from(outdateBrowser))
+      outdateBrowser.clear()
+      _store.setStore.call(void 0, 'outdateBrowser', outdateBrowser)
     } catch (err) {
       _ConsoleHandler2.default.error(err)
     }

@@ -120,6 +120,8 @@ export const cleanOutdateBrowsers = (() => {
 
     try {
       await pool.exec('scanToCleanBrowsers', Array.from(outdateBrowser))
+      outdateBrowser.clear()
+      setStore('outdateBrowser', outdateBrowser)
     } catch (err) {
       Console.error(err)
     }
