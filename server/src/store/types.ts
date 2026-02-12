@@ -1,4 +1,3 @@
-import { Browser } from 'puppeteer-core'
 interface IWorkerInfo {
   counter: number
 }
@@ -13,7 +12,7 @@ export interface IStores {
     reserveUserDataPath?: string
     wsEndpoint?: string
   }
-  outdateBrowser: Map<string, Browser>
+  outdateBrowser: Set<string>
   threadAdvanceInfo: {
     order: number
   }

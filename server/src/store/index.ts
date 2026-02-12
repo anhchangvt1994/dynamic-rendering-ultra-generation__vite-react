@@ -1,7 +1,7 @@
 import { IStores } from './types'
 
 export const BrowserStore: IStores['browser'] = {}
-export const OutdateBrowser: IStores['outdateBrowser'] = new Map([])
+export const OutdateBrowser: IStores['outdateBrowser'] = new Set([])
 export const HeadersStore: IStores['headers'] = {}
 export const PromiseStore: IStores['promise'] = {}
 export const APICacheStore: IStores['api']['cache'] = new Map()

@@ -4,6 +4,7 @@ import path from 'path'
 import WorkerPool from 'workerpool'
 
 import { brotliDecompressSync } from 'zlib'
+import { puppeteer } from '../../puppeteer-ssr/constants'
 import ServerConfig from '../../server.config'
 import Console from '../ConsoleHandler'
 import { getTextData } from '../FileHandler'
@@ -177,6 +178,24 @@ const scanToCleanBrowsers = async (
     }
   }
 } // scanToCleanBrowsers
+
+const scanToCleanOutdateBrowsers = async (outdateBrowser) => {
+  if (!outdateBrowser || !outdateBrowser.length) return
+
+  for (const wsEndpoint of outdateBrowser) {
+    if (!wsEndpoint) continue
+
+    try {
+      const browser = puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+
+      if (browser && browser.connected) {
+        browser.close()
+      }
+    } catch {
+      continue
+    }
+  }
+} // scanToCleanOutdateBrowsers
 
 const scanToCleanPages = (dirPath: string) => {
   if (fs.existsSync(dirPath)) {
@@ -448,6 +467,7 @@ const scanToCleanAPIStoreCache = async (dirPath: string) => {
 WorkerPool.worker({
   checkToCleanFile,
   scanToCleanBrowsers,
+  scanToCleanOutdateBrowsers,
   scanToCleanPages,
   scanToCleanViews,
   scanToCleanAPIDataCache,

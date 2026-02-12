@@ -5,7 +5,6 @@ var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 
 
 
-
 var _constants = require('../../constants');
 var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _store = require('../../store');
@@ -23,7 +22,6 @@ var _constants3 = require('../constants');
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
-const browserActiveList = new Set([])
 
 
 
@@ -271,12 +269,16 @@ function BrowserManager(options
         try {
           let tabsClosed = 0
           const browser = (await browserLaunch) 
-          browserActiveList.add(browser)
+          const outdateBrowser = _store.getStore.call(void 0, 'outdateBrowser')
+
+          if (browserStore.wsEndpoint) {
+            outdateBrowser.add(browserStore.wsEndpoint)
+
+            _store.setStore.call(void 0, 'outdateBrowser', outdateBrowser)
+          }
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           _store.setStore.call(void 0, 'browser', browserStore)
-
-          console.log('browserStore.wsEndpoint', browserStore.wsEndpoint)
 
           _FileHandler.setTextData.call(void 0, `${userDataPath}/wsEndpoint.txt`, browserStore.wsEndpoint)
 
@@ -285,56 +287,31 @@ function BrowserManager(options
 
           browser.on('closePage', async (url) => {
             tabsClosed++
-            const currentWsEndpoint = _store.getStore.call(void 0, 'browser').wsEndpoint
 
-            console.log('tabsClosed', tabsClosed)
-
-            console.log('currentWsEndpoint', currentWsEndpoint)
-            console.log('browser.wsEndpoint()', browser.wsEndpoint())
-
-            if (!_constants.SERVER_LESS && currentWsEndpoint !== browser.wsEndpoint()) {
-              if (browser.connected)
-                try {
-                  // if (closePageTimeout) clearTimeout(closePageTimeout)
-
-                  if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
-                  if (tabsClosed === maxRequestPerBrowser) {
-                    browser.close().then(() => {
-                      browser.emit('closed', true)
-                      _ConsoleHandler2.default.log('Browser closed')
-                    })
-                    browser.process().kill('SIGKILL')
-                  } else {
-                    closeBrowserTimeout = setTimeout(() => {
-                      if (!browser.connected) return
-
-                      browser.close().then(() => {
-                        browser.emit('closed', true)
-                        _ConsoleHandler2.default.log('Browser closed')
-                      })
-                      browser.process().kill('SIGKILL')
-                    }, 60000)
-                  }
-                } catch (err) {
-                  _ConsoleHandler2.default.log('BrowserManager line 261')
-                  _ConsoleHandler2.default.error(err)
+            if (browser.connected)
+              try {
+                if (closeBrowserTimeout) clearTimeout(closeBrowserTimeout)
+                if (tabsClosed === maxRequestPerBrowser) {
+                  browser.close().then(() => {
+                    browser.emit('closed', true)
+                    _ConsoleHandler2.default.log('Browser closed')
+                    if (
+                      !_optionalChain([browser, 'optionalAccess', _ => _.connected]) &&
+                      outdateBrowser.has(browser.wsEndpoint())
+                    ) {
+                      outdateBrowser.delete(browser.wsEndpoint())
+                      _store.setStore.call(void 0, 'outdateBrowser', outdateBrowser)
+                    }
+                  })
                 }
-            }
-            // else {
-            // 	if (closePageTimeout) clearTimeout(closePageTimeout)
-            // 	closePageTimeout = setTimeout(() => {
-            // 		browser.pages().then(async (pages) => {
-            // 			if (pages.length) {
-            // 				for (const page of pages) {
-            // 					if (browser.connected && !page.isClosed()) page.close()
-            // 				}
-            // 			}
-            // 		})
-            // 	}, 30000)
-            // }
+              } catch (err) {
+                _ConsoleHandler2.default.log('BrowserManager line 261')
+                _ConsoleHandler2.default.error(err)
+              }
           })
 
           browser.once('disconnected', () => {
+            console.log('disconnect')
             _deleteUserDataDir(selfUserDataDirPath)
           })
         } catch (err) {
@@ -375,17 +352,6 @@ function BrowserManager(options
         retryCounter = retryCounter < 3 ? retryCounter++ : 0
       }
 
-      if (browserActiveList.size > 1) {
-        for (const browserActive of browserActiveList) {
-          if (!browserActive) continue
-
-          if (!browserActive.connected) {
-            browserActiveList.delete(browserActive)
-            continue
-          }
-        }
-      }
-
       return browser 
     } // _get
 
@@ -402,7 +368,7 @@ function BrowserManager(options
           return _newPage()
         }
 
-        const page = await _optionalChain([browser, 'optionalAccess', _ => _.newPage, 'optionalCall', _2 => _2()])
+        const page = await _optionalChain([browser, 'optionalAccess', _2 => _2.newPage, 'optionalCall', _3 => _3()])
 
         if (!page) {
           browser.close()
@@ -430,21 +396,10 @@ function BrowserManager(options
     }
   } else {
     const _get = async () => {
-      _optionalChain([parentPort, 'optionalAccess', _3 => _3.postMessage, 'call', _4 => _4({
+      _optionalChain([parentPort, 'optionalAccess', _4 => _4.postMessage, 'call', _5 => _5({
         name: 'getBrowser',
       })])
       const browser = await _getBrowserForSubThreads()
-
-      if (browserActiveList.size > 1) {
-        for (const browserActive of browserActiveList) {
-          if (!browserActive) continue
-
-          if (!browserActive.connected) {
-            browserActiveList.delete(browserActive)
-            continue
-          }
-        }
-      }
 
       return browser 
     } // _get

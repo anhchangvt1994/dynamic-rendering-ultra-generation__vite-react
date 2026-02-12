@@ -4,7 +4,9 @@ var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _workerpool = require('workerpool'); var _workerpool2 = _interopRequireDefault(_workerpool);
 
 var _zlib = require('zlib');
+var _constants = require('../../puppeteer-ssr/constants');
 var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+
 var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _FileHandler = require('../FileHandler');
 var _utils = require('./utils');
@@ -177,6 +179,26 @@ const scanToCleanBrowsers = async (
     }
   }
 } // scanToCleanBrowsers
+
+const scanToCleanOutdateBrowsers = async (
+  outdateBrowser
+) => {
+  if (!outdateBrowser || !outdateBrowser.size) return
+
+  for (const wsEndpoint of outdateBrowser) {
+    if (!wsEndpoint) continue
+
+    try {
+      const browser = _constants.puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+
+      if (browser && browser.connected) {
+        browser.close()
+      }
+    } catch (e) {
+      continue
+    }
+  }
+} // scanToCleanOutdateBrowsers
 
 const scanToCleanPages = (dirPath) => {
   if (_fs2.default.existsSync(dirPath)) {
@@ -448,6 +470,7 @@ const scanToCleanAPIStoreCache = async (dirPath) => {
 _workerpool2.default.worker({
   checkToCleanFile,
   scanToCleanBrowsers,
+  scanToCleanOutdateBrowsers,
   scanToCleanPages,
   scanToCleanViews,
   scanToCleanAPIDataCache,

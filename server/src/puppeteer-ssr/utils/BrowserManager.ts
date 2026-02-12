@@ -22,7 +22,6 @@ import {
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = getUserDataPath()
-const outdateBrowserList = new Map<string, Browser>([])
 
 export interface IBrowser {
   get: () => Promise<Browser | undefined>
@@ -146,7 +145,6 @@ function BrowserManager(options: {
         retry: false,
         ...options,
       }
-      console.log('launch new browser')
 
       totalRequests = 0
 
@@ -270,19 +268,16 @@ function BrowserManager(options: {
         try {
           let tabsClosed = 0
           const browser: Browser = (await browserLaunch) as Browser
+          const outdateBrowser = getStore('outdateBrowser')
 
           if (browserStore.wsEndpoint) {
-            const outdateBrowser = puppeteer.connect({
-              browserWSEndpoint: browserStore.wsEndpoint,
-            })
+            outdateBrowser.add(browserStore.wsEndpoint)
 
-            outdateBrowserList.set(browserStore.wsEndpoint, outdateBrowser)
+            setStore('outdateBrowser', outdateBrowser)
           }
 
           browserStore.wsEndpoint = browser.wsEndpoint()
           setStore('browser', browserStore)
-
-          console.log('browserStore.wsEndpoint', browserStore.wsEndpoint)
 
           setTextData(`${userDataPath}/wsEndpoint.txt`, browserStore.wsEndpoint)
 
@@ -301,9 +296,10 @@ function BrowserManager(options: {
                     Console.log('Browser closed')
                     if (
                       !browser?.connected &&
-                      outdateBrowserList.has(browser.wsEndpoint())
+                      outdateBrowser.has(browser.wsEndpoint())
                     ) {
-                      outdateBrowserList.delete(browser.wsEndpoint())
+                      outdateBrowser.delete(browser.wsEndpoint())
+                      setStore('outdateBrowser', outdateBrowser)
                     }
                   })
                 }

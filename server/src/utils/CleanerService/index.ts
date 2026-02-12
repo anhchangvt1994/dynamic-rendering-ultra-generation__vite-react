@@ -1,40 +1,44 @@
 import { SERVER_LESS } from '../../constants'
 import { ENV_MODE } from '../InitEnv'
 import {
-	cleanAPIDataCache,
-	cleanAPIStoreCache,
-	cleanBrowsers,
-	cleanOther,
-	cleanPages,
-	cleanViews,
+  cleanAPIDataCache,
+  cleanAPIStoreCache,
+  cleanBrowsers,
+  cleanOther,
+  cleanOutdateBrowsers,
+  cleanPages,
+  cleanViews,
 } from './utils'
 
 let isFirstInitCompleted = false
 
 const CleanerService = async (force = false) => {
-	if (ENV_MODE === 'development') return
+  if (ENV_MODE === 'development') return
 
-	if (isFirstInitCompleted && !force) return
+  if (isFirstInitCompleted && !force) return
 
-	// NOTE - Browser Cleaner
-	cleanBrowsers()
+  // NOTE - Browser Cleaner
+  cleanBrowsers()
 
-	// NOTE - Pages Cleaner
-	cleanPages()
+  // NOTE - Outdate Browser Cleaner
+  cleanOutdateBrowsers()
 
-	// NOTE - Views Cleaner
-	cleanViews()
+  // NOTE - Pages Cleaner
+  cleanPages()
 
-	// NOTE - API Data Cache Cleaner
-	cleanAPIDataCache()
+  // NOTE - Views Cleaner
+  cleanViews()
 
-	// NOTE - API Store Cache Cleaner
-	cleanAPIStoreCache()
+  // NOTE - API Data Cache Cleaner
+  cleanAPIDataCache()
 
-	// NOTE - Other cleaner
-	cleanOther()
+  // NOTE - API Store Cache Cleaner
+  cleanAPIStoreCache()
 
-	isFirstInitCompleted = true
+  // NOTE - Other cleaner
+  cleanOther()
+
+  isFirstInitCompleted = true
 }
 
 if (!SERVER_LESS) CleanerService()
