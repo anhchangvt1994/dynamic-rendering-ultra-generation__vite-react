@@ -94,7 +94,6 @@ function HomePage() {
 
   return (
     <HomePageStyle className="home-page">
-      {'TESTTTTTTTTT'}
       <PokemonListStyle>{pokemonList}</PokemonListStyle>
       {enableToShowBottomLine && <BottomLineStyle ref={bottomLineRef} />}
       {enableToShowInfinityLoading && <InfinityLoading />}
