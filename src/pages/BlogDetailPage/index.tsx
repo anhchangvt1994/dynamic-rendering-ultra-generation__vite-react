@@ -3,7 +3,7 @@ import Image from 'components/common/Image'
 import { getBlogDetailPath } from 'utils/ApiHelper'
 import BlogDetailLoading from './loading'
 import { BlogDetailPageStyle, TitleStyle } from './styles'
-import { generateDescription } from './utils'
+import { generateDescription, generateShortDescription } from './utils'
 
 const BlogDetailPage = () => {
   const route = useRoute()
@@ -17,6 +17,10 @@ const BlogDetailPage = () => {
     RenderingInfo.loader ||
     (isFetching && (!isFirstLoading || !blogDetailState))
   const description = generateDescription(blogDetailState?.content || [])
+  const imagePath = `${import.meta.env.HOST}${blogDetailState?.coverImage?.url ?? ''}`
+  const shortDescription = generateShortDescription(
+    blogDetailState?.content || []
+  )
 
   useEffect(() => {
     if (data && !isFetching) {
@@ -27,6 +31,23 @@ const BlogDetailPage = () => {
   useEffect(() => {
     if (!isFetching) setIsFirstLoading(false)
   }, [isFetching])
+
+  useEffect(() => {
+    if (blogDetailState) {
+      setSeoTag({
+        title: blogDetailState.title || 'Pokemon',
+        'og:type': 'website',
+        'og:title': blogDetailState.title || 'Pokemon',
+        'og:description': shortDescription,
+        'og:url': window.location.pathname,
+        'og:site_name': `Pokemon ${blogDetailState.name || ''}`,
+        'og:image': imagePath,
+        'og:image:width': '1200',
+        'og:image:height': '628',
+        robots: 'index, follow',
+      })
+    }
+  }, [JSON.stringify(blogDetailState), shortDescription])
 
   return (
     <BlogDetailPageStyle>

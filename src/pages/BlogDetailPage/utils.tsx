@@ -42,3 +42,27 @@ const generateTextFromBlock = (block: { [key: string]: any }) => {
 export const generateDescription = (content: any[] = []) => {
   return <>{content.map((block) => generateTextFromBlock(block))}</>
 }
+
+export const generateShortDescription = (content: any[] = []) => {
+  if (!content || !content.length) return ''
+
+  let shortDescription = ''
+
+  for (const item of content) {
+    if (shortDescription.length > 50) break
+
+    if (item.type === 'text' && item.text) shortDescription += item.text
+
+    if (item.children?.length) {
+      for (const child of item.children) {
+        if (shortDescription.length > 50) break
+
+        if (child.type === 'text' && child.text) shortDescription += child.text
+      }
+    }
+  }
+
+  console.log('shortDescription', shortDescription)
+
+  return shortDescription.trim().replace(/\s+/g, ' ')
+} // generateShortDescription

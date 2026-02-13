@@ -26,7 +26,12 @@
     "server-build": "node config/scripts/server-build.mjs",
     "start:sgen": "node config/scripts/start-sitemap-generator.mjs",
     "deploy": "bash deploy.sh --once",
-    "watch": "bash deploy.sh"
+    "deploy:watch": "bash deploy.sh",
+    "pm2:start:watch": "pm2 start ecosystem.deploy.config.cjs",
+    "pm2:stop:watch": "pm2 stop deploy-watch",
+    "pm2:restart:watch": "pm2 restart deploy-watch",
+    "pm2:logs:watch": "pm2 logs deploy-watch",
+    "pm2:reload:watch": "pm2 reload deploy-watch"
   },
   "engines": {
     "node": ">=20.x.x"
