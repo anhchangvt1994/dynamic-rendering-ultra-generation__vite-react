@@ -62,7 +62,5 @@ export const generateShortDescription = (content: any[] = []) => {
     }
   }
 
-  console.log('shortDescription', shortDescription)
-
   return shortDescription.trim().replace(/\s+/g, ' ')
 } // generateShortDescription
