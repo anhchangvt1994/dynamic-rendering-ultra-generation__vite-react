@@ -48,3 +48,15 @@ tsconfig.tsbuildinfo
 .kilocodemodes
 sitemap.xml
 server/sitemap/sitemaps/*
+
+
+# CI/CD Deployment Files
+deploy.sh
+watch-git.sh
+.last-commit
+.git-watch.log
+
+# Deployment Documentation (optional - uncomment to exclude)
+# DEPLOYMENT.md
+DEPLOYMENT.md
+.github/workflows/deploy.yml

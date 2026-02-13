@@ -24,7 +24,9 @@
     "prepare": "node config/scripts/prepare.mjs",
     "preinstall": "node server/src/utils/GenerateServerInfo.js",
     "server-build": "node config/scripts/server-build.mjs",
-    "start:sgen": "node config/scripts/start-sitemap-generator.mjs"
+    "start:sgen": "node config/scripts/start-sitemap-generator.mjs",
+    "deploy": "bash deploy.sh --once",
+    "watch": "bash deploy.sh"
   },
   "engines": {
     "node": ">=20.x.x"
