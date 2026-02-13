@@ -310,7 +310,6 @@ function BrowserManager(options
           })
 
           browser.once('disconnected', () => {
-            console.log('disconnect')
             _deleteUserDataDir(selfUserDataDirPath)
           })
         } catch (err) {
