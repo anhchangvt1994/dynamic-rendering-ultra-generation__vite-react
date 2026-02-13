@@ -1,4 +1,4 @@
-import Header from 'components/common/Header'
+import Header from 'components/common/Headers'
 import MenuBar from 'components/common/MenuBar'
 import SearchBar from 'components/common/SearchBar'
 import LoadingPageComponent from 'components/LoadingPageComponent'
