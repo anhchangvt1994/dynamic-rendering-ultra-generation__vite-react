@@ -1,6 +1,7 @@
 import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
-import SearchBar from 'components/common/SearchBar'
+import SearchBlogBar from 'components/common/SearchBlogBar'
+import SearchPokemonBar from 'components/common/SearchPokemonBar'
 import LoadingPageComponent from 'components/LoadingPageComponent'
 import React from 'react'
 import { BodyStyle, ContentStyle, MainContainerStyle } from 'styles'
@@ -33,6 +34,8 @@ function ContentWithOutlet() {
 const ContentMemo = React.memo(ContentWithOutlet)
 
 function Layout() {
+  const route = useRoute()
+
   if (BotInfo.isBot) {
     setMetaViewportTag('width=device-width, initial-scale=1')
   } else {
@@ -57,6 +60,27 @@ function Layout() {
   const onShowSearch = () => handleClickSearch(true)
   const onHideSearch = () => handleClickSearch(false)
 
+  const searchBarOfPage = (() => {
+    switch (true) {
+      case route.id === import.meta.env.ROUTER_HOME_ID:
+        return (
+          <SearchPokemonBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+        )
+      case route.id === import.meta.env.ROUTER_POKEMON_ID:
+        return (
+          <SearchPokemonBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+        )
+      case route.id === import.meta.env.ROUTER_BLOGS_ID:
+        return <SearchBlogBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+      case route.id === import.meta.env.ROUTER_BLOG_DETAIL_ID:
+        return <SearchBlogBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+      default:
+        return (
+          <SearchPokemonBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+        )
+    }
+  })()
+
   return (
     <div className="layout">
       <MainContainerStyle
@@ -69,7 +93,7 @@ function Layout() {
         </BodyStyle>
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
-        <SearchBar isOpen={isShowSearchBar} onClose={onHideSearch} />
+        {searchBarOfPage}
       </MainContainerStyle>
     </div>
   )

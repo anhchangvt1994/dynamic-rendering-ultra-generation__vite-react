@@ -1,4 +1,8 @@
-import { getApiProxyUrl, getBlogDetailPath } from 'utils/ApiHelper'
+import {
+  getApiProxyUrl,
+  getBlogDetailPath,
+  getSearchArticlesByTitlePath,
+} from 'utils/ApiHelper'
 
 const proxyApi = ProxyAPI.init({
   targetBaseUrl: import.meta.env.API_BASE_STRAPI_URL,
@@ -32,9 +36,29 @@ const blogApi = createApi({
         })
       },
     }),
+    [import.meta.env.API_ENDPOINT_SEARCH_ARTICLES_BY_TITLE]: builder.query<
+      any,
+      string
+    >({
+      query: (searchTerm: string) => {
+        if (!searchTerm) return
+
+        const path = getSearchArticlesByTitlePath(searchTerm)
+
+        return proxyApi.get(path, {
+          expiredTime: 'infinite',
+          cacheKey: path,
+          enableStore: true,
+        })
+      },
+    }),
   }),
 })
 
-export const { useGetPokemonBlogsQuery, useGetPokemonBlogDetailQuery } = blogApi
+export const {
+  useGetPokemonBlogsQuery,
+  useGetPokemonBlogDetailQuery,
+  useSearchArticlesByTitleQuery,
+} = blogApi
 
 export default blogApi

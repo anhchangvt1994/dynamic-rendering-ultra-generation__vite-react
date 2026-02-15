@@ -50,12 +50,14 @@ interface Env {
     API_PATH_GET_POKEMON_DETAIL_FUNCTION:          string;
     API_PATH_GET_POKEMON_BLOGS:                    string;
     API_PATH_GET_POKEMON_BLOG_DETAIL_FUNCTION:     string;
+    API_PATH_SEARCH_ARTICLES_BY_TITLE_FUNCTION:    string;
     API_REDUCER_PATH_POKEMON:                      string;
     API_REDUCER_PATH_STRAPI:                       string;
     API_ENDPOINT_GET_POKEMON_LIST:                 string;
     API_ENDPOINT_GET_POKEMON_DETAIL:               string;
     API_ENDPOINT_GET_POKEMON_BLOGS:                string;
     API_ENDPOINT_GET_POKEMON_BLOG_DETAIL:          string;
+    API_ENDPOINT_SEARCH_ARTICLES_BY_TITLE:         string;
     INFO_POKEMON_STATS_DEFAULT:                    InfoPokemonStatsDefault[];
     INFO_POKEMON_STATS_LEVEL:                      InfoPokemonStatsLevel;
     INFO_POKEMON_STATS_COLOR:                      InfoPokemonStatsColor;

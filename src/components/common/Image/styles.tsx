@@ -21,7 +21,7 @@ export const ImageStyle = styled.img`
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  object-fit: scale-down;
+  object-fit: contain;
 
   &.show {
     display: block;

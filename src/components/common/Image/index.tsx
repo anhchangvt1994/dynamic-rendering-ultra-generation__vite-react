@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import { RenderingInfo } from 'store/ServerStore'
+
 import { BlurhashStyle, ImageStyle, ImageWrapperStyle } from './styles'
 
 const Image = (props) => {
@@ -7,35 +10,71 @@ const Image = (props) => {
     hash = '',
     width = '100%',
     height = '100%',
+    lazy = true,
   } = props
+
+  const imageRef = useRef<HTMLImageElement>(null)
+  const [isInView, setIsInView] = useState(!lazy)
 
   const isSrcValid = !!src && !/\/\.(jpg|jpeg|gif|png|webp|svg|ico)/g.test(src)
 
-  const onLoad = (img) => {
+  // Set up IntersectionObserver for lazy loading
+  useEffect(() => {
+    if (!lazy) {
+      setIsInView(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true)
+            observer.disconnect()
+          }
+        })
+      },
+      {
+        rootMargin: '50px',
+        threshold: 0,
+      }
+    )
+
+    if (imageRef.current) {
+      observer.observe(imageRef.current)
+    }
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [lazy])
+
+  const handleLoad = (img: HTMLImageElement) => {
     img.classList.add('show')
   }
 
-  const onError = (img) => {
+  const handleError = (img: HTMLImageElement) => {
     img.classList.add('error')
   }
 
   return (
-    <ImageWrapperStyle className="image-wrapper">
-      {isSrcValid && (
+    <ImageWrapperStyle className="image-wrapper" ref={imageRef}>
+      {isSrcValid && isInView && (
         <ImageStyle
           className="image"
           src={src}
           alt={alt || ''}
           width={width}
           height={height}
+          loading={undefined}
           onLoad={async (e) => {
-            await e.currentTarget.decode()
-            onLoad(e.target)
+            await e.currentTarget.decode?.()
+            handleLoad(e.target as HTMLImageElement)
           }}
-          onError={(e) => onError(e.target)}
+          onError={(e) => handleError(e.target as HTMLImageElement)}
         />
       )}
-      {RenderingInfo.type === 'CSR' && !!hash && (
+      {!isInView && RenderingInfo.type === 'CSR' && !!hash && (
         <BlurhashStyle
           className="blurhash"
           hash={hash}

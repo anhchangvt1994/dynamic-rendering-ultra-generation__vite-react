@@ -45,6 +45,10 @@ const pokemonApi = createApi({
   }),
 })
 
-export const { useGetPokemonListQuery, useGetPokemonDetailQuery } = pokemonApi
+export const {
+  useGetPokemonListQuery,
+  useLazyGetPokemonListQuery,
+  useGetPokemonDetailQuery,
+} = pokemonApi
 
 export default pokemonApi
