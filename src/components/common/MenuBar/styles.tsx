@@ -1,43 +1,4 @@
-import styled, { css, keyframes } from 'styled-components'
-
-// Slide in animation
-const slideIn = keyframes`
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-`
-
-// Slide out animation
-const slideOut = keyframes`
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-`
-
-// Fade in animation for overlay
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-`
-
-// Hover scale effect
-const hoverScale = css`
-  transform: scale(1.02);
-`
+import styled from 'styled-components'
 
 export const OverlayStyle = styled.div<{ $isOpen: boolean }>`
   position: fixed;
@@ -45,7 +6,6 @@ export const OverlayStyle = styled.div<{ $isOpen: boolean }>`
   z-index: 100;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  animation: ${fadeIn} 0.3s ease-out;
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
   transition:
@@ -65,11 +25,9 @@ export const ContainerStyle = styled.div<{ $isOpen: boolean }>`
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  animation: ${({ $isOpen }) => ($isOpen ? slideIn : slideOut)} 0.35s
-    cubic-bezier(0.4, 0, 0.2, 1);
   transform: ${({ $isOpen }) =>
     $isOpen ? 'translateX(0)' : 'translateX(-100%)'};
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.35s ease-in;
   border-radius: 0;
 
   /* Custom scrollbar */

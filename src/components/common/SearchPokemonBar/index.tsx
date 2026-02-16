@@ -32,7 +32,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     if (target.value) setIsFiltering(true)
     else setIsFiltering(false)
 
-    setKeyword(target.value || '')
+    setKeyword(target.value.toLowerCase() || '')
   }
 
   const searchResultBody = useMemo(() => {
