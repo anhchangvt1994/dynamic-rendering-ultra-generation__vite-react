@@ -18,6 +18,8 @@ const BlogDetailPage = () => {
     blogDetailState.content || []
   )
 
+  console.log('isShowLoading', isShowLoading)
+
   useEffect(() => {
     if (data && !isFetching) {
       setBlogDetailState(data?.data?.[0] || null)

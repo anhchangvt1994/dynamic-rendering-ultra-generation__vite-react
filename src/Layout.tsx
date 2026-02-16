@@ -1,8 +1,14 @@
+import BlogCardLoading from 'components/common/BlogCard/loading'
 import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
 import SearchBlogBar from 'components/common/SearchBlogBar'
 import SearchPokemonBar from 'components/common/SearchPokemonBar'
+import PokemonCardLoading from 'components/home-page/pokemon-card/loading'
 import LoadingPageComponent from 'components/LoadingPageComponent'
+import BlogDetailLoading from 'pages/BlogDetailPage/loading'
+import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
+import { BlogPageStyled } from 'pages/BlogPage/styles'
+import { HomePageStyle, PokemonListStyle } from 'pages/HomePage/styles'
 import React from 'react'
 import { BodyStyle, ContentStyle, MainContainerStyle } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
@@ -13,9 +19,40 @@ const OutletWrapper = React.memo(() => {
 
   // This useMemo ensures the key changes on location, forcing remount on route change
 
+  const loading = useMemo(() => {
+    switch (true) {
+      case route.id === import.meta.env.ROUTER_HOME_ID:
+        return (
+          <HomePageStyle>
+            <PokemonListStyle>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <PokemonCardLoading key={index} />
+              ))}
+            </PokemonListStyle>
+          </HomePageStyle>
+        )
+      case route.id === import.meta.env.ROUTER_BLOG_DETAIL_ID:
+        return (
+          <BlogDetailPageStyle>
+            <BlogDetailLoading />
+          </BlogDetailPageStyle>
+        )
+      case route.id === import.meta.env.ROUTER_BLOGS_ID:
+        return (
+          <BlogPageStyled>
+            {Array.from({ length: 8 }).map((_, index) => (
+              <BlogCardLoading key={index} />
+            ))}
+          </BlogPageStyled>
+        )
+      default:
+        return <LoadingPageComponent />
+    }
+  }, [route.fullPath])
+
   return (
     <React.Fragment key={route.id}>
-      <LoadingBoundary delay={150} fallback={<LoadingPageComponent />}>
+      <LoadingBoundary delay={150} fallback={loading}>
         <Outlet />
       </LoadingBoundary>
     </React.Fragment>
