@@ -9,9 +9,10 @@ export const OverlayStyle = styled.div`
 
 export const ContainerStyle = styled.div`
   position: absolute;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 150px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 90%;
   max-width: 600px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}

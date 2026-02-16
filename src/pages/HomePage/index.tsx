@@ -26,55 +26,47 @@ function HomePage() {
   const observer = React.useRef<any>(null)
   const bottomLineRef = useRef<HTMLDivElement>(null)
 
-  const [pokemonListState, setPokemonListState] = useState(
-    getAPIStore(cacheKey)?.results ?? []
-  )
-  const { data, isFetching } = useGetPokemonListQuery({ limit, offset })
-  const [isFirstTimeLoading, setIsFirstTimeLoading] = useState(isFetching)
+  const { data = getAPIStore(cacheKey), isFetching } = useGetPokemonListQuery({
+    limit,
+    offset,
+  })
+  const [pokemonListState, setPokemonListState] = useState(data?.results ?? [])
+  const total = pokemonListState?.length ?? 0
 
   const hasBottomRef = !!bottomLineRef.current
-  const isShowLoading =
-    RenderingInfo.loader ||
-    (isFetching && (!isFirstTimeLoading || !pokemonListState))
+  const isShowLoading = RenderingInfo.loader || (isFetching && !data)
 
   const enablePagination = data?.count ? offset < data.count : false
   const enableToShowBottomLine =
-    !isShowLoading &&
-    enablePagination &&
-    pokemonListState.length - 20 === offset
+    !isShowLoading && enablePagination && total - 20 === offset
   const enableToShowInfinityLoading =
-    !data || data.count <= pokemonListState.length ? false : true
+    !data || data.count <= total ? false : true
 
-  const pokemonList =
-    isShowLoading && (!pokemonListState || !pokemonListState.length)
-      ? Array.from({ length: 8 }).map((_, index) => (
-          <PokemonCardLoading key={index} />
-        ))
-      : pokemonListState?.map?.((pokemon) => (
-          <PokemonCard key={pokemon.name} pokemon={pokemon} />
-        ))
+  const pokemonList = isShowLoading
+    ? Array.from({ length: 8 }).map((_, index) => (
+        <PokemonCardLoading key={index} />
+      ))
+    : pokemonListState.map?.((pokemon) => (
+        <PokemonCard key={pokemon.name} pokemon={pokemon} />
+      ))
 
   const handlePageChange = () => {
     if (!isFetching) setOffset(offset + limit)
   } // handlePageChange
 
   useEffect(() => {
-    if (data) {
-      if (!data || !data.results || !data.results.length) return
+    if (
+      !data ||
+      !data.results ||
+      !data.results.length ||
+      pokemonListState.length > offset
+    )
+      return
 
-      if (!pokemonListState || pokemonListState.length === offset) {
-        setPokemonListState([...pokemonListState, ...data.results])
-      } else {
-        setPokemonListState(data.results)
-      }
-    }
+    const tmpPokemonList = [...pokemonListState, ...data.results]
+
+    setPokemonListState(tmpPokemonList)
   }, [JSON.stringify(data)])
-
-  useEffect(() => {
-    if (isFirstTimeLoading) {
-      setIsFirstTimeLoading(false)
-    }
-  }, [isFetching])
 
   useScrollInfinity(
     (initObserver, getOnIntersection) => {

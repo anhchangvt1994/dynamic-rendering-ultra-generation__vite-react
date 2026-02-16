@@ -10,6 +10,13 @@ export const BlogDetailPageStyle = styled.div`
     margin: 0 auto 16px;
     border-radius: 8px;
   }
+
+  .image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
 `
 
 export const ImageLoadingStyle = styled.div`
@@ -30,7 +37,7 @@ export const TitleStyle = styled.h1`
 export const TitleLoadingStyle = styled.div`
   height: 24px;
   width: 50%;
-  margin: 0 auto 28px;
+  margin: -12px auto 24px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   border-radius: 4px;
 `

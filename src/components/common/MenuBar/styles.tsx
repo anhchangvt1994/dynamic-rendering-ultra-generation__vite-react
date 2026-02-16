@@ -27,7 +27,7 @@ export const ContainerStyle = styled.div<{ $isOpen: boolean }>`
   overflow-x: hidden;
   transform: ${({ $isOpen }) =>
     $isOpen ? 'translateX(0)' : 'translateX(-100%)'};
-  transition: transform 0.35s ease-in;
+  transition: transform 0.35s ease;
   border-radius: 0;
 
   /* Custom scrollbar */

@@ -2,22 +2,26 @@ import styled from 'styled-components'
 
 export const OverlayStyle = styled.div`
   position: fixed;
-  inset: 0;
   z-index: 100;
   background: rgba(0, 0, 0, 0.85);
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
 `
 
 export const ContainerStyle = styled.div`
   position: absolute;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
   width: 90%;
   max-width: 600px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   background: rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   padding: 24px;
+  top: 150px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
 `
 
 export const SearchBarStyle = styled.div`

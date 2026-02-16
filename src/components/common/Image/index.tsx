@@ -15,6 +15,7 @@ const Image = (props) => {
 
   const imageRef = useRef<HTMLImageElement>(null)
   const [isInView, setIsInView] = useState(!lazy)
+  const [isLoaded, setIsLoaded] = useState<boolean>(false)
 
   const isSrcValid = !!src && !/\/\.(jpg|jpeg|gif|png|webp|svg|ico)/g.test(src)
 
@@ -50,6 +51,7 @@ const Image = (props) => {
   }, [lazy])
 
   const handleLoad = (img: HTMLImageElement) => {
+    setIsLoaded(true)
     img.classList.add('show')
   }
 
@@ -68,21 +70,21 @@ const Image = (props) => {
           height={height}
           loading={undefined}
           onLoad={async (e) => {
-            await e.currentTarget.decode?.()
+            try {
+              await e.currentTarget.decode?.()
+              await new Promise((res) => setTimeout(res, 150))
+            } catch {}
             handleLoad(e.target as HTMLImageElement)
           }}
           onError={(e) => handleError(e.target as HTMLImageElement)}
         />
       )}
-      {!isInView && RenderingInfo.type === 'CSR' && !!hash && (
+      {!isLoaded && RenderingInfo.type === 'CSR' && !!hash && (
         <BlurhashStyle
           className="blurhash"
           hash={hash}
           width={width}
           height={height}
-          resolutionX={32}
-          resolutionY={32}
-          punch={1}
         />
       )}
     </ImageWrapperStyle>
