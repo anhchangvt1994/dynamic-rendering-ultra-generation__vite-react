@@ -56,7 +56,8 @@ const BlogDetailPage = () => {
   }, [JSON.stringify(blogDetailState), shortDescription])
 
   const handleBack = () => {
-    if (!navigateInfo.from) return navigate(import.meta.env.ROUTER_BLOGS_PATH)
+    if (!navigateInfo.from)
+      return navigate(import.meta.env.ROUTER_BLOGS_GET_PATH)
 
     navigate(-1)
   } // handleBack
