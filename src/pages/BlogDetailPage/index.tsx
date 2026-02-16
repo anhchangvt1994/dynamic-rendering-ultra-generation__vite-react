@@ -8,18 +8,14 @@ import { generateDescription, generateShortDescription } from './utils'
 const BlogDetailPage = () => {
   const route = useRoute()
   const { slug } = route.params
-  const { data, isFetching } = useGetPokemonBlogDetailQuery(slug)
-  const [blogDetailState, setBlogDetailState] = useState(
-    getAPIStore(getBlogDetailPath(slug))?.data?.[0]
-  )
-  const [isFirstLoading, setIsFirstLoading] = useState(isFetching)
-  const isShowLoading =
-    RenderingInfo.loader ||
-    (isFetching && (!isFirstLoading || !blogDetailState))
-  const description = generateDescription(blogDetailState?.content || [])
-  const imagePath = `${import.meta.env.HOST}${blogDetailState?.coverImage?.url ?? ''}`
+  const { data = getAPIStore(getBlogDetailPath(slug)), isFetching } =
+    useGetPokemonBlogDetailQuery(slug)
+  const [blogDetailState, setBlogDetailState] = useState(data?.data ?? {})
+  const isShowLoading = RenderingInfo.loader || (isFetching && !data)
+  const description = generateDescription(blogDetailState.content || [])
+  const imagePath = `${import.meta.env.HOST}${blogDetailState.coverImage?.url ?? ''}`
   const shortDescription = generateShortDescription(
-    blogDetailState?.content || []
+    blogDetailState.content || []
   )
 
   useEffect(() => {
@@ -27,10 +23,6 @@ const BlogDetailPage = () => {
       setBlogDetailState(data?.data?.[0] || null)
     }
   }, [data, isFetching])
-
-  useEffect(() => {
-    if (!isFetching) setIsFirstLoading(false)
-  }, [isFetching])
 
   useEffect(() => {
     if (blogDetailState) {
