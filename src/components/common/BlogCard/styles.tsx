@@ -71,6 +71,7 @@ export const BodyStyle = styled.div`
 export const TitleStyle = styled.h3`
   margin: 0 0 8px 0;
   color: #ffffff;
+  ${generateReadMoreMultipleLineStyle(css, 2)}
 `
 
 export const TitleLoadingStyle = styled.div`
