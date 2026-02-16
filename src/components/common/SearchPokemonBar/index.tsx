@@ -16,6 +16,7 @@ interface SearchBarProps {
 
 const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState<{ name: string }[]>([])
   const [isFiltering, setIsFiltering] = useState(false)
@@ -35,6 +36,10 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     setKeyword(target.value.toLowerCase() || '')
   }
 
+  const handleScroll = () => {
+    inputRef.current?.blur()
+  }
+
   const searchResultBody = useMemo(() => {
     if (!keyword) return null
 
@@ -43,7 +48,13 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     // if (!results.length) return <SearchNoData />
     if (isFiltering) return <SearchLoading />
 
-    return <SearchResults keyword={keyword} searchResults={results || []} />
+    return (
+      <SearchResults
+        keyword={keyword}
+        searchResults={results || []}
+        onScroll={handleScroll}
+      />
+    )
   }, [isFiltering, JSON.stringify(results)])
 
   useEffect(() => {
@@ -86,6 +97,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
         <SearchBarStyle>
           <span className="material-symbols-outlined">search</span>
           <input
+            ref={inputRef}
             autoFocus
             type="text"
             placeholder="Search..."

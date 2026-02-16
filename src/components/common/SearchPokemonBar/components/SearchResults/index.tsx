@@ -10,7 +10,7 @@ import {
 } from './styles'
 
 const SearchResults = (props) => {
-  const { keyword = '', searchResults = [] } = props
+  const { keyword = '', searchResults = [], onScroll } = props
   const getSlugUnderScore = useCallback(getCustomSlug('_'), [])
   const getPokemonDetailUrl = functionGenerator(
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
@@ -37,7 +37,7 @@ const SearchResults = (props) => {
     )
   })
 
-  return <SearchListStyle>{loadingList}</SearchListStyle>
+  return <SearchListStyle onScroll={onScroll}>{loadingList}</SearchListStyle>
 }
 
 export default SearchResults

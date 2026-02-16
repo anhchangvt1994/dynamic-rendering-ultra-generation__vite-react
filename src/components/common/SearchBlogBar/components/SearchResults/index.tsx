@@ -12,7 +12,7 @@ import {
 import { generateShortDescription } from './utils'
 
 const SearchResults = (props) => {
-  const { keyword = '', searchResults = [] } = props
+  const { keyword = '', searchResults = [], onScroll } = props
 
   const searchResultList = searchResults.map((result) => {
     if (!result) return null
@@ -51,7 +51,9 @@ const SearchResults = (props) => {
     )
   })
 
-  return <SearchListStyle>{searchResultList}</SearchListStyle>
+  return (
+    <SearchListStyle onScroll={onScroll}>{searchResultList}</SearchListStyle>
+  )
 }
 
 export default SearchResults

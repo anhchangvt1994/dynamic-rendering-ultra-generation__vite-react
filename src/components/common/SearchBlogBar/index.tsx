@@ -17,6 +17,7 @@ interface SearchBarProps {
 
 const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [keyword, setKeyword] = useState('')
   const [results, setResults] = useState<{ name: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -58,12 +59,22 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
     }
   }, [location.pathname])
 
+  const handleScroll = () => {
+    inputRef.current?.blur()
+  }
+
   const searchResultBody = useMemo(() => {
     if (isSearching) return <SearchLoading />
 
     if (!keyword || !results || !results.length) return null
 
-    return <SearchResults keyword={keyword} searchResults={results || []} />
+    return (
+      <SearchResults
+        keyword={keyword}
+        searchResults={results || []}
+        onScroll={handleScroll}
+      />
+    )
   }, [isSearching, JSON.stringify(results)])
 
   if (!isOpen) return null
@@ -74,6 +85,7 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
         <SearchBarStyle>
           <span className="material-symbols-outlined">search</span>
           <input
+            ref={inputRef}
             autoFocus
             type="text"
             placeholder="Search..."
