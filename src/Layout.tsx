@@ -10,7 +10,12 @@ import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
 import { BlogPageStyled } from 'pages/BlogPage/styles'
 import { HomePageStyle, PokemonListStyle } from 'pages/HomePage/styles'
 import React from 'react'
-import { BodyStyle, ContentStyle, MainContainerStyle } from 'styles'
+import {
+  BodyStyle,
+  BodyWrapperStyle,
+  ContentStyle,
+  MainContainerStyle,
+} from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
 
 // Memoized Outlet wrapper that only re-renders when route location changes
@@ -125,9 +130,11 @@ function Layout() {
       >
         <Header onClickMenu={onShowMenu} onClickSearch={onShowSearch} />
 
-        <BodyStyle>
-          <ContentMemo />
-        </BodyStyle>
+        <BodyWrapperStyle>
+          <BodyStyle>
+            <ContentMemo />
+          </BodyStyle>
+        </BodyWrapperStyle>
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
         {searchBarOfPage}

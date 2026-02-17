@@ -5,7 +5,7 @@ const generateReadMoreMultipleLineStyle = functionGenerator(
   import.meta.env.STYLE_MIXINS_READ_MORE_MULTIPLE_LINE_FUNCTION
 )
 
-export const SearchListStyle = styled.ul`
+export const BlogListStyle = styled.ul`
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
@@ -16,7 +16,7 @@ export const SearchListStyle = styled.ul`
   max-height: 40dvh;
 `
 
-export const SearchItemStyle = styled.li`
+export const BlogItemStyle = styled.li`
   margin-top: 16px;
 
   &:first-child {
@@ -24,7 +24,7 @@ export const SearchItemStyle = styled.li`
   }
 `
 
-export const SearchItemInnerStyle = styled(LinkCustom)`
+export const BlogItemInnerStyle = styled(LinkCustom)`
   display: flex;
   gap: 8px;
   padding: 8px;
@@ -32,7 +32,7 @@ export const SearchItemInnerStyle = styled(LinkCustom)`
   border-radius: 10px;
 `
 
-export const SearchItemInnerLoadingStyle = styled.div`
+export const BlogItemInnerLoadingStyle = styled.div`
   display: flex;
   gap: 8px;
   padding: 8px;
@@ -50,8 +50,8 @@ export const ImageColStyle = styled.div`
   justify-content: center;
 
   .image-wrapper {
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
     border-radius: 4px;
 
     &::before,

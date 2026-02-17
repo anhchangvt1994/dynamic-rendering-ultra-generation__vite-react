@@ -25,17 +25,37 @@ export const MainContainerStyle = styled.div`
   }
 `
 
-export const BodyStyle = styled.div`
-  padding: 16px;
-  margin-top: 16px;
+export const BodyWrapperStyle = styled.div`
+  position: relative;
   flex: 1 1 auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  border-radius: 16px;
+  margin-top: 16px;
+  /* z-index: 0; */
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+    z-index: 0;
+  }
+`
+
+export const BodyStyle = styled.div`
+  position: relative;
   overflow-y: auto;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
   /* Firefox */
   scrollbar-width: none;
   /* IE / Edge cũ */
   -ms-overflow-style: none;
+  height: 100%;
+  padding: 16px;
+  z-index: 10;
 
   &::-webkit-scrollbar {
     display: none; /* Chrome / Safari */

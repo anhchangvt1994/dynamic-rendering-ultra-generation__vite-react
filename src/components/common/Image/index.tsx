@@ -72,7 +72,7 @@ const Image = (props) => {
           onLoad={async (e) => {
             try {
               await e.currentTarget.decode?.()
-              await new Promise((res) => setTimeout(res, 150))
+              await new Promise((res) => setTimeout(res, 50))
             } catch {}
             handleLoad(e.target as HTMLImageElement)
           }}

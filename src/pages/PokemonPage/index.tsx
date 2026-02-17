@@ -1,6 +1,7 @@
 import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import Image from 'components/common/Image'
+import RelatedBlogsSheet from 'components/common/RelatedBlogsSheet'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
@@ -89,6 +90,7 @@ const PokemonPage = () => {
 
   return (
     <PokemonPageStyle>
+      <RelatedBlogsSheet keyword={pokemonState?.name || ''} />
       <HeaderStyle>
         <BackButtonStyle onClick={handleBack}>
           <BackIconStyle />

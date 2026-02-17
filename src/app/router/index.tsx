@@ -18,7 +18,6 @@ ServerStore.init()
 const routes: RouteObjectCustomize[] = defineRoute([
   {
     path: import.meta.env.ROUTER_BASE_PATH,
-    id: import.meta.env.ROUTER_HOME_ID,
     element: (
       <LoadingInfoProvider>
         <ServerRouterHandler>
@@ -39,10 +38,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         index: true,
         path: import.meta.env.ROUTER_HOME_PATH,
         element: withLazy(() => import('pages/HomePage')),
+        id: import.meta.env.ROUTER_HOME_ID,
       }, // Home Page
       {
         path: import.meta.env.ROUTER_POKEMON_PATH,
         element: withLazy(() => import('pages/PokemonPage')),
+        id: import.meta.env.ROUTER_POKEMON_ID,
       }, // Pokemon Page
       {
         path: import.meta.env.ROUTER_BLOGS_PATH,

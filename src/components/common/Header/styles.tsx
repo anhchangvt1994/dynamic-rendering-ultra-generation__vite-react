@@ -2,6 +2,7 @@ export const HeaderStyle = styled.header`
   position: relative;
   display: flex;
   padding: 16px;
+  width: 100%;
   height: 80px;
   flex: 0 0 80px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
