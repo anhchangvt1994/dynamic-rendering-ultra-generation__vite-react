@@ -6,6 +6,7 @@ export const PokemonPageStyle = styled.div`
       height: 100%;
       width: 100%;
       object-fit: contain;
+      filter: drop-shadow(0 0 1.5px #ffffff);
     }
   }
 
@@ -54,7 +55,6 @@ export const PokemonPageStyle = styled.div`
 
   .image {
     height: 150px;
-    filter: drop-shadow(0 0 1.5px #ffffff);
   }
 `
 
