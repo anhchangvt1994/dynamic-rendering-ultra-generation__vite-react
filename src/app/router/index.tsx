@@ -44,6 +44,18 @@ const routes: RouteObjectCustomize[] = defineRoute([
         path: import.meta.env.ROUTER_POKEMON_PATH,
         element: withLazy(() => import('pages/PokemonPage')),
         id: import.meta.env.ROUTER_POKEMON_ID,
+        handle: {
+          params: {
+            split(p) {
+              const location = useLocation()
+
+              return {
+                name: p.name,
+                id: location.state?.pokemonId,
+              }
+            },
+          },
+        },
       }, // Pokemon Page
       {
         path: import.meta.env.ROUTER_BLOGS_PATH,

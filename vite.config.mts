@@ -86,6 +86,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: true,
       watch: {
         ignored: ['**/config/**', '**/server/**'],
       },

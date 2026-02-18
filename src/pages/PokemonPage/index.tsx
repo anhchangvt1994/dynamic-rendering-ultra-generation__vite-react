@@ -25,15 +25,15 @@ const PokemonPage = () => {
   const getPokemonDetailPath = functionGenerator(
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
   )
-  const { name } = route.params
-  const [curId, setCurId] = useState(null)
+  const { name, id } = route.params
+  const [curId, setCurId] = useState(Number(id))
   const pokemonDetailEndpoint = getPokemonDetailPath(name)
   const [pokemonState, setPokemonState] = useState(
     getAPIStore(pokemonDetailEndpoint)
   )
 
   const { data, isFetching } = useGetPokemonDetailQuery(curId || name)
-  const [isFirstLoading, setIsFirstLoading] = useState(isFetching)
+  const [isFirstLoading, setIsFirstLoading] = useState(!id || isFetching)
 
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
@@ -43,14 +43,6 @@ const PokemonPage = () => {
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
   const swiperRef = useRef(null)
-
-  const onLoad = (img) => {
-    img.classList.add('show')
-  } // onLoad
-
-  const onError = (img) => {
-    img.classList.add('error')
-  } // onError
 
   const handleBack = () => {
     if (!navigateInfo.from) return navigate(import.meta.env.ROUTER_HOME_PATH)
@@ -104,9 +96,13 @@ const PokemonPage = () => {
   useEffect(() => {
     if (pokemonState) {
       if (pokemonState.name !== name) {
-        // Use replaceState to update URL without destroying the component
+        // Use navigate with replace option to update URL without destroying the component
+        // Only navigate if the path is actually different to avoid unnecessary re-renders
         const newPath = getPokemonDetailPath(pokemonState.name)
-        window.history.replaceState(null, '', newPath)
+        navigate(newPath, {
+          replace: true,
+          state: { pokemonId: pokemonState.id },
+        })
       }
 
       setSeoTag({
@@ -148,15 +144,7 @@ const PokemonPage = () => {
           key={tmpNumber}
           onClick={() => handleSlideClick(tmpNumber)}
         >
-          <Image
-            src={ImagePath}
-            className="show"
-            onLoad={(e) => onLoad(e.target)}
-            onError={(e) => onError(e.target)}
-            alt={tmpNumber}
-            width={'100%'}
-            height={150}
-          />
+          <img src={ImagePath} alt={tmpNumber} width={'100%'} height={150} />
         </SwiperSlide>
       )
     })
@@ -173,15 +161,7 @@ const PokemonPage = () => {
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
         {RenderingInfo.loader || isFirstLoading ? (
-          <Image
-            src={ImagePath}
-            className="show"
-            onLoad={(e) => onLoad(e.target)}
-            onError={(e) => onError(e.target)}
-            alt={name}
-            width={'100%'}
-            height={150}
-          />
+          <Image src={ImagePath} alt={name} width={'100%'} height={150} />
         ) : (
           <Swiper
             ref={swiperRef}

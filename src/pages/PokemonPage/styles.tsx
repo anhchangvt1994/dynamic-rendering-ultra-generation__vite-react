@@ -2,12 +2,10 @@ export const PokemonPageStyle = styled.div`
   .swiper {
     height: 150px;
 
-    .image-wrapper {
-      &::before,
-      &::after {
-        width: 100%;
-        height: 100%;
-      }
+    img {
+      height: 100%;
+      width: 100%;
+      object-fit: contain;
     }
   }
 
