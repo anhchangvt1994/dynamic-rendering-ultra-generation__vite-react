@@ -1,8 +1,19 @@
 export const PokemonPageStyle = styled.div`
+  .swiper {
+    .image-wrapper {
+      &::before,
+      &::after {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+
   .image-wrapper {
     display: flex;
     justify-content: center;
     height: 150px;
+    padding-bottom: 0;
     z-index: 0;
 
     &::before,
@@ -80,6 +91,15 @@ export const BackIconStyle = styled.span`
 export const BodyStyle = styled.div`
   position: relative;
   padding: 16px 0;
+
+  .swiper-slide {
+    opacity: 0.5;
+  }
+
+  .swiper-slide-next {
+    scale: 2.25;
+    opacity: 1;
+  }
 `
 
 export const NameStyle = styled.div`

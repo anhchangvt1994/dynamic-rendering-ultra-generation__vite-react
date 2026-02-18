@@ -31,10 +31,10 @@ const pokemonApi = createApi({
     }),
     [import.meta.env.API_ENDPOINT_GET_POKEMON_DETAIL]: builder.query<
       any,
-      string
+      string | number
     >({
-      query: (name) => {
-        const pokemonDetailEndpoint = getPokemonDetailPath(name)
+      query: (key) => {
+        const pokemonDetailEndpoint = getPokemonDetailPath(key)
 
         return proxyApi.get(pokemonDetailEndpoint, {
           expiredTime: 'infinite',

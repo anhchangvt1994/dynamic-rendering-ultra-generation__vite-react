@@ -10,7 +10,7 @@ export default {
       get_pokemon_list: (limit = 20, offset = 0) =>
         `/pokemon?limit=${limit}&offset=${offset}`,
 
-      get_pokemon_detail: (name) => `/pokemon/${name}`,
+      get_pokemon_detail: (key) => `/pokemon/${key}`,
 
       get_pokemon_blogs:
         '/articles?fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash',

@@ -50,7 +50,8 @@
     "react-dom": "19.2.0",
     "react-redux": "^9.2.0",
     "react-router": "^7.0.0",
-    "styled-components": "^6.1.18"
+    "styled-components": "^6.1.18",
+    "swiper": "^12.1.1"
   },
   "devDependencies": {
     "build-tool-packages": "file:./config/build-tool-packages",

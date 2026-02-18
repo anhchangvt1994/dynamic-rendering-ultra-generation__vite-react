@@ -5,6 +5,8 @@ import RelatedBlogsSheet from 'components/common/RelatedBlogsSheet'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
+import 'swiper/css'
+import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import {
   BackButtonStyle,
@@ -24,18 +26,23 @@ const PokemonPage = () => {
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
   )
   const { name } = route.params
+  const [curId, setCurId] = useState(null)
   const pokemonDetailEndpoint = getPokemonDetailPath(name)
   const [pokemonState, setPokemonState] = useState(
     getAPIStore(pokemonDetailEndpoint)
   )
-  const { data, isFetching } = useGetPokemonDetailQuery(name)
+
+  const { data, isFetching } = useGetPokemonDetailQuery(curId || name)
   const [isFirstLoading, setIsFirstLoading] = useState(isFetching)
+
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
     : ''
   const isShowLoading =
     RenderingInfo.loader || (isFetching && (!isFirstLoading || !pokemonState))
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
+
+  const swiperRef = useRef(null)
 
   const onLoad = (img) => {
     img.classList.add('show')
@@ -50,6 +57,26 @@ const PokemonPage = () => {
 
     navigate(-1)
   } // handleBack
+
+  const handleSlidePrevTransitionStart = () => {
+    if (!pokemonState || pokemonState.id - 1 <= 0) return
+
+    setCurId(pokemonState.id - 1)
+  }
+  const handleSlideNextTransitionStart = () => {
+    if (!pokemonState) return
+
+    setCurId(pokemonState.id + 1)
+  }
+
+  const handleSlideClick = (number) => {
+    if (pokemonState.id - number === 1) {
+      handleSlidePrevTransitionStart()
+    }
+    if (pokemonState.id - number === -1) {
+      handleSlideNextTransitionStart()
+    }
+  }
 
   const pokemonStats = isShowLoading ? (
     <PokemonStatsLoading />
@@ -71,6 +98,12 @@ const PokemonPage = () => {
 
   useEffect(() => {
     if (pokemonState) {
+      if (pokemonState.name !== name) {
+        // Use replaceState to update URL without destroying the component
+        const newPath = getPokemonDetailPath(pokemonState.name)
+        window.history.replaceState(null, '', newPath)
+      }
+
       setSeoTag({
         title: pokemonState.name || 'Pokemon',
         'og:type': 'website',
@@ -88,6 +121,40 @@ const PokemonPage = () => {
     }
   }, [JSON.stringify(pokemonState)])
 
+  const pokemonSwiperSlides = useMemo(() => {
+    if (!pokemonState) return null
+    const orderList =
+      pokemonState.id <= 1 ? [-2, -1, 0, 1, 2] : [-2, -1, 0, 1, 2]
+
+    return orderList.map((order) => {
+      const tmpNumber = pokemonState.id + order
+
+      if (tmpNumber === 0 || tmpNumber === -1)
+        return <SwiperSlide key={tmpNumber}></SwiperSlide>
+
+      const pokemonNumber = pokemonState?.id
+        ? tmpNumber.toString().padStart(3, '0')
+        : ''
+      const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
+
+      return (
+        <SwiperSlide
+          key={tmpNumber}
+          onClick={() => handleSlideClick(tmpNumber)}
+        >
+          <Image
+            src={ImagePath}
+            onLoad={(e) => onLoad(e.target)}
+            onError={(e) => onError(e.target)}
+            alt={tmpNumber}
+            width={'100%'}
+            height={150}
+          />
+        </SwiperSlide>
+      )
+    })
+  }, [JSON.stringify(pokemonState)])
+
   return (
     <PokemonPageStyle>
       <RelatedBlogsSheet keyword={pokemonState?.name || ''} />
@@ -98,14 +165,28 @@ const PokemonPage = () => {
       </HeaderStyle>
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
-        <Image
-          src={ImagePath}
-          onLoad={(e) => onLoad(e.target)}
-          onError={(e) => onError(e.target)}
-          alt={name}
-          width={'100%'}
-          height={150}
-        />
+        {isShowLoading ? (
+          <Image
+            src={ImagePath}
+            onLoad={(e) => onLoad(e.target)}
+            onError={(e) => onError(e.target)}
+            alt={name}
+            width={'100%'}
+            height={140}
+          />
+        ) : (
+          <Swiper
+            ref={swiperRef}
+            spaceBetween={50}
+            slidesPerView={3}
+            initialSlide={1}
+            onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
+            onSlideNextTransitionStart={handleSlideNextTransitionStart}
+            onActiveIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
+          >
+            {pokemonSwiperSlides}
+          </Swiper>
+        )}
         {isShowLoading ? (
           <NameLoadingStyle>
             <div className="stage">
@@ -113,7 +194,7 @@ const PokemonPage = () => {
             </div>
           </NameLoadingStyle>
         ) : (
-          <NameStyle>{name}</NameStyle>
+          <NameStyle>{pokemonState?.name}</NameStyle>
         )}
 
         {pokemonStats}
