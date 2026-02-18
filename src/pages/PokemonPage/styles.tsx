@@ -1,5 +1,7 @@
 export const PokemonPageStyle = styled.div`
   .swiper {
+    height: 150px;
+
     .image-wrapper {
       &::before,
       &::after {
@@ -106,6 +108,7 @@ export const BodyStyle = styled.div`
 
 export const NameStyle = styled.div`
   width: 100%;
+  height: 36px;
   text-align: center;
   margin-top: 8px;
   text-transform: capitalize;

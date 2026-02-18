@@ -59,12 +59,17 @@ const PokemonPage = () => {
   } // handleBack
 
   const handleSlidePrevTransitionStart = () => {
-    if (!pokemonState || pokemonState.id - 1 <= 0) return
+    if (
+      !pokemonState ||
+      pokemonState.id - 1 <= 0 ||
+      !swiperRef.current?.swiper.touches.diff
+    )
+      return
 
     setCurId(pokemonState.id - 1)
   }
   const handleSlideNextTransitionStart = () => {
-    if (!pokemonState) return
+    if (!pokemonState || !swiperRef.current?.swiper.touches.diff) return
 
     setCurId(pokemonState.id + 1)
   }
@@ -167,25 +172,37 @@ const PokemonPage = () => {
       </HeaderStyle>
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
-        <Swiper
-          ref={swiperRef}
-          spaceBetween={0}
-          slidesPerView={3}
-          initialSlide={1}
-          onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
-          onSlideNextTransitionStart={handleSlideNextTransitionStart}
-          onSnapIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
-          speed={700}
-          effect="coverflow"
-          coverflowEffect={{
-            rotate: 0,
-            stretch: 0,
-            depth: 200,
-            modifier: 1.2,
-          }}
-        >
-          {pokemonSwiperSlides}
-        </Swiper>
+        {RenderingInfo.loader || isFirstLoading ? (
+          <Image
+            src={ImagePath}
+            className="show"
+            onLoad={(e) => onLoad(e.target)}
+            onError={(e) => onError(e.target)}
+            alt={name}
+            width={'100%'}
+            height={150}
+          />
+        ) : (
+          <Swiper
+            ref={swiperRef}
+            spaceBetween={0}
+            slidesPerView={3}
+            initialSlide={1}
+            onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
+            onSlideNextTransitionStart={handleSlideNextTransitionStart}
+            onSnapIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
+            speed={700}
+            effect="coverflow"
+            coverflowEffect={{
+              rotate: 0,
+              stretch: 0,
+              depth: 200,
+              modifier: 1.2,
+            }}
+          >
+            {pokemonSwiperSlides}
+          </Swiper>
+        )}
         {isShowLoading ? (
           <NameLoadingStyle>
             <div className="stage">
