@@ -123,11 +123,12 @@ const PokemonPage = () => {
 
   const pokemonSwiperSlides = useMemo(() => {
     if (!pokemonState) return null
-    const orderList =
-      pokemonState.id <= 1 ? [-2, -1, 0, 1, 2] : [-2, -1, 0, 1, 2]
+
+    const pokemonId = curId || pokemonState.id
+    const orderList = pokemonId <= 1 ? [-2, -1, 0, 1, 2] : [-2, -1, 0, 1, 2]
 
     return orderList.map((order) => {
-      const tmpNumber = pokemonState.id + order
+      const tmpNumber = pokemonId + order
 
       if (tmpNumber === 0 || tmpNumber === -1)
         return <SwiperSlide key={tmpNumber}></SwiperSlide>
@@ -144,6 +145,7 @@ const PokemonPage = () => {
         >
           <Image
             src={ImagePath}
+            className="show"
             onLoad={(e) => onLoad(e.target)}
             onError={(e) => onError(e.target)}
             alt={tmpNumber}
@@ -153,7 +155,7 @@ const PokemonPage = () => {
         </SwiperSlide>
       )
     })
-  }, [JSON.stringify(pokemonState)])
+  }, [JSON.stringify(pokemonState), curId])
 
   return (
     <PokemonPageStyle>
@@ -165,28 +167,25 @@ const PokemonPage = () => {
       </HeaderStyle>
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
-        {isShowLoading ? (
-          <Image
-            src={ImagePath}
-            onLoad={(e) => onLoad(e.target)}
-            onError={(e) => onError(e.target)}
-            alt={name}
-            width={'100%'}
-            height={140}
-          />
-        ) : (
-          <Swiper
-            ref={swiperRef}
-            spaceBetween={50}
-            slidesPerView={3}
-            initialSlide={1}
-            onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
-            onSlideNextTransitionStart={handleSlideNextTransitionStart}
-            onActiveIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
-          >
-            {pokemonSwiperSlides}
-          </Swiper>
-        )}
+        <Swiper
+          ref={swiperRef}
+          spaceBetween={0}
+          slidesPerView={3}
+          initialSlide={1}
+          onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
+          onSlideNextTransitionStart={handleSlideNextTransitionStart}
+          onSnapIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
+          speed={700}
+          effect="coverflow"
+          coverflowEffect={{
+            rotate: 0,
+            stretch: 0,
+            depth: 200,
+            modifier: 1.2,
+          }}
+        >
+          {pokemonSwiperSlides}
+        </Swiper>
         {isShowLoading ? (
           <NameLoadingStyle>
             <div className="stage">

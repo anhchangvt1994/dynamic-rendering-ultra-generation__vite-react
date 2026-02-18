@@ -54,6 +54,7 @@ export const PokemonPageStyle = styled.div`
 
   .image {
     height: 150px;
+    filter: drop-shadow(0 0 1.5px #ffffff);
   }
 `
 
@@ -94,10 +95,11 @@ export const BodyStyle = styled.div`
 
   .swiper-slide {
     opacity: 0.5;
+    scale: 0.5;
   }
 
   .swiper-slide-next {
-    scale: 2.25;
+    scale: 1.5;
     opacity: 1;
   }
 `
