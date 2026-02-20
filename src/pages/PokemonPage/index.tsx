@@ -5,6 +5,7 @@ import RelatedBlogsSheet from 'components/common/RelatedBlogsSheet'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
+import { createPortal } from 'react-dom'
 import 'swiper/css'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
@@ -41,6 +42,9 @@ const PokemonPage = () => {
   const isShowLoading =
     RenderingInfo.loader || (isFetching && (!isFirstLoading || !pokemonState))
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
+
+  const seoTitle = `Pokemon ${pokemonState?.name} Pokédex: Chỉ số, Chiêu thức & Cách tiến hóa (Gen 9) | Anhchangvt1994`
+  const seoDescription = `Tìm hiểu mọi thứ về ${pokemonState?.name} (#${pokemonNumber}): Chỉ số cơ bản (stats), bộ chiêu thức mạnh nhất, cách tiến hóa từ Drowzee và vị trí bắt trong các phiên bản game mới nhất.`
 
   const swiperRef = useRef(null)
 
@@ -79,7 +83,12 @@ const PokemonPage = () => {
   const pokemonStats = isShowLoading ? (
     <PokemonStatsLoading />
   ) : (
-    <PokemonStats stats={pokemonState?.stats ?? []} />
+    <>
+      <h2 style={{ display: RenderingInfo.type !== 'ISR' ? 'none' : 'block' }}>
+        Chỉ số cơ bản (Base Stats) của {pokemonState?.name}
+      </h2>
+      <PokemonStats stats={pokemonState?.stats ?? []} />
+    </>
   )
 
   useEffect(() => {
@@ -107,15 +116,23 @@ const PokemonPage = () => {
       }
 
       setSeoTag({
-        title: pokemonState.name || 'Pokemon',
+        title: seoTitle,
+        'og:title': seoTitle,
+        'twitter:title': seoTitle,
+
         'og:type': 'website',
-        'og:title': pokemonState.name || 'Pokemon',
-        'og:description': `Pokemon ${pokemonState.name || ''}`,
-        description: `Pokemon ${pokemonState.name || ''}`,
+
+        description: seoDescription,
+        'og:description': seoDescription,
+        'twitter:description': seoDescription,
+
         'og:url': window.location.pathname,
+
         'og:site_name': `Pokemon ${pokemonState.name || ''}`,
+
         'og:image': ImagePath,
         'twitter:image': ImagePath,
+
         'og:image:width': '1200',
         'og:image:height': '628',
         robots: 'index, follow',
@@ -145,7 +162,12 @@ const PokemonPage = () => {
           key={tmpNumber}
           onClick={() => handleSlideClick(tmpNumber)}
         >
-          <img src={ImagePath} alt={tmpNumber} width={'100%'} height={150} />
+          <img
+            src={ImagePath}
+            alt={`#${tmpNumber}`}
+            width={'100%'}
+            height={150}
+          />
         </SwiperSlide>
       )
     })
@@ -153,7 +175,10 @@ const PokemonPage = () => {
 
   return (
     <PokemonPageStyle>
-      <RelatedBlogsSheet keyword={pokemonState?.name || ''} />
+      {createPortal(
+        <RelatedBlogsSheet keyword={pokemonState?.name || ''} />,
+        document.getElementById('related-blogs-sheet')!
+      )}
       <HeaderStyle>
         <BackButtonStyle onClick={handleBack}>
           <BackIconStyle />
@@ -162,7 +187,12 @@ const PokemonPage = () => {
       <BodyStyle>
         {!isShowLoading && <PokemonTypes types={pokemonState?.types ?? []} />}
         {RenderingInfo.loader || isFirstLoading ? (
-          <Image src={ImagePath} alt={name} width={'100%'} height={150} />
+          <Image
+            src={ImagePath}
+            alt={`Pokemon ${pokemonState?.name || ''}`}
+            width={'100%'}
+            height={150}
+          />
         ) : (
           <Swiper
             ref={swiperRef}

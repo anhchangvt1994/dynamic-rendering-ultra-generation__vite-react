@@ -138,6 +138,7 @@ function Layout() {
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
         {searchBarOfPage}
+        <div id="related-blogs-sheet" />
       </MainContainerStyle>
     </div>
   )
