@@ -19,7 +19,7 @@ export default {
         `/articles?filters[slug][$eq]=${slug}&fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash`,
 
       search_articles_by_title: (searchTerm) =>
-        `/articles?filters[title][$containsi]=${searchTerm}&filters[content][$containsi]=${searchTerm}&fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash`,
+        `/articles?filters[title][$containsi]=${searchTerm}&fields=title,slug,content&populate[coverImage][fields]=id,name,url,blurhash`,
     },
     reducer_path: {
       pokemon: 'pokemonApi',

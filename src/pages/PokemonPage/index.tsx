@@ -50,28 +50,29 @@ const PokemonPage = () => {
     navigate(-1)
   } // handleBack
 
-  const handleSlidePrevTransitionStart = () => {
+  const handleSlidePrevTransitionStart = (force = false) => {
     if (
       !pokemonState ||
       pokemonState.id - 1 <= 0 ||
-      !swiperRef.current?.swiper.touches.diff
+      (!force && !swiperRef.current?.swiper.touches.diff)
     )
       return
 
     setCurId(pokemonState.id - 1)
   }
-  const handleSlideNextTransitionStart = () => {
-    if (!pokemonState || !swiperRef.current?.swiper.touches.diff) return
+  const handleSlideNextTransitionStart = (force = false) => {
+    if (!pokemonState || (!force && !swiperRef.current?.swiper.touches.diff))
+      return
 
     setCurId(pokemonState.id + 1)
   }
 
   const handleSlideClick = (number) => {
     if (pokemonState.id - number === 1) {
-      handleSlidePrevTransitionStart()
+      handleSlidePrevTransitionStart(true)
     }
     if (pokemonState.id - number === -1) {
-      handleSlideNextTransitionStart()
+      handleSlideNextTransitionStart(true)
     }
   }
 
@@ -168,8 +169,8 @@ const PokemonPage = () => {
             spaceBetween={0}
             slidesPerView={3}
             initialSlide={1}
-            onSlidePrevTransitionStart={handleSlidePrevTransitionStart}
-            onSlideNextTransitionStart={handleSlideNextTransitionStart}
+            onSlidePrevTransitionStart={() => handleSlidePrevTransitionStart()}
+            onSlideNextTransitionStart={() => handleSlideNextTransitionStart()}
             onSnapIndexChange={() => swiperRef.current?.swiper.slideTo(1)}
             speed={700}
             effect="coverflow"

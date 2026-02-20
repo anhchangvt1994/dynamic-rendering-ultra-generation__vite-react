@@ -28,7 +28,6 @@ export const MainContainerStyle = styled.div`
 export const BodyWrapperStyle = styled.div`
   position: relative;
   flex: 1 1 auto;
-  overflow: hidden;
   border-radius: 16px;
   margin-top: 16px;
   /* z-index: 0; */
