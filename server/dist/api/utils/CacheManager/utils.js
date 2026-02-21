@@ -474,12 +474,13 @@ if (!_fs2.default.existsSync(storePath)) {
   options
 ) => {
   let result
+  const extension = compression === 'gzip' ? 'gz' : compression
 
   try {
     result = await exports.set.call(void 0, 
       dataPath,
       `${key}-${compression}`,
-      compression,
+      extension,
       content,
       options
     )

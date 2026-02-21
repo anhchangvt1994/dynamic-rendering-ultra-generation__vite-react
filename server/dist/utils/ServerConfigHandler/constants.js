@@ -14,8 +14,8 @@
     content: 'same',
     cache: {
       enable: true,
-      time: 4 * 3600, // 4 hours (second unit)
-      renewTime: 3 * 60, // 3 minutes (second unit)
+      time: 72 * 3600, // 72 hours (second unit)
+      renewTime: 6 * 60 * 60, // 6 hours (second unit)
     },
     compress: true,
     optimize: ['script'],

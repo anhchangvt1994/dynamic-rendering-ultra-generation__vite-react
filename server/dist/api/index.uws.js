@@ -239,7 +239,9 @@ const apiService = (async () => {
 
         // NOTE - Handle API Cache
         if (enableCache) {
+          console.time('line 242')
           const apiCache = await _utils.getData.call(void 0, requestInfo.cacheKey)
+          console.timeEnd('line 242')
 
           if (apiCache) {
             const curTime = Date.now()
@@ -267,7 +269,9 @@ const apiService = (async () => {
                   apiCache.cache.status !== 200) &&
                 apiCache.status !== 'fetch'
               ) {
+                console.time('line 272')
                 const apiCache = await _utils.getData.call(void 0, requestInfo.cacheKey)
+                console.timeEnd('line 272')
 
                 if (!apiCache || apiCache.status !== 'fetch') {
                   _utils.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
@@ -303,16 +307,28 @@ const apiService = (async () => {
 
               let cache = apiCache.cache
 
+              console.time('line 310')
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
+              console.timeEnd('line 310')
 
+              console.log('requestInfo.cacheKey', requestInfo.cacheKey)
+              console.log('contentEncoding', contentEncoding)
+              console.time('line 314')
               let data = await _utils.getDataCompression.call(void 0, 
                 requestInfo.cacheKey,
                 contentEncoding 
               )
+              console.timeEnd('line 314')
 
+              console.log('has data', !!data)
+
+              console.time('line 321')
               if (!data) {
                 data = convertData(cache, contentEncoding)
               }
+              console.timeEnd('line 321')
+
+              console.log('-----------')
 
               if (!res.writableEnded) {
                 res.writableEnded = true

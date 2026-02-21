@@ -349,6 +349,8 @@ const scanToCleanAPIDataCache = async (dirPath) => {
 
           const absolutePath = _path2.default.join(dirPath, item)
 
+          if (/\-(br|gzip)/.test(absolutePath)) continue
+
           if (!_fs2.default.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
@@ -357,6 +359,7 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           const fileContent = (() => {
             try {
               const tmpContent = _fs2.default.readFileSync(absolutePath)
+
               return JSON.parse(_zlib.brotliDecompressSync.call(void 0, tmpContent).toString())
             } catch (err) {
               _ConsoleHandler2.default.error(`Failed to decompress file ${absolutePath}:`, err)
@@ -370,12 +373,14 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           const expiredTime = fileContent.cache
             ? fileContent.cache.expiredTime
             : 60000
+          console.log('absolutePath', absolutePath, 'expiredTime', expiredTime)
 
           if (
             curTime - new Date(fileInfo.requestedAt).getTime() >=
             expiredTime
           ) {
             if (timeout) clearTimeout(timeout)
+
             _fs2.default.unlink(absolutePath, (err) => {
               if (err) {
                 _ConsoleHandler2.default.error(err)
@@ -386,6 +391,25 @@ const scanToCleanAPIDataCache = async (dirPath) => {
                 resolve('complete')
               }, 100)
             })
+
+            const absolutePathWithBr = absolutePath.replace('.br', '-br.br')
+
+            if (_fs2.default.existsSync(absolutePathWithBr)) {
+              _fs2.default.unlink(absolutePathWithBr, (err) => {
+                if (err) {
+                  _ConsoleHandler2.default.error(err)
+                }
+              })
+            }
+
+            const absolutePathWithGzip = absolutePath.replace('.br', '-gzip.gz')
+            if (_fs2.default.existsSync(absolutePathWithGzip)) {
+              _fs2.default.unlink(absolutePathWithGzip, (err) => {
+                if (err) {
+                  _ConsoleHandler2.default.error(err)
+                }
+              })
+            }
           }
         }
 

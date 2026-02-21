@@ -349,6 +349,8 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
 
           const absolutePath = path.join(dirPath, item)
 
+          if (/\-(br|gzip)/.test(absolutePath)) continue
+
           if (!fs.existsSync(absolutePath)) continue
           const fileInfo = await getFileInfo(absolutePath)
 
@@ -357,6 +359,7 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
           const fileContent = (() => {
             try {
               const tmpContent = fs.readFileSync(absolutePath)
+
               return JSON.parse(brotliDecompressSync(tmpContent).toString())
             } catch (err) {
               Console.error(`Failed to decompress file ${absolutePath}:`, err)
@@ -376,6 +379,7 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
             expiredTime
           ) {
             if (timeout) clearTimeout(timeout)
+
             fs.unlink(absolutePath, (err) => {
               if (err) {
                 Console.error(err)
@@ -386,6 +390,25 @@ const scanToCleanAPIDataCache = async (dirPath: string) => {
                 resolve('complete')
               }, 100)
             })
+
+            const absolutePathWithBr = absolutePath.replace('.br', '-br.br')
+
+            if (fs.existsSync(absolutePathWithBr)) {
+              fs.unlink(absolutePathWithBr, (err) => {
+                if (err) {
+                  Console.error(err)
+                }
+              })
+            }
+
+            const absolutePathWithGzip = absolutePath.replace('.br', '-gzip.gz')
+            if (fs.existsSync(absolutePathWithGzip)) {
+              fs.unlink(absolutePathWithGzip, (err) => {
+                if (err) {
+                  Console.error(err)
+                }
+              })
+            }
           }
         }
 

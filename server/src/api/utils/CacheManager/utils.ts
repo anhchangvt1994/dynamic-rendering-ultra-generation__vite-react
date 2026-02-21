@@ -113,7 +113,7 @@ export const setRequestTimeInfo = async (file: string, value: unknown) => {
 export const getStatus = (
   directory: string,
   key: string,
-  extension: 'json' | 'br' | 'gzip'
+  extension: 'json' | 'br' | 'gz'
 ) => {
   if (
     !directory ||
@@ -137,7 +137,7 @@ export const getStatus = (
 export const updateStatus = (
   directory: string,
   key: string,
-  extension: 'json' | 'br',
+  extension: 'json' | 'br' | 'gz',
   newStatus: IStatus
 ) => {
   const status = getStatus(directory, key, extension)
@@ -161,7 +161,7 @@ export const updateStatus = (
 export const get = async (
   directory: string,
   key: string,
-  extension: 'json' | 'br' | 'gzip',
+  extension: 'json' | 'br' | 'gz',
   options?: IGetCacheOptionsParam
 ): Promise<ICacheResult> => {
   const optionsFormatted = {
@@ -306,7 +306,7 @@ export const get = async (
 export const set = async (
   directory: string,
   key: string,
-  extension: 'json' | 'br' | 'gzip',
+  extension: 'json' | 'br' | 'gz',
   content: string | Buffer | ISetCacheContent,
   options?: ISetCacheOptionsParam
 ): Promise<ICacheResult> => {
@@ -389,7 +389,7 @@ export const set = async (
 export const remove = (
   directory: string,
   key: string,
-  extension: 'json' | 'br'
+  extension: 'json' | 'br' | 'gz'
 ) => {
   if (!directory) return Console.log('Key param can not empty!')
   if (!key) return Console.log('Key param can not empty!')
@@ -474,12 +474,13 @@ export const setDataCompression = async (
   options?: ISetCacheOptionsParam
 ) => {
   let result
+  const extension = compression === 'gzip' ? 'gz' : compression
 
   try {
     result = await set(
       dataPath,
       `${key}-${compression}`,
-      compression,
+      extension,
       content,
       options
     )
