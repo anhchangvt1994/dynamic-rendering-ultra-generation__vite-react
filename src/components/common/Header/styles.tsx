@@ -6,7 +6,7 @@ export const HeaderStyle = styled.header`
   height: 80px;
   flex: 0 0 80px;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  z-index: 10;
+  z-index: 11;
 `
 
 export const HeaderBackgroundStyle = styled.div`

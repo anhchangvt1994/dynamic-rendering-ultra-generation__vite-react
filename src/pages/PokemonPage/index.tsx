@@ -2,6 +2,8 @@ import { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import Image from 'components/common/Image'
 import RelatedBlogsSheet from 'components/common/RelatedBlogsSheet'
+import PokemonInfo from 'components/pokemon-page/pokemon-info'
+import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
 import PokemonStatsLoading from 'components/pokemon-page/pokemon-stats/loading'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
@@ -84,10 +86,49 @@ const PokemonPage = () => {
     <PokemonStatsLoading />
   ) : (
     <>
-      <h2 style={{ display: RenderingInfo.type !== 'ISR' ? 'none' : 'block' }}>
+      <h2
+        style={{
+          display: RenderingInfo.type !== 'ISR' ? 'none' : 'inline-block',
+        }}
+      >
         Chỉ số cơ bản (Base Stats) của {pokemonState?.name}
       </h2>
       <PokemonStats stats={pokemonState?.stats ?? []} />
+    </>
+  )
+
+  const pokemonAbilities = isShowLoading ? (
+    <></>
+  ) : (
+    <>
+      <h3
+        style={{
+          display: RenderingInfo.type !== 'ISR' ? 'none' : 'inline-block',
+        }}
+      >
+        Chiều cao, cân nặng và khả năng đặc biệt (Abilities) của{' '}
+      </h3>
+
+      <PokemonInfo
+        height={pokemonState?.height}
+        weight={pokemonState?.weight}
+        abilities={pokemonState?.abilities ?? []}
+      />
+    </>
+  )
+
+  const pokemonMoveset = isShowLoading ? (
+    <></>
+  ) : (
+    <>
+      <h2
+        style={{
+          display: RenderingInfo.type !== 'ISR' ? 'none' : 'inline-block',
+        }}
+      >
+        Bộ chiêu thức (Moveset) của {pokemonState?.name} và cách học
+      </h2>
+      <PokemonMoveset moveset={pokemonState?.moves ?? []} />
     </>
   )
 
@@ -225,6 +266,8 @@ const PokemonPage = () => {
         )}
 
         {pokemonStats}
+        {pokemonAbilities}
+        {pokemonMoveset}
       </BodyStyle>
     </PokemonPageStyle>
   )
