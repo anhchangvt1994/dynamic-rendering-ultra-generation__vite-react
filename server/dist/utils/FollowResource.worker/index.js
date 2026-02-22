@@ -373,7 +373,6 @@ const scanToCleanAPIDataCache = async (dirPath) => {
           const expiredTime = fileContent.cache
             ? fileContent.cache.expiredTime
             : 60000
-          console.log('absolutePath', absolutePath, 'expiredTime', expiredTime)
 
           if (
             curTime - new Date(fileInfo.requestedAt).getTime() >=

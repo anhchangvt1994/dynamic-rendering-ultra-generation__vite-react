@@ -2,6 +2,7 @@ import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import {
+  compressData,
   getData as getDataCache,
   getStore as getStoreCache,
   removeData as removeDataCache,
@@ -193,40 +194,54 @@ const apiService = async (req) => {
       ) {
         removeDataCache(requestInfo.cacheKey)
       } else {
+        const aliveTime = curTime - new Date(apiCache.modifiedAt).getTime()
+
+        if (
+          aliveTime - requestInfo.expiredTime > 7000 &&
+          apiCache.status !== 'ready'
+        ) {
+          updateDataCacheStatus(requestInfo.cacheKey, 'ready')
+        }
+
         if (
           ((requestInfo.renewTime !== 'infinite' &&
-            curTime - new Date(apiCache.modifiedAt).getTime() >=
-              requestInfo.renewTime) ||
+            aliveTime >= requestInfo.renewTime) ||
             !apiCache.cache ||
             apiCache.cache.status !== 200) &&
           apiCache.status !== 'fetch'
         ) {
-          updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
+          const apiCache = await getDataCache(requestInfo.cacheKey)
 
-          const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+          if (!apiCache || apiCache.status !== 'fetch') {
+            updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
 
-          fetchData(fetchUrl, {
-            method,
-            headers: objHeaders,
-            body,
-          }).then((result) => {
-            const enableToSetCache =
-              result.status === 200 ||
-              !apiCache.cache ||
-              apiCache.cache.status !== 200
-            if (enableToSetCache) {
-              setDataCache(requestInfo.cacheKey, {
-                url: fetchUrl,
-                method,
-                body,
-                headers: objHeaders,
-                cache: {
-                  expiredTime: requestInfo.expiredTime,
-                  ...result,
-                },
-              })
-            }
-          })
+            const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+
+            fetchData(fetchUrl, {
+              method,
+              headers: objHeaders,
+              body,
+            }).then((result) => {
+              const enableToSetCache =
+                result.status === 200 ||
+                !apiCache.cache ||
+                apiCache.cache.status !== 200
+              if (enableToSetCache) {
+                setDataCache(requestInfo.cacheKey, {
+                  url: fetchUrl,
+                  method,
+                  body,
+                  headers: objHeaders,
+                  cache: {
+                    expiredTime: requestInfo.expiredTime,
+                    ...result,
+                  },
+                })
+
+                compressData(requestInfo.cacheKey, result.data)
+              }
+            })
+          }
         }
 
         let cache = apiCache.cache
@@ -271,6 +286,8 @@ const apiService = async (req) => {
         ...result,
       },
     })
+
+    compressData(requestInfo.cacheKey, result.data)
   }
 
   if (requestInfo.relativeCacheKey.length) {
