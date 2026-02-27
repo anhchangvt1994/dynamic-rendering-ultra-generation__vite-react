@@ -1,4 +1,3 @@
-import { brotliDecompressSync, gunzipSync, inflateSync } from 'zlib'
 import Console from '../../../utils/ConsoleHandler'
 import { getDataPath } from '../../../utils/PathHandler'
 import { ICacheResult } from '../CacheManager/types'
@@ -81,23 +80,23 @@ export const fetchData = async (
           if (responseTimeout) clearTimeout(responseTimeout)
           const data = await new Promise(async (resolve) => {
             let tmpData
-            const buffer = await res.clone().arrayBuffer()
+            // const buffer = await res.clone().arrayBuffer()
 
-            const contentEncoding = res.headers.get('content-encoding')
+            // const contentEncoding = res.headers.get('content-encoding')
 
-            if (contentEncoding?.includes('gzip')) {
-              try {
-                tmpData = gunzipSync(buffer)?.toString()
-              } catch {}
-            } else if (contentEncoding?.includes('deflate')) {
-              try {
-                tmpData = inflateSync(buffer)?.toString()
-              } catch {}
-            } else if (contentEncoding?.includes('br')) {
-              try {
-                tmpData = brotliDecompressSync(buffer)?.toString()
-              } catch {}
-            }
+            // if (contentEncoding?.includes('gzip')) {
+            //   try {
+            //     tmpData = gunzipSync(buffer)?.toString()
+            //   } catch {}
+            // } else if (contentEncoding?.includes('deflate')) {
+            //   try {
+            //     tmpData = inflateSync(buffer)?.toString()
+            //   } catch {}
+            // } else if (contentEncoding?.includes('br')) {
+            //   try {
+            //     tmpData = brotliDecompressSync(buffer)?.toString()
+            //   } catch {}
+            // }
 
             if (!tmpData) {
               const text = await res.clone().text()

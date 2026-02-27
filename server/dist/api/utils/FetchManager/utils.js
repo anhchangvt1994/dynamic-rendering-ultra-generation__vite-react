@@ -1,5 +1,4 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _zlib = require('zlib');
-var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _PathHandler = require('../../../utils/PathHandler');
 
 
@@ -81,23 +80,23 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
           if (responseTimeout) clearTimeout(responseTimeout)
           const data = await new Promise(async (resolve) => {
             let tmpData
-            const buffer = await res.clone().arrayBuffer()
+            // const buffer = await res.clone().arrayBuffer()
 
-            const contentEncoding = res.headers.get('content-encoding')
+            // const contentEncoding = res.headers.get('content-encoding')
 
-            if (_optionalChain([contentEncoding, 'optionalAccess', _5 => _5.includes, 'call', _6 => _6('gzip')])) {
-              try {
-                tmpData = _optionalChain([_zlib.gunzipSync.call(void 0, buffer), 'optionalAccess', _7 => _7.toString, 'call', _8 => _8()])
-              } catch (e) {}
-            } else if (_optionalChain([contentEncoding, 'optionalAccess', _9 => _9.includes, 'call', _10 => _10('deflate')])) {
-              try {
-                tmpData = _optionalChain([_zlib.inflateSync.call(void 0, buffer), 'optionalAccess', _11 => _11.toString, 'call', _12 => _12()])
-              } catch (e2) {}
-            } else if (_optionalChain([contentEncoding, 'optionalAccess', _13 => _13.includes, 'call', _14 => _14('br')])) {
-              try {
-                tmpData = _optionalChain([_zlib.brotliDecompressSync.call(void 0, buffer), 'optionalAccess', _15 => _15.toString, 'call', _16 => _16()])
-              } catch (e3) {}
-            }
+            // if (contentEncoding?.includes('gzip')) {
+            //   try {
+            //     tmpData = gunzipSync(buffer)?.toString()
+            //   } catch {}
+            // } else if (contentEncoding?.includes('deflate')) {
+            //   try {
+            //     tmpData = inflateSync(buffer)?.toString()
+            //   } catch {}
+            // } else if (contentEncoding?.includes('br')) {
+            //   try {
+            //     tmpData = brotliDecompressSync(buffer)?.toString()
+            //   } catch {}
+            // }
 
             if (!tmpData) {
               const text = await res.clone().text()

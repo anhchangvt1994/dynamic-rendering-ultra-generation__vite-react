@@ -8,9 +8,11 @@ var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
+
+
+
+
 var _CacheManager = require('./utils/CacheManager');
-
-
 
 
 
@@ -38,17 +40,17 @@ const fetchCache = (() => {
         if (!apiCache) return res(null)
 
         if (
-          apiCache.status === 'ready' ||
-          (apiCache.cache &&
-            apiCache.cache.data &&
-            JSON.stringify(apiCache.cache.data) !== '{}')
+          // apiCache.status === 'ready' ||
+          apiCache.cache &&
+          apiCache.cache.data &&
+          JSON.stringify(apiCache.cache.data) !== '{}'
         )
           res(apiCache.cache)
         else {
           const tmpCache = await fetchCache(cacheKey)
           res(tmpCache)
         }
-      }, 10)
+      })
     })
 })() // fetchCache
 
@@ -216,11 +218,11 @@ const apiService = (async () => {
             autoCreateIfEmpty: { enable: true },
           })
           if (!apiStore || !apiStore.data) {
-            _utils.setStore.call(void 0, requestInfo.storeKey, [requestInfo.cacheKey])
+            _CacheManager.setStore.call(void 0, requestInfo.storeKey, [requestInfo.cacheKey])
           } else if (!apiStore.data.includes(requestInfo.cacheKey)) {
             apiStore.data.push(requestInfo.cacheKey)
 
-            _utils.setStore.call(void 0, requestInfo.storeKey, apiStore.data)
+            _CacheManager.setStore.call(void 0, requestInfo.storeKey, apiStore.data)
           }
         } else if (requestInfo.storeKey) {
           const apiStore = await _utils.getStore.call(void 0, requestInfo.storeKey, {
@@ -233,7 +235,7 @@ const apiService = (async () => {
 
             tmpAPIStoreData.splice(indexNext, 1)
 
-            _utils.setStore.call(void 0, requestInfo.storeKey, tmpAPIStoreData)
+            _CacheManager.setStore.call(void 0, requestInfo.storeKey, tmpAPIStoreData)
           }
         }
 
@@ -250,13 +252,9 @@ const apiService = (async () => {
             ) {
               _utils.removeData.call(void 0, requestInfo.cacheKey)
             } else {
-              const aliveTime =
-                curTime - new Date(apiCache.modifiedAt).getTime()
+              const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
-              if (
-                aliveTime - requestInfo.expiredTime > 7000 &&
-                apiCache.status !== 'ready'
-              ) {
+              if (aliveTime > 5000 && apiCache.status !== 'ready') {
                 _utils.updateDataStatus.call(void 0, requestInfo.cacheKey, 'ready')
               }
 
@@ -284,7 +282,7 @@ const apiService = (async () => {
                       !apiCache.cache ||
                       apiCache.cache.status !== 200
                     if (enableToSetCache) {
-                      _utils.setData.call(void 0, requestInfo.cacheKey, {
+                      _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
                         url: fetchUrl,
                         method,
                         body,
@@ -311,7 +309,9 @@ const apiService = (async () => {
               )
 
               if (!data) {
-                data = convertData(cache, contentEncoding)
+                // data = convertData(cache, contentEncoding)
+                data = JSON.stringify(cache.data)
+                contentEncoding = ''
               }
 
               if (!res.writableEnded) {
@@ -325,8 +325,12 @@ const apiService = (async () => {
                     )
                     .writeHeader('Content-Type', 'application/json')
                     .writeHeader('Cache-Control', 'no-store')
-                    .writeHeader('Content-Encoding', contentEncoding)
-                    .end(data, true)
+
+                  if (contentEncoding) {
+                    res.writeHeader('Content-Encoding', contentEncoding)
+                  }
+
+                  res.end(data, true)
                 })
               }
             } // IF expiredTime is valid
@@ -343,7 +347,7 @@ const apiService = (async () => {
           })
 
           if (enableCache) {
-            _utils.setData.call(void 0, requestInfo.cacheKey, '', {
+            _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
               isCompress: true,
               status: 'fetch',
             })
@@ -352,7 +356,7 @@ const apiService = (async () => {
           const result = await fetchAPITarget
 
           if (enableCache) {
-            _utils.setData.call(void 0, requestInfo.cacheKey, {
+            _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
               url: fetchUrl,
               method,
               body,
@@ -372,7 +376,9 @@ const apiService = (async () => {
           )
 
           if (!data) {
-            data = convertData(result, contentEncoding)
+            // data = convertData(result, contentEncoding)
+            data = JSON.stringify(result.data)
+            contentEncoding = ''
           }
 
           if (requestInfo.relativeCacheKey.length) {
@@ -396,8 +402,12 @@ const apiService = (async () => {
                   )
                   .writeHeader('Content-Type', 'application/json')
                   .writeHeader('Cache-Control', 'no-store')
-                  .writeHeader('Content-Encoding', contentEncoding)
-                  .end(data, true)
+
+                if (contentEncoding) {
+                  res.writeHeader('Content-Encoding', contentEncoding)
+                }
+
+                res.end(data, true)
               })
             } catch (err) {
               _ConsoleHandler2.default.error(err)

@@ -194,12 +194,9 @@ const apiService = async (req) => {
       ) {
         removeDataCache(requestInfo.cacheKey)
       } else {
-        const aliveTime = curTime - new Date(apiCache.modifiedAt).getTime()
+        const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
-        if (
-          aliveTime - requestInfo.expiredTime > 7000 &&
-          apiCache.status !== 'ready'
-        ) {
+        if (aliveTime > 5000 && apiCache.status !== 'ready') {
           updateDataCacheStatus(requestInfo.cacheKey, 'ready')
         }
 

@@ -8,6 +8,7 @@ var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 =
 
 
 
+
 var _CacheManager = require('./utils/CacheManager');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
@@ -193,40 +194,51 @@ const apiService = async (req) => {
       ) {
         _CacheManager.removeData.call(void 0, requestInfo.cacheKey)
       } else {
+        const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
+
+        if (aliveTime > 5000 && apiCache.status !== 'ready') {
+          _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'ready')
+        }
+
         if (
           ((requestInfo.renewTime !== 'infinite' &&
-            curTime - new Date(apiCache.modifiedAt).getTime() >=
-              requestInfo.renewTime) ||
+            aliveTime >= requestInfo.renewTime) ||
             !apiCache.cache ||
             apiCache.cache.status !== 200) &&
           apiCache.status !== 'fetch'
         ) {
-          _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
+          const apiCache = await _CacheManager.getData.call(void 0, requestInfo.cacheKey)
 
-          const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+          if (!apiCache || apiCache.status !== 'fetch') {
+            _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
 
-          _FetchManager.fetchData.call(void 0, fetchUrl, {
-            method,
-            headers: objHeaders,
-            body,
-          }).then((result) => {
-            const enableToSetCache =
-              result.status === 200 ||
-              !apiCache.cache ||
-              apiCache.cache.status !== 200
-            if (enableToSetCache) {
-              _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-                url: fetchUrl,
-                method,
-                body,
-                headers: objHeaders,
-                cache: {
-                  expiredTime: requestInfo.expiredTime,
-                  ...result,
-                },
-              })
-            }
-          })
+            const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+
+            _FetchManager.fetchData.call(void 0, fetchUrl, {
+              method,
+              headers: objHeaders,
+              body,
+            }).then((result) => {
+              const enableToSetCache =
+                result.status === 200 ||
+                !apiCache.cache ||
+                apiCache.cache.status !== 200
+              if (enableToSetCache) {
+                _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
+                  url: fetchUrl,
+                  method,
+                  body,
+                  headers: objHeaders,
+                  cache: {
+                    expiredTime: requestInfo.expiredTime,
+                    ...result,
+                  },
+                })
+
+                _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
+              }
+            })
+          }
         }
 
         let cache = apiCache.cache
@@ -271,6 +283,8 @@ const apiService = async (req) => {
         ...result,
       },
     })
+
+    _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
   }
 
   if (requestInfo.relativeCacheKey.length) {
