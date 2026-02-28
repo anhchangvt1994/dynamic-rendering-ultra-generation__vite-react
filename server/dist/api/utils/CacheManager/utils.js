@@ -540,6 +540,12 @@ if (!_fs2.default.existsSync(storePath)) {
  const compressData = async (key, data) => {
   if (!data) return { br: '', gzip: '' }
 
+  try {
+    data = typeof data === 'string' ? JSON.parse(data) : data
+  } catch (e) {
+    _ConsoleHandler2.default.error('Failed to parse data for compression')
+  }
+
   const tmpCompressData = {
     br: '',
     gzip: '',

@@ -540,6 +540,12 @@ export const updateDataStatus = async (key: string, newStatus?: IStatus) => {
 export const compressData = async (key, data) => {
   if (!data) return { br: '', gzip: '' }
 
+  try {
+    data = typeof data === 'string' ? JSON.parse(data) : data
+  } catch {
+    Console.error('Failed to parse data for compression')
+  }
+
   const tmpCompressData: { [key: string]: any } = {
     br: '',
     gzip: '',

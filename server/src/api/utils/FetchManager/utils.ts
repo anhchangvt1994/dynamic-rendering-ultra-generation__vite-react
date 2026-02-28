@@ -79,7 +79,7 @@ export const fetchData = async (
         .then(async (res) => {
           if (responseTimeout) clearTimeout(responseTimeout)
           const data = await new Promise(async (resolve) => {
-            let tmpData
+            // let tmpData
             // const buffer = await res.clone().arrayBuffer()
 
             // const contentEncoding = res.headers.get('content-encoding')
@@ -98,17 +98,19 @@ export const fetchData = async (
             //   } catch {}
             // }
 
-            if (!tmpData) {
-              const text = await res.clone().text()
+            // if (!tmpData) {
+            //   const text = await res.clone().text()
 
-              try {
-                tmpData = JSON.parse(text)
-              } catch (error) {
-                tmpData = {}
-              }
-            } else JSON.parse(tmpData)
+            //   try {
+            //     tmpData = JSON.parse(text)
+            //   } catch (error) {
+            //     tmpData = {}
+            //   }
+            // } else JSON.parse(tmpData)
 
-            resolve(tmpData)
+            const data = await res.clone().text()
+
+            resolve(data)
           })
 
           return {

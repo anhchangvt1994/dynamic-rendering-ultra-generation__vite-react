@@ -47,10 +47,10 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, JSON.stringify(result.data))
+        ? _zlib.brotliCompressSync.call(void 0, result.data)
         : contentEncoding === 'gzip'
-          ? _zlib.gzipSync.call(void 0, JSON.stringify(result.data))
-          : JSON.stringify(result.data)
+          ? _zlib.gzipSync.call(void 0, result.data)
+          : result.data
     default:
       return typeof result.data === 'string'
         ? result.data

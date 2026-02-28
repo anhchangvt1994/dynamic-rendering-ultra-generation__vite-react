@@ -4,7 +4,6 @@
 
 
 
-var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
@@ -54,30 +53,38 @@ const fetchCache = (() => {
     })
 })() // fetchCache
 
-const convertData = (
-  result
+const resEnd = (res, resInfo) => {
+  if (!res || !resInfo) return
 
+  const {
+    status = '200',
+    message = 'OK',
+    contentEncoding = '',
+    cookies = [],
+    data = '',
+  } = resInfo
 
+  if (!res.writableEnded) {
+    res.writableEnded = true
 
+    res.cork(() => {
+      if (cookies && cookies.length) {
+        for (const cookie of cookies) {
+          res.writeHeader('Set-Cookie', cookie)
+        }
+      }
 
-
-,
-  contentEncoding
-) => {
-  switch (true) {
-    case result.status === 200:
-      return contentEncoding === 'br'
-        ? (_nullishCoalesce(_optionalChain([result, 'access', _ => _.compressData, 'optionalAccess', _2 => _2.br]), () => (
-            _zlib.brotliCompressSync.call(void 0, JSON.stringify(result.data)))))
-        : contentEncoding === 'gzip'
-          ? (_nullishCoalesce(_optionalChain([result, 'access', _3 => _3.compressData, 'optionalAccess', _4 => _4.gzip]), () => ( _zlib.gzipSync.call(void 0, JSON.stringify(result.data)))))
-          : JSON.stringify(result.data)
-    default:
-      return typeof result.data === 'string'
-        ? result.data
-        : JSON.stringify(result.data || {})
+      res
+        .writeStatus(`${status}${message ? ' ' + message : ''}`)
+        .writeHeader('Content-Type', 'application/json')
+        .writeHeader('Cache-Control', 'no-store')
+      if (contentEncoding) {
+        res.writeHeader('Content-Encoding', contentEncoding)
+      }
+      res.end(data, true)
+    })
   }
-} // convertData
+}
 
 const apiService = (async () => {
   let _app
@@ -104,7 +111,7 @@ const apiService = (async () => {
 
       // NOTE - Get the API information
       const apiInfo =
-        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _5 => _5.exec, 'call', _6 => _6(req.getQuery()), 'optionalAccess', _7 => _7.groups]), () => ( {}))
+        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.getQuery()), 'optionalAccess', _3 => _3.groups]), () => ( {}))
 
       // NOTE - Response 500 Error if the apiInfo is empty
       if (!res.writableEnded && !apiInfo) {
@@ -171,9 +178,9 @@ const apiService = (async () => {
         // NOTE - Handle query string information
         const strQueryString = (() => {
           const thisAPIQueryString = _optionalChain([req
-, 'access', _8 => _8.getUrl, 'call', _9 => _9()
-, 'access', _10 => _10.split, 'call', _11 => _11('?'), 'access', _12 => _12[1]
-, 'optionalAccess', _13 => _13.replace, 'call', _14 => _14(/requestInfo=([^&]*)/g, '')])
+, 'access', _4 => _4.getUrl, 'call', _5 => _5()
+, 'access', _6 => _6.split, 'call', _7 => _7('?'), 'access', _8 => _8[1]
+, 'optionalAccess', _9 => _9.replace, 'call', _10 => _10(/requestInfo=([^&]*)/g, '')])
 
           if (!thisAPIQueryString) return ''
 
@@ -252,6 +259,21 @@ const apiService = (async () => {
             ) {
               _utils.removeData.call(void 0, requestInfo.cacheKey)
             } else {
+              let data = await _utils.getDataCompression.call(void 0, 
+                requestInfo.cacheKey,
+                contentEncoding 
+              )
+
+              if (data) {
+                resEnd(res, {
+                  status: '200',
+                  message: '',
+                  contentEncoding,
+                  cookies: [],
+                  data,
+                })
+              }
+
               const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
               if (aliveTime > 5000 && apiCache.status !== 'ready') {
@@ -299,38 +321,28 @@ const apiService = (async () => {
                 }
               }
 
-              let cache = apiCache.cache
-
-              if (!cache) cache = await fetchCache(requestInfo.cacheKey)
-
-              let data = await _utils.getDataCompression.call(void 0, 
-                requestInfo.cacheKey,
-                contentEncoding 
-              )
-
               if (!data) {
-                // data = convertData(cache, contentEncoding)
-                data = JSON.stringify(cache.data)
-                contentEncoding = ''
-              }
+                let cache = apiCache.cache
 
-              if (!res.writableEnded) {
-                res.writableEnded = true
-                res.cork(() => {
-                  res
-                    .writeStatus(
-                      `${cache.status}${
-                        cache.message ? ' ' + cache.message : ''
-                      }`
-                    )
-                    .writeHeader('Content-Type', 'application/json')
-                    .writeHeader('Cache-Control', 'no-store')
+                if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-                  if (contentEncoding) {
-                    res.writeHeader('Content-Encoding', contentEncoding)
-                  }
+                data = await _utils.getDataCompression.call(void 0, 
+                  requestInfo.cacheKey,
+                  contentEncoding 
+                )
 
-                  res.end(data, true)
+                if (!data) {
+                  // data = convertData(cache, contentEncoding)
+                  // data = JSON.stringify(cache.data)
+                  data = cache.data
+                }
+
+                resEnd(res, {
+                  status: cache.status,
+                  message: cache.message,
+                  contentEncoding,
+                  cookies: cache.cookies,
+                  data,
                 })
               }
             } // IF expiredTime is valid
@@ -346,6 +358,16 @@ const apiService = (async () => {
             body,
           })
 
+          const result = await fetchAPITarget
+
+          resEnd(res, {
+            status: result.status,
+            message: result.message,
+            contentEncoding: '',
+            cookies: result.cookies,
+            data: result.data,
+          })
+
           if (enableCache) {
             _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
               isCompress: true,
@@ -353,21 +375,21 @@ const apiService = (async () => {
             })
           } else _utils.removeData.call(void 0, requestInfo.cacheKey)
 
-          const result = await fetchAPITarget
-
           if (enableCache) {
-            _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-              url: fetchUrl,
-              method,
-              body,
-              headers: objHeaders,
-              cache: {
-                expiredTime: requestInfo.expiredTime,
-                ...result,
-              },
-            })
+            Promise.all([
+              _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
+                url: fetchUrl,
+                method,
+                body,
+                headers: objHeaders,
+                cache: {
+                  expiredTime: requestInfo.expiredTime,
+                  ...result,
+                },
+              }),
 
-            _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
+              _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data),
+            ])
           }
 
           let data = await _utils.getDataCompression.call(void 0, 
@@ -377,41 +399,12 @@ const apiService = (async () => {
 
           if (!data) {
             // data = convertData(result, contentEncoding)
-            data = JSON.stringify(result.data)
-            contentEncoding = ''
+            // data = JSON.stringify(result.data)
+            data = result.data
           }
 
           if (requestInfo.relativeCacheKey.length) {
             _FetchManager.refreshData.call(void 0, requestInfo.relativeCacheKey)
-          }
-
-          if (!res.writAbleEnded) {
-            res.writAbleEnded = true
-            try {
-              res.cork(() => {
-                if (result.cookies && result.cookies.length) {
-                  for (const cookie of result.cookies) {
-                    res.writeHeader('Set-Cookie', cookie)
-                  }
-                }
-                res
-                  .writeStatus(
-                    `${result.status}${
-                      result.message ? ' ' + result.message : ''
-                    }`
-                  )
-                  .writeHeader('Content-Type', 'application/json')
-                  .writeHeader('Cache-Control', 'no-store')
-
-                if (contentEncoding) {
-                  res.writeHeader('Content-Encoding', contentEncoding)
-                }
-
-                res.end(data, true)
-              })
-            } catch (err) {
-              _ConsoleHandler2.default.error(err)
-            }
           }
         }
       } // IF !res.writableEnded

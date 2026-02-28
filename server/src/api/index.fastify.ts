@@ -47,10 +47,10 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? brotliCompressSync(JSON.stringify(result.data))
+        ? brotliCompressSync(result.data)
         : contentEncoding === 'gzip'
-          ? gzipSync(JSON.stringify(result.data))
-          : JSON.stringify(result.data)
+          ? gzipSync(result.data)
+          : result.data
     default:
       return typeof result.data === 'string'
         ? result.data
