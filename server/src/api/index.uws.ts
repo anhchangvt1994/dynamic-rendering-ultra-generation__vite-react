@@ -42,7 +42,7 @@ const fetchCache = (() => {
           // apiCache.status === 'ready' ||
           apiCache.cache &&
           apiCache.cache.data &&
-          JSON.stringify(apiCache.cache.data) !== '{}'
+          apiCache.cache.data !== '{}'
         )
           res(apiCache.cache)
         else {
@@ -259,21 +259,6 @@ const apiService = (async () => {
             ) {
               removeDataCache(requestInfo.cacheKey)
             } else {
-              let data = await getDataCompression(
-                requestInfo.cacheKey,
-                contentEncoding as any
-              )
-
-              if (data) {
-                resEnd(res, {
-                  status: '200',
-                  message: '',
-                  contentEncoding,
-                  cookies: [],
-                  data,
-                })
-              }
-
               const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
               if (aliveTime > 5000 && apiCache.status !== 'ready') {
@@ -321,30 +306,28 @@ const apiService = (async () => {
                 }
               }
 
+              let cache = apiCache.cache
+
+              if (!cache) cache = await fetchCache(requestInfo.cacheKey)
+
+              let data = await getDataCompression(
+                requestInfo.cacheKey,
+                contentEncoding as any
+              )
+
               if (!data) {
-                let cache = apiCache.cache
-
-                if (!cache) cache = await fetchCache(requestInfo.cacheKey)
-
-                data = await getDataCompression(
-                  requestInfo.cacheKey,
-                  contentEncoding as any
-                )
-
-                if (!data) {
-                  // data = convertData(cache, contentEncoding)
-                  // data = JSON.stringify(cache.data)
-                  data = cache.data
-                }
-
-                resEnd(res, {
-                  status: cache.status,
-                  message: cache.message,
-                  contentEncoding,
-                  cookies: cache.cookies,
-                  data,
-                })
+                // data = convertData(cache, contentEncoding)
+                // data = JSON.stringify(cache.data)
+                data = cache.data
               }
+
+              resEnd(res, {
+                status: cache.status,
+                message: cache.message,
+                contentEncoding,
+                cookies: cache.cookies,
+                data,
+              })
             } // IF expiredTime is valid
           } // IF has apiCache
         } // IF requestInfo.expiredTime > 0
@@ -358,22 +341,14 @@ const apiService = (async () => {
             body,
           })
 
-          const result = await fetchAPITarget
-
-          resEnd(res, {
-            status: result.status,
-            message: result.message,
-            contentEncoding: '',
-            cookies: result.cookies,
-            data: result.data,
-          })
-
           if (enableCache) {
             setDataCache(requestInfo.cacheKey, '', {
               isCompress: true,
               status: 'fetch',
             })
           } else removeDataCache(requestInfo.cacheKey)
+
+          const result = await fetchAPITarget
 
           if (enableCache) {
             Promise.all([
@@ -406,6 +381,14 @@ const apiService = (async () => {
           if (requestInfo.relativeCacheKey.length) {
             refreshData(requestInfo.relativeCacheKey)
           }
+
+          resEnd(res, {
+            status: result.status,
+            message: result.message,
+            contentEncoding: '',
+            cookies: result.cookies,
+            data,
+          })
         }
       } // IF !res.writableEnded
     })
