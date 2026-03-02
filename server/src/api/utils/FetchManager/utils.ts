@@ -108,7 +108,7 @@ export const fetchData = async (
             //   }
             // } else JSON.parse(tmpData)
 
-            const data = await res.clone().text()
+            const data = await res.text()
 
             resolve(data)
           })
