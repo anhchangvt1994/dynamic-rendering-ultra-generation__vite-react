@@ -22,10 +22,10 @@ const fetchCache = (() => {
         if (!apiCache) return res(null)
 
         if (
-          apiCache.status === 'ready' ||
-          (apiCache.cache &&
-            apiCache.cache.data &&
-            JSON.stringify(apiCache.cache.data) !== '{}')
+          // apiCache.status === 'ready' ||
+          apiCache.cache &&
+          apiCache.cache.data &&
+          apiCache.cache.data !== '{}'
         )
           res(apiCache.cache)
         else {
