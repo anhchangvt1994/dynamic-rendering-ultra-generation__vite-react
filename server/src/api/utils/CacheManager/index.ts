@@ -30,7 +30,7 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
   let result
 
   try {
-    result = await pool.exec('get', [dataPath, key, 'br', options])
+    result = await pool.exec('get', [dataPath, key, 'json', options])
   } catch (err) {
     Console.error(err)
   }
@@ -73,7 +73,7 @@ export const setData = async (
   let result
 
   try {
-    result = await pool.exec('set', [dataPath, key, 'br', content, options])
+    result = await pool.exec('set', [dataPath, key, 'json', content, options])
   } catch (err) {
     Console.error(err)
   }

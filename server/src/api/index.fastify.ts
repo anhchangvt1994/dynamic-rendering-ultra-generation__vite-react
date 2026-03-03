@@ -10,6 +10,7 @@ import {
   setStore as setStoreCache,
   updateDataStatus as updateDataCacheStatus,
 } from './utils/CacheManager'
+import { getDataCompression } from './utils/CacheManager/utils'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
 
@@ -217,22 +218,28 @@ const apiService = (async () => {
                   method,
                   headers: objHeaders,
                   body,
-                }).then((result) => {
+                }).then(({ data, ...result }) => {
                   const enableToSetCache =
                     result.status === 200 ||
                     !apiCache.cache ||
                     apiCache.cache.status !== 200
                   if (enableToSetCache) {
-                    setDataCache(requestInfo.cacheKey, {
-                      url: fetchUrl,
-                      method,
-                      body,
-                      headers: objHeaders,
-                      cache: {
-                        expiredTime: requestInfo.expiredTime,
-                        ...result,
+                    setDataCache(
+                      requestInfo.cacheKey,
+                      {
+                        url: fetchUrl,
+                        method,
+                        body,
+                        headers: objHeaders,
+                        cache: {
+                          expiredTime: requestInfo.expiredTime,
+                          ...result,
+                        },
                       },
-                    })
+                      {
+                        isCompress: false,
+                      }
+                    )
                   }
                 })
               }
@@ -242,9 +249,13 @@ const apiService = (async () => {
 
             if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-            const data = convertData(cache, contentEncoding)
+            const data = await getDataCompression(
+              requestInfo.cacheKey,
+              contentEncoding as any
+            )
 
             res.raw.statusMessage = cache.message || res.raw.statusMessage
+            res.raw.setHeader('Content-Encoding', contentEncoding)
 
             return res.status(cache.status).send(data)
           } // IF expiredTime is valid
@@ -260,25 +271,32 @@ const apiService = (async () => {
 
       if (enableCache) {
         setDataCache(requestInfo.cacheKey, '', {
-          isCompress: true,
+          isCompress: false,
           status: 'fetch',
         })
       } else removeDataCache(requestInfo.cacheKey)
 
       const result = await fetchAPITarget
       const data = convertData(result, contentEncoding)
+      const { data: _, ...resultToSave } = result
 
       if (enableCache) {
-        setDataCache(requestInfo.cacheKey, {
-          url: fetchUrl,
-          method,
-          body,
-          headers: objHeaders,
-          cache: {
-            expiredTime: requestInfo.expiredTime,
-            ...result,
+        setDataCache(
+          requestInfo.cacheKey,
+          {
+            url: fetchUrl,
+            method,
+            body,
+            headers: objHeaders,
+            cache: {
+              expiredTime: requestInfo.expiredTime,
+              ...resultToSave,
+            },
           },
-        })
+          {
+            isCompress: false,
+          }
+        )
       }
 
       if (requestInfo.relativeCacheKey.length) {

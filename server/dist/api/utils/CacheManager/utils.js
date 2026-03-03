@@ -412,7 +412,7 @@ if (!_fs2.default.existsSync(storePath)) {
   let result
 
   try {
-    result = await exports.get.call(void 0, dataPath, key, 'br', options)
+    result = await exports.get.call(void 0, dataPath, key, 'json', options)
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

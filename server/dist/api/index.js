@@ -64,7 +64,7 @@ const apiService = (() => {
   const _allRequestHandler = () => {
     _app.all('/api', async function (req, res) {
       const apiInfo =
-        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.url), 'optionalAccess', _3 => _3.groups]), () => ( {}))
+        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _2 => _2.exec, 'call', _3 => _3(req.url), 'optionalAccess', _4 => _4.groups]), () => ( {}))
 
       if (!apiInfo) return res.status(500).send('Internal Server Error')
 
@@ -125,9 +125,9 @@ const apiService = (() => {
 
       // NOTE - Handle query string information
       const strQueryString = (() => {
-        const thisAPIQueryString = _optionalChain([req, 'access', _4 => _4.url
-, 'access', _5 => _5.split, 'call', _6 => _6('?'), 'access', _7 => _7[1]
-, 'optionalAccess', _8 => _8.replace, 'call', _9 => _9(/requestInfo=([^&]*)/g, '')])
+        const thisAPIQueryString = _optionalChain([req, 'access', _5 => _5.url
+, 'access', _6 => _6.split, 'call', _7 => _7('?'), 'access', _8 => _8[1]
+, 'optionalAccess', _9 => _9.replace, 'call', _10 => _10(/requestInfo=([^&]*)/g, '')])
 
         if (!thisAPIQueryString) return ''
 
@@ -227,22 +227,28 @@ const apiService = (() => {
                   method,
                   headers: objHeaders,
                   body,
-                }).then((result) => {
+                }).then(({ data, ...result }) => {
                   const enableToSetCache =
                     result.status === 200 ||
                     !apiCache.cache ||
                     apiCache.cache.status !== 200
                   if (enableToSetCache) {
-                    _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-                      url: fetchUrl,
-                      method,
-                      body,
-                      headers: objHeaders,
-                      cache: {
-                        expiredTime: requestInfo.expiredTime,
-                        ...result,
+                    _CacheManager.setData.call(void 0, 
+                      requestInfo.cacheKey,
+                      {
+                        url: fetchUrl,
+                        method,
+                        body,
+                        headers: objHeaders,
+                        cache: {
+                          expiredTime: requestInfo.expiredTime,
+                          ...result,
+                        },
                       },
-                    })
+                      {
+                        isCompress: false,
+                      }
+                    )
                   }
                 })
               }
@@ -270,25 +276,32 @@ const apiService = (() => {
 
       if (enableCache) {
         _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
-          isCompress: true,
+          isCompress: false,
           status: 'fetch',
         })
       } else _CacheManager.removeData.call(void 0, requestInfo.cacheKey)
 
       const result = await fetchAPITarget
       const data = convertData(result, contentEncoding)
+      const { data: _, ...resultToSave } = result
 
       if (enableCache) {
-        _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-          url: fetchUrl,
-          method,
-          body,
-          headers: objHeaders,
-          cache: {
-            expiredTime: requestInfo.expiredTime,
-            ...result,
+        _CacheManager.setData.call(void 0, 
+          requestInfo.cacheKey,
+          {
+            url: fetchUrl,
+            method,
+            body,
+            headers: objHeaders,
+            cache: {
+              expiredTime: requestInfo.expiredTime,
+              ...resultToSave,
+            },
           },
-        })
+          {
+            isCompress: false,
+          }
+        )
       }
 
       if (requestInfo.relativeCacheKey.length) {

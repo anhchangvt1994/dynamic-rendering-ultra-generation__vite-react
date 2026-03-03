@@ -8,7 +8,6 @@ var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 =
 
 
 
-
 var _CacheManager = require('./utils/CacheManager');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
@@ -60,7 +59,7 @@ const convertData = (
 
 const apiService = async (req) => {
   const apiInfo =
-    _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.url()), 'optionalAccess', _3 => _3.groups]), () => ( {}))
+    _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _2 => _2.exec, 'call', _3 => _3(req.url()), 'optionalAccess', _4 => _4.groups]), () => ( {}))
 
   if (!apiInfo)
     return {
@@ -118,9 +117,9 @@ const apiService = async (req) => {
   // NOTE - Handle query string information
   const strQueryString = (() => {
     const thisAPIQueryString = _optionalChain([req
-, 'access', _4 => _4.url, 'call', _5 => _5()
-, 'access', _6 => _6.split, 'call', _7 => _7('?'), 'access', _8 => _8[1]
-, 'optionalAccess', _9 => _9.replace, 'call', _10 => _10(/requestInfo=([^&]*)/g, '')])
+, 'access', _5 => _5.url, 'call', _6 => _6()
+, 'access', _7 => _7.split, 'call', _8 => _8('?'), 'access', _9 => _9[1]
+, 'optionalAccess', _10 => _10.replace, 'call', _11 => _11(/requestInfo=([^&]*)/g, '')])
 
     if (!thisAPIQueryString) return ''
 
@@ -181,79 +180,92 @@ const apiService = async (req) => {
   }
 
   // NOTE - Handle API Cache
-  if (enableCache) {
-    const apiCache = await _CacheManager.getData.call(void 0, requestInfo.cacheKey)
+  // if (enableCache) {
+  //   const apiCache = await getDataCache(requestInfo.cacheKey)
 
-    if (apiCache) {
-      const curTime = Date.now()
-      if (
-        apiCache.cache.status !== 200 ||
-        (requestInfo.expiredTime !== 'infinite' &&
-          curTime - new Date(apiCache.requestedAt).getTime() >=
-            requestInfo.expiredTime)
-      ) {
-        _CacheManager.removeData.call(void 0, requestInfo.cacheKey)
-      } else {
-        const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
+  //   if (apiCache) {
+  //     const curTime = Date.now()
+  //     if (
+  //       apiCache.cache.status !== 200 ||
+  //       (requestInfo.expiredTime !== 'infinite' &&
+  //         curTime - new Date(apiCache.requestedAt).getTime() >=
+  //           requestInfo.expiredTime)
+  //     ) {
+  //       removeDataCache(requestInfo.cacheKey)
+  //     } else {
+  //       const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
-        if (aliveTime > 5000 && apiCache.status !== 'ready') {
-          _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'ready')
-        }
+  //       if (aliveTime > 5000 && apiCache.status !== 'ready') {
+  //         updateDataCacheStatus(requestInfo.cacheKey, 'ready')
+  //       }
 
-        if (
-          ((requestInfo.renewTime !== 'infinite' &&
-            aliveTime >= requestInfo.renewTime) ||
-            !apiCache.cache ||
-            apiCache.cache.status !== 200) &&
-          apiCache.status !== 'fetch'
-        ) {
-          const apiCache = await _CacheManager.getData.call(void 0, requestInfo.cacheKey)
+  //       if (
+  //         ((requestInfo.renewTime !== 'infinite' &&
+  //           aliveTime >= requestInfo.renewTime) ||
+  //           !apiCache.cache ||
+  //           apiCache.cache.status !== 200) &&
+  //         apiCache.status !== 'fetch'
+  //       ) {
+  //         const apiCache = await getDataCache(requestInfo.cacheKey)
 
-          if (!apiCache || apiCache.status !== 'fetch') {
-            _CacheManager.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
+  //         if (!apiCache || apiCache.status !== 'fetch') {
+  //           updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
 
-            const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+  //           const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
-            _FetchManager.fetchData.call(void 0, fetchUrl, {
-              method,
-              headers: objHeaders,
-              body,
-            }).then((result) => {
-              const enableToSetCache =
-                result.status === 200 ||
-                !apiCache.cache ||
-                apiCache.cache.status !== 200
-              if (enableToSetCache) {
-                _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-                  url: fetchUrl,
-                  method,
-                  body,
-                  headers: objHeaders,
-                  cache: {
-                    expiredTime: requestInfo.expiredTime,
-                    ...result,
-                  },
-                })
+  //           fetchData(fetchUrl, {
+  //             method,
+  //             headers: objHeaders,
+  //             body,
+  //           }).then(({ data, ...result }) => {
+  //             const enableToSetCache =
+  //               result.status === 200 ||
+  //               !apiCache.cache ||
+  //               apiCache.cache.status !== 200
+  //             if (enableToSetCache) {
+  //               setDataCache(
+  //                 requestInfo.cacheKey,
+  //                 {
+  //                   url: fetchUrl,
+  //                   method,
+  //                   body,
+  //                   headers: objHeaders,
+  //                   cache: {
+  //                     expiredTime: requestInfo.expiredTime,
+  //                     ...result,
+  //                   },
+  //                 },
+  //                 {
+  //                   isCompress: false,
+  //                 }
+  //               )
 
-                _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
-              }
-            })
-          }
-        }
+  //               compressData(requestInfo.cacheKey, data)
+  //             }
+  //           })
+  //         }
+  //       }
 
-        let cache = apiCache.cache
+  //       let cache = apiCache.cache
 
-        if (!cache) cache = await fetchCache(requestInfo.cacheKey)
+  //       if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-        const data = convertData(cache, '')
+  //       const data = await getDataCompression(
+  //         requestInfo.cacheKey,
+  //         contentEncoding as any
+  //       )
 
-        return {
-          status: cache.status,
-          body: data,
-        }
-      } // IF expiredTime is valid
-    } // IF has apiCache
-  } // IF enableCache
+  //       return {
+  //         status: cache.status,
+  //         contentType: 'application/json',
+  //         headers: Object.assign({}, req.headers(), {
+  //           'Content-Encoding': contentEncoding,
+  //         }),
+  //         body: data,
+  //       }
+  //     } // IF expiredTime is valid
+  //   } // IF has apiCache
+  // } // IF enableCache
 
   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
   const fetchAPITarget = _FetchManager.fetchData.call(void 0, fetchUrl, {
@@ -264,25 +276,32 @@ const apiService = async (req) => {
 
   if (enableCache) {
     _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
-      isCompress: true,
+      isCompress: false,
       status: 'fetch',
     })
   } else _CacheManager.removeData.call(void 0, requestInfo.cacheKey)
 
   const result = await fetchAPITarget
   const data = convertData(result, '')
+  const { data: _, ...resultToSave } = result
 
   if (enableCache) {
-    _CacheManager.setData.call(void 0, requestInfo.cacheKey, {
-      url: fetchUrl,
-      method,
-      body,
-      headers: objHeaders,
-      cache: {
-        expiredTime: requestInfo.expiredTime,
-        ...result,
+    _CacheManager.setData.call(void 0, 
+      requestInfo.cacheKey,
+      {
+        url: fetchUrl,
+        method,
+        body,
+        headers: objHeaders,
+        cache: {
+          expiredTime: requestInfo.expiredTime,
+          ...resultToSave,
+        },
       },
-    })
+      {
+        isCompress: false,
+      }
+    )
 
     _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
   }

@@ -40,9 +40,9 @@ const fetchCache = (() => {
 
         if (
           // apiCache.status === 'ready' ||
-          apiCache.cache &&
-          apiCache.cache.data &&
-          apiCache.cache.data !== '{}'
+          apiCache.cache
+          // && apiCache.cache.data &&
+          // apiCache.cache.data !== '{}'
         )
           res(apiCache.cache)
         else {
@@ -96,6 +96,7 @@ const apiService = (async () => {
 
   const _allRequestHandler = () => {
     _app.all('/api', async function (res, req) {
+      console.log('runnnnn')
       res.onAborted(() => {
         res.writableEnded = true
         Console.log('Request aborted')
@@ -283,24 +284,28 @@ const apiService = (async () => {
                     method,
                     headers: objHeaders,
                     body,
-                  }).then((result) => {
+                  }).then(({ data, ...result }) => {
                     const enableToSetCache =
                       result.status === 200 ||
                       !apiCache.cache ||
                       apiCache.cache.status !== 200
                     if (enableToSetCache) {
-                      setDataCache(requestInfo.cacheKey, {
-                        url: fetchUrl,
-                        method,
-                        body,
-                        headers: objHeaders,
-                        cache: {
-                          expiredTime: requestInfo.expiredTime,
-                          ...result,
+                      setDataCache(
+                        requestInfo.cacheKey,
+                        {
+                          url: fetchUrl,
+                          method,
+                          body,
+                          headers: objHeaders,
+                          cache: {
+                            expiredTime: requestInfo.expiredTime,
+                            ...result,
+                          },
                         },
-                      })
+                        { isCompress: false }
+                      )
 
-                      compressData(requestInfo.cacheKey, result.data)
+                      compressData(requestInfo.cacheKey, data)
                     }
                   })
                 }
@@ -310,16 +315,16 @@ const apiService = (async () => {
 
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-              let data = await getDataCompression(
+              const data = await getDataCompression(
                 requestInfo.cacheKey,
                 contentEncoding as any
               )
 
-              if (!data) {
-                // data = convertData(cache, contentEncoding)
-                // data = JSON.stringify(cache.data)
-                data = cache.data
-              }
+              // if (!data) {
+              // data = convertData(cache, contentEncoding)
+              // data = JSON.stringify(cache.data)
+              //   data = cache.data
+              // }
 
               resEnd(res, {
                 status: cache.status,
@@ -343,39 +348,45 @@ const apiService = (async () => {
 
           if (enableCache) {
             setDataCache(requestInfo.cacheKey, '', {
-              isCompress: true,
+              isCompress: false,
               status: 'fetch',
             })
           } else removeDataCache(requestInfo.cacheKey)
 
-          const result = await fetchAPITarget
+          const { data, ...result } = await fetchAPITarget
 
           if (enableCache) {
             Promise.all([
-              setDataCache(requestInfo.cacheKey, {
-                url: fetchUrl,
-                method,
-                body,
-                headers: objHeaders,
-                cache: {
-                  expiredTime: requestInfo.expiredTime,
-                  ...result,
+              setDataCache(
+                requestInfo.cacheKey,
+                {
+                  url: fetchUrl,
+                  method,
+                  body,
+                  headers: objHeaders,
+                  cache: {
+                    expiredTime: requestInfo.expiredTime,
+                    ...result,
+                  },
                 },
-              }),
+                {
+                  isCompress: false,
+                }
+              ),
 
-              compressData(requestInfo.cacheKey, result.data),
+              compressData(requestInfo.cacheKey, data),
             ])
           }
 
-          let data = await getDataCompression(
+          let dataToSend = await getDataCompression(
             requestInfo.cacheKey,
             contentEncoding as any
           )
 
-          if (!data) {
+          if (!dataToSend) {
             // data = convertData(result, contentEncoding)
             // data = JSON.stringify(result.data)
-            data = result.data
+            dataToSend = data
           }
 
           if (requestInfo.relativeCacheKey.length) {

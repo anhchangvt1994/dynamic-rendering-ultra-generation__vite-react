@@ -30,7 +30,7 @@ const workerManager = _WorkerManager2.default.init(
   let result
 
   try {
-    result = await pool.exec('get', [dataPath, key, 'br', options])
+    result = await pool.exec('get', [dataPath, key, 'json', options])
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
@@ -73,7 +73,7 @@ const workerManager = _WorkerManager2.default.init(
   let result
 
   try {
-    result = await pool.exec('set', [dataPath, key, 'br', content, options])
+    result = await pool.exec('set', [dataPath, key, 'json', content, options])
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

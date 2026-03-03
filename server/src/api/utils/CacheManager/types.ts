@@ -37,7 +37,7 @@ export type ICacheResult =
             expiredTime: number
             status: number
             message?: string
-            data: any
+            data?: any
             [key: string]: any
           }
       createdAt: Date
@@ -61,7 +61,7 @@ export interface ISetCacheContent {
         expiredTime: number
         status: number
         message?: string | undefined
-        data: any
+        data?: any
         [key: string]: any
       }
 }

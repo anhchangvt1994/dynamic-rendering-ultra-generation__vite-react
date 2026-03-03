@@ -8,7 +8,6 @@ import {
   removeData as removeDataCache,
   setData as setDataCache,
   setStore as setStoreCache,
-  updateDataStatus as updateDataCacheStatus,
 } from './utils/CacheManager'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
@@ -181,79 +180,92 @@ const apiService = async (req) => {
   }
 
   // NOTE - Handle API Cache
-  if (enableCache) {
-    const apiCache = await getDataCache(requestInfo.cacheKey)
+  // if (enableCache) {
+  //   const apiCache = await getDataCache(requestInfo.cacheKey)
 
-    if (apiCache) {
-      const curTime = Date.now()
-      if (
-        apiCache.cache.status !== 200 ||
-        (requestInfo.expiredTime !== 'infinite' &&
-          curTime - new Date(apiCache.requestedAt).getTime() >=
-            requestInfo.expiredTime)
-      ) {
-        removeDataCache(requestInfo.cacheKey)
-      } else {
-        const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
+  //   if (apiCache) {
+  //     const curTime = Date.now()
+  //     if (
+  //       apiCache.cache.status !== 200 ||
+  //       (requestInfo.expiredTime !== 'infinite' &&
+  //         curTime - new Date(apiCache.requestedAt).getTime() >=
+  //           requestInfo.expiredTime)
+  //     ) {
+  //       removeDataCache(requestInfo.cacheKey)
+  //     } else {
+  //       const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
-        if (aliveTime > 5000 && apiCache.status !== 'ready') {
-          updateDataCacheStatus(requestInfo.cacheKey, 'ready')
-        }
+  //       if (aliveTime > 5000 && apiCache.status !== 'ready') {
+  //         updateDataCacheStatus(requestInfo.cacheKey, 'ready')
+  //       }
 
-        if (
-          ((requestInfo.renewTime !== 'infinite' &&
-            aliveTime >= requestInfo.renewTime) ||
-            !apiCache.cache ||
-            apiCache.cache.status !== 200) &&
-          apiCache.status !== 'fetch'
-        ) {
-          const apiCache = await getDataCache(requestInfo.cacheKey)
+  //       if (
+  //         ((requestInfo.renewTime !== 'infinite' &&
+  //           aliveTime >= requestInfo.renewTime) ||
+  //           !apiCache.cache ||
+  //           apiCache.cache.status !== 200) &&
+  //         apiCache.status !== 'fetch'
+  //       ) {
+  //         const apiCache = await getDataCache(requestInfo.cacheKey)
 
-          if (!apiCache || apiCache.status !== 'fetch') {
-            updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
+  //         if (!apiCache || apiCache.status !== 'fetch') {
+  //           updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
 
-            const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
+  //           const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
-            fetchData(fetchUrl, {
-              method,
-              headers: objHeaders,
-              body,
-            }).then((result) => {
-              const enableToSetCache =
-                result.status === 200 ||
-                !apiCache.cache ||
-                apiCache.cache.status !== 200
-              if (enableToSetCache) {
-                setDataCache(requestInfo.cacheKey, {
-                  url: fetchUrl,
-                  method,
-                  body,
-                  headers: objHeaders,
-                  cache: {
-                    expiredTime: requestInfo.expiredTime,
-                    ...result,
-                  },
-                })
+  //           fetchData(fetchUrl, {
+  //             method,
+  //             headers: objHeaders,
+  //             body,
+  //           }).then(({ data, ...result }) => {
+  //             const enableToSetCache =
+  //               result.status === 200 ||
+  //               !apiCache.cache ||
+  //               apiCache.cache.status !== 200
+  //             if (enableToSetCache) {
+  //               setDataCache(
+  //                 requestInfo.cacheKey,
+  //                 {
+  //                   url: fetchUrl,
+  //                   method,
+  //                   body,
+  //                   headers: objHeaders,
+  //                   cache: {
+  //                     expiredTime: requestInfo.expiredTime,
+  //                     ...result,
+  //                   },
+  //                 },
+  //                 {
+  //                   isCompress: false,
+  //                 }
+  //               )
 
-                compressData(requestInfo.cacheKey, result.data)
-              }
-            })
-          }
-        }
+  //               compressData(requestInfo.cacheKey, data)
+  //             }
+  //           })
+  //         }
+  //       }
 
-        let cache = apiCache.cache
+  //       let cache = apiCache.cache
 
-        if (!cache) cache = await fetchCache(requestInfo.cacheKey)
+  //       if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-        const data = convertData(cache, '')
+  //       const data = await getDataCompression(
+  //         requestInfo.cacheKey,
+  //         contentEncoding as any
+  //       )
 
-        return {
-          status: cache.status,
-          body: data,
-        }
-      } // IF expiredTime is valid
-    } // IF has apiCache
-  } // IF enableCache
+  //       return {
+  //         status: cache.status,
+  //         contentType: 'application/json',
+  //         headers: Object.assign({}, req.headers(), {
+  //           'Content-Encoding': contentEncoding,
+  //         }),
+  //         body: data,
+  //       }
+  //     } // IF expiredTime is valid
+  //   } // IF has apiCache
+  // } // IF enableCache
 
   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
   const fetchAPITarget = fetchData(fetchUrl, {
@@ -264,25 +276,32 @@ const apiService = async (req) => {
 
   if (enableCache) {
     setDataCache(requestInfo.cacheKey, '', {
-      isCompress: true,
+      isCompress: false,
       status: 'fetch',
     })
   } else removeDataCache(requestInfo.cacheKey)
 
   const result = await fetchAPITarget
   const data = convertData(result, '')
+  const { data: _, ...resultToSave } = result
 
   if (enableCache) {
-    setDataCache(requestInfo.cacheKey, {
-      url: fetchUrl,
-      method,
-      body,
-      headers: objHeaders,
-      cache: {
-        expiredTime: requestInfo.expiredTime,
-        ...result,
+    setDataCache(
+      requestInfo.cacheKey,
+      {
+        url: fetchUrl,
+        method,
+        body,
+        headers: objHeaders,
+        cache: {
+          expiredTime: requestInfo.expiredTime,
+          ...resultToSave,
+        },
       },
-    })
+      {
+        isCompress: false,
+      }
+    )
 
     compressData(requestInfo.cacheKey, result.data)
   }

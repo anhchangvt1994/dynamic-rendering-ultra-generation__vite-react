@@ -412,7 +412,7 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
   let result
 
   try {
-    result = await get(dataPath, key, 'br', options)
+    result = await get(dataPath, key, 'json', options)
   } catch (err) {
     Console.error(err)
   }
