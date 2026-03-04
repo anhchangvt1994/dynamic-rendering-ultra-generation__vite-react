@@ -424,16 +424,34 @@ if (!_fs2.default.existsSync(storePath)) {
   key,
   compression
 ) => {
-  let result
   const file = `${dataPath}/${key}-${compression}.${compression}`
+  const startAt = Date.now()
+  const maxWaitTime = 7000
+  const retryDelay = 100
 
-  try {
-    result = _fs2.default.readFileSync(file)
-  } catch (err) {
-    _ConsoleHandler2.default.error(err)
+  // Helper to wait
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  // Wait until file exists with retry
+  while (!_fs2.default.existsSync(file)) {
+    if (Date.now() - startAt >= maxWaitTime) {
+      return undefined
+    }
+    await wait(retryDelay)
   }
 
-  return result
+  // File exists now, try to read it
+  while (Date.now() - startAt < maxWaitTime) {
+    try {
+      const content = await _fs.promises.readFile(file)
+      return content
+    } catch (err) {
+      // File might be locked or not fully written yet, wait and retry
+      await wait(retryDelay)
+    }
+  }
+
+  return undefined
 }; exports.getDataCompression = getDataCompression // getDataCompression
 
  const getStore = async (

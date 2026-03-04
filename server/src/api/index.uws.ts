@@ -96,7 +96,6 @@ const apiService = (async () => {
 
   const _allRequestHandler = () => {
     _app.all('/api', async function (res, req) {
-      console.log('runnnnn')
       res.onAborted(() => {
         res.writableEnded = true
         Console.log('Request aborted')

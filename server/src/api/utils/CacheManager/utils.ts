@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import fs from 'fs'
+import fs, { promises as fsPromises } from 'fs'
 import { promisify } from 'util'
 import {
   brotliCompress,
@@ -423,17 +423,35 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
 export const getDataCompression = async (
   key: string,
   compression: 'br' | 'gzip'
-) => {
-  let result
+): Promise<Buffer | undefined> => {
   const file = `${dataPath}/${key}-${compression}.${compression}`
+  const startAt = Date.now()
+  const maxWaitTime = 7000
+  const retryDelay = 100
 
-  try {
-    result = fs.readFileSync(file)
-  } catch (err) {
-    Console.error(err)
+  // Helper to wait
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  // Wait until file exists with retry
+  while (!fs.existsSync(file)) {
+    if (Date.now() - startAt >= maxWaitTime) {
+      return undefined
+    }
+    await wait(retryDelay)
   }
 
-  return result
+  // File exists now, try to read it
+  while (Date.now() - startAt < maxWaitTime) {
+    try {
+      const content = await fsPromises.readFile(file)
+      return content
+    } catch (err) {
+      // File might be locked or not fully written yet, wait and retry
+      await wait(retryDelay)
+    }
+  }
+
+  return undefined
 } // getDataCompression
 
 export const getStore = async (

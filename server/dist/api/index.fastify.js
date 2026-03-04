@@ -9,7 +9,9 @@ var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 =
 
 
 
+
 var _CacheManager = require('./utils/CacheManager');
+var _utils = require('./utils/CacheManager/utils');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
 
@@ -248,9 +250,13 @@ const apiService = (async () => {
 
             if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-            const data = convertData(cache, contentEncoding)
+            const data = await _utils.getDataCompression.call(void 0, 
+              requestInfo.cacheKey,
+              contentEncoding 
+            )
 
             res.raw.statusMessage = cache.message || res.raw.statusMessage
+            res.raw.setHeader('Content-Encoding', contentEncoding)
 
             return res.status(cache.status).send(data)
           } // IF expiredTime is valid
@@ -292,6 +298,8 @@ const apiService = (async () => {
             isCompress: false,
           }
         )
+
+        _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
       }
 
       if (requestInfo.relativeCacheKey.length) {
