@@ -3,6 +3,7 @@ import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import {
+  compressData,
   getData as getDataCache,
   getStore as getStoreCache,
   removeData as removeDataCache,
@@ -309,6 +310,8 @@ const apiService = (() => {
             isCompress: false,
           }
         )
+
+        compressData(requestInfo.cacheKey, result.data)
       }
 
       if (requestInfo.relativeCacheKey.length) {
