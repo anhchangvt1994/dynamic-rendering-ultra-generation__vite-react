@@ -7,6 +7,7 @@ import {
   brotliDecompressSync,
   gzip,
 } from 'zlib'
+import { getStore as getStoreGlobal } from '../../../store'
 import Console from '../../../utils/ConsoleHandler'
 import { getDataPath, getStorePath } from '../../../utils/PathHandler'
 import {
@@ -303,6 +304,162 @@ export const get = async (
   }
 } // get
 
+export const getLRUCache = async (
+  directory: string,
+  key: string,
+  extension: 'json' | 'br' | 'gz',
+  options?: IGetCacheOptionsParam
+): Promise<ICacheResult> => {
+  const optionsFormatted = {
+    autoCreateIfEmpty: {
+      enable: false,
+    },
+    updateRequestTime: true,
+    ...(options || {}),
+  }
+
+  if (!directory) {
+    Console.error('Need provide "directory" param!')
+    return
+  }
+
+  if (!key) {
+    Console.error('Need provide "key" param!')
+    return
+  }
+
+  const apiStore = getStoreGlobal('api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    Console.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+  const cacheKey = `${directory}/${key}.${extension}`
+
+  let cacheEntry = lruCache.get(cacheKey)
+
+  if (!cacheEntry) {
+    if (!optionsFormatted.autoCreateIfEmpty.enable) return
+
+    Console.log(`Create LRU Cache entry ${cacheKey}`)
+
+    const curTime = new Date()
+    const newEntry = {
+      createdAt: curTime,
+      updatedAt: curTime,
+      requestedAt: curTime,
+      modifiedAt: curTime,
+      changedAt: curTime,
+      status: optionsFormatted.autoCreateIfEmpty.status,
+      content: '',
+    }
+
+    lruCache.set(cacheKey, newEntry)
+
+    return {
+      createdAt: curTime,
+      updatedAt: curTime,
+      requestedAt: curTime,
+      modifiedAt: curTime,
+      changedAt: curTime,
+      status: optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
+
+  const info = {
+    createdAt: cacheEntry.createdAt,
+    updatedAt: cacheEntry.updatedAt,
+    requestedAt: cacheEntry.requestedAt,
+    modifiedAt: cacheEntry.modifiedAt,
+    changedAt: cacheEntry.changedAt,
+  }
+
+  if (
+    !cacheEntry.content ||
+    (typeof cacheEntry.content === 'string' && cacheEntry.content.length === 0)
+  ) {
+    const curTime = new Date()
+    Console.log(`LRU Cache entry ${cacheKey} is empty`)
+    return {
+      createdAt: info?.createdAt ?? curTime,
+      updatedAt: info?.updatedAt ?? curTime,
+      requestedAt: info?.requestedAt ?? curTime,
+      modifiedAt: info?.modifiedAt ?? curTime,
+      changedAt: info?.changedAt ?? curTime,
+      status: cacheEntry.status,
+    }
+  }
+
+  if (
+    optionsFormatted.sizeLimit &&
+    cacheEntry.content.length > optionsFormatted.sizeLimit
+  ) {
+    const curTime = new Date()
+    Console.log(`Cache entry larger than sizeLimit`)
+    return {
+      createdAt: info?.createdAt ?? curTime,
+      updatedAt: info?.updatedAt ?? curTime,
+      requestedAt: info?.requestedAt ?? curTime,
+      modifiedAt: info?.modifiedAt ?? curTime,
+      changedAt: info?.changedAt ?? curTime,
+      status: cacheEntry.status,
+    }
+  }
+
+  if (optionsFormatted.updateRequestTime) {
+    cacheEntry.requestedAt = new Date()
+    lruCache.set(cacheKey, cacheEntry)
+  }
+
+  Console.log(`LRU Cache entry ${cacheKey} is ready!`)
+
+  const content = (() => {
+    let tmpContent: string | Buffer = cacheEntry.content
+
+    try {
+      if (extension === 'br') {
+        tmpContent = brotliDecompressSync(tmpContent).toString()
+      } else tmpContent = tmpContent.toString('utf8')
+
+      return JSON.parse(tmpContent as unknown as string)
+    } catch (err) {
+      Console.error(`Failed to decompress/parse cache entry ${cacheKey}:`, err)
+      return null
+    }
+  })()
+
+  const objContent =
+    !content || Array.isArray(content)
+      ? {
+          data: content,
+        }
+      : content
+
+  if (content === null) {
+    const curTime = new Date()
+    return {
+      createdAt: info?.createdAt ?? curTime,
+      updatedAt: info?.updatedAt ?? curTime,
+      requestedAt: info?.requestedAt ?? curTime,
+      modifiedAt: info?.modifiedAt ?? curTime,
+      changedAt: info?.changedAt ?? curTime,
+      status: cacheEntry.status,
+    }
+  }
+
+  return {
+    createdAt: info.createdAt,
+    updatedAt: info.updatedAt,
+    requestedAt: info.requestedAt,
+    modifiedAt: info.modifiedAt,
+    changedAt: info.changedAt,
+    status: cacheEntry.status,
+    ...objContent,
+  }
+} // getLRUCache
+
 export const set = async (
   directory: string,
   key: string,
@@ -386,6 +543,81 @@ export const set = async (
   return result
 } // set
 
+export const setLRUCache = async (
+  directory: string,
+  key: string,
+  extension: 'json' | 'br' | 'gz',
+  content: string | Buffer | ISetCacheContent,
+  options?: ISetCacheOptionsParam
+): Promise<ICacheResult> => {
+  if (!directory) {
+    Console.error('Need provide "directory" param')
+    return
+  }
+
+  if (!key) {
+    Console.error('Need provide "key" param')
+    return
+  }
+
+  const apiStore = getStoreGlobal('api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    Console.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+
+  options = {
+    isCompress: true,
+    status: 'ready',
+    ...(options ? options : {}),
+  }
+
+  // Create unique cache key
+  const cacheKey = `${directory}/${key}.${extension}`
+
+  // NOTE - Process content similar to file-based set
+  const contentToSave = (() => {
+    const contentToString =
+      typeof content === 'string' || content instanceof Buffer
+        ? content
+        : JSON.stringify(content)
+
+    if (options.isCompress && !(content instanceof Buffer)) {
+      return brotliCompressSync(contentToString)
+    }
+
+    return contentToString
+  })()
+
+  const curTime = new Date()
+
+  // Prepare cache entry with metadata
+  const cacheEntry = {
+    content: contentToSave,
+    createdAt: curTime,
+    updatedAt: curTime,
+    requestedAt: curTime,
+    modifiedAt: curTime,
+    changedAt: curTime,
+    status: options.status,
+    extension,
+    ...(typeof content === 'string' ? { cache: content } : content),
+  }
+
+  try {
+    lruCache.set(cacheKey, cacheEntry)
+    Console.log(`LRU Cache entry ${cacheKey} was updated!`)
+  } catch (err) {
+    Console.error(err)
+    return
+  }
+
+  return cacheEntry as ICacheResult
+} // setLRUCache
+
 export const remove = (
   directory: string,
   key: string,
@@ -454,6 +686,39 @@ export const getDataCompression = async (
   return undefined
 } // getDataCompression
 
+export const getLRUCacheDataCompression = async (
+  key: string,
+  compression: 'br' | 'gzip'
+): Promise<Buffer | undefined> => {
+  const apiStore = getStoreGlobal('api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    Console.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+  const extension = compression === 'gzip' ? 'gz' : compression
+  const cacheKey = `${dataPath}/${key}-${compression}.${extension}`
+
+  const cacheEntry = lruCache.get(cacheKey)
+
+  if (!cacheEntry) {
+    return undefined
+  }
+
+  // Return the content as Buffer
+  if (cacheEntry.content instanceof Buffer) {
+    return cacheEntry.content
+  }
+
+  if (typeof cacheEntry.content === 'string') {
+    return Buffer.from(cacheEntry.content)
+  }
+
+  return undefined
+} // getLRUCacheDataCompression
+
 export const getStore = async (
   key: string,
   options?: IGetCacheOptionsParam
@@ -508,6 +773,30 @@ export const setDataCompression = async (
 
   return result
 } // setDataCompression
+
+export const setLRUCacheDataCompression = async (
+  key: string,
+  content: string | Buffer | ISetCacheContent,
+  compression: 'br' | 'gzip',
+  options?: ISetCacheOptionsParam
+) => {
+  let result
+  const extension = compression === 'gzip' ? 'gz' : compression
+
+  try {
+    result = await setLRUCache(
+      dataPath,
+      `${key}-${compression}`,
+      extension,
+      content,
+      options
+    )
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return result
+} // setLRUCacheDataCompression
 
 export const setStore = async (key: string, content: any) => {
   let result

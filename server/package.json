@@ -20,6 +20,7 @@
     "workerpool": "^9.2.0",
     "dotenv": "^16.4.7",
     "mime-types": "3.0.1",
-    "sharp": "^0.34.2"
+    "sharp": "^0.34.2",
+    "lru-cache": "11.2.6"
   }
 }
