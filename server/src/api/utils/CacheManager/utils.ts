@@ -356,7 +356,7 @@ export const getLRUCache = async (
       content: '',
     }
 
-    lruCache.set(cacheKey, newEntry)
+    lruCache.set(cacheKey, newEntry, { size: 1 })
 
     return {
       createdAt: curTime,
@@ -410,7 +410,7 @@ export const getLRUCache = async (
 
   if (optionsFormatted.updateRequestTime) {
     cacheEntry.requestedAt = new Date()
-    lruCache.set(cacheKey, cacheEntry)
+    lruCache.set(cacheKey, cacheEntry, { size: 1 })
   }
 
   Console.log(`LRU Cache entry ${cacheKey} is ready!`)
@@ -608,7 +608,7 @@ export const setLRUCache = async (
   }
 
   try {
-    lruCache.set(cacheKey, cacheEntry)
+    lruCache.set(cacheKey, cacheEntry, { size: 1 })
     Console.log(`LRU Cache entry ${cacheKey} was updated!`)
   } catch (err) {
     Console.error(err)
@@ -651,6 +651,21 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
 
   return result
 } // getData
+
+export const getLRUCacheData = async (
+  key: string,
+  options?: IGetCacheOptionsParam
+) => {
+  let result
+
+  try {
+    result = await getLRUCache(dataPath, key, 'json', options)
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return result
+} // getLRUCacheData
 
 export const getDataCompression = async (
   key: string,
@@ -742,13 +757,29 @@ export const setData = async (
   let result
 
   try {
-    result = await set(dataPath, key, 'br', content, options)
+    result = await set(dataPath, key, 'json', content, options)
   } catch (err) {
     Console.error(err)
   }
 
   return result
 } // setData
+
+export const setLRUCacheData = async (
+  key: string,
+  content: string | Buffer | ISetCacheContent,
+  options?: ISetCacheOptionsParam
+) => {
+  let result
+
+  try {
+    result = await setLRUCache(dataPath, key, 'json', content, options)
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return result
+} // setLRUCacheData
 
 export const setDataCompression = async (
   key: string,
@@ -891,3 +922,45 @@ export const compressData = async (key, data) => {
 
   return tmpCompressData
 } // compressData
+
+export const compressDataAndSaveToLRUCache = async (key, data) => {
+  if (!data) return { br: '', gzip: '' }
+
+  const tmpCompressData: { [key: string]: any } = {
+    br: '',
+    gzip: '',
+  }
+
+  try {
+    const brottliCompressAsync = promisify(brotliCompress)
+    const gzipCompressAsync = promisify(gzip)
+
+    const tmpCompressDataPromise = await Promise.allSettled([
+      brottliCompressAsync(data),
+      gzipCompressAsync(data),
+    ])
+
+    tmpCompressData.br =
+      tmpCompressDataPromise[0].status === 'fulfilled'
+        ? tmpCompressDataPromise[0].value
+        : ''
+    tmpCompressData.gzip =
+      tmpCompressDataPromise[1].status === 'fulfilled'
+        ? tmpCompressDataPromise[1].value
+        : ''
+
+    for (const compression in tmpCompressData) {
+      if (tmpCompressData[compression]) {
+        setLRUCacheDataCompression(
+          key,
+          tmpCompressData[compression],
+          compression as any
+        )
+      }
+    }
+  } catch (err) {
+    Console.error(err)
+  }
+
+  return tmpCompressData
+} // compressDataAndSaveToLRUCache

@@ -7,6 +7,7 @@ var _util = require('util');
 
 
 var _zlib = require('zlib');
+var _store = require('../../../store');
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _PathHandler = require('../../../utils/PathHandler');
 
@@ -303,6 +304,162 @@ if (!_fs2.default.existsSync(storePath)) {
   }
 }; exports.get = get // get
 
+ const getLRUCache = async (
+  directory,
+  key,
+  extension,
+  options
+) => {
+  const optionsFormatted = {
+    autoCreateIfEmpty: {
+      enable: false,
+    },
+    updateRequestTime: true,
+    ...(options || {}),
+  }
+
+  if (!directory) {
+    _ConsoleHandler2.default.error('Need provide "directory" param!')
+    return
+  }
+
+  if (!key) {
+    _ConsoleHandler2.default.error('Need provide "key" param!')
+    return
+  }
+
+  const apiStore = _store.getStore.call(void 0, 'api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    _ConsoleHandler2.default.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+  const cacheKey = `${directory}/${key}.${extension}`
+
+  let cacheEntry = lruCache.get(cacheKey)
+
+  if (!cacheEntry) {
+    if (!optionsFormatted.autoCreateIfEmpty.enable) return
+
+    _ConsoleHandler2.default.log(`Create LRU Cache entry ${cacheKey}`)
+
+    const curTime = new Date()
+    const newEntry = {
+      createdAt: curTime,
+      updatedAt: curTime,
+      requestedAt: curTime,
+      modifiedAt: curTime,
+      changedAt: curTime,
+      status: optionsFormatted.autoCreateIfEmpty.status,
+      content: '',
+    }
+
+    lruCache.set(cacheKey, newEntry, { size: 1 })
+
+    return {
+      createdAt: curTime,
+      updatedAt: curTime,
+      requestedAt: curTime,
+      modifiedAt: curTime,
+      changedAt: curTime,
+      status: optionsFormatted.autoCreateIfEmpty.status,
+    }
+  }
+
+  const info = {
+    createdAt: cacheEntry.createdAt,
+    updatedAt: cacheEntry.updatedAt,
+    requestedAt: cacheEntry.requestedAt,
+    modifiedAt: cacheEntry.modifiedAt,
+    changedAt: cacheEntry.changedAt,
+  }
+
+  if (
+    !cacheEntry.content ||
+    (typeof cacheEntry.content === 'string' && cacheEntry.content.length === 0)
+  ) {
+    const curTime = new Date()
+    _ConsoleHandler2.default.log(`LRU Cache entry ${cacheKey} is empty`)
+    return {
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _17 => _17.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _18 => _18.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _19 => _19.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _20 => _20.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _21 => _21.changedAt]), () => ( curTime)),
+      status: cacheEntry.status,
+    }
+  }
+
+  if (
+    optionsFormatted.sizeLimit &&
+    cacheEntry.content.length > optionsFormatted.sizeLimit
+  ) {
+    const curTime = new Date()
+    _ConsoleHandler2.default.log(`Cache entry larger than sizeLimit`)
+    return {
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _22 => _22.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _23 => _23.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _24 => _24.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _25 => _25.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _26 => _26.changedAt]), () => ( curTime)),
+      status: cacheEntry.status,
+    }
+  }
+
+  if (optionsFormatted.updateRequestTime) {
+    cacheEntry.requestedAt = new Date()
+    lruCache.set(cacheKey, cacheEntry, { size: 1 })
+  }
+
+  _ConsoleHandler2.default.log(`LRU Cache entry ${cacheKey} is ready!`)
+
+  const content = (() => {
+    let tmpContent = cacheEntry.content
+
+    try {
+      if (extension === 'br') {
+        tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
+      } else tmpContent = tmpContent.toString('utf8')
+
+      return JSON.parse(tmpContent )
+    } catch (err) {
+      _ConsoleHandler2.default.error(`Failed to decompress/parse cache entry ${cacheKey}:`, err)
+      return null
+    }
+  })()
+
+  const objContent =
+    !content || Array.isArray(content)
+      ? {
+          data: content,
+        }
+      : content
+
+  if (content === null) {
+    const curTime = new Date()
+    return {
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _27 => _27.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _28 => _28.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _29 => _29.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _30 => _30.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _31 => _31.changedAt]), () => ( curTime)),
+      status: cacheEntry.status,
+    }
+  }
+
+  return {
+    createdAt: info.createdAt,
+    updatedAt: info.updatedAt,
+    requestedAt: info.requestedAt,
+    modifiedAt: info.modifiedAt,
+    changedAt: info.changedAt,
+    status: cacheEntry.status,
+    ...objContent,
+  }
+}; exports.getLRUCache = getLRUCache // getLRUCache
+
  const set = async (
   directory,
   key,
@@ -386,6 +543,81 @@ if (!_fs2.default.existsSync(storePath)) {
   return result
 }; exports.set = set // set
 
+ const setLRUCache = async (
+  directory,
+  key,
+  extension,
+  content,
+  options
+) => {
+  if (!directory) {
+    _ConsoleHandler2.default.error('Need provide "directory" param')
+    return
+  }
+
+  if (!key) {
+    _ConsoleHandler2.default.error('Need provide "key" param')
+    return
+  }
+
+  const apiStore = _store.getStore.call(void 0, 'api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    _ConsoleHandler2.default.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+
+  options = {
+    isCompress: true,
+    status: 'ready',
+    ...(options ? options : {}),
+  }
+
+  // Create unique cache key
+  const cacheKey = `${directory}/${key}.${extension}`
+
+  // NOTE - Process content similar to file-based set
+  const contentToSave = (() => {
+    const contentToString =
+      typeof content === 'string' || content instanceof Buffer
+        ? content
+        : JSON.stringify(content)
+
+    if (options.isCompress && !(content instanceof Buffer)) {
+      return _zlib.brotliCompressSync.call(void 0, contentToString)
+    }
+
+    return contentToString
+  })()
+
+  const curTime = new Date()
+
+  // Prepare cache entry with metadata
+  const cacheEntry = {
+    content: contentToSave,
+    createdAt: curTime,
+    updatedAt: curTime,
+    requestedAt: curTime,
+    modifiedAt: curTime,
+    changedAt: curTime,
+    status: options.status,
+    extension,
+    ...(typeof content === 'string' ? { cache: content } : content),
+  }
+
+  try {
+    lruCache.set(cacheKey, cacheEntry, { size: 1 })
+    _ConsoleHandler2.default.log(`LRU Cache entry ${cacheKey} was updated!`)
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+    return
+  }
+
+  return cacheEntry 
+}; exports.setLRUCache = setLRUCache // setLRUCache
+
  const remove = (
   directory,
   key,
@@ -419,6 +651,21 @@ if (!_fs2.default.existsSync(storePath)) {
 
   return result
 }; exports.getData = getData // getData
+
+ const getLRUCacheData = async (
+  key,
+  options
+) => {
+  let result
+
+  try {
+    result = await exports.getLRUCache.call(void 0, dataPath, key, 'json', options)
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return result
+}; exports.getLRUCacheData = getLRUCacheData // getLRUCacheData
 
  const getDataCompression = async (
   key,
@@ -454,6 +701,39 @@ if (!_fs2.default.existsSync(storePath)) {
   return undefined
 }; exports.getDataCompression = getDataCompression // getDataCompression
 
+ const getLRUCacheDataCompression = async (
+  key,
+  compression
+) => {
+  const apiStore = _store.getStore.call(void 0, 'api')
+
+  if (!apiStore || !apiStore.lruCache) {
+    _ConsoleHandler2.default.error('LRU Cache is not initialized')
+    return
+  }
+
+  const lruCache = apiStore.lruCache
+  const extension = compression === 'gzip' ? 'gz' : compression
+  const cacheKey = `${dataPath}/${key}-${compression}.${extension}`
+
+  const cacheEntry = lruCache.get(cacheKey)
+
+  if (!cacheEntry) {
+    return undefined
+  }
+
+  // Return the content as Buffer
+  if (cacheEntry.content instanceof Buffer) {
+    return cacheEntry.content
+  }
+
+  if (typeof cacheEntry.content === 'string') {
+    return Buffer.from(cacheEntry.content)
+  }
+
+  return undefined
+}; exports.getLRUCacheDataCompression = getLRUCacheDataCompression // getLRUCacheDataCompression
+
  const getStore = async (
   key,
   options
@@ -477,13 +757,29 @@ if (!_fs2.default.existsSync(storePath)) {
   let result
 
   try {
-    result = await exports.set.call(void 0, dataPath, key, 'br', content, options)
+    result = await exports.set.call(void 0, dataPath, key, 'json', content, options)
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
 
   return result
 }; exports.setData = setData // setData
+
+ const setLRUCacheData = async (
+  key,
+  content,
+  options
+) => {
+  let result
+
+  try {
+    result = await exports.setLRUCache.call(void 0, dataPath, key, 'json', content, options)
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return result
+}; exports.setLRUCacheData = setLRUCacheData // setLRUCacheData
 
  const setDataCompression = async (
   key,
@@ -508,6 +804,30 @@ if (!_fs2.default.existsSync(storePath)) {
 
   return result
 }; exports.setDataCompression = setDataCompression // setDataCompression
+
+ const setLRUCacheDataCompression = async (
+  key,
+  content,
+  compression,
+  options
+) => {
+  let result
+  const extension = compression === 'gzip' ? 'gz' : compression
+
+  try {
+    result = await exports.setLRUCache.call(void 0, 
+      dataPath,
+      `${key}-${compression}`,
+      extension,
+      content,
+      options
+    )
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return result
+}; exports.setLRUCacheDataCompression = setLRUCacheDataCompression // setLRUCacheDataCompression
 
  const setStore = async (key, content) => {
   let result
@@ -602,3 +922,45 @@ if (!_fs2.default.existsSync(storePath)) {
 
   return tmpCompressData
 }; exports.compressData = compressData // compressData
+
+ const compressDataAndSaveToLRUCache = async (key, data) => {
+  if (!data) return { br: '', gzip: '' }
+
+  const tmpCompressData = {
+    br: '',
+    gzip: '',
+  }
+
+  try {
+    const brottliCompressAsync = _util.promisify.call(void 0, _zlib.brotliCompress)
+    const gzipCompressAsync = _util.promisify.call(void 0, _zlib.gzip)
+
+    const tmpCompressDataPromise = await Promise.allSettled([
+      brottliCompressAsync(data),
+      gzipCompressAsync(data),
+    ])
+
+    tmpCompressData.br =
+      tmpCompressDataPromise[0].status === 'fulfilled'
+        ? tmpCompressDataPromise[0].value
+        : ''
+    tmpCompressData.gzip =
+      tmpCompressDataPromise[1].status === 'fulfilled'
+        ? tmpCompressDataPromise[1].value
+        : ''
+
+    for (const compression in tmpCompressData) {
+      if (tmpCompressData[compression]) {
+        exports.setLRUCacheDataCompression.call(void 0, 
+          key,
+          tmpCompressData[compression],
+          compression 
+        )
+      }
+    }
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+
+  return tmpCompressData
+}; exports.compressDataAndSaveToLRUCache = compressDataAndSaveToLRUCache // compressDataAndSaveToLRUCache
