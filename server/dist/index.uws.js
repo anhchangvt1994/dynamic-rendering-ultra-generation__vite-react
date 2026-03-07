@@ -62,7 +62,7 @@ const startServer = async () => {
     res.end('', true) // end the request
   })
   // ;(await require('./api/index.uws').default).init(app)
-  ;(await require('./api/index.uws.lru').default).init(app)
+  ;(await require('./api/index.uws.redis').default).init(app)
   ;(await require('./puppeteer-ssr/index.uws').default).init(app)
   ;(await require('./sitemap/index.uws').default).init(app)
 

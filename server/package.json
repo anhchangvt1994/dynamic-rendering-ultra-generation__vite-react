@@ -21,6 +21,7 @@
     "dotenv": "^16.4.7",
     "mime-types": "3.0.1",
     "sharp": "^0.34.2",
-    "lru-cache": "11.2.6"
+    "lru-cache": "11.2.6",
+    "ioredis": "5.10.0"
   }
 }

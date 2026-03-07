@@ -8,15 +8,15 @@ import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import apiLighthouse from './routes/lighthouse/index.uws'
 import {
-  compressDataAndSaveToLRUCache as compressData,
-  getLRUCacheData as getDataCache,
-  getLRUCacheDataCompression as getDataCompression,
+  compressData,
+  getData as getDataCache,
+  getDataCompression,
   getStore as getStoreCache,
   removeData as removeDataCache,
-  setLRUCacheData as setDataCache,
+  setData as setDataCache,
   setStore as setStoreCache,
   updateDataStatus as updateDataCacheStatus,
-} from './utils/CacheManager/utils'
+} from './utils/CacheManager/redis/utils'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
 
