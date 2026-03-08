@@ -1,16 +1,20 @@
 import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
-import {
-  compressData,
-  getData as getDataCache,
-  getStore as getStoreCache,
-  removeData as removeDataCache,
-  setData as setDataCache,
-  setStore as setStoreCache,
-} from './utils/CacheManager'
+import { PROCESS_ENV } from '../utils/InitEnv'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
+
+const {
+  compressData,
+  getData: getDataCache,
+  getStore: getStoreCache,
+  removeData: removeDataCache,
+  setData: setDataCache,
+  setStore: setStoreCache,
+} = PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager')
 
 const fetchCache = (() => {
   return (cacheKey) =>

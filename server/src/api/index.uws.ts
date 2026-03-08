@@ -6,21 +6,28 @@ import {
 } from 'uWebSockets.js'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
+import { PROCESS_ENV } from '../utils/InitEnv'
 import apiLighthouse from './routes/lighthouse/index.uws'
-import {
-  compressData,
-  setData as setDataCache,
-  setStore as setStoreCache,
-} from './utils/CacheManager'
-import {
-  getData as getDataCache,
-  getDataCompression,
-  getStore as getStoreCache,
-  removeData as removeDataCache,
-  updateDataStatus as updateDataCacheStatus,
-} from './utils/CacheManager/utils'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
+
+const {
+  compressData,
+  setData: setDataCache,
+  setStore: setStoreCache,
+} = PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager')
+
+const {
+  getData: getDataCache,
+  getDataCompression,
+  getStore: getStoreCache,
+  removeData: removeDataCache,
+  updateDataStatus: updateDataCacheStatus,
+} = PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager/utils')
 
 const handleArrayBuffer = (message: ArrayBuffer | string) => {
   if (message instanceof ArrayBuffer) {

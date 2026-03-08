@@ -5,6 +5,7 @@ var _zlib = require('zlib');
 
 
 
+
 var _utils = require('../../api/utils/CacheManager/utils');
 var _constants = require('../../constants');
 var _serverconfig = require('../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
@@ -285,7 +286,20 @@ const puppeteerSSRService = (async () => {
                 )
                   continue
 
-                WindowAPIStore[cacheKey] = apiCache.cache.data
+                const data = await _utils.getDataCompression.call(void 0, 
+                  cacheKey,
+                  contentEncoding 
+                )
+
+                const dataToSend = data
+                  ? _zlib.brotliDecompressSync.call(void 0, data).toString()
+                  : ''
+
+                try {
+                  WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
+                } catch (e) {
+                  WindowAPIStore[cacheKey] = dataToSend
+                }
               }
             }
           }

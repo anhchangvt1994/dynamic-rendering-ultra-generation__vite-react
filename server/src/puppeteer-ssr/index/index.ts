@@ -1,9 +1,10 @@
 import { Express } from 'express'
 import fs from 'fs'
 import path from 'path'
-import { brotliCompressSync, gzipSync } from 'zlib'
+import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import {
   getData as getDataCache,
+  getDataCompression,
   getStore as getStoreCache,
 } from '../../api/utils/CacheManager/utils'
 import { SERVER_LESS } from '../../constants'
@@ -283,7 +284,19 @@ const puppeteerSSRService = (async () => {
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
-              WindowAPIStore[cacheKey] = apiCache.cache.data
+              const data = await getDataCompression(
+                cacheKey,
+                contentEncoding as any
+              )
+              const dataToSend = data
+                ? brotliDecompressSync(data).toString()
+                : ''
+
+              try {
+                WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
+              } catch {
+                WindowAPIStore[cacheKey] = dataToSend
+              }
             }
           }
         }

@@ -51,6 +51,7 @@ const envModeList = {
 
 
 
+
 ; exports.ENV_MODE = ENV_MODE
 
  const PROCESS_ENV = (() => {
@@ -118,6 +119,11 @@ const envModeList = {
       : ['true', '1'].includes(
           (process.env.ENABLE_URL_TESTING || '').toLowerCase()
         )
+
+  tmpProcessEnv.REDIS =
+    process.env.REDIS === undefined
+      ? false
+      : ['true', '1'].includes((process.env.REDIS || '').toLowerCase())
 
   return tmpProcessEnv
 })(); exports.PROCESS_ENV = PROCESS_ENV

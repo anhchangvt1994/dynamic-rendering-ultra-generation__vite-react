@@ -50,6 +50,7 @@ interface IProcessENV {
   REDIS_PASSWORD: any
   REDIS_DB: any
   REDIS_MAX_MEMORY: any
+  REDIS: boolean
   [key: string]: string | boolean | undefined
 }
 
@@ -118,6 +119,11 @@ export const PROCESS_ENV = (() => {
       : ['true', '1'].includes(
           (process.env.ENABLE_URL_TESTING || '').toLowerCase()
         )
+
+  tmpProcessEnv.REDIS =
+    process.env.REDIS === undefined
+      ? false
+      : ['true', '1'].includes((process.env.REDIS || '').toLowerCase())
 
   return tmpProcessEnv
 })()

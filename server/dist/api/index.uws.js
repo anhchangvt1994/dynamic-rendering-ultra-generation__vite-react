@@ -6,21 +6,28 @@
 
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../utils/InitEnv');
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
-
-
-
-
-var _CacheManager = require('./utils/CacheManager');
-
-
-
-
-
-
-var _utils = require('./utils/CacheManager/utils');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
+
+const {
+  compressData,
+  setData: setDataCache,
+  setStore: setStoreCache,
+} = _InitEnv.PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager')
+
+const {
+  getData: getDataCache,
+  getDataCompression,
+  getStore: getStoreCache,
+  removeData: removeDataCache,
+  updateDataStatus: updateDataCacheStatus,
+} = _InitEnv.PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager/utils')
 
 const handleArrayBuffer = (message) => {
   if (message instanceof ArrayBuffer) {
@@ -34,7 +41,7 @@ const fetchCache = (() => {
   return (cacheKey) =>
     new Promise((res) => {
       setTimeout(async () => {
-        const apiCache = await _utils.getData.call(void 0, cacheKey)
+        const apiCache = await getDataCache(cacheKey)
 
         if (!apiCache) return res(null)
 
@@ -221,18 +228,18 @@ const apiService = (async () => {
         // NOTE - Handle API Store
         // NOTE - when enableStore, system will store it, but when the client set enableStore to false, system have to remove it. So we must recalculate in each
         if (requestInfo.enableStore) {
-          const apiStore = await _utils.getStore.call(void 0, requestInfo.storeKey, {
+          const apiStore = await getStoreCache(requestInfo.storeKey, {
             autoCreateIfEmpty: { enable: true },
           })
           if (!apiStore || !apiStore.data) {
-            _CacheManager.setStore.call(void 0, requestInfo.storeKey, [requestInfo.cacheKey])
+            setStoreCache(requestInfo.storeKey, [requestInfo.cacheKey])
           } else if (!apiStore.data.includes(requestInfo.cacheKey)) {
             apiStore.data.push(requestInfo.cacheKey)
 
-            _CacheManager.setStore.call(void 0, requestInfo.storeKey, apiStore.data)
+            setStoreCache(requestInfo.storeKey, apiStore.data)
           }
         } else if (requestInfo.storeKey) {
-          const apiStore = await _utils.getStore.call(void 0, requestInfo.storeKey, {
+          const apiStore = await getStoreCache(requestInfo.storeKey, {
             autoCreateIfEmpty: { enable: true },
           })
           const tmpAPIStoreData = apiStore.data
@@ -242,13 +249,13 @@ const apiService = (async () => {
 
             tmpAPIStoreData.splice(indexNext, 1)
 
-            _CacheManager.setStore.call(void 0, requestInfo.storeKey, tmpAPIStoreData)
+            setStoreCache(requestInfo.storeKey, tmpAPIStoreData)
           }
         }
 
         // NOTE - Handle API Cache
         if (enableCache) {
-          const apiCache = await _utils.getData.call(void 0, requestInfo.cacheKey)
+          const apiCache = await getDataCache(requestInfo.cacheKey)
 
           if (apiCache) {
             const curTime = Date.now()
@@ -257,12 +264,12 @@ const apiService = (async () => {
               curTime - new Date(apiCache.requestedAt).getTime() >=
                 requestInfo.expiredTime
             ) {
-              _utils.removeData.call(void 0, requestInfo.cacheKey)
+              removeDataCache(requestInfo.cacheKey)
             } else {
               const aliveTime = curTime - new Date(apiCache.changedAt).getTime()
 
               if (aliveTime > 5000 && apiCache.status !== 'ready') {
-                _utils.updateDataStatus.call(void 0, requestInfo.cacheKey, 'ready')
+                updateDataCacheStatus(requestInfo.cacheKey, 'ready')
               }
 
               if (
@@ -272,10 +279,10 @@ const apiService = (async () => {
                   apiCache.cache.status !== 200) &&
                 apiCache.status !== 'fetch'
               ) {
-                const apiCache = await _utils.getData.call(void 0, requestInfo.cacheKey)
+                const apiCache = await getDataCache(requestInfo.cacheKey)
 
                 if (!apiCache || apiCache.status !== 'fetch') {
-                  _utils.updateDataStatus.call(void 0, requestInfo.cacheKey, 'fetch')
+                  updateDataCacheStatus(requestInfo.cacheKey, 'fetch')
 
                   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
@@ -289,7 +296,7 @@ const apiService = (async () => {
                       !apiCache.cache ||
                       apiCache.cache.status !== 200
                     if (enableToSetCache) {
-                      _CacheManager.setData.call(void 0, 
+                      setDataCache(
                         requestInfo.cacheKey,
                         {
                           url: fetchUrl,
@@ -304,7 +311,7 @@ const apiService = (async () => {
                         { isCompress: false }
                       )
 
-                      _CacheManager.compressData.call(void 0, requestInfo.cacheKey, data)
+                      compressData(requestInfo.cacheKey, data)
                     }
                   })
                 }
@@ -314,7 +321,7 @@ const apiService = (async () => {
 
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-              const data = await _utils.getDataCompression.call(void 0, 
+              const data = await getDataCompression(
                 requestInfo.cacheKey,
                 contentEncoding 
               )
@@ -346,17 +353,17 @@ const apiService = (async () => {
           })
 
           if (enableCache) {
-            _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
+            setDataCache(requestInfo.cacheKey, '', {
               isCompress: false,
               status: 'fetch',
             })
-          } else _utils.removeData.call(void 0, requestInfo.cacheKey)
+          } else removeDataCache(requestInfo.cacheKey)
 
           const { data, ...result } = await fetchAPITarget
 
           if (enableCache) {
             Promise.all([
-              _CacheManager.setData.call(void 0, 
+              setDataCache(
                 requestInfo.cacheKey,
                 {
                   url: fetchUrl,
@@ -373,11 +380,11 @@ const apiService = (async () => {
                 }
               ),
 
-              _CacheManager.compressData.call(void 0, requestInfo.cacheKey, data),
+              compressData(requestInfo.cacheKey, data),
             ])
           }
 
-          let dataToSend = await _utils.getDataCompression.call(void 0, 
+          let dataToSend = await getDataCompression(
             requestInfo.cacheKey,
             contentEncoding 
           )

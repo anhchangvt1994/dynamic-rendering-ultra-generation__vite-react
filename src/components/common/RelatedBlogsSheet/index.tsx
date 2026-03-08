@@ -1,4 +1,5 @@
 import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
+import { getSearchArticlesByTitlePath } from 'utils/ApiHelper'
 import BlogList from './components/BlogList'
 import {
   BlogIsland,
@@ -12,7 +13,9 @@ const RelatedBlogsSheet = (props) => {
   const { keyword = '' } = props
   const [isOpen, setIsOpen] = useState(false)
 
-  const { data } = useSearchArticlesByTitleQuery(keyword)
+  const cacheKey = getSearchArticlesByTitlePath(keyword)
+  const { data = getAPIStore(cacheKey) } =
+    useSearchArticlesByTitleQuery(keyword)
   const isDataAvailable = !!data && !!data.data && !!data.data.length
 
   const open = () => {

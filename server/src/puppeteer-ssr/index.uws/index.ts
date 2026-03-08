@@ -2,10 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import { HttpResponse, TemplatedApp } from 'uWebSockets.js'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
-import {
-  getData as getDataCache,
-  getStore as getStoreCache,
-} from '../../api/utils/CacheManager/utils'
 import { COOKIE_EXPIRED, SERVER_LESS } from '../../constants'
 import DetectBotMiddle from '../../middlewares/uws/DetectBot'
 import DetectDeviceMiddle from '../../middlewares/uws/DetectDevice'
@@ -27,6 +23,14 @@ import ISRGenerator from '../utils/ISRGenerator.next'
 import ISRHandler from '../utils/ISRHandler.worker'
 import SSRGenerator from '../utils/SSRGenerator.next'
 import { handleInvalidUrl, handleResultAfterISRGenerator } from './utils'
+
+const {
+  getData: getDataCache,
+  getDataCompression,
+  getStore: getStoreCache,
+} = PROCESS_ENV.REDIS
+  ? require('../../api/utils/CacheManager/redis/utils')
+  : require('../../api/utils/CacheManager/utils')
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
@@ -454,7 +458,20 @@ const puppeteerSSRService = (async () => {
                 )
                   continue
 
-                WindowAPIStore[cacheKey] = apiCache.cache.data
+                const data = await getDataCompression(
+                  cacheKey,
+                  contentEncoding as any
+                )
+
+                const dataToSend = data
+                  ? brotliDecompressSync(data).toString()
+                  : ''
+
+                try {
+                  WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
+                } catch {
+                  WindowAPIStore[cacheKey] = dataToSend
+                }
               }
             }
 

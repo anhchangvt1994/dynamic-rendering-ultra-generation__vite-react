@@ -2,10 +2,6 @@
 var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 
 var _zlib = require('zlib');
-
-
-
-var _utils = require('../../api/utils/CacheManager/utils');
 var _constants = require('../../constants');
 var _DetectBot = require('../../middlewares/uws/DetectBot'); var _DetectBot2 = _interopRequireDefault(_DetectBot);
 var _DetectDevice = require('../../middlewares/uws/DetectDevice'); var _DetectDevice2 = _interopRequireDefault(_DetectDevice);
@@ -26,7 +22,15 @@ var _FormatUrluws = require('../utils/FormatUrl.uws');
 var _ISRGeneratornext = require('../utils/ISRGenerator.next'); var _ISRGeneratornext2 = _interopRequireDefault(_ISRGeneratornext);
 var _ISRHandlerworker = require('../utils/ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
 var _SSRGeneratornext = require('../utils/SSRGenerator.next'); var _SSRGeneratornext2 = _interopRequireDefault(_SSRGeneratornext);
-var _utils3 = require('./utils');
+var _utils = require('./utils');
+
+const {
+  getData: getDataCache,
+  getDataCompression,
+  getStore: getStoreCache,
+} = _InitEnv.PROCESS_ENV.REDIS
+  ? require('../../api/utils/CacheManager/redis/utils')
+  : require('../../api/utils/CacheManager/utils')
 
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
@@ -142,7 +146,7 @@ const puppeteerSSRService = (async () => {
       // if (req.getUrl().startsWith('/api')) {
       // 	return res.writeStatus('404').end('Not Found!', true)
       // }
-      _utils3.handleInvalidUrl.call(void 0, res, req)
+      _utils.handleInvalidUrl.call(void 0, res, req)
 
       // NOTE - Check if static will send static file
       if (res.writableEnded) return
@@ -274,7 +278,7 @@ const puppeteerSSRService = (async () => {
             })
 
             res.cork(() => {
-              _utils3.handleResultAfterISRGenerator.call(void 0, res, {
+              _utils.handleResultAfterISRGenerator.call(void 0, res, {
                 result,
                 enableContentEncoding,
                 contentEncoding,
@@ -418,7 +422,7 @@ const puppeteerSSRService = (async () => {
 
               tmpStoreKey = _StringHelper.hashCode.call(void 0, pathForCacheKeyConverter)
 
-              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+              tmpAPIStore = await getStoreCache(tmpStoreKey)
 
               if (tmpAPIStore) return tmpAPIStore.data
 
@@ -432,7 +436,7 @@ const puppeteerSSRService = (async () => {
                 }`
               )
 
-              tmpAPIStore = await _utils.getStore.call(void 0, tmpStoreKey)
+              tmpAPIStore = await getStoreCache(tmpStoreKey)
 
               if (tmpAPIStore) return tmpAPIStore.data
 
@@ -443,7 +447,7 @@ const puppeteerSSRService = (async () => {
 
             if (apiStoreData && apiStoreData.length) {
               for (const cacheKey of apiStoreData) {
-                const apiCache = await _utils.getData.call(void 0, cacheKey, {
+                const apiCache = await getDataCache(cacheKey, {
                   sizeLimit: 10000,
                 })
 
@@ -454,7 +458,20 @@ const puppeteerSSRService = (async () => {
                 )
                   continue
 
-                WindowAPIStore[cacheKey] = apiCache.cache.data
+                const data = await getDataCompression(
+                  cacheKey,
+                  contentEncoding 
+                )
+
+                const dataToSend = data
+                  ? _zlib.brotliDecompressSync.call(void 0, data).toString()
+                  : ''
+
+                try {
+                  WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
+                } catch (e) {
+                  WindowAPIStore[cacheKey] = dataToSend
+                }
               }
             }
 

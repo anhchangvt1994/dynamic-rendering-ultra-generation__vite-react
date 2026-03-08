@@ -32,6 +32,7 @@ const redisClient = new (0, _ioredis2.default)({
     return Math.min(times * 200, 1000)
   },
   lazyConnect: true,
+  connectTimeout: 10000, // Increase to 10 seconds
 })
 
 // Redis key prefix for LRU cache
@@ -42,6 +43,11 @@ const REDIS_PREFIX = 'redis_cache:'
 // used keys when memory is full, regardless of TTL. Manual removal handles
 // explicit expiredTime invalidation.
 const DEFAULT_TTL = 1000 * 60 * 5
+
+// Handle all Redis errors (prevents "Unhandled error event" crash)
+redisClient.on('error', (err) => {
+  _ConsoleHandler2.default.error('[ioredis] Redis client error:', err.message)
+})
 
 // Connect to Redis
 redisClient.connect().catch((err) => {

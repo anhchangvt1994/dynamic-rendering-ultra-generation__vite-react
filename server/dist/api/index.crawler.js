@@ -1,22 +1,26 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
-
-
-
-
-
-
-
-var _CacheManager = require('./utils/CacheManager');
+var _InitEnv = require('../utils/InitEnv');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
+
+const {
+  compressData,
+  getData: getDataCache,
+  getStore: getStoreCache,
+  removeData: removeDataCache,
+  setData: setDataCache,
+  setStore: setStoreCache,
+} = _InitEnv.PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager')
 
 const fetchCache = (() => {
   return (cacheKey) =>
     new Promise((res) => {
       setTimeout(async () => {
-        const apiCache = await _CacheManager.getData.call(void 0, cacheKey)
+        const apiCache = await getDataCache(cacheKey)
 
         if (!apiCache) return res(null)
 
@@ -154,18 +158,18 @@ const apiService = async (req) => {
   // NOTE - Handle API Store
   // NOTE - when enableStore, system will store it, but when the client set enableStore to false, system have to remove it. So we must recalculate in each
   if (requestInfo.enableStore) {
-    const apiStore = await _CacheManager.getStore.call(void 0, requestInfo.storeKey, {
+    const apiStore = await getStoreCache(requestInfo.storeKey, {
       autoCreateIfEmpty: { enable: true },
     })
     if (!apiStore || !apiStore.data) {
-      _CacheManager.setStore.call(void 0, requestInfo.storeKey, [requestInfo.cacheKey])
+      setStoreCache(requestInfo.storeKey, [requestInfo.cacheKey])
     } else if (!apiStore.data.includes(requestInfo.cacheKey)) {
       apiStore.data.push(requestInfo.cacheKey)
 
-      _CacheManager.setStore.call(void 0, requestInfo.storeKey, apiStore.data)
+      setStoreCache(requestInfo.storeKey, apiStore.data)
     }
   } else if (requestInfo.storeKey) {
-    const apiStore = await _CacheManager.getStore.call(void 0, requestInfo.storeKey, {
+    const apiStore = await getStoreCache(requestInfo.storeKey, {
       autoCreateIfEmpty: { enable: true },
     })
     const tmpAPIStoreData = apiStore.data
@@ -175,7 +179,7 @@ const apiService = async (req) => {
 
       tmpAPIStoreData.splice(indexNext, 1)
 
-      _CacheManager.setStore.call(void 0, requestInfo.storeKey, tmpAPIStoreData)
+      setStoreCache(requestInfo.storeKey, tmpAPIStoreData)
     }
   }
 
@@ -275,18 +279,18 @@ const apiService = async (req) => {
   })
 
   if (enableCache) {
-    _CacheManager.setData.call(void 0, requestInfo.cacheKey, '', {
+    setDataCache(requestInfo.cacheKey, '', {
       isCompress: false,
       status: 'fetch',
     })
-  } else _CacheManager.removeData.call(void 0, requestInfo.cacheKey)
+  } else removeDataCache(requestInfo.cacheKey)
 
   const result = await fetchAPITarget
   const data = convertData(result, '')
   const { data: _, ...resultToSave } = result
 
   if (enableCache) {
-    _CacheManager.setData.call(void 0, 
+    setDataCache(
       requestInfo.cacheKey,
       {
         url: fetchUrl,
@@ -303,7 +307,7 @@ const apiService = async (req) => {
       }
     )
 
-    _CacheManager.compressData.call(void 0, requestInfo.cacheKey, result.data)
+    compressData(requestInfo.cacheKey, result.data)
   }
 
   if (requestInfo.relativeCacheKey.length) {
