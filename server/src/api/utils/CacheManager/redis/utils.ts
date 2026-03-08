@@ -7,6 +7,7 @@ import {
   gzip,
 } from 'zlib'
 import Console from '../../../../utils/ConsoleHandler'
+import { PROCESS_ENV } from '../../../../utils/InitEnv'
 import { getDataPath, getStorePath } from '../../../../utils/PathHandler'
 import {
   ICacheResult,
@@ -18,10 +19,10 @@ import {
 
 // Redis client configuration for LRU Cache replacement
 const redisClient = new Redis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
+  host: PROCESS_ENV.REDIS_HOST || '127.0.0.1',
+  port: parseInt(PROCESS_ENV.REDIS_PORT || '6379', 10),
+  password: PROCESS_ENV.REDIS_PASSWORD || undefined,
+  db: parseInt(PROCESS_ENV.REDIS_DB || '0', 10),
   maxRetriesPerRequest: 3,
   retryStrategy: (times) => {
     if (times > 3) {
@@ -55,7 +56,7 @@ redisClient.on('ready', async () => {
     Console.log('Redis LRU eviction policy configured: allkeys-lru')
 
     // Optional: Set maxmemory limit (e.g., 256mb) via environment variable
-    const maxMemory = process.env.REDIS_MAX_MEMORY
+    const maxMemory = PROCESS_ENV.REDIS_MAX_MEMORY
     if (maxMemory) {
       await redisClient.config('SET', 'maxmemory', maxMemory)
       Console.log(`Redis maxmemory set to: ${maxMemory}`)

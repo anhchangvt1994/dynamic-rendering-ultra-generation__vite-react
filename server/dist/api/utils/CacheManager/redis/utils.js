@@ -7,6 +7,7 @@ var _util = require('util');
 
 var _zlib = require('zlib');
 var _ConsoleHandler = require('../../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../../../utils/InitEnv');
 var _PathHandler = require('../../../../utils/PathHandler');
 
 
@@ -18,10 +19,10 @@ var _PathHandler = require('../../../../utils/PathHandler');
 
 // Redis client configuration for LRU Cache replacement
 const redisClient = new (0, _ioredis2.default)({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
+  host: _InitEnv.PROCESS_ENV.REDIS_HOST || '127.0.0.1',
+  port: parseInt(_InitEnv.PROCESS_ENV.REDIS_PORT || '6379', 10),
+  password: _InitEnv.PROCESS_ENV.REDIS_PASSWORD || undefined,
+  db: parseInt(_InitEnv.PROCESS_ENV.REDIS_DB || '0', 10),
   maxRetriesPerRequest: 3,
   retryStrategy: (times) => {
     if (times > 3) {
@@ -55,7 +56,7 @@ redisClient.on('ready', async () => {
     _ConsoleHandler2.default.log('Redis LRU eviction policy configured: allkeys-lru')
 
     // Optional: Set maxmemory limit (e.g., 256mb) via environment variable
-    const maxMemory = process.env.REDIS_MAX_MEMORY
+    const maxMemory = _InitEnv.PROCESS_ENV.REDIS_MAX_MEMORY
     if (maxMemory) {
       await redisClient.config('SET', 'maxmemory', maxMemory)
       _ConsoleHandler2.default.log(`Redis maxmemory set to: ${maxMemory}`)

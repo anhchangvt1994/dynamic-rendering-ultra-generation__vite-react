@@ -45,6 +45,11 @@ interface IProcessENV {
   CRAWLER: string
   CRAWLER_SECRET_KEY: string
   ENABLE_URL_TESTING: boolean
+  REDIS_HOST: any
+  REDIS_PORT: any
+  REDIS_PASSWORD: any
+  REDIS_DB: any
+  REDIS_MAX_MEMORY: any
   [key: string]: string | boolean | undefined
 }
 
