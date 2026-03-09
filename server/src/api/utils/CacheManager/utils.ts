@@ -527,7 +527,11 @@ export const removeData = async (key: string) => {
   let result
 
   try {
-    result = await remove(dataPath, key, 'br')
+    result = await Promise.allSettled([
+      remove(dataPath, key, 'json'),
+      remove(dataPath, `${key}-br`, 'br'),
+      remove(dataPath, `${key}-gzip`, 'gz'),
+    ])
   } catch (err) {
     Console.error(err)
   }

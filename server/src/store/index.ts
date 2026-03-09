@@ -1,4 +1,3 @@
-import LRUCache from 'lru-cache'
 import { IStores } from './types'
 
 export const BrowserStore: IStores['browser'] = {}
@@ -10,11 +9,6 @@ export const APIStoreStore: IStores['api']['store'] = new Map()
 export const APIStore: IStores['api'] = {
   cache: APICacheStore,
   store: APIStoreStore,
-  lruCache: new LRUCache<string, any>({
-    max: 500,
-    maxSize: 5000,
-    ttl: 1000 * 60 * 5,
-  }),
 }
 
 export const store: IStores = {

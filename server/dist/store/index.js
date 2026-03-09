@@ -1,5 +1,4 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _lrucache = require('lru-cache'); var _lrucache2 = _interopRequireDefault(_lrucache);
-
+"use strict";Object.defineProperty(exports, "__esModule", {value: true});
 
  const BrowserStore = {}; exports.BrowserStore = BrowserStore
  const OutdateBrowser = new Set([]); exports.OutdateBrowser = OutdateBrowser
@@ -10,11 +9,6 @@
  const APIStore = {
   cache: exports.APICacheStore,
   store: exports.APIStoreStore,
-  lruCache: new _lrucache2.default({
-    max: 500,
-    maxSize: 5000,
-    ttl: 1000 * 60 * 5,
-  }),
 }; exports.APIStore = APIStore
 
  const store = {

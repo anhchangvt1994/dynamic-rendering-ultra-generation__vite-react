@@ -527,7 +527,11 @@ if (!_fs2.default.existsSync(storePath)) {
   let result
 
   try {
-    result = await exports.remove.call(void 0, dataPath, key, 'br')
+    result = await Promise.allSettled([
+      exports.remove.call(void 0, dataPath, key, 'json'),
+      exports.remove.call(void 0, dataPath, `${key}-br`, 'br'),
+      exports.remove.call(void 0, dataPath, `${key}-gzip`, 'gz'),
+    ])
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }

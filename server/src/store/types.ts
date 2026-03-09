@@ -1,5 +1,3 @@
-import LRUCache from 'lru-cache'
-
 interface IWorkerInfo {
   counter: number
 }
@@ -47,6 +45,5 @@ export interface IStores {
         updateAt: number
       }
     >
-    lruCache: LRUCache<string, any>
   }
 }

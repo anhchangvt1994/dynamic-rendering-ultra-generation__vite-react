@@ -42,7 +42,20 @@ const REDIS_PREFIX = 'redis_cache:'
 // NOTE: This TTL acts as a safety net. Redis LRU will auto-evict least recently
 // used keys when memory is full, regardless of TTL. Manual removal handles
 // explicit expiredTime invalidation.
-const DEFAULT_TTL = 1000 * 60 * 5
+
+// TTL for infinite cache (24 hours)
+const DEFAULT_TTL = 1000 * 60 * 60 * 24
+
+// Helper function to calculate TTL based on expiredTime
+const calculateTTL = (expiredTime: number | string | undefined): number => {
+  // If expiredTime is a valid number > 0, use it as TTL (convert ms to seconds)
+  if (typeof expiredTime === 'number' && expiredTime > 0) {
+    return Math.floor(expiredTime / 1000)
+  }
+
+  // Default to 5 minutes TTL
+  return Math.floor(DEFAULT_TTL / 1000)
+}
 
 // Handle all Redis errors (prevents "Unhandled error event" crash)
 redisClient.on('error', (err) => {
@@ -267,6 +280,7 @@ export const set = async (
   options = {
     isCompress: true,
     status: 'ready',
+    expiredTime: DEFAULT_TTL,
     ...(options ? options : {}),
   }
 
@@ -308,13 +322,15 @@ export const set = async (
     ...(typeof content === 'string' ? { cache: content } : content),
   }
 
+  // Calculate TTL based on expiredTime from content.cache
+  // If expiredTime is 'infinite', use 24 hours
+  // If expiredTime is a number > 0, use it as TTL
+  // Otherwise, use default 5 minutes
+  const expiredTime = options.expiredTime
+  const ttl = calculateTTL(expiredTime)
+
   try {
-    await redisClient.set(
-      redisKey,
-      JSON.stringify(cacheEntry),
-      'EX',
-      Math.floor(DEFAULT_TTL / 1000)
-    )
+    await redisClient.set(redisKey, JSON.stringify(cacheEntry), 'EX', ttl)
     Console.log(`Redis LRU Cache entry ${redisKey} was updated!`)
   } catch (err) {
     Console.error(err)
@@ -391,14 +407,15 @@ export const setDataCompression = async (
   let result
   const extension = compression === 'gzip' ? 'gz' : compression
 
+  const redisKey = `${REDIS_PREFIX}${dataPath}/${key}.json`
+  const cachedData = await redisClient.get(redisKey)
+  const cacheEntry = JSON.parse(cachedData)
+
   try {
-    result = await set(
-      dataPath,
-      `${key}-${compression}`,
-      extension,
-      content,
-      options
-    )
+    result = await set(dataPath, `${key}-${compression}`, extension, content, {
+      expiredTime: cacheEntry?.cache?.expiredTime,
+      ...options,
+    })
   } catch (err) {
     Console.error(err)
   }
@@ -467,7 +484,7 @@ export const remove = async (
   const redisKey = `${REDIS_PREFIX}${directory}/${key}.${extension}`
 
   try {
-    await redisClient.del(redisKey)
+    redisClient.del(redisKey)
     Console.log(`Redis LRU Cache entry ${redisKey} was removed!`)
   } catch (err) {
     Console.error('Error removing Redis LRU Cache entry:', err)
@@ -478,7 +495,11 @@ export const removeData = async (key: string) => {
   let result
 
   try {
-    result = await remove(dataPath, key, 'br')
+    result = await Promise.allSettled([
+      remove(dataPath, key, 'json'),
+      remove(dataPath, `${key}-br`, 'br'),
+      remove(dataPath, `${key}-gzip`, 'gz'),
+    ])
   } catch (err) {
     Console.error(err)
   }

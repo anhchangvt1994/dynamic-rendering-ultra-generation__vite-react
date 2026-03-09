@@ -21,6 +21,7 @@ export interface IGetCacheOptionsNonNullableParam {
 export interface ISetCacheOptionsParam {
   isCompress: boolean
   status?: IStatus
+  expiredTime?: string | number
 }
 
 export type ICacheResult =

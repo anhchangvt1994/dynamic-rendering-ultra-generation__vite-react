@@ -308,7 +308,10 @@ const apiService = (async () => {
                             ...result,
                           },
                         },
-                        { isCompress: false }
+                        {
+                          isCompress: false,
+                          expiredTime: requestInfo.renewTime,
+                        }
                       )
 
                       compressData(requestInfo.cacheKey, data)
