@@ -10,7 +10,7 @@
   crawl: {
     enable: true,
     limit: 3,
-    speed: 8000,
+    speed: 30000,
     content: 'same',
     cache: {
       enable: true,
