@@ -60,6 +60,25 @@ const fetchCache = (() => {
     })
 })() // fetchCache
 
+const fetchCompression = (() => {
+  return (cacheKey, contentEncoding) =>
+    new Promise<Buffer | null>((res) => {
+      setTimeout(async () => {
+        const data = await getDataCompression(
+          cacheKey,
+          contentEncoding as any
+        )
+
+        if (!data) {
+          const tmpData = await fetchCompression(cacheKey, contentEncoding)
+          res(tmpData)
+        } else {
+          res(data)
+        }
+      })
+    })
+})() // fetchCompression
+
 const resEnd = (res: any, resInfo: any) => {
   if (!res || !resInfo) return
 
@@ -81,6 +100,20 @@ const resEnd = (res: any, resInfo: any) => {
         }
       }
 
+      // NOTE - uWS chỉ chấp nhận String | ArrayBuffer | TypedArray
+      // Sanitize data để tránh "Text and data can only be passed by String, ArrayBuffer or TypedArray"
+      const safeData = (() => {
+        if (data === null || data === undefined) return ''
+        if (typeof data === 'string') return data
+        if (
+          Buffer.isBuffer(data) ||
+          data instanceof ArrayBuffer ||
+          ArrayBuffer.isView(data)
+        )
+          return data
+        return JSON.stringify(data)
+      })()
+
       res
         .writeStatus(`${status}${message ? ' ' + message : ''}`)
         .writeHeader('Content-Type', 'application/json')
@@ -88,7 +121,7 @@ const resEnd = (res: any, resInfo: any) => {
       if (contentEncoding) {
         res.writeHeader('Content-Encoding', contentEncoding)
       }
-      res.end(data, true)
+      res.end(safeData, true)
     })
   }
 }
@@ -324,9 +357,9 @@ const apiService = (async () => {
 
               if (!cache) cache = await fetchCache(requestInfo.cacheKey)
 
-              const data = await getDataCompression(
+              const data = await fetchCompression(
                 requestInfo.cacheKey,
-                contentEncoding as any
+                contentEncoding
               )
 
               // if (!data) {
@@ -387,9 +420,9 @@ const apiService = (async () => {
             ])
           }
 
-          let dataToSend = await getDataCompression(
+          let dataToSend = await fetchCompression(
             requestInfo.cacheKey,
-            contentEncoding as any
+            contentEncoding
           )
 
           if (!dataToSend) {

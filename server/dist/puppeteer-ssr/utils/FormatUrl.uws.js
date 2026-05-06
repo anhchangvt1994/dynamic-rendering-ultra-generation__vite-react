@@ -22,7 +22,14 @@ var _InitEnv = require('../../utils/InitEnv');
 ) => {
   if (!url || !res) return ''
 
-  const urlInfo = new URL(url)
+  let urlInfo
+  try {
+    urlInfo = new URL(url)
+  } catch (e) {
+    // url có thể là relative path khi BASE_URL chưa được set
+    // hoặc url không hợp lệ — bỏ qua để tránh crash handler
+    return ''
+  }
 
   const routeInfo =
     _nullishCoalesce(_nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _ => _.routes, 'access', _2 => _2.list, 'optionalAccess', _3 => _3[urlInfo.pathname]]), () => (

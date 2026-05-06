@@ -223,16 +223,16 @@ const waitResponse = (() => {
 
           _optionalChain([safePage, 'call', _23 => _23(), 'optionalAccess', _24 => _24.on, 'call', _25 => _25('requestfinished', () => {
             startTimeout(
-              pendingRequests <= 3 ? 2500 : defaultRequestWaitingDuration
+              pendingRequests <= 3 ? 3500 : defaultRequestWaitingDuration
             )
           })])
           _optionalChain([safePage, 'call', _26 => _26(), 'optionalAccess', _27 => _27.on, 'call', _28 => _28('requestservedfromcache', () => {
             startTimeout(
-              pendingRequests <= 3 ? 2500 : requestServedFromCacheDuration
+              pendingRequests <= 3 ? 3500 : requestServedFromCacheDuration
             )
           })])
           _optionalChain([safePage, 'call', _29 => _29(), 'optionalAccess', _30 => _30.on, 'call', _31 => _31('requestfailed', () => {
-            startTimeout(pendingRequests <= 3 ? 2500 : requestFailDuration)
+            startTimeout(pendingRequests <= 3 ? 3500 : requestFailDuration)
           })])
 
           setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)

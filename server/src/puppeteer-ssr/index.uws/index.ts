@@ -463,9 +463,16 @@ const puppeteerSSRService = (async () => {
                   contentEncoding as any
                 )
 
-                const dataToSend = data
-                  ? brotliDecompressSync(data).toString()
-                  : ''
+                const dataToSend = (() => {
+                  if (!data) return ''
+                  try {
+                    return brotliDecompressSync(data).toString()
+                  } catch {
+                    // data không phải brotli-compressed (ví dụ: plain JSON hoặc gzip)
+                    if (Buffer.isBuffer(data)) return data.toString()
+                    return typeof data === 'string' ? data : JSON.stringify(data)
+                  }
+                })()
 
                 try {
                   WindowAPIStore[cacheKey] = JSON.parse(dataToSend)

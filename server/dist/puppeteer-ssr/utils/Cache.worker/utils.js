@@ -84,7 +84,7 @@ var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHand
 }; exports.getFileInfo = getFileInfo // getFileInfo
 
  const setRequestTimeInfo = async (file, value) => {
-  if (!file || !_fs2.default.existsSync(file)) {
+  if (!file || typeof file !== 'string' || !_fs2.default.existsSync(file)) {
     _ConsoleHandler2.default.error('File does not exist!')
     return
   }

@@ -463,13 +463,20 @@ const puppeteerSSRService = (async () => {
                   contentEncoding 
                 )
 
-                const dataToSend = data
-                  ? _zlib.brotliDecompressSync.call(void 0, data).toString()
-                  : ''
+                const dataToSend = (() => {
+                  if (!data) return ''
+                  try {
+                    return _zlib.brotliDecompressSync.call(void 0, data).toString()
+                  } catch (e) {
+                    // data không phải brotli-compressed (ví dụ: plain JSON hoặc gzip)
+                    if (Buffer.isBuffer(data)) return data.toString()
+                    return typeof data === 'string' ? data : JSON.stringify(data)
+                  }
+                })()
 
                 try {
                   WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
-                } catch (e) {
+                } catch (e2) {
                   WindowAPIStore[cacheKey] = dataToSend
                 }
               }

@@ -85,7 +85,12 @@ const checkToCleanFile = async (
   { schedule, validRequestAtDuration }: ICheckToCleanFileOptionsParam
 ): Promise<ICheckToCleanResult> => {
   if (!file) {
-    Console.error('Need provide "file" to delete!')
+    Console.error('Need provide "file" param!')
+    return false
+  }
+
+  if (typeof file !== 'string') {
+    Console.error('File must be a string')
     return false
   }
 
@@ -135,6 +140,8 @@ const scanToCleanBrowsers = async (
   expiredTime = 1,
   browserStore
 ) => {
+  if (typeof dirPath !== 'string') return
+
   if (fs.existsSync(dirPath)) {
     let browserList
 
@@ -198,6 +205,8 @@ const scanToCleanOutdateBrowsers = async (outdateBrowser) => {
 } // scanToCleanOutdateBrowsers
 
 const scanToCleanPages = (dirPath: string) => {
+  if (typeof dirPath !== 'string') return
+
   if (fs.existsSync(dirPath)) {
     let pageList
 
@@ -258,6 +267,8 @@ const scanToCleanViews = (
     forceToClean?: boolean
   }
 ) => {
+  if (typeof dirPath !== 'string') return
+
   if (fs.existsSync(dirPath)) {
     let viewList
 

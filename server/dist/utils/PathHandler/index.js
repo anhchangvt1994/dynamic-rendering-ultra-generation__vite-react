@@ -8,7 +8,7 @@ var _InitEnv = require('../InitEnv');
   const pagesPath = _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (_serverconfig2.default.rootCache) {
+        if (typeof _serverconfig2.default.rootCache === 'string') {
           if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
             root = _serverconfig2.default.rootCache
           } else {
@@ -53,7 +53,7 @@ var _InitEnv = require('../InitEnv');
   const viewsPath = _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (_serverconfig2.default.rootCache) {
+        if (typeof _serverconfig2.default.rootCache === 'string') {
           if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
             root = _serverconfig2.default.rootCache
           } else {
@@ -98,7 +98,7 @@ var _InitEnv = require('../InitEnv');
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (_serverconfig2.default.rootCache) {
+        if (typeof _serverconfig2.default.rootCache === 'string') {
           if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
             root = _serverconfig2.default.rootCache
           } else {
@@ -122,7 +122,7 @@ var _InitEnv = require('../InitEnv');
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (_serverconfig2.default.rootCache) {
+        if (typeof _serverconfig2.default.rootCache === 'string') {
           if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
             root = _serverconfig2.default.rootCache
           } else {
@@ -168,7 +168,7 @@ var _InitEnv = require('../InitEnv');
   return _InitEnv.PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (_serverconfig2.default.rootCache) {
+        if (typeof _serverconfig2.default.rootCache === 'string') {
           if (_fs2.default.existsSync(_serverconfig2.default.rootCache)) {
             root = _serverconfig2.default.rootCache
           } else {

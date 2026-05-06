@@ -1,5 +1,5 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
-var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 
  const setJsonData = (file, data) => {
@@ -54,9 +54,9 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 }; exports.setTextData = setTextData // setTextData
 
  const getJsonData = (file) => {
-	if (!_fs2.default.existsSync(file)) return
+  if (typeof file !== 'string' || !_fs2.default.existsSync(file)) return
 
-	let result
+  let result
 
 	try {
 		result = _fs2.default.readFileSync(file, 'utf8')
@@ -68,9 +68,9 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 }; exports.getJsonData = getJsonData // getJsonData
 
  const getTextData = (file) => {
-	if (!_fs2.default.existsSync(file)) return
+  if (typeof file !== 'string' || !_fs2.default.existsSync(file)) return
 
-	let result
+  let result
 
 	try {
 		result = _fs2.default.readFileSync(file, 'utf8')

@@ -84,7 +84,7 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
 } // getFileInfo
 
 export const setRequestTimeInfo = async (file: string, value: unknown) => {
-  if (!file || !fs.existsSync(file)) {
+  if (!file || typeof file !== 'string' || !fs.existsSync(file)) {
     Console.error('File does not exist!')
     return
   }

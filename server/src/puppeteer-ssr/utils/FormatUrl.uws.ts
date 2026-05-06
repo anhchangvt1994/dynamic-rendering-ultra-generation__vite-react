@@ -22,7 +22,14 @@ export const convertUrlHeaderToQueryString = (
 ) => {
   if (!url || !res) return ''
 
-  const urlInfo = new URL(url)
+  let urlInfo: URL
+  try {
+    urlInfo = new URL(url)
+  } catch {
+    // url có thể là relative path khi BASE_URL chưa được set
+    // hoặc url không hợp lệ — bỏ qua để tránh crash handler
+    return ''
+  }
 
   const routeInfo =
     ServerConfig.routes.list?.[urlInfo.pathname] ??

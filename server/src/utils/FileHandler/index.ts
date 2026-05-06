@@ -1,5 +1,5 @@
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
 import Console from '../ConsoleHandler'
 
 export const setJsonData = (file: string, data: any) => {
@@ -54,9 +54,9 @@ export const setTextData = (file: string, data: string) => {
 } // setTextData
 
 export const getJsonData = (file: string) => {
-	if (!fs.existsSync(file)) return
+  if (typeof file !== 'string' || !fs.existsSync(file)) return
 
-	let result
+  let result
 
 	try {
 		result = fs.readFileSync(file, 'utf8')
@@ -68,9 +68,9 @@ export const getJsonData = (file: string) => {
 } // getJsonData
 
 export const getTextData = (file: string) => {
-	if (!fs.existsSync(file)) return
+  if (typeof file !== 'string' || !fs.existsSync(file)) return
 
-	let result
+  let result
 
 	try {
 		result = fs.readFileSync(file, 'utf8')

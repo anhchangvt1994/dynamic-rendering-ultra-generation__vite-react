@@ -91,14 +91,27 @@ const startServer = async () => {
 
     // Spawn worker threads - reduced from 5 to 2 to prevent EAGAIN resource exhaustion
     // (3 PM2 instances × workers × WorkerPools = too many threads)
-    const worker1 = new Worker(__filename, {
-      workerData: { order: 1, port: 4040 },
-    })
-    _createWorkerListener(worker1)
-    const worker2 = new Worker(__filename, {
-      workerData: { order: 2, port: 4041 },
-    })
-    _createWorkerListener(worker2)
+    const createWorkerSafe = (order: number, port: number, retryCount = 0) => {
+      try {
+        const worker = new Worker(__filename, {
+          workerData: { order, port },
+        })
+        _createWorkerListener(worker)
+        Console.log(`Worker ${order} started on port ${port}`)
+        return worker
+      } catch (err) {
+        Console.error(`Failed to create worker ${order} (attempt ${retryCount + 1}):`, err)
+        if (retryCount < 5) {
+          // Retry sau 5 giây khi EAGAIN (hết tài nguyên thread)
+          setTimeout(() => createWorkerSafe(order, port, retryCount + 1), 5000)
+        } else {
+          Console.error(`Worker ${order} failed after 5 retries — giving up`)
+        }
+        return null
+      }
+    }
+    createWorkerSafe(1, 4040)
+    createWorkerSafe(2, 4041)
   } else {
     const setupCors = (res) => {
       res

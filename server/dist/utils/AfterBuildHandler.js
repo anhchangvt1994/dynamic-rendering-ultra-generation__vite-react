@@ -7,7 +7,7 @@ const _getViewsPath = () => {
 	const viewsPath = _InitEnv.PROCESS_ENV.IS_SERVER
 		? (() => {
 				let root = '/tmp'
-				if (_serverconfig2.default.rootCache) {
+				if (typeof _serverconfig2.default.rootCache === 'string') {
 					if (_fsextra2.default.existsSync(_serverconfig2.default.rootCache)) {
 						root = _serverconfig2.default.rootCache
 					} else {

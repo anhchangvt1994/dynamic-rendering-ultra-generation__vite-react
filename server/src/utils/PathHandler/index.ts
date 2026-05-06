@@ -8,7 +8,7 @@ export const getPagesPath = () => {
   const pagesPath = PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (ServerConfig.rootCache) {
+        if (typeof ServerConfig.rootCache === 'string') {
           if (fs.existsSync(ServerConfig.rootCache)) {
             root = ServerConfig.rootCache
           } else {
@@ -53,7 +53,7 @@ export const getViewsPath = () => {
   const viewsPath = PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (ServerConfig.rootCache) {
+        if (typeof ServerConfig.rootCache === 'string') {
           if (fs.existsSync(ServerConfig.rootCache)) {
             root = ServerConfig.rootCache
           } else {
@@ -98,7 +98,7 @@ export const getDataPath = () => {
   return PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (ServerConfig.rootCache) {
+        if (typeof ServerConfig.rootCache === 'string') {
           if (fs.existsSync(ServerConfig.rootCache)) {
             root = ServerConfig.rootCache
           } else {
@@ -122,7 +122,7 @@ export const getStorePath = () => {
   return PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (ServerConfig.rootCache) {
+        if (typeof ServerConfig.rootCache === 'string') {
           if (fs.existsSync(ServerConfig.rootCache)) {
             root = ServerConfig.rootCache
           } else {
@@ -168,7 +168,7 @@ export const getResourcePath = () => {
   return PROCESS_ENV.IS_SERVER
     ? (() => {
         let root = '/tmp'
-        if (ServerConfig.rootCache) {
+        if (typeof ServerConfig.rootCache === 'string') {
           if (fs.existsSync(ServerConfig.rootCache)) {
             root = ServerConfig.rootCache
           } else {

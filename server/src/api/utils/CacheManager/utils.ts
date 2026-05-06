@@ -2,20 +2,20 @@ import crypto from 'crypto'
 import fs, { promises as fsPromises } from 'fs'
 import { promisify } from 'util'
 import {
-  brotliCompress,
-  brotliCompressSync,
-  brotliDecompressSync,
-  gzip,
+    brotliCompress,
+    brotliCompressSync,
+    brotliDecompressSync,
+    gzip,
 } from 'zlib'
 import Console from '../../../utils/ConsoleHandler'
 import { getDataPath, getStorePath } from '../../../utils/PathHandler'
 import {
-  ICacheResult,
-  IFileInfo,
-  IGetCacheOptionsParam,
-  ISetCacheContent,
-  ISetCacheOptionsParam,
-  IStatus,
+    ICacheResult,
+    IFileInfo,
+    IGetCacheOptionsParam,
+    ISetCacheContent,
+    ISetCacheOptionsParam,
+    IStatus,
 } from './types'
 
 const dataPath = getDataPath()
