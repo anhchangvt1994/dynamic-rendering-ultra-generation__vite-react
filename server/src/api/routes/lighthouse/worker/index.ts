@@ -15,7 +15,8 @@ const workerManager = WorkerManager.init(
 	['runPageSpeed', 'getPageSpeedUrl']
 )
 
-const browserManager = BrowserManager()
+// NOTE - Pagespeed needs a full browser, keep chromium for it
+const browserManager = BrowserManager({ engine: 'chromium' })
 
 export const runPageSpeed = async (url: string) => {
 	if (!browserManager || !url) return

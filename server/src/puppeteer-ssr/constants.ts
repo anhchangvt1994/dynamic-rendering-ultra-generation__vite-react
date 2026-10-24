@@ -1,3 +1,4 @@
+import path from 'path'
 import { LaunchOptions } from 'puppeteer-core'
 import { SERVER_LESS } from '../constants'
 import { PROCESS_ENV } from '../utils/InitEnv'
@@ -146,8 +147,9 @@ export const regexNotFoundPageID = new RegExp(
 
 export const CACHEABLE_STATUS_CODE = { 200: true, 302: true }
 
-export const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.x64.tar'
+export const chromiumPath = `https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.${
+  process.arch === 'arm64' ? 'arm64' : 'x64'
+}.tar`
 
 export const canUseLinuxChromium =
   PROCESS_ENV.PLATFORM.toLowerCase() === 'linux' ||
@@ -157,6 +159,32 @@ export const puppeteer = (() => {
   if (canUseLinuxChromium) return require('puppeteer-core')
   return require('puppeteer')
 })()
+
+// NOTE - Browser engine used to render pages for ISR/SSR/sitemap
+// - chromium (default): headless Chromium launched by puppeteer
+// - lightpanda: Lightpanda headless browser (no rendering engine, low memory),
+//   puppeteer connects to it through CDP. Lighthouse always uses chromium.
+export type TBrowserEngine = 'chromium' | 'lightpanda'
+
+export const BROWSER_ENGINE: TBrowserEngine =
+  String(PROCESS_ENV.BROWSER_ENGINE || '').toLowerCase() === 'lightpanda'
+    ? 'lightpanda'
+    : 'chromium'
+
+// NOTE - Install with `npm run install:lightpanda`
+export const lightpandaPath =
+  (PROCESS_ENV.LIGHTPANDA_PATH as string) ||
+  path.resolve(__dirname, '../../resources/lightpanda/lightpanda')
+
+// NOTE - Re-render with chromium when lightpanda fails to render a page
+export const LIGHTPANDA_FALLBACK_TO_CHROMIUM = ['true', 'TRUE', '1'].includes(
+  String(PROCESS_ENV.LIGHTPANDA_FALLBACK_TO_CHROMIUM || '')
+)
+
+export const getWsEndpointFilePath = (engine: TBrowserEngine) =>
+  engine === 'lightpanda'
+    ? `${userDataPath}/wsEndpoint.lightpanda.txt`
+    : `${userDataPath}/wsEndpoint.txt`
 
 export const DISABLE_SSR_CACHE = Boolean(PROCESS_ENV.DISABLE_SSR_CACHE)
 export const PM2_PROCESS_NAME = 'puppeteer-ssr'

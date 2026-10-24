@@ -154,7 +154,7 @@ const scanToCleanBrowsers = async (
     for (const file of browserList) {
       const absolutePath = _path2.default.join(dirPath, file)
 
-      if (file === 'wsEndpoint.txt') continue
+      if (/^(wsEndpoint|lightpanda\.)/.test(file)) continue
 
       if (
         absolutePath === curUserDataPath ||

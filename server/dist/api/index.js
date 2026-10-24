@@ -187,7 +187,8 @@ const apiService = (() => {
         const apiStore = await _CacheManager.getStore.call(void 0, requestInfo.storeKey, {
           autoCreateIfEmpty: { enable: true },
         })
-        const tmpAPIStoreData = apiStore.data
+        // NOTE - undefined when the cache store is unavailable (redis down)
+        const tmpAPIStoreData = _optionalChain([apiStore, 'optionalAccess', _11 => _11.data])
 
         if (tmpAPIStoreData) {
           const indexNext = tmpAPIStoreData.indexOf(requestInfo.cacheStore)

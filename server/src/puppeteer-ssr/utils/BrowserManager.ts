@@ -14,11 +14,15 @@ import { ENV_MODE } from '../../utils/InitEnv'
 import { getUserDataPath } from '../../utils/PathHandler'
 import WorkerManager from '../../utils/WorkerManager'
 import {
+  BROWSER_ENGINE,
   canUseLinuxChromium,
   chromiumPath,
   defaultBrowserOptions,
+  getWsEndpointFilePath,
   puppeteer,
+  type TBrowserEngine,
 } from '../constants'
+import LightpandaManager from './LightpandaManager'
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = getUserDataPath()
@@ -66,11 +70,22 @@ const _deleteUserDataDir = async (dir: string) => {
   }
 } // _deleteUserDataDir
 
-const _getBrowserForSubThreads = (() => {
+const _createGetBrowserForSubThreads = (engine: TBrowserEngine) => {
   const limit = 3
   let counter = 0
+  // NOTE - Lightpanda limits the number of CDP connections, so reuse the
+  // connection instead of opening a new one per request
+  let cachedBrowser: Browser | undefined
   const _get = async () => {
-    const wsEndpoint = getTextData(`${userDataPath}/wsEndpoint.txt`)
+    const wsEndpoint = getTextData(getWsEndpointFilePath(engine))
+
+    if (
+      engine === 'lightpanda' &&
+      wsEndpoint &&
+      cachedBrowser?.connected &&
+      cachedBrowser.wsEndpoint() === wsEndpoint
+    )
+      return cachedBrowser
 
     if (!wsEndpoint && counter < limit) {
       counter++
@@ -110,21 +125,23 @@ const _getBrowserForSubThreads = (() => {
 
     counter = 0
 
+    if (engine === 'lightpanda') cachedBrowser = browser
+
     return browser
   } // get
 
   return () => _get()
-})() // _getBrowserForSubThreads
+} // _createGetBrowserForSubThreads
 
-let browserManager: IBrowser | undefined
+const browserManagers: Partial<Record<TBrowserEngine, IBrowser>> = {}
 
 function BrowserManager(options: {
   isSubThread: boolean
+  engine: TBrowserEngine
 }): IBrowser | undefined {
-  if (process.env.PUPPETEER_SKIP_DOWNLOAD && !canUseLinuxChromium) return
-
-  if (browserManager) return browserManager
-  else browserManager = this
+  if (options.engine === 'lightpanda') {
+    if (!options.isSubThread && isMainThread) return LightpandaManager()
+  } else if (process.env.PUPPETEER_SKIP_DOWNLOAD && !canUseLinuxChromium) return
 
   if (!options.isSubThread && isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
@@ -319,7 +336,12 @@ function BrowserManager(options: {
       }
     } // __launch()
 
-    if (POWER_LEVEL === POWER_LEVEL_LIST.THREE) {
+    // NOTE - When chromium is not the main engine (only used by lighthouse
+    // or as a fallback), launch it lazily to save resources
+    if (
+      POWER_LEVEL === POWER_LEVEL_LIST.THREE &&
+      BROWSER_ENGINE === 'chromium'
+    ) {
       __launch()
     }
 
@@ -393,9 +415,13 @@ function BrowserManager(options: {
       isReady: _isReady,
     }
   } else {
+    const _getBrowserForSubThreads = _createGetBrowserForSubThreads(
+      options.engine
+    )
     const _get = async () => {
       parentPort?.postMessage({
         name: 'getBrowser',
+        engine: options.engine,
       })
       const browser = await _getBrowserForSubThreads()
 
@@ -408,16 +434,20 @@ function BrowserManager(options: {
   }
 }
 
-export default (options?: { isSubThread?: boolean }) => {
+export default (options?: {
+  isSubThread?: boolean
+  engine?: TBrowserEngine
+}) => {
   if (ENV_MODE === 'development') return
-
-  if (browserManager) return browserManager
 
   const _options = {
     isSubThread: false,
+    engine: BROWSER_ENGINE,
     ...(options || {}),
   }
 
-  browserManager = BrowserManager(_options)
-  return browserManager
+  if (browserManagers[_options.engine]) return browserManagers[_options.engine]
+
+  browserManagers[_options.engine] = BrowserManager(_options)
+  return browserManagers[_options.engine]
 }

@@ -67,7 +67,11 @@ const startServer = async () => {
         if (payload.name === 'acceptor') {
           app.addChildAppDescriptor(payload.value)
         } else if (payload.name === 'getBrowser') {
-          const browser = await browserManager.get()
+          const browser = await (
+            payload.engine
+              ? BrowserManager({ engine: payload.engine })
+              : browserManager
+          )?.get()
           if (
             browser &&
             browser.connected &&

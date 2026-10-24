@@ -1,4 +1,5 @@
 import path from 'path'
+import { BROWSER_ENGINE } from '../src/puppeteer-ssr/constants'
 import BrowserManager from '../src/puppeteer-ssr/utils/BrowserManager'
 import Console from '../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../src/utils/InitEnv'
@@ -51,7 +52,12 @@ export const crawlWorker = async (params: ICrawlHandlerParams) => {
   try {
     // Pass params without wsEndpoint since worker launches its own browser
     result = await pool.exec('crawlHandler', [
-      { url: params.url, baseUrl: PROCESS_ENV.BASE_URL, wsEndpoint },
+      {
+        url: params.url,
+        baseUrl: PROCESS_ENV.BASE_URL,
+        wsEndpoint,
+        engine: BROWSER_ENGINE,
+      },
     ])
   } catch (err) {
     Console.error(err)

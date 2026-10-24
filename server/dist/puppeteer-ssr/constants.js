@@ -1,4 +1,5 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true});
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+
 var _constants = require('../constants');
 var _InitEnv = require('../utils/InitEnv');
 var _PathHandler = require('../utils/PathHandler');
@@ -146,8 +147,9 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
 
  const CACHEABLE_STATUS_CODE = { 200: true, 302: true }; exports.CACHEABLE_STATUS_CODE = CACHEABLE_STATUS_CODE
 
- const chromiumPath =
-  'https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.x64.tar'; exports.chromiumPath = chromiumPath
+ const chromiumPath = `https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.${
+  process.arch === 'arm64' ? 'arm64' : 'x64'
+}.tar`; exports.chromiumPath = chromiumPath
 
  const canUseLinuxChromium =
   _InitEnv.PROCESS_ENV.PLATFORM.toLowerCase() === 'linux' ||
@@ -157,6 +159,32 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
   if (exports.canUseLinuxChromium) return require('puppeteer-core')
   return require('puppeteer')
 })(); exports.puppeteer = puppeteer
+
+// NOTE - Browser engine used to render pages for ISR/SSR/sitemap
+// - chromium (default): headless Chromium launched by puppeteer
+// - lightpanda: Lightpanda headless browser (no rendering engine, low memory),
+//   puppeteer connects to it through CDP. Lighthouse always uses chromium.
+
+
+ const BROWSER_ENGINE =
+  String(_InitEnv.PROCESS_ENV.BROWSER_ENGINE || '').toLowerCase() === 'lightpanda'
+    ? 'lightpanda'
+    : 'chromium'; exports.BROWSER_ENGINE = BROWSER_ENGINE
+
+// NOTE - Install with `npm run install:lightpanda`
+ const lightpandaPath =
+  (_InitEnv.PROCESS_ENV.LIGHTPANDA_PATH ) ||
+  _path2.default.resolve(__dirname, '../../resources/lightpanda/lightpanda'); exports.lightpandaPath = lightpandaPath
+
+// NOTE - Re-render with chromium when lightpanda fails to render a page
+ const LIGHTPANDA_FALLBACK_TO_CHROMIUM = ['true', 'TRUE', '1'].includes(
+  String(_InitEnv.PROCESS_ENV.LIGHTPANDA_FALLBACK_TO_CHROMIUM || '')
+); exports.LIGHTPANDA_FALLBACK_TO_CHROMIUM = LIGHTPANDA_FALLBACK_TO_CHROMIUM
+
+ const getWsEndpointFilePath = (engine) =>
+  engine === 'lightpanda'
+    ? `${userDataPath}/wsEndpoint.lightpanda.txt`
+    : `${userDataPath}/wsEndpoint.txt`; exports.getWsEndpointFilePath = getWsEndpointFilePath
 
  const DISABLE_SSR_CACHE = Boolean(_InitEnv.PROCESS_ENV.DISABLE_SSR_CACHE); exports.DISABLE_SSR_CACHE = DISABLE_SSR_CACHE
  const PM2_PROCESS_NAME = 'puppeteer-ssr'; exports.PM2_PROCESS_NAME = PM2_PROCESS_NAME

@@ -67,7 +67,11 @@ const startServer = async () => {
         if (payload.name === 'acceptor') {
           app.addChildAppDescriptor(payload.value)
         } else if (payload.name === 'getBrowser') {
-          const browser = await browserManager.get()
+          const browser = await _optionalChain([(
+            payload.engine
+              ? _BrowserManager2.default.call(void 0, { engine: payload.engine })
+              : browserManager
+          ), 'optionalAccess', _3 => _3.get, 'call', _4 => _4()])
           if (
             browser &&
             browser.connected &&
@@ -117,7 +121,7 @@ const startServer = async () => {
         .writeHeader('Vary', 'Origin')
     }
 
-    const port = await _PortHandler.findFreePort.call(void 0, _nullishCoalesce(_optionalChain([workerData, 'optionalAccess', _3 => _3.port]), () => ( 4040)))
+    const port = await _PortHandler.findFreePort.call(void 0, _nullishCoalesce(_optionalChain([workerData, 'optionalAccess', _5 => _5.port]), () => ( 4040)))
 
     _InitEnv.PROCESS_ENV.PORT = String(port)
 
@@ -151,7 +155,7 @@ const startServer = async () => {
     app.listen(Number(port), (token) => {
       if (token) {
         console.log(`Server started port ${port}. Press Ctrl+C to quit`)
-        _optionalChain([process, 'access', _4 => _4.send, 'optionalCall', _5 => _5('ready')])
+        _optionalChain([process, 'access', _6 => _6.send, 'optionalCall', _7 => _7('ready')])
         process.title = 'web-scraping'
       } else {
         console.log(`Failed to listen to port ${port}`)

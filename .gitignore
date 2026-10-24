@@ -37,6 +37,8 @@ config/utils/PortHandler/.env
 server/resources/*
 server/**/server-info.json
 server/**/user_data*
+server/**/browsers/wsEndpoint.lightpanda.txt
+server/**/browsers/lightpanda.*.pid
 server/**/.cache
 server/**/utils/Cache.worker/views/*
 server/**/utils/Cache.worker/pages/*
@@ -60,3 +62,8 @@ watch-git.sh
 # DEPLOYMENT.md
 DEPLOYMENT.md
 .github/workflows/deploy.yml
+.codegraph
+
+# Browser engine comparison output
+.compare-engines
+.vps-lab

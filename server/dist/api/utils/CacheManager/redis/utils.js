@@ -24,13 +24,14 @@ const redisClient = new (0, _ioredis2.default)({
   password: _InitEnv.PROCESS_ENV.REDIS_PASSWORD || undefined,
   db: parseInt(_InitEnv.PROCESS_ENV.REDIS_DB || '0', 10),
   maxRetriesPerRequest: 3,
+  // NOTE - Keep reconnecting (never give up, so the cache comes back when
+  // redis is back) and fail commands right away while disconnected: callers
+  // treat a failed command as a cache miss instead of waiting
   retryStrategy: (times) => {
-    if (times > 3) {
-      _ConsoleHandler2.default.error('Redis connection failed after 3 retries')
-      return null
-    }
-    return Math.min(times * 200, 1000)
+    if (times === 4) _ConsoleHandler2.default.error('Redis is unreachable, keep retrying')
+    return Math.min(times * 200, 2000)
   },
+  enableOfflineQueue: false,
   lazyConnect: true,
   connectTimeout: 10000, // Increase to 10 seconds
 })
@@ -408,10 +409,11 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
   const extension = compression === 'gzip' ? 'gz' : compression
 
   const redisKey = `${REDIS_PREFIX}${dataPath}/${key}.json`
-  const cachedData = await redisClient.get(redisKey)
-  const cacheEntry = JSON.parse(cachedData)
 
   try {
+    const cachedData = await redisClient.get(redisKey)
+    const cacheEntry = JSON.parse(cachedData)
+
     result = await exports.set.call(void 0, dataPath, `${key}-${compression}`, extension, content, {
       expiredTime: _optionalChain([cacheEntry, 'optionalAccess', _16 => _16.cache, 'optionalAccess', _17 => _17.expiredTime]),
       ...options,
@@ -484,7 +486,7 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
   const redisKey = `${REDIS_PREFIX}${directory}/${key}.${extension}`
 
   try {
-    redisClient.del(redisKey)
+    await redisClient.del(redisKey)
     _ConsoleHandler2.default.log(`Redis LRU Cache entry ${redisKey} was removed!`)
   } catch (err) {
     _ConsoleHandler2.default.error('Error removing Redis LRU Cache entry:', err)

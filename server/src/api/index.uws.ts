@@ -88,7 +88,17 @@ const resEnd = (res: any, resInfo: any) => {
       if (contentEncoding) {
         res.writeHeader('Content-Encoding', contentEncoding)
       }
-      res.end(data, true)
+      // NOTE - uWS only accepts string / ArrayBuffer / TypedArray, a failed
+      // upstream fetch (ex: 408 timeout) returns an object and would crash
+      // the whole server
+      res.end(
+        typeof data === 'string' ||
+          data instanceof ArrayBuffer ||
+          ArrayBuffer.isView(data)
+          ? data
+          : JSON.stringify(data ?? ''),
+        true
+      )
     })
   }
 }
@@ -242,7 +252,8 @@ const apiService = (async () => {
           const apiStore = await getStoreCache(requestInfo.storeKey, {
             autoCreateIfEmpty: { enable: true },
           })
-          const tmpAPIStoreData = apiStore.data
+          // NOTE - undefined when the cache store is unavailable (redis down)
+          const tmpAPIStoreData = apiStore?.data
 
           if (tmpAPIStoreData) {
             const indexNext = tmpAPIStoreData.indexOf(requestInfo.cacheStore)
@@ -293,7 +304,7 @@ const apiService = (async () => {
                   }).then(({ data, ...result }) => {
                     const enableToSetCache =
                       result.status === 200 ||
-                      !apiCache.cache ||
+                      !apiCache?.cache ||
                       apiCache.cache.status !== 200
                     if (enableToSetCache) {
                       setDataCache(
@@ -335,13 +346,15 @@ const apiService = (async () => {
               //   data = cache.data
               // }
 
-              resEnd(res, {
-                status: cache.status,
-                message: cache.message,
-                contentEncoding,
-                cookies: cache.cookies,
-                data,
-              })
+              // NOTE - No cache (ex: redis down): fetch the API below
+              if (cache)
+                resEnd(res, {
+                  status: cache.status,
+                  message: cache.message,
+                  contentEncoding,
+                  cookies: cache.cookies,
+                  data,
+                })
             } // IF expiredTime is valid
           } // IF has apiCache
         } // IF requestInfo.expiredTime > 0

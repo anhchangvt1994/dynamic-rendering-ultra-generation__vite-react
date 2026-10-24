@@ -10,6 +10,12 @@ import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getPagesPath } from '../../../utils/PathHandler'
 import { regexQueryStringSpecialInfoWithoutDeviceInfo } from '../../constants'
 import { ISSRResult } from '../../types'
+import {
+  CRAWL_LIMIT,
+  CRAWL_WAITING_LIMIT,
+  hasCrawlCapacity,
+  IS_FAST_CRAWL,
+} from '../CrawlProfile'
 import ISRHandler from '../ISRHandler.worker'
 import {
   isAvailablePointsTo,
@@ -25,7 +31,7 @@ interface IISRGeneratorParams {
   isSkipWaiting?: boolean
 }
 
-const limitRequestToCrawl = ServerConfig.crawl.limit
+const limitRequestToCrawl = CRAWL_LIMIT
 let totalRequestsToCrawl = 0
 const resetTotalToCrawlTimeout = (() => {
   let timeout: NodeJS.Timeout
@@ -39,8 +45,53 @@ const resetTotalToCrawlTimeout = (() => {
   }
 })()
 const waitingToCrawlList = new Map<string, IISRGeneratorParams>()
-const limitRequestWaitingToCrawl = ServerConfig.crawl.limit === 4 ? 2 : 1
+const limitRequestWaitingToCrawl = CRAWL_WAITING_LIMIT
 let totalRequestsWaitingToCrawl = 0
+
+// NOTE - Urls being rendered right now. A waiting item of an url that is
+// already rendering is dropped: forceToCrawl would remove its cache and
+// restart the render from scratch
+const crawlingUrls = new Set<string>()
+
+const _crawl = (params: Parameters<typeof ISRHandler>[0]) => {
+  crawlingUrls.add(params.url)
+
+  return ISRHandler(params).finally(() => crawlingUrls.delete(params.url))
+} // _crawl
+
+const _getRunningCrawls = () =>
+  totalRequestsToCrawl + totalRequestsWaitingToCrawl
+
+// NOTE - Start crawls from the waiting list while the limit and the
+// resources allow it
+const _crawlNextWaiting = () => {
+  while (
+    waitingToCrawlList.size &&
+    totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl &&
+    hasCrawlCapacity(_getRunningCrawls())
+  ) {
+    const nextCrawlItem = waitingToCrawlList.values().next().value
+    waitingToCrawlList.delete(nextCrawlItem.url)
+
+    if (crawlingUrls.has(nextCrawlItem.url)) continue
+
+    resetTotalToCrawlTimeout()
+    totalRequestsWaitingToCrawl++
+
+    ISRGenerator({
+      isSkipWaiting: true,
+      forceToCrawl: true,
+      ...nextCrawlItem,
+    })
+
+    // NOTE - Default profile keeps starting one waiting crawl at a time
+    if (!IS_FAST_CRAWL) break
+  }
+} // _crawlNextWaiting
+
+// NOTE - Fast profile: do not wait for a running crawl to finish before
+// starting the waiting ones (ex: they were queued while memory was low)
+if (IS_FAST_CRAWL) setInterval(_crawlNextWaiting, 500).unref()
 
 const getCertainLimitRequestToCrawl = (() => {
   const limitRequestToCrawlIfHasWaitingToCrawl =
@@ -148,8 +199,10 @@ const ISRGenerator = async ({
             .then((hasRenew) => {
               if (
                 !hasRenew &&
-                (totalRequestsToCrawl < certainLimitRequestToCrawl ||
-                  ISRHandlerParams.forceToCrawl)
+                // NOTE - A crawl from the waiting list was already admitted
+                (ISRHandlerParams.forceToCrawl ||
+                  (totalRequestsToCrawl < certainLimitRequestToCrawl &&
+                    hasCrawlCapacity(_getRunningCrawls())))
               ) {
                 if (!ISRHandlerParams.forceToCrawl) {
                   resetTotalToCrawlTimeout()
@@ -211,24 +264,7 @@ const ISRGenerator = async ({
                             totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
                         }
 
-                        if (
-                          waitingToCrawlList.size &&
-                          totalRequestsWaitingToCrawl <
-                            limitRequestWaitingToCrawl
-                        ) {
-                          resetTotalToCrawlTimeout()
-                          totalRequestsWaitingToCrawl++
-                          const nextCrawlItem = waitingToCrawlList
-                            .values()
-                            .next().value
-                          waitingToCrawlList.delete(nextCrawlItem.url)
-
-                          ISRGenerator({
-                            isSkipWaiting: true,
-                            forceToCrawl: true,
-                            ...nextCrawlItem,
-                          })
-                        }
+                        _crawlNextWaiting()
                       }
                     }
                   })()
@@ -240,7 +276,7 @@ const ISRGenerator = async ({
                     return async () => {
                       let result
                       try {
-                        result = await ISRHandler({
+                        result = await _crawl({
                           startGenerating,
                           hasCache: NonNullableResult.available,
                           ...ISRHandlerParams,
@@ -274,24 +310,7 @@ const ISRGenerator = async ({
                             totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
                         }
 
-                        if (
-                          waitingToCrawlList.size &&
-                          totalRequestsWaitingToCrawl <
-                            limitRequestWaitingToCrawl
-                        ) {
-                          resetTotalToCrawlTimeout()
-                          totalRequestsWaitingToCrawl++
-                          const nextCrawlItem = waitingToCrawlList
-                            .values()
-                            .next().value
-                          waitingToCrawlList.delete(nextCrawlItem.url)
-
-                          ISRGenerator({
-                            isSkipWaiting: true,
-                            forceToCrawl: true,
-                            ...nextCrawlItem,
-                          })
-                        }
+                        _crawlNextWaiting()
                       }
                     }
                   })()
@@ -300,7 +319,8 @@ const ISRGenerator = async ({
                 }
               } else if (
                 !hasRenew &&
-                totalRequestsToCrawl >= certainLimitRequestToCrawl &&
+                (totalRequestsToCrawl >= certainLimitRequestToCrawl ||
+                  !hasCrawlCapacity(_getRunningCrawls())) &&
                 !waitingToCrawlList.has(ISRHandlerParams.url)
               ) {
                 waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
@@ -314,8 +334,10 @@ const ISRGenerator = async ({
       }
     }
   } else if (
-    (totalRequestsToCrawl < certainLimitRequestToCrawl ||
-      ISRHandlerParams.forceToCrawl) &&
+    // NOTE - A crawl from the waiting list was already admitted
+    (ISRHandlerParams.forceToCrawl ||
+      (totalRequestsToCrawl < certainLimitRequestToCrawl &&
+        hasCrawlCapacity(_getRunningCrawls()))) &&
     isAvailableToCrawl
   ) {
     result = await cacheManager.get()
@@ -325,7 +347,21 @@ const ISRGenerator = async ({
 
     if (result) {
       const NonNullableResult = result
-      const isValidToScraping = NonNullableResult.isInit
+      // NOTE - A crawl from the waiting list runs when the page has no
+      // content yet: the empty file created while it was queued is not "init"
+      // before 53s, which delayed it until then
+      const isValidToScraping =
+        NonNullableResult.isInit ||
+        Boolean(
+          ISRHandlerParams.forceToCrawl &&
+          !NonNullableResult.available &&
+          !crawlingUrls.has(ISRHandlerParams.url)
+        )
+
+      // NOTE - A crawl from the waiting list that does not run frees its slot
+      if (ISRHandlerParams.forceToCrawl && !isValidToScraping)
+        totalRequestsWaitingToCrawl =
+          totalRequestsWaitingToCrawl > 0 ? totalRequestsWaitingToCrawl - 1 : 0
 
       if (isValidToScraping) {
         if (ISRHandlerParams.forceToCrawl) {
@@ -384,25 +420,10 @@ const ISRGenerator = async ({
                     totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
                 }
 
-                if (
-                  waitingToCrawlList.size &&
-                  totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
-                ) {
-                  resetTotalToCrawlTimeout()
-                  resetTotalToCrawlTimeout()
-                  totalRequestsWaitingToCrawl++
-                  const nextCrawlItem = waitingToCrawlList.values().next().value
-                  waitingToCrawlList.delete(nextCrawlItem.url)
-
-                  ISRGenerator({
-                    isSkipWaiting: true,
-                    forceToCrawl: true,
-                    ...nextCrawlItem,
-                  })
-                }
+                _crawlNextWaiting()
               })
             else
-              return ISRHandler({
+              return _crawl({
                 startGenerating,
                 hasCache: NonNullableResult.available,
                 ...ISRHandlerParams,
@@ -421,21 +442,7 @@ const ISRGenerator = async ({
                     totalRequestsToCrawl < 0 ? 0 : totalRequestsToCrawl
                 }
 
-                if (
-                  waitingToCrawlList.size &&
-                  totalRequestsWaitingToCrawl < limitRequestWaitingToCrawl
-                ) {
-                  resetTotalToCrawlTimeout()
-                  totalRequestsWaitingToCrawl++
-                  const nextCrawlItem = waitingToCrawlList.values().next().value
-                  waitingToCrawlList.delete(nextCrawlItem.url)
-
-                  ISRGenerator({
-                    isSkipWaiting: true,
-                    forceToCrawl: true,
-                    ...nextCrawlItem,
-                  })
-                }
+                _crawlNextWaiting()
               })
           })()
 

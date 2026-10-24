@@ -172,7 +172,8 @@ const apiService = async (req) => {
     const apiStore = await getStoreCache(requestInfo.storeKey, {
       autoCreateIfEmpty: { enable: true },
     })
-    const tmpAPIStoreData = apiStore.data
+    // NOTE - undefined when the cache store is unavailable (redis down)
+    const tmpAPIStoreData = apiStore?.data
 
     if (tmpAPIStoreData) {
       const indexNext = tmpAPIStoreData.indexOf(requestInfo.cacheStore)

@@ -24,13 +24,14 @@ const redisClient = new Redis({
   password: PROCESS_ENV.REDIS_PASSWORD || undefined,
   db: parseInt(PROCESS_ENV.REDIS_DB || '0', 10),
   maxRetriesPerRequest: 3,
+  // NOTE - Keep reconnecting (never give up, so the cache comes back when
+  // redis is back) and fail commands right away while disconnected: callers
+  // treat a failed command as a cache miss instead of waiting
   retryStrategy: (times) => {
-    if (times > 3) {
-      Console.error('Redis connection failed after 3 retries')
-      return null
-    }
-    return Math.min(times * 200, 1000)
+    if (times === 4) Console.error('Redis is unreachable, keep retrying')
+    return Math.min(times * 200, 2000)
   },
+  enableOfflineQueue: false,
   lazyConnect: true,
   connectTimeout: 10000, // Increase to 10 seconds
 })
@@ -408,10 +409,11 @@ export const setDataCompression = async (
   const extension = compression === 'gzip' ? 'gz' : compression
 
   const redisKey = `${REDIS_PREFIX}${dataPath}/${key}.json`
-  const cachedData = await redisClient.get(redisKey)
-  const cacheEntry = JSON.parse(cachedData)
 
   try {
+    const cachedData = await redisClient.get(redisKey)
+    const cacheEntry = JSON.parse(cachedData)
+
     result = await set(dataPath, `${key}-${compression}`, extension, content, {
       expiredTime: cacheEntry?.cache?.expiredTime,
       ...options,
@@ -484,7 +486,7 @@ export const remove = async (
   const redisKey = `${REDIS_PREFIX}${directory}/${key}.${extension}`
 
   try {
-    redisClient.del(redisKey)
+    await redisClient.del(redisKey)
     Console.log(`Redis LRU Cache entry ${redisKey} was removed!`)
   } catch (err) {
     Console.error('Error removing Redis LRU Cache entry:', err)

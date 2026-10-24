@@ -1,7 +1,10 @@
+import preflight from '../utils/Preflight.mjs'
 import runCommand from '../utils/RunCommand.mjs'
 
 async function runScript() {
   try {
+    await preflight({ redis: true })
+
     await runCommand('node', ['server/server-build.js'])
 
     await runCommand('./node_modules/.bin/cross-env', [

@@ -5,7 +5,13 @@ import Console from '../../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getPagesPath } from '../../../utils/PathHandler'
 import WorkerManager from '../../../utils/WorkerManager'
+import {
+  BROWSER_ENGINE,
+  LIGHTPANDA_FALLBACK_TO_CHROMIUM,
+  type TBrowserEngine,
+} from '../../constants'
 import BrowserManager from '../BrowserManager'
+import { CRAWL_WORKERS, IS_FAST_CRAWL } from '../CrawlProfile'
 import CacheManager from '../CacheManager.worker/utils'
 import { type IISRHandlerWorkerParam } from './types'
 
@@ -17,7 +23,9 @@ const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.${resourceExtension}`),
   {
     minWorkers: 1,
-    maxWorkers: 2, // Reduced from 5 to prevent EAGAIN resource exhaustion
+    // NOTE - default profile: 2 (reduced from 5 to prevent EAGAIN resource
+    // exhaustion), fast profile: the crawl concurrency
+    maxWorkers: CRAWL_WORKERS,
     enableGlobalCounter: !isMainThread,
   },
   ['ISRHandler']
@@ -25,15 +33,21 @@ const workerManager = WorkerManager.init(
 
 const browserManager = BrowserManager()
 
-const ISRHandler = async (params: IISRHandlerWorkerParam) => {
-  if (!browserManager || !params.url) return
+const _render = async (
+  params: IISRHandlerWorkerParam,
+  engine: TBrowserEngine
+) => {
+  const manager =
+    engine === BROWSER_ENGINE ? browserManager : BrowserManager({ engine })
 
-  const browser = await browserManager.get()
+  if (!manager) return null
+
+  const browser = await manager.get()
 
   const wsEndpoint =
     browser && browser.connected ? browser.wsEndpoint() : undefined
 
-  if (!wsEndpoint && !ServerConfig.crawler) return
+  if (!wsEndpoint && !ServerConfig.crawler) return null
 
   const pathname = new URL(params.url).pathname
 
@@ -43,8 +57,9 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
     ServerConfig.crawl
   ).speed
 
+  // NOTE - Fast profile renders are cheap, no need to stagger their start
   const freePool = await workerManager.getFreePool({
-    delay: crawlSpeedOption / 20,
+    delay: IS_FAST_CRAWL ? 0 : crawlSpeedOption / 20,
   })
 
   const pool = freePool.pool
@@ -75,6 +90,7 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
               ...params,
               baseUrl: PROCESS_ENV.BASE_URL,
               wsEndpoint,
+              engine,
             },
           ],
           {
@@ -113,18 +129,40 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
     })
   }
 
-  if (!result || result.status !== 200) {
-    cacheManager.remove().catch((err) => {
-      Console.error(err)
-    })
-  }
-
   freePool.terminate({
     force: true,
     // delay: 30000,
   })
 
   return result
-} // getData
+} // _render
+
+const ISRHandler = async (params: IISRHandlerWorkerParam) => {
+  if (!browserManager || !params.url) return
+
+  let result = await _render(params, BROWSER_ENGINE)
+
+  if (result === null) return
+
+  if (
+    BROWSER_ENGINE === 'lightpanda' &&
+    LIGHTPANDA_FALLBACK_TO_CHROMIUM &&
+    (!result || result.status >= 500)
+  ) {
+    Console.log(`Lightpanda failed, re-render with chromium: ${params.url}`)
+    const fallbackResult = await _render(params, 'chromium')
+    if (fallbackResult !== null) result = fallbackResult
+  }
+
+  if (!result || result.status !== 200) {
+    CacheManager(params.url, pagesPath)
+      .remove()
+      .catch((err) => {
+        Console.error(err)
+      })
+  }
+
+  return result
+} // ISRHandler
 
 export default ISRHandler

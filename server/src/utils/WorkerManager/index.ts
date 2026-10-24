@@ -189,16 +189,20 @@ const WorkerManager = (() => {
 
 								let terminateWaitingCounter = 0
 
-								const handleTerminate = (force = false) => {
-									if (force || !pool.stats().activeTasks) {
+								// NOTE - Never kill running or queued tasks of the old pool (ex: a
+								// render killed midway leaves an empty cache file for 53s, and
+								// terminate() rejects the queued tasks): wait up to 60s for them,
+								// then terminate gracefully
+								const handleTerminate = () => {
+									const { activeTasks, pendingTasks } = pool.stats()
+
+									if (!activeTasks && !pendingTasks) {
 										pool.terminate(options.force)
+									} else if (terminateWaitingCounter < 12) {
+										terminateWaitingCounter++
+										timeout = setTimeout(handleTerminate, 5000)
 									} else {
-										if (terminateWaitingCounter < 1) {
-											timeout = setTimeout(handleTerminate, 5000)
-											terminateWaitingCounter++
-										} else {
-											handleTerminate(true)
-										}
+										pool.terminate(false, 30000)
 									}
 								}
 

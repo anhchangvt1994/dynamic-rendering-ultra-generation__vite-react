@@ -1,4 +1,4 @@
-import { Page } from 'puppeteer'
+import { Browser, Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
 import apiService from '../../../api/index.crawler'
 import {
@@ -17,8 +17,10 @@ import {
   puppeteer,
   regexNotFoundPageID,
   regexQueryStringSpecialInfo,
+  type TBrowserEngine,
 } from '../../constants'
 import { ISSRResult } from '../../types'
+import { FAST_CRAWL_OPTIONS, IS_FAST_CRAWL } from '../CrawlProfile'
 import CacheManager from '../CacheManager.worker/utils'
 import {
   compressContent,
@@ -40,7 +42,10 @@ interface IISRHandlerParam {
   url: string
   wsEndpoint: string
   baseUrl: string
+  engine?: TBrowserEngine
 }
+
+let connectedBrowser: Browser | undefined
 
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
   if (!startGenerating) return 0
@@ -95,6 +100,34 @@ const fetchData = async (
   }
 } // fetchData
 
+// NOTE - Fast profile: the page is done when no request has been pending for
+// FAST_CRAWL_OPTIONS.networkIdleMs (instead of the fixed waits)
+const _waitForNetworkIdle = (page: Page, getPendingRequests: () => number) =>
+  new Promise<void>((resolve) => {
+    let idleTimeout: NodeJS.Timeout
+    const onRequest = () => clearTimeout(idleTimeout)
+    const onSettled = () => {
+      clearTimeout(idleTimeout)
+      if (getPendingRequests() <= 0)
+        idleTimeout = setTimeout(done, FAST_CRAWL_OPTIONS.networkIdleMs)
+    }
+    const maxTimeout = setTimeout(done, FAST_CRAWL_OPTIONS.maxWaitMs)
+
+    function done() {
+      clearTimeout(idleTimeout)
+      clearTimeout(maxTimeout)
+      page.off('request', onRequest)
+      page.off('requestfinished', onSettled)
+      page.off('requestfailed', onSettled)
+      resolve()
+    }
+
+    page.on('request', onRequest)
+    page.on('requestfinished', onSettled)
+    page.on('requestfailed', onSettled)
+    onSettled()
+  }) // _waitForNetworkIdle
+
 const waitResponse = (() => {
   return async (page: Page, url: string, duration: number) => {
     const pathname = new URL(url).pathname
@@ -109,8 +142,11 @@ const waitResponse = (() => {
     const waitUntil =
       commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
 
-    const firstWaitingDuration =
-      BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+    const firstWaitingDuration = IS_FAST_CRAWL
+      ? 0
+      : BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE
+        ? commonWaitingDuration
+        : 500
     const defaultRequestWaitingDuration =
       BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
     const requestServedFromCacheDuration =
@@ -206,37 +242,40 @@ const waitResponse = (() => {
 
         if (regexNotFoundPageID.test(html)) return resolve(result)
 
-        await new Promise(async (resolveAfterPageLoadInFewSecond) => {
-          if (pendingRequests <= 0) {
-            return resolveAfterPageLoadInFewSecond(null)
-          }
-
-          const startTimeout = (() => {
-            let timeout
-            return (duration = defaultRequestWaitingDuration) => {
-              if (timeout) clearTimeout(timeout)
-              timeout = setTimeout(resolveAfterPageLoadInFewSecond, duration)
+        if (IS_FAST_CRAWL)
+          await _waitForNetworkIdle(safePage(), () => pendingRequests)
+        else
+          await new Promise(async (resolveAfterPageLoadInFewSecond) => {
+            if (pendingRequests <= 0) {
+              return resolveAfterPageLoadInFewSecond(null)
             }
-          })()
 
-          startTimeout()
+            const startTimeout = (() => {
+              let timeout
+              return (duration = defaultRequestWaitingDuration) => {
+                if (timeout) clearTimeout(timeout)
+                timeout = setTimeout(resolveAfterPageLoadInFewSecond, duration)
+              }
+            })()
 
-          safePage()?.on('requestfinished', () => {
-            startTimeout(
-              pendingRequests <= 3 ? 3500 : defaultRequestWaitingDuration
-            )
-          })
-          safePage()?.on('requestservedfromcache', () => {
-            startTimeout(
-              pendingRequests <= 3 ? 3500 : requestServedFromCacheDuration
-            )
-          })
-          safePage()?.on('requestfailed', () => {
-            startTimeout(pendingRequests <= 3 ? 3500 : requestFailDuration)
-          })
+            startTimeout()
 
-          setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
-        })
+            safePage()?.on('requestfinished', () => {
+              startTimeout(
+                pendingRequests <= 3 ? 3500 : defaultRequestWaitingDuration
+              )
+            })
+            safePage()?.on('requestservedfromcache', () => {
+              startTimeout(
+                pendingRequests <= 3 ? 3500 : requestServedFromCacheDuration
+              )
+            })
+            safePage()?.on('requestfailed', () => {
+              startTimeout(pendingRequests <= 3 ? 3500 : requestFailDuration)
+            })
+
+            setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
+          })
 
         safePage().removeAllListeners('request')
         safePage().removeAllListeners('requestfinished')
@@ -245,9 +284,12 @@ const waitResponse = (() => {
 
         // console.log(`finish all page: `, url.split('?')[0])
 
-        setTimeout(() => {
-          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 500)
+        setTimeout(
+          () => {
+            resolve(pendingRequests > 3 ? { status: () => 503 } : result)
+          },
+          IS_FAST_CRAWL ? 0 : 500
+        )
       })
     } catch (err) {
       // console.log(err.message)
@@ -261,7 +303,7 @@ const waitResponse = (() => {
 
 const gapDurationDefault = 1500
 
-const ISRHandler = async (params: IISRHandlerParam) => {
+const _ISRHandler = async (params: IISRHandlerParam) => {
   if (!params) return
 
   const { hasCache, url, wsEndpoint, baseUrl } = params
@@ -348,6 +390,7 @@ const ISRHandler = async (params: IISRHandlerParam) => {
     let browser
     try {
       browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+      connectedBrowser = browser
     } catch (err) {
       Console.error('Failed to connect to browser:', err.message)
       if (hasCache) {
@@ -687,7 +730,22 @@ const ISRHandler = async (params: IISRHandlerParam) => {
   }
 
   return result
-}
+} // _ISRHandler
+
+/**
+ * NOTE - Each lightpanda CDP connection owns a whole browser and lightpanda
+ * limits simultaneous connections, so close the connection once the task ends
+ */
+const ISRHandler = async (params: IISRHandlerParam) => {
+  try {
+    return await _ISRHandler(params)
+  } finally {
+    if (params?.engine === 'lightpanda' && connectedBrowser) {
+      connectedBrowser.disconnect().catch(() => {})
+      connectedBrowser = undefined
+    }
+  }
+} // ISRHandler
 
 WorkerPool.worker({
   ISRHandler,

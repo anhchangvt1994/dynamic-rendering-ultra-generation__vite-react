@@ -1,13 +1,16 @@
-import { Page } from 'puppeteer'
+import { Browser, Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
-import { puppeteer } from '../src/puppeteer-ssr/constants'
+import { puppeteer, type TBrowserEngine } from '../src/puppeteer-ssr/constants'
 import Console from '../src/utils/ConsoleHandler'
 import { PROCESS_ENV } from '../src/utils/InitEnv'
 
 interface ICrawlHandlerParams {
   url: string
   wsEndpoint?: string
+  engine?: TBrowserEngine
 }
+
+let connectedBrowser: Browser | undefined
 
 const _getSafePage = (page: Page) => {
   const SafePage = page
@@ -18,7 +21,7 @@ const _getSafePage = (page: Page) => {
   }
 } // _getSafePage
 
-const crawlHandler = async (params: ICrawlHandlerParams) => {
+const _crawlHandler = async (params: ICrawlHandlerParams) => {
   const { url, wsEndpoint } = params
 
   if (!url || !wsEndpoint) return
@@ -29,6 +32,7 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
 
   try {
     browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+    connectedBrowser = browser
   } catch (err) {
     Console.error('Failed to connect to browser:', err.message)
     return { status: 500 }
@@ -141,6 +145,21 @@ const crawlHandler = async (params: ICrawlHandlerParams) => {
     Console.log(`Found ${links.length} links to crawl`)
 
     return { status, data: links }
+  }
+} // _crawlHandler
+
+/**
+ * NOTE - Each lightpanda CDP connection owns a whole browser and lightpanda
+ * limits simultaneous connections, so close the connection once the task ends
+ */
+const crawlHandler = async (params: ICrawlHandlerParams) => {
+  try {
+    return await _crawlHandler(params)
+  } finally {
+    if (params?.engine === 'lightpanda' && connectedBrowser) {
+      connectedBrowser.disconnect().catch(() => {})
+      connectedBrowser = undefined
+    }
   }
 } // crawlHandler
 

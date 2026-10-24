@@ -17,8 +17,10 @@ var _PathHandler = require('../../../utils/PathHandler');
 
 
 
+
 var _constants3 = require('../../constants');
 
+var _CrawlProfile = require('../CrawlProfile');
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
 
 
@@ -41,6 +43,9 @@ const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
 
 
+
+
+let connectedBrowser
 
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
   if (!startGenerating) return 0
@@ -95,6 +100,34 @@ const fetchData = async (
   }
 } // fetchData
 
+// NOTE - Fast profile: the page is done when no request has been pending for
+// FAST_CRAWL_OPTIONS.networkIdleMs (instead of the fixed waits)
+const _waitForNetworkIdle = (page, getPendingRequests) =>
+  new Promise((resolve) => {
+    let idleTimeout
+    const onRequest = () => clearTimeout(idleTimeout)
+    const onSettled = () => {
+      clearTimeout(idleTimeout)
+      if (getPendingRequests() <= 0)
+        idleTimeout = setTimeout(done, _CrawlProfile.FAST_CRAWL_OPTIONS.networkIdleMs)
+    }
+    const maxTimeout = setTimeout(done, _CrawlProfile.FAST_CRAWL_OPTIONS.maxWaitMs)
+
+    function done() {
+      clearTimeout(idleTimeout)
+      clearTimeout(maxTimeout)
+      page.off('request', onRequest)
+      page.off('requestfinished', onSettled)
+      page.off('requestfailed', onSettled)
+      resolve()
+    }
+
+    page.on('request', onRequest)
+    page.on('requestfinished', onSettled)
+    page.on('requestfailed', onSettled)
+    onSettled()
+  }) // _waitForNetworkIdle
+
 const waitResponse = (() => {
   return async (page, url, duration) => {
     const pathname = new URL(url).pathname
@@ -109,8 +142,11 @@ const waitResponse = (() => {
     const waitUntil =
       commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
 
-    const firstWaitingDuration =
-      _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
+    const firstWaitingDuration = _CrawlProfile.IS_FAST_CRAWL
+      ? 0
+      : _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE
+        ? commonWaitingDuration
+        : 500
     const defaultRequestWaitingDuration =
       _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE ? commonWaitingDuration : 500
     const requestServedFromCacheDuration =
@@ -206,37 +242,40 @@ const waitResponse = (() => {
 
         if (_constants3.regexNotFoundPageID.test(html)) return resolve(result)
 
-        await new Promise(async (resolveAfterPageLoadInFewSecond) => {
-          if (pendingRequests <= 0) {
-            return resolveAfterPageLoadInFewSecond(null)
-          }
-
-          const startTimeout = (() => {
-            let timeout
-            return (duration = defaultRequestWaitingDuration) => {
-              if (timeout) clearTimeout(timeout)
-              timeout = setTimeout(resolveAfterPageLoadInFewSecond, duration)
+        if (_CrawlProfile.IS_FAST_CRAWL)
+          await _waitForNetworkIdle(safePage(), () => pendingRequests)
+        else
+          await new Promise(async (resolveAfterPageLoadInFewSecond) => {
+            if (pendingRequests <= 0) {
+              return resolveAfterPageLoadInFewSecond(null)
             }
-          })()
 
-          startTimeout()
+            const startTimeout = (() => {
+              let timeout
+              return (duration = defaultRequestWaitingDuration) => {
+                if (timeout) clearTimeout(timeout)
+                timeout = setTimeout(resolveAfterPageLoadInFewSecond, duration)
+              }
+            })()
 
-          _optionalChain([safePage, 'call', _23 => _23(), 'optionalAccess', _24 => _24.on, 'call', _25 => _25('requestfinished', () => {
-            startTimeout(
-              pendingRequests <= 3 ? 2500 : defaultRequestWaitingDuration
-            )
-          })])
-          _optionalChain([safePage, 'call', _26 => _26(), 'optionalAccess', _27 => _27.on, 'call', _28 => _28('requestservedfromcache', () => {
-            startTimeout(
-              pendingRequests <= 3 ? 2500 : requestServedFromCacheDuration
-            )
-          })])
-          _optionalChain([safePage, 'call', _29 => _29(), 'optionalAccess', _30 => _30.on, 'call', _31 => _31('requestfailed', () => {
-            startTimeout(pendingRequests <= 3 ? 2500 : requestFailDuration)
-          })])
+            startTimeout()
 
-          setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
-        })
+            _optionalChain([safePage, 'call', _23 => _23(), 'optionalAccess', _24 => _24.on, 'call', _25 => _25('requestfinished', () => {
+              startTimeout(
+                pendingRequests <= 3 ? 3500 : defaultRequestWaitingDuration
+              )
+            })])
+            _optionalChain([safePage, 'call', _26 => _26(), 'optionalAccess', _27 => _27.on, 'call', _28 => _28('requestservedfromcache', () => {
+              startTimeout(
+                pendingRequests <= 3 ? 3500 : requestServedFromCacheDuration
+              )
+            })])
+            _optionalChain([safePage, 'call', _29 => _29(), 'optionalAccess', _30 => _30.on, 'call', _31 => _31('requestfailed', () => {
+              startTimeout(pendingRequests <= 3 ? 3500 : requestFailDuration)
+            })])
+
+            setTimeout(resolveAfterPageLoadInFewSecond, maximumTimeout)
+          })
 
         safePage().removeAllListeners('request')
         safePage().removeAllListeners('requestfinished')
@@ -245,9 +284,12 @@ const waitResponse = (() => {
 
         // console.log(`finish all page: `, url.split('?')[0])
 
-        setTimeout(() => {
-          resolve(pendingRequests > 3 ? { status: () => 503 } : result)
-        }, 500)
+        setTimeout(
+          () => {
+            resolve(pendingRequests > 3 ? { status: () => 503 } : result)
+          },
+          _CrawlProfile.IS_FAST_CRAWL ? 0 : 500
+        )
       })
     } catch (err) {
       // console.log(err.message)
@@ -261,7 +303,7 @@ const waitResponse = (() => {
 
 const gapDurationDefault = 1500
 
-const ISRHandler = async (params) => {
+const _ISRHandler = async (params) => {
   if (!params) return
 
   const { hasCache, url, wsEndpoint, baseUrl } = params
@@ -348,6 +390,7 @@ const ISRHandler = async (params) => {
     let browser
     try {
       browser = await _constants3.puppeteer.connect({ browserWSEndpoint: wsEndpoint })
+      connectedBrowser = browser
     } catch (err) {
       _ConsoleHandler2.default.error('Failed to connect to browser:', err.message)
       if (hasCache) {
@@ -687,7 +730,22 @@ const ISRHandler = async (params) => {
   }
 
   return result
-}
+} // _ISRHandler
+
+/**
+ * NOTE - Each lightpanda CDP connection owns a whole browser and lightpanda
+ * limits simultaneous connections, so close the connection once the task ends
+ */
+const ISRHandler = async (params) => {
+  try {
+    return await _ISRHandler(params)
+  } finally {
+    if (_optionalChain([params, 'optionalAccess', _80 => _80.engine]) === 'lightpanda' && connectedBrowser) {
+      connectedBrowser.disconnect().catch(() => {})
+      connectedBrowser = undefined
+    }
+  }
+} // ISRHandler
 
 _workerpool2.default.worker({
   ISRHandler,

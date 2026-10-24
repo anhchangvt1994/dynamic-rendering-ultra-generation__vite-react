@@ -5,7 +5,13 @@ var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHand
 var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
 var _WorkerManager = require('../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
+
+
+
+
+var _constants3 = require('../../constants');
 var _BrowserManager = require('../BrowserManager'); var _BrowserManager2 = _interopRequireDefault(_BrowserManager);
+var _CrawlProfile = require('../CrawlProfile');
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
 
 
@@ -17,7 +23,9 @@ const workerManager = _WorkerManager2.default.init(
   _path2.default.resolve(__dirname, `./worker.${_constants.resourceExtension}`),
   {
     minWorkers: 1,
-    maxWorkers: 2, // Reduced from 5 to prevent EAGAIN resource exhaustion
+    // NOTE - default profile: 2 (reduced from 5 to prevent EAGAIN resource
+    // exhaustion), fast profile: the crawl concurrency
+    maxWorkers: _CrawlProfile.CRAWL_WORKERS,
     enableGlobalCounter: !isMainThread,
   },
   ['ISRHandler']
@@ -25,15 +33,21 @@ const workerManager = _WorkerManager2.default.init(
 
 const browserManager = _BrowserManager2.default.call(void 0, )
 
-const ISRHandler = async (params) => {
-  if (!browserManager || !params.url) return
+const _render = async (
+  params,
+  engine
+) => {
+  const manager =
+    engine === _constants3.BROWSER_ENGINE ? browserManager : _BrowserManager2.default.call(void 0, { engine })
 
-  const browser = await browserManager.get()
+  if (!manager) return null
+
+  const browser = await manager.get()
 
   const wsEndpoint =
     browser && browser.connected ? browser.wsEndpoint() : undefined
 
-  if (!wsEndpoint && !_serverconfig2.default.crawler) return
+  if (!wsEndpoint && !_serverconfig2.default.crawler) return null
 
   const pathname = new URL(params.url).pathname
 
@@ -43,8 +57,9 @@ const ISRHandler = async (params) => {
     _serverconfig2.default.crawl))
   ).speed
 
+  // NOTE - Fast profile renders are cheap, no need to stagger their start
   const freePool = await workerManager.getFreePool({
-    delay: crawlSpeedOption / 20,
+    delay: _CrawlProfile.IS_FAST_CRAWL ? 0 : crawlSpeedOption / 20,
   })
 
   const pool = freePool.pool
@@ -75,6 +90,7 @@ const ISRHandler = async (params) => {
               ...params,
               baseUrl: _InitEnv.PROCESS_ENV.BASE_URL,
               wsEndpoint,
+              engine,
             },
           ],
           {
@@ -113,18 +129,40 @@ const ISRHandler = async (params) => {
     })
   }
 
-  if (!result || result.status !== 200) {
-    cacheManager.remove().catch((err) => {
-      _ConsoleHandler2.default.error(err)
-    })
-  }
-
   freePool.terminate({
     force: true,
     // delay: 30000,
   })
 
   return result
-} // getData
+} // _render
+
+const ISRHandler = async (params) => {
+  if (!browserManager || !params.url) return
+
+  let result = await _render(params, _constants3.BROWSER_ENGINE)
+
+  if (result === null) return
+
+  if (
+    _constants3.BROWSER_ENGINE === 'lightpanda' &&
+    _constants3.LIGHTPANDA_FALLBACK_TO_CHROMIUM &&
+    (!result || result.status >= 500)
+  ) {
+    _ConsoleHandler2.default.log(`Lightpanda failed, re-render with chromium: ${params.url}`)
+    const fallbackResult = await _render(params, 'chromium')
+    if (fallbackResult !== null) result = fallbackResult
+  }
+
+  if (!result || result.status !== 200) {
+    _utils2.default.call(void 0, params.url, pagesPath)
+      .remove()
+      .catch((err) => {
+        _ConsoleHandler2.default.error(err)
+      })
+  }
+
+  return result
+} // ISRHandler
 
 exports. default = ISRHandler

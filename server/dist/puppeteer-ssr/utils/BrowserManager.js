@@ -18,7 +18,11 @@ var _WorkerManager = require('../../utils/WorkerManager'); var _WorkerManager2 =
 
 
 
+
+
+
 var _constants3 = require('../constants');
+var _LightpandaManager = require('./LightpandaManager'); var _LightpandaManager2 = _interopRequireDefault(_LightpandaManager);
 const { parentPort, isMainThread } = require('worker_threads')
 
 const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
@@ -66,11 +70,22 @@ const _deleteUserDataDir = async (dir) => {
   }
 } // _deleteUserDataDir
 
-const _getBrowserForSubThreads = (() => {
+const _createGetBrowserForSubThreads = (engine) => {
   const limit = 3
   let counter = 0
+  // NOTE - Lightpanda limits the number of CDP connections, so reuse the
+  // connection instead of opening a new one per request
+  let cachedBrowser
   const _get = async () => {
-    const wsEndpoint = _FileHandler.getTextData.call(void 0, `${userDataPath}/wsEndpoint.txt`)
+    const wsEndpoint = _FileHandler.getTextData.call(void 0, _constants3.getWsEndpointFilePath.call(void 0, engine))
+
+    if (
+      engine === 'lightpanda' &&
+      wsEndpoint &&
+      _optionalChain([cachedBrowser, 'optionalAccess', _ => _.connected]) &&
+      cachedBrowser.wsEndpoint() === wsEndpoint
+    )
+      return cachedBrowser
 
     if (!wsEndpoint && counter < limit) {
       counter++
@@ -110,21 +125,23 @@ const _getBrowserForSubThreads = (() => {
 
     counter = 0
 
+    if (engine === 'lightpanda') cachedBrowser = browser
+
     return browser
   } // get
 
   return () => _get()
-})() // _getBrowserForSubThreads
+} // _createGetBrowserForSubThreads
 
-let browserManager
+const browserManagers = {}
 
 function BrowserManager(options
 
-) {
-  if (process.env.PUPPETEER_SKIP_DOWNLOAD && !_constants3.canUseLinuxChromium) return
 
-  if (browserManager) return browserManager
-  else browserManager = this
+) {
+  if (options.engine === 'lightpanda') {
+    if (!options.isSubThread && isMainThread) return _LightpandaManager2.default.call(void 0, )
+  } else if (process.env.PUPPETEER_SKIP_DOWNLOAD && !_constants3.canUseLinuxChromium) return
 
   if (!options.isSubThread && isMainThread) {
     const userDataDir = () => `${userDataPath}/user_data_${Date.now()}`
@@ -295,7 +312,7 @@ function BrowserManager(options
                     browser.emit('closed', true)
                     _ConsoleHandler2.default.log('Browser closed')
                     if (
-                      !_optionalChain([browser, 'optionalAccess', _ => _.connected]) &&
+                      !_optionalChain([browser, 'optionalAccess', _2 => _2.connected]) &&
                       outdateBrowser.has(browser.wsEndpoint())
                     ) {
                       outdateBrowser.delete(browser.wsEndpoint())
@@ -319,7 +336,12 @@ function BrowserManager(options
       }
     } // __launch()
 
-    if (_constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.THREE) {
+    // NOTE - When chromium is not the main engine (only used by lighthouse
+    // or as a fallback), launch it lazily to save resources
+    if (
+      _constants.POWER_LEVEL === _constants.POWER_LEVEL_LIST.THREE &&
+      _constants3.BROWSER_ENGINE === 'chromium'
+    ) {
       __launch()
     }
 
@@ -366,7 +388,7 @@ function BrowserManager(options
           return _newPage()
         }
 
-        const page = await _optionalChain([browser, 'optionalAccess', _2 => _2.newPage, 'optionalCall', _3 => _3()])
+        const page = await _optionalChain([browser, 'optionalAccess', _3 => _3.newPage, 'optionalCall', _4 => _4()])
 
         if (!page) {
           browser.close()
@@ -393,9 +415,13 @@ function BrowserManager(options
       isReady: _isReady,
     }
   } else {
+    const _getBrowserForSubThreads = _createGetBrowserForSubThreads(
+      options.engine
+    )
     const _get = async () => {
-      _optionalChain([parentPort, 'optionalAccess', _4 => _4.postMessage, 'call', _5 => _5({
+      _optionalChain([parentPort, 'optionalAccess', _5 => _5.postMessage, 'call', _6 => _6({
         name: 'getBrowser',
+        engine: options.engine,
       })])
       const browser = await _getBrowserForSubThreads()
 
@@ -408,16 +434,20 @@ function BrowserManager(options
   }
 }
 
-exports. default = (options) => {
-  if (_InitEnv.ENV_MODE === 'development') return
+exports. default = (options
 
-  if (browserManager) return browserManager
+
+) => {
+  if (_InitEnv.ENV_MODE === 'development') return
 
   const _options = {
     isSubThread: false,
+    engine: _constants3.BROWSER_ENGINE,
     ...(options || {}),
   }
 
-  browserManager = BrowserManager(_options)
-  return browserManager
+  if (browserManagers[_options.engine]) return browserManagers[_options.engine]
+
+  browserManagers[_options.engine] = BrowserManager(_options)
+  return browserManagers[_options.engine]
 }
