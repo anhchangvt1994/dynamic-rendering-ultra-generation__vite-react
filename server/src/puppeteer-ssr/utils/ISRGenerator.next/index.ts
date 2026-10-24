@@ -13,6 +13,7 @@ import { ISSRResult } from '../../types'
 import {
   CRAWL_LIMIT,
   CRAWL_WAITING_LIMIT,
+  CRAWL_WAIT_OPTIONS,
   hasCrawlCapacity,
   IS_FAST_CRAWL,
 } from '../CrawlProfile'
@@ -475,6 +476,16 @@ const ISRGenerator = async ({
             const tmpResult = await cacheManager.achieve()
             result = tmpResult || result
           }
+        } else if (CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0) {
+          // NOTE - A render usually ends within a few seconds, answer with the
+          // page instead of a 503 when it does
+          const tmpResult = await Promise.race([
+            resultPromise,
+            new Promise<undefined>((res) =>
+              setTimeout(res, CRAWL_WAIT_OPTIONS.firstResponseWaitMs)
+            ),
+          ])
+          if (tmpResult && tmpResult.status === 200) result = tmpResult
         }
       }
       // NOTE - Uncomment this logic if you need the second bot waiting for the first bot result
@@ -529,6 +540,29 @@ const ISRGenerator = async ({
 
   if (!result) {
     result = await cacheManager.get()
+  }
+
+  // NOTE - A page that is queued (or rendered by another request) can also be
+  // ready within CRAWL_WAIT_OPTIONS.firstResponseWaitMs: wait for its cache
+  // instead of answering 503 right away
+  if (
+    result?.status !== 200 &&
+    !isSkipWaiting &&
+    !ISRHandlerParams.forceToCrawl &&
+    CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0 &&
+    (waitingToCrawlList.has(ISRHandlerParams.url) ||
+      crawlingUrls.has(ISRHandlerParams.url))
+  ) {
+    const deadline = startGenerating + CRAWL_WAIT_OPTIONS.firstResponseWaitMs
+
+    while (Date.now() < deadline) {
+      await new Promise((res) => setTimeout(res, 100))
+      const tmpResult = await cacheManager.achieve()
+      if (tmpResult && !tmpResult.isRaw) {
+        result = tmpResult
+        break
+      }
+    }
   }
 
   if (!result.response && !result.html) {

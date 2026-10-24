@@ -16,6 +16,7 @@ var _PathHandler = require('../../../../utils/PathHandler');
 
 
 
+var _constants = require('../../../../constants');
 
 // Redis client configuration for LRU Cache replacement
 const redisClient = new (0, _ioredis2.default)({
@@ -296,7 +297,7 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
         : JSON.stringify(content)
 
     if (options.isCompress && !(content instanceof Buffer)) {
-      const compressed = _zlib.brotliCompressSync.call(void 0, contentToString)
+      const compressed = _zlib.brotliCompressSync.call(void 0, contentToString, _constants.BROTLI_OPTIONS)
       // Store compressed content as base64 to preserve binary data in JSON
       return compressed.toString('base64')
     }
@@ -438,7 +439,7 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
     const gzipCompressAsync = _util.promisify.call(void 0, _zlib.gzip)
 
     const tmpCompressDataPromise = await Promise.allSettled([
-      brottliCompressAsync(data),
+      brottliCompressAsync(data, _constants.BROTLI_OPTIONS),
       gzipCompressAsync(data),
     ])
 

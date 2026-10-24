@@ -3,6 +3,7 @@ import path from 'path'
 import { TemplatedApp } from 'uWebSockets.js'
 import { brotliCompressSync, gzipSync } from 'zlib'
 import Console from '../utils/ConsoleHandler'
+import { BROTLI_OPTIONS } from '../constants'
 
 const SitemapRouter = (() => {
   let _app: TemplatedApp
@@ -38,7 +39,7 @@ const SitemapRouter = (() => {
         const result = (() => {
           switch (true) {
             case contentEncoding === 'br':
-              return brotliCompressSync(originalContent)
+              return brotliCompressSync(originalContent, BROTLI_OPTIONS)
             case contentEncoding === 'gzip':
               return gzipSync(originalContent)
             default:
@@ -91,7 +92,7 @@ const SitemapRouter = (() => {
         const result = (() => {
           switch (true) {
             case contentEncoding === 'br':
-              return brotliCompressSync(originalContent)
+              return brotliCompressSync(originalContent, BROTLI_OPTIONS)
             case contentEncoding === 'gzip':
               return gzipSync(originalContent)
             default:

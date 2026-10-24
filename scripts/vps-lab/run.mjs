@@ -18,7 +18,7 @@
  *           requests and new (uncached) bot pages mixed together
  *
  * Options (env): VPS_CPUS=2 VPS_MEMORY=4g VPS_DISK=75G NET_RATE=50mbit
- * NET_DELAY=30ms BURST_PAGES=20 LOAD_VUS=50 LOAD_SECONDS=90
+ * NET_DELAY=30ms BURST_PAGES=20 BURST_PATHS= LOAD_VUS=50 LOAD_SECONDS=90
  */
 import { execFileSync, spawnSync } from 'child_process'
 import fs from 'fs'
@@ -83,9 +83,10 @@ const POKEMONS = [
   'blaziken',
   'gardevoir',
 ]
-const BURST_PATHS = POKEMONS.slice(0, CONFIG.burstPages).map(
-  (name) => `/pokemon/${name}`
-)
+// NOTE - BURST_PATHS=/,/pokemon/pikachu,... replaces the default pokemon pages
+const BURST_PATHS = process.env.BURST_PATHS
+  ? process.env.BURST_PATHS.split(',')
+  : POKEMONS.slice(0, CONFIG.burstPages).map((name) => `/pokemon/${name}`)
 const WARMUP_PATH = '/pokemon/raichu'
 // NOTE - New pages for the load phase (pokeapi accepts ids as names)
 const FRESH_PATHS = Array.from({ length: 150 }, (_, i) => `/pokemon/${200 + i}`)
@@ -349,6 +350,7 @@ const runScenario = async (name) => {
       medianReadyMs:
         readyTimes.sort((a, b) => a - b)[Math.floor(readyTimes.length / 2)] ??
         null,
+      paths: burst.map(({ path, readyMs }) => ({ path, readyMs })),
     },
     load: {
       ...phaseStats(samples, loadFrom, loadTo),
@@ -390,6 +392,16 @@ const printReport = (results) => {
         result.burst.allReadyMs && +(result.burst.allReadyMs / 1000).toFixed(1),
     }))
   )
+  for (const result of results)
+    console.log(
+      `${result.name}: ` +
+        result.burst.paths
+          .map(
+            ({ path, readyMs }) =>
+              `${path}=${readyMs === null ? '-' : (readyMs / 1000).toFixed(1) + 's'}`
+          )
+          .join(' ')
+    )
 
   console.log('\n--- load: mixed traffic ---')
   console.table(

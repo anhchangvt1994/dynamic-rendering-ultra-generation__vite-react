@@ -7,7 +7,7 @@ import {
   getDataCompression,
   getStore as getStoreCache,
 } from '../../api/utils/CacheManager/utils'
-import { SERVER_LESS } from '../../constants'
+import { SERVER_LESS, BROTLI_OPTIONS } from '../../constants'
 import ServerConfig from '../../server.config'
 import { IBotInfo } from '../../types'
 import CleanerService from '../../utils/CleanerService'
@@ -321,7 +321,7 @@ const puppeteerSSRService = (async () => {
 
           switch (true) {
             case contentEncoding === 'br':
-              return brotliCompressSync(html)
+              return brotliCompressSync(html, BROTLI_OPTIONS)
             case contentEncoding === 'gzip':
               return gzipSync(html)
             default:

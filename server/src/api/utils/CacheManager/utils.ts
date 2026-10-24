@@ -17,6 +17,7 @@ import {
   ISetCacheOptionsParam,
   IStatus,
 } from './types'
+import { BROTLI_OPTIONS } from '../../../constants'
 
 const dataPath = getDataPath()
 const storePath = getStorePath()
@@ -341,7 +342,7 @@ export const set = async (
     if (options.isCompress) {
       return Buffer.isBuffer(content)
         ? content
-        : brotliCompressSync(contentToString)
+        : brotliCompressSync(contentToString, BROTLI_OPTIONS)
     }
 
     return contentToString
@@ -578,7 +579,7 @@ export const compressData = async (key, data) => {
     const gzipCompressAsync = promisify(gzip)
 
     const tmpCompressDataPromise = await Promise.allSettled([
-      brottliCompressAsync(data),
+      brottliCompressAsync(data, BROTLI_OPTIONS),
       gzipCompressAsync(data),
     ])
 

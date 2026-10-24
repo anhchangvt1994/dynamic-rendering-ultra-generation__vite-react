@@ -20,7 +20,7 @@ import {
   type TBrowserEngine,
 } from '../../constants'
 import { ISSRResult } from '../../types'
-import { FAST_CRAWL_OPTIONS, IS_FAST_CRAWL } from '../CrawlProfile'
+import { CRAWL_WAIT_OPTIONS, IS_NETWORK_IDLE_WAIT } from '../CrawlProfile'
 import CacheManager from '../CacheManager.worker/utils'
 import {
   compressContent,
@@ -46,6 +46,13 @@ interface IISRHandlerParam {
 }
 
 let connectedBrowser: Browser | undefined
+
+// NOTE - A stray rejected promise (ex: page.close() rejects with "Target
+// closed" once the CDP connection is closed) must not kill this worker thread:
+// workerpool would then fail the next render with "Worker is terminated"
+process.on('unhandledRejection', (err) =>
+  Console.error('Unhandled rejection in ISR worker:', err)
+)
 
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
   if (!startGenerating) return 0
@@ -100,22 +107,77 @@ const fetchData = async (
   }
 } // fetchData
 
-// NOTE - Fast profile: the page is done when no request has been pending for
-// FAST_CRAWL_OPTIONS.networkIdleMs (instead of the fixed waits)
+// NOTE - The page is done when no request has been pending for
+// CRAWL_WAIT_OPTIONS.networkIdleMs (instead of the fixed waits)
 const _waitForNetworkIdle = (page: Page, getPendingRequests: () => number) =>
   new Promise<void>((resolve) => {
-    let idleTimeout: NodeJS.Timeout
-    const onRequest = () => clearTimeout(idleTimeout)
+    let idleTimeout: NodeJS.Timeout | undefined
+    let requestCount = 0
+    let isDone = false
+    let isChecking = false
+
+    const armIdle = () => {
+      clearTimeout(idleTimeout)
+      idleTimeout = setTimeout(onIdle, CRAWL_WAIT_OPTIONS.networkIdleMs)
+    }
+    const onRequest = () => {
+      requestCount++
+      clearTimeout(idleTimeout)
+      idleTimeout = undefined
+    }
     const onSettled = () => {
       clearTimeout(idleTimeout)
-      if (getPendingRequests() <= 0)
-        idleTimeout = setTimeout(done, FAST_CRAWL_OPTIONS.networkIdleMs)
+      idleTimeout = undefined
+      if (getPendingRequests() <= 0) armIdle()
     }
-    const maxTimeout = setTimeout(done, FAST_CRAWL_OPTIONS.maxWaitMs)
+    // NOTE - A request becomes inactive when it hangs (no event then): check
+    // again regularly
+    const recheckInterval = setInterval(() => {
+      if (!idleTimeout && !isChecking && getPendingRequests() <= 0) armIdle()
+    }, 250)
+    // NOTE - The network can be idle while the page still runs its scripts
+    // (ex: chromium on a busy CPU), which then fetch the data: let the page run
+    // its pending tasks, and keep waiting if they started a request.
+    // A page without <title> yet is not rendered yet either (ex: chromium kept
+    // a page's data ~1s before rendering it): wait a bit more for it
+    let titleDeadline = 0
+    const onIdle = async () => {
+      idleTimeout = undefined
+      isChecking = true
+      titleDeadline ||= Date.now() + CRAWL_WAIT_OPTIONS.titleWaitMs
+      const requestCountBefore = requestCount
+      let title = ''
+
+      try {
+        title = String(
+          await Promise.race([
+            page.evaluate(
+              () =>
+                new Promise((res) =>
+                  setTimeout(() => setTimeout(() => res(document.title), 0), 0)
+                )
+            ),
+            new Promise((res) => setTimeout(() => res('timeout'), 2000)),
+          ])
+        )
+      } catch {}
+
+      isChecking = false
+
+      if (requestCount !== requestCountBefore || getPendingRequests() > 0)
+        return
+
+      if (!title.trim() && Date.now() < titleDeadline) armIdle()
+      else done()
+    }
+    const maxTimeout = setTimeout(done, CRAWL_WAIT_OPTIONS.maxWaitMs)
 
     function done() {
+      if (isDone) return
+      isDone = true
       clearTimeout(idleTimeout)
       clearTimeout(maxTimeout)
+      clearInterval(recheckInterval)
       page.off('request', onRequest)
       page.off('requestfinished', onSettled)
       page.off('requestfailed', onSettled)
@@ -142,7 +204,7 @@ const waitResponse = (() => {
     const waitUntil =
       commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
 
-    const firstWaitingDuration = IS_FAST_CRAWL
+    const firstWaitingDuration = IS_NETWORK_IDLE_WAIT
       ? 0
       : BANDWIDTH_LEVEL > BANDWIDTH_LEVEL_LIST.ONE
         ? commonWaitingDuration
@@ -171,16 +233,32 @@ const waitResponse = (() => {
     try {
       response = await new Promise(async (resolve, reject) => {
         let pendingRequests = 0
+        // NOTE - Start time of each pending request (network-idle wait)
+        const pendingRequestStarts = new Map<unknown, number>()
 
-        safePage().on('request', () => {
+        safePage().on('request', (req) => {
           pendingRequests++
+          pendingRequestStarts.set(req, Date.now())
         })
-        safePage().on('requestfinished', () => {
+        safePage().on('requestfinished', (req) => {
           pendingRequests--
+          pendingRequestStarts.delete(req)
         })
-        safePage().on('requestfailed', () => {
+        safePage().on('requestfailed', (req) => {
           pendingRequests--
+          pendingRequestStarts.delete(req)
         })
+
+        // NOTE - A request pending for more than requestTimeoutMs (ex: a down
+        // API that answers after its 10s timeout) does not hold the page: it is
+        // saved with the data it has, like the fixed waits did
+        const getActiveRequests = () => {
+          const now = Date.now()
+          let count = 0
+          for (const startTime of pendingRequestStarts.values())
+            if (now - startTime < CRAWL_WAIT_OPTIONS.requestTimeoutMs) count++
+          return count
+        }
 
         const result = await new Promise<any>((resolveAfterPageLoad) => {
           safePage()
@@ -242,8 +320,8 @@ const waitResponse = (() => {
 
         if (regexNotFoundPageID.test(html)) return resolve(result)
 
-        if (IS_FAST_CRAWL)
-          await _waitForNetworkIdle(safePage(), () => pendingRequests)
+        if (IS_NETWORK_IDLE_WAIT)
+          await _waitForNetworkIdle(safePage(), getActiveRequests)
         else
           await new Promise(async (resolveAfterPageLoadInFewSecond) => {
             if (pendingRequests <= 0) {
@@ -288,7 +366,7 @@ const waitResponse = (() => {
           () => {
             resolve(pendingRequests > 3 ? { status: () => 503 } : result)
           },
-          IS_FAST_CRAWL ? 0 : 500
+          IS_NETWORK_IDLE_WAIT ? 0 : 500
         )
       })
     } catch (err) {
@@ -427,7 +505,10 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
             deviceInfo.isMobile ? MOBILE_UA : DESKTOP_UA
           ),
           // setCookies,
-          safePage()?.waitForNetworkIdle({ idleTime: 150 }),
+          // NOTE - Nothing is loading before goto, fast profile skips this 150ms
+          IS_NETWORK_IDLE_WAIT
+            ? undefined
+            : safePage()?.waitForNetworkIdle({ idleTime: 150 }),
           safePage()?.setCacheEnabled(false),
           safePage()?.setRequestInterception(true),
           // safePage()?.setViewport({
@@ -577,7 +658,9 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
         cacheManager.remove().catch((err) => {
           Console.error(err)
         })
-        safePage()?.close()
+        safePage()
+          ?.close()
+          .catch(() => {})
         if (params.hasCache) {
           cacheManager.rename()
         }
@@ -590,11 +673,15 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
       if (CACHEABLE_STATUS_CODE[status]) {
         try {
           html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
-          safePage()?.close()
+          safePage()
+            ?.close()
+            .catch(() => {})
         } catch (err) {
           Console.log('ISRHandler line 315:')
           Console.error(err)
-          safePage()?.close()
+          safePage()
+            ?.close()
+            .catch(() => {})
           if (params.hasCache) {
             cacheManager.rename()
           }

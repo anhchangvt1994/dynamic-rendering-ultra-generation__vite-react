@@ -61,7 +61,7 @@ const _setCookie = (res) => {
           if (enableContentEncoding) {
             tmpBody = result.html
               ? contentEncoding === 'br'
-                ? _zlib.brotliCompressSync.call(void 0, result.html)
+                ? _zlib.brotliCompressSync.call(void 0, result.html, _constants.BROTLI_OPTIONS)
                 : contentEncoding === 'gzip'
                   ? _zlib.gzipSync.call(void 0, result.html)
                   : result.html
@@ -71,7 +71,13 @@ const _setCookie = (res) => {
                   )
 
                   if (contentEncoding === 'br') return tmpContent
-                  else if (tmpContent && Buffer.isBuffer(tmpContent))
+                  // NOTE - Only the cache files are brotli: decompressing the plain 503 page
+                  // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+                  else if (
+                    tmpContent &&
+                    Buffer.isBuffer(tmpContent) &&
+                    result.response.endsWith('.br')
+                  )
                     tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
 
                   if (result.status === 200) {
@@ -104,7 +110,8 @@ const _setCookie = (res) => {
           res.writeHeader('Content-Encoding', contentEncoding)
         }
 
-        if (result.status === 503) res.writeHeader('Retry-After', '120')
+        if (result.status === 503)
+          res.writeHeader('Retry-After', _constants3.ISR_RETRY_AFTER_SECONDS)
 
         res.end(body, true)
       } catch (err) {
@@ -132,9 +139,15 @@ const _setCookie = (res) => {
           .writeHeader('Cache-Control', 'no-store')
       }
 
-      const body = enableContentEncoding
-        ? _zlib.brotliCompressSync.call(void 0, result.html)
-        : result.html
+      // NOTE - Compress with the encoding sent in Content-Encoding (it was
+      // always brotli, so a gzip-only client got an unreadable body)
+      const body = !enableContentEncoding
+        ? result.html
+        : contentEncoding === 'br'
+          ? _zlib.brotliCompressSync.call(void 0, result.html, _constants.BROTLI_OPTIONS)
+          : contentEncoding === 'gzip'
+            ? _zlib.gzipSync.call(void 0, result.html)
+            : result.html
 
       res.end(body || '', true)
     } else {

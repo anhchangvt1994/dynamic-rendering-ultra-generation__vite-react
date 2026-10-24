@@ -22,7 +22,9 @@ const { parentPort, isMainThread } = require('worker_threads')
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.${resourceExtension}`),
   {
-    minWorkers: 1,
+    // NOTE - Fast profile keeps all its render workers ready: starting a
+    // worker thread when the crawl arrives took 2-3s on a 2 vCPU VPS
+    minWorkers: IS_FAST_CRAWL ? CRAWL_WORKERS : 1,
     // NOTE - default profile: 2 (reduced from 5 to prevent EAGAIN resource
     // exhaustion), fast profile: the crawl concurrency
     maxWorkers: CRAWL_WORKERS,

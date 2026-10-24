@@ -15,6 +15,7 @@ var _constants3 = require('../../constants');
 
 
 
+
 var _CrawlProfile = require('../CrawlProfile');
 var _ISRHandlerworker = require('../ISRHandler.worker'); var _ISRHandlerworker2 = _interopRequireDefault(_ISRHandlerworker);
 
@@ -475,6 +476,16 @@ const ISRGenerator = async ({
             const tmpResult = await cacheManager.achieve()
             result = tmpResult || result
           }
+        } else if (_CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0) {
+          // NOTE - A render usually ends within a few seconds, answer with the
+          // page instead of a 503 when it does
+          const tmpResult = await Promise.race([
+            resultPromise,
+            new Promise((res) =>
+              setTimeout(res, _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs)
+            ),
+          ])
+          if (tmpResult && tmpResult.status === 200) result = tmpResult
         }
       }
       // NOTE - Uncomment this logic if you need the second bot waiting for the first bot result
@@ -529,6 +540,29 @@ const ISRGenerator = async ({
 
   if (!result) {
     result = await cacheManager.get()
+  }
+
+  // NOTE - A page that is queued (or rendered by another request) can also be
+  // ready within CRAWL_WAIT_OPTIONS.firstResponseWaitMs: wait for its cache
+  // instead of answering 503 right away
+  if (
+    _optionalChain([result, 'optionalAccess', _8 => _8.status]) !== 200 &&
+    !isSkipWaiting &&
+    !ISRHandlerParams.forceToCrawl &&
+    _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0 &&
+    (waitingToCrawlList.has(ISRHandlerParams.url) ||
+      crawlingUrls.has(ISRHandlerParams.url))
+  ) {
+    const deadline = startGenerating + _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs
+
+    while (Date.now() < deadline) {
+      await new Promise((res) => setTimeout(res, 100))
+      const tmpResult = await cacheManager.achieve()
+      if (tmpResult && !tmpResult.isRaw) {
+        result = tmpResult
+        break
+      }
+    }
   }
 
   if (!result.response && !result.html) {

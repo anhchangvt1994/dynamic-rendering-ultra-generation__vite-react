@@ -47,6 +47,13 @@ const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
 let connectedBrowser
 
+// NOTE - A stray rejected promise (ex: page.close() rejects with "Target
+// closed" once the CDP connection is closed) must not kill this worker thread:
+// workerpool would then fail the next render with "Worker is terminated"
+process.on('unhandledRejection', (err) =>
+  _ConsoleHandler2.default.error('Unhandled rejection in ISR worker:', err)
+)
+
 const _getRestOfDuration = (startGenerating, gapDuration = 0) => {
   if (!startGenerating) return 0
 
@@ -100,22 +107,77 @@ const fetchData = async (
   }
 } // fetchData
 
-// NOTE - Fast profile: the page is done when no request has been pending for
-// FAST_CRAWL_OPTIONS.networkIdleMs (instead of the fixed waits)
+// NOTE - The page is done when no request has been pending for
+// CRAWL_WAIT_OPTIONS.networkIdleMs (instead of the fixed waits)
 const _waitForNetworkIdle = (page, getPendingRequests) =>
   new Promise((resolve) => {
     let idleTimeout
-    const onRequest = () => clearTimeout(idleTimeout)
+    let requestCount = 0
+    let isDone = false
+    let isChecking = false
+
+    const armIdle = () => {
+      clearTimeout(idleTimeout)
+      idleTimeout = setTimeout(onIdle, _CrawlProfile.CRAWL_WAIT_OPTIONS.networkIdleMs)
+    }
+    const onRequest = () => {
+      requestCount++
+      clearTimeout(idleTimeout)
+      idleTimeout = undefined
+    }
     const onSettled = () => {
       clearTimeout(idleTimeout)
-      if (getPendingRequests() <= 0)
-        idleTimeout = setTimeout(done, _CrawlProfile.FAST_CRAWL_OPTIONS.networkIdleMs)
+      idleTimeout = undefined
+      if (getPendingRequests() <= 0) armIdle()
     }
-    const maxTimeout = setTimeout(done, _CrawlProfile.FAST_CRAWL_OPTIONS.maxWaitMs)
+    // NOTE - A request becomes inactive when it hangs (no event then): check
+    // again regularly
+    const recheckInterval = setInterval(() => {
+      if (!idleTimeout && !isChecking && getPendingRequests() <= 0) armIdle()
+    }, 250)
+    // NOTE - The network can be idle while the page still runs its scripts
+    // (ex: chromium on a busy CPU), which then fetch the data: let the page run
+    // its pending tasks, and keep waiting if they started a request.
+    // A page without <title> yet is not rendered yet either (ex: chromium kept
+    // a page's data ~1s before rendering it): wait a bit more for it
+    let titleDeadline = 0
+    const onIdle = async () => {
+      idleTimeout = undefined
+      isChecking = true
+      titleDeadline ||= Date.now() + _CrawlProfile.CRAWL_WAIT_OPTIONS.titleWaitMs
+      const requestCountBefore = requestCount
+      let title = ''
+
+      try {
+        title = String(
+          await Promise.race([
+            page.evaluate(
+              () =>
+                new Promise((res) =>
+                  setTimeout(() => setTimeout(() => res(document.title), 0), 0)
+                )
+            ),
+            new Promise((res) => setTimeout(() => res('timeout'), 2000)),
+          ])
+        )
+      } catch (e2) {}
+
+      isChecking = false
+
+      if (requestCount !== requestCountBefore || getPendingRequests() > 0)
+        return
+
+      if (!title.trim() && Date.now() < titleDeadline) armIdle()
+      else done()
+    }
+    const maxTimeout = setTimeout(done, _CrawlProfile.CRAWL_WAIT_OPTIONS.maxWaitMs)
 
     function done() {
+      if (isDone) return
+      isDone = true
       clearTimeout(idleTimeout)
       clearTimeout(maxTimeout)
+      clearInterval(recheckInterval)
       page.off('request', onRequest)
       page.off('requestfinished', onSettled)
       page.off('requestfailed', onSettled)
@@ -142,7 +204,7 @@ const waitResponse = (() => {
     const waitUntil =
       commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
 
-    const firstWaitingDuration = _CrawlProfile.IS_FAST_CRAWL
+    const firstWaitingDuration = _CrawlProfile.IS_NETWORK_IDLE_WAIT
       ? 0
       : _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE
         ? commonWaitingDuration
@@ -171,16 +233,32 @@ const waitResponse = (() => {
     try {
       response = await new Promise(async (resolve, reject) => {
         let pendingRequests = 0
+        // NOTE - Start time of each pending request (network-idle wait)
+        const pendingRequestStarts = new Map()
 
-        safePage().on('request', () => {
+        safePage().on('request', (req) => {
           pendingRequests++
+          pendingRequestStarts.set(req, Date.now())
         })
-        safePage().on('requestfinished', () => {
+        safePage().on('requestfinished', (req) => {
           pendingRequests--
+          pendingRequestStarts.delete(req)
         })
-        safePage().on('requestfailed', () => {
+        safePage().on('requestfailed', (req) => {
           pendingRequests--
+          pendingRequestStarts.delete(req)
         })
+
+        // NOTE - A request pending for more than requestTimeoutMs (ex: a down
+        // API that answers after its 10s timeout) does not hold the page: it is
+        // saved with the data it has, like the fixed waits did
+        const getActiveRequests = () => {
+          const now = Date.now()
+          let count = 0
+          for (const startTime of pendingRequestStarts.values())
+            if (now - startTime < _CrawlProfile.CRAWL_WAIT_OPTIONS.requestTimeoutMs) count++
+          return count
+        }
 
         const result = await new Promise((resolveAfterPageLoad) => {
           _optionalChain([safePage, 'call', _7 => _7()
@@ -242,8 +320,8 @@ const waitResponse = (() => {
 
         if (_constants3.regexNotFoundPageID.test(html)) return resolve(result)
 
-        if (_CrawlProfile.IS_FAST_CRAWL)
-          await _waitForNetworkIdle(safePage(), () => pendingRequests)
+        if (_CrawlProfile.IS_NETWORK_IDLE_WAIT)
+          await _waitForNetworkIdle(safePage(), getActiveRequests)
         else
           await new Promise(async (resolveAfterPageLoadInFewSecond) => {
             if (pendingRequests <= 0) {
@@ -288,7 +366,7 @@ const waitResponse = (() => {
           () => {
             resolve(pendingRequests > 3 ? { status: () => 503 } : result)
           },
-          _CrawlProfile.IS_FAST_CRAWL ? 0 : 500
+          _CrawlProfile.IS_NETWORK_IDLE_WAIT ? 0 : 500
         )
       })
     } catch (err) {
@@ -427,7 +505,10 @@ const _ISRHandler = async (params) => {
             deviceInfo.isMobile ? _constants3.MOBILE_UA : _constants3.DESKTOP_UA
           )]),
           // setCookies,
-          _optionalChain([safePage, 'call', _38 => _38(), 'optionalAccess', _39 => _39.waitForNetworkIdle, 'call', _40 => _40({ idleTime: 150 })]),
+          // NOTE - Nothing is loading before goto, fast profile skips this 150ms
+          _CrawlProfile.IS_NETWORK_IDLE_WAIT
+            ? undefined
+            : _optionalChain([safePage, 'call', _38 => _38(), 'optionalAccess', _39 => _39.waitForNetworkIdle, 'call', _40 => _40({ idleTime: 150 })]),
           _optionalChain([safePage, 'call', _41 => _41(), 'optionalAccess', _42 => _42.setCacheEnabled, 'call', _43 => _43(false)]),
           _optionalChain([safePage, 'call', _44 => _44(), 'optionalAccess', _45 => _45.setRequestInterception, 'call', _46 => _46(true)]),
           // safePage()?.setViewport({
@@ -577,7 +658,9 @@ const _ISRHandler = async (params) => {
         cacheManager.remove().catch((err) => {
           _ConsoleHandler2.default.error(err)
         })
-        _optionalChain([safePage, 'call', _65 => _65(), 'optionalAccess', _66 => _66.close, 'call', _67 => _67()])
+        _optionalChain([safePage, 'call', _65 => _65()
+, 'optionalAccess', _66 => _66.close, 'call', _67 => _67()
+, 'access', _68 => _68.catch, 'call', _69 => _69(() => {})])
         if (params.hasCache) {
           cacheManager.rename()
         }
@@ -589,12 +672,16 @@ const _ISRHandler = async (params) => {
 
       if (_constants3.CACHEABLE_STATUS_CODE[status]) {
         try {
-          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _68 => _68(), 'optionalAccess', _69 => _69.content, 'call', _70 => _70()])), async () => ( '')) // serialized HTML of page DOM.
-          _optionalChain([safePage, 'call', _71 => _71(), 'optionalAccess', _72 => _72.close, 'call', _73 => _73()])
+          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _70 => _70(), 'optionalAccess', _71 => _71.content, 'call', _72 => _72()])), async () => ( '')) // serialized HTML of page DOM.
+          _optionalChain([safePage, 'call', _73 => _73()
+, 'optionalAccess', _74 => _74.close, 'call', _75 => _75()
+, 'access', _76 => _76.catch, 'call', _77 => _77(() => {})])
         } catch (err) {
           _ConsoleHandler2.default.log('ISRHandler line 315:')
           _ConsoleHandler2.default.error(err)
-          _optionalChain([safePage, 'call', _74 => _74(), 'optionalAccess', _75 => _75.close, 'call', _76 => _76()])
+          _optionalChain([safePage, 'call', _78 => _78()
+, 'optionalAccess', _79 => _79.close, 'call', _80 => _80()
+, 'access', _81 => _81.catch, 'call', _82 => _82(() => {})])
           if (params.hasCache) {
             cacheManager.rename()
           }
@@ -620,7 +707,7 @@ const _ISRHandler = async (params) => {
 
     const pathname = new URL(url).pathname
 
-    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _77 => _77.crawl, 'access', _78 => _78.custom, 'optionalCall', _79 => _79(url)])
+    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _83 => _83.crawl, 'access', _84 => _84.custom, 'optionalCall', _85 => _85(url)])
 
     const optimizeOption = (
       _nullishCoalesce(_nullishCoalesce(crawlCustomOption, () => (
@@ -740,7 +827,7 @@ const ISRHandler = async (params) => {
   try {
     return await _ISRHandler(params)
   } finally {
-    if (_optionalChain([params, 'optionalAccess', _80 => _80.engine]) === 'lightpanda' && connectedBrowser) {
+    if (_optionalChain([params, 'optionalAccess', _86 => _86.engine]) === 'lightpanda' && connectedBrowser) {
       connectedBrowser.disconnect().catch(() => {})
       connectedBrowser = undefined
     }

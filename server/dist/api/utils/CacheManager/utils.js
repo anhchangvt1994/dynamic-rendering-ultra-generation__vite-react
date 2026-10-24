@@ -17,6 +17,7 @@ var _PathHandler = require('../../../utils/PathHandler');
 
 
 
+var _constants = require('../../../constants');
 
 const dataPath = _PathHandler.getDataPath.call(void 0, )
 const storePath = _PathHandler.getStorePath.call(void 0, )
@@ -341,7 +342,7 @@ if (!_fs2.default.existsSync(storePath)) {
     if (options.isCompress) {
       return Buffer.isBuffer(content)
         ? content
-        : _zlib.brotliCompressSync.call(void 0, contentToString)
+        : _zlib.brotliCompressSync.call(void 0, contentToString, _constants.BROTLI_OPTIONS)
     }
 
     return contentToString
@@ -578,7 +579,7 @@ if (!_fs2.default.existsSync(storePath)) {
     const gzipCompressAsync = _util.promisify.call(void 0, _zlib.gzip)
 
     const tmpCompressDataPromise = await Promise.allSettled([
-      brottliCompressAsync(data),
+      brottliCompressAsync(data, _constants.BROTLI_OPTIONS),
       gzipCompressAsync(data),
     ])
 

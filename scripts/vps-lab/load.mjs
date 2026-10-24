@@ -78,21 +78,25 @@ const check = async ({ base, paths, headers = BOT_HEADERS }) =>
     }))
   )
 
-const burst = async ({ base, paths, timeoutMs }) => {
+const burst = async ({ base, paths, timeoutMs, intervalMs = 500 }) => {
   const startTime = Date.now()
   const deadline = startTime + timeoutMs
 
   return Promise.all(
     paths.map(async (path) => {
       let attempts = 0
+      let first
       while (Date.now() < deadline) {
         attempts++
         const result = await request(base + path, BOT_HEADERS)
+        // NOTE - The first answer of a new page: 200 (rendered in time) or
+        // 503 / 504 and how long the bot waited for it
+        first ??= { status: result.status, ms: Math.round(result.ms) }
         if (result.status === 200 && result.bytes)
-          return { path, readyMs: Date.now() - startTime, attempts }
-        await sleep(500)
+          return { path, readyMs: Date.now() - startTime, attempts, first }
+        await sleep(intervalMs)
       }
-      return { path, readyMs: null, attempts }
+      return { path, readyMs: null, attempts, first }
     })
   )
 } // burst

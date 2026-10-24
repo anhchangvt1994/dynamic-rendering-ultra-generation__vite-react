@@ -1,10 +1,10 @@
 import fs from 'fs'
 import { HttpRequest, HttpResponse } from 'uWebSockets.js'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
-import { COOKIE_EXPIRED } from '../../constants'
+import { COOKIE_EXPIRED, BROTLI_OPTIONS } from '../../constants'
 import Console from '../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../utils/InitEnv'
-import { CACHEABLE_STATUS_CODE } from '../constants'
+import { CACHEABLE_STATUS_CODE, ISR_RETRY_AFTER_SECONDS } from '../constants'
 import { ISSRResult } from '../types'
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
@@ -61,7 +61,7 @@ export const handleResultAfterISRGenerator = (
           if (enableContentEncoding) {
             tmpBody = result.html
               ? contentEncoding === 'br'
-                ? brotliCompressSync(result.html)
+                ? brotliCompressSync(result.html, BROTLI_OPTIONS)
                 : contentEncoding === 'gzip'
                   ? gzipSync(result.html)
                   : result.html
@@ -71,7 +71,13 @@ export const handleResultAfterISRGenerator = (
                   )
 
                   if (contentEncoding === 'br') return tmpContent
-                  else if (tmpContent && Buffer.isBuffer(tmpContent))
+                  // NOTE - Only the cache files are brotli: decompressing the plain 503 page
+                  // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+                  else if (
+                    tmpContent &&
+                    Buffer.isBuffer(tmpContent) &&
+                    result.response.endsWith('.br')
+                  )
                     tmpContent = brotliDecompressSync(tmpContent).toString()
 
                   if (result.status === 200) {
@@ -104,7 +110,8 @@ export const handleResultAfterISRGenerator = (
           res.writeHeader('Content-Encoding', contentEncoding)
         }
 
-        if (result.status === 503) res.writeHeader('Retry-After', '120')
+        if (result.status === 503)
+          res.writeHeader('Retry-After', ISR_RETRY_AFTER_SECONDS)
 
         res.end(body, true)
       } catch (err) {
@@ -132,9 +139,15 @@ export const handleResultAfterISRGenerator = (
           .writeHeader('Cache-Control', 'no-store')
       }
 
-      const body = enableContentEncoding
-        ? brotliCompressSync(result.html)
-        : result.html
+      // NOTE - Compress with the encoding sent in Content-Encoding (it was
+      // always brotli, so a gzip-only client got an unreadable body)
+      const body = !enableContentEncoding
+        ? result.html
+        : contentEncoding === 'br'
+          ? brotliCompressSync(result.html, BROTLI_OPTIONS)
+          : contentEncoding === 'gzip'
+            ? gzipSync(result.html)
+            : result.html
 
       res.end(body || '', true)
     } else {

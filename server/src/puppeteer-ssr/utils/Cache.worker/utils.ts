@@ -5,6 +5,7 @@ import { brotliCompressSync } from 'zlib'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { ISSRResult } from '../../types'
+import { BROTLI_OPTIONS } from '../../../constants'
 // import { getPagesPath } from '../../../utils/PathHandler'
 
 // const pagesPath = getPagesPath()
@@ -266,7 +267,7 @@ export const set = async (
   if (fs.existsSync(file)) {
     const contentCompression = Buffer.isBuffer(html)
       ? html
-      : brotliCompressSync(html)
+      : brotliCompressSync(html, BROTLI_OPTIONS)
 
     try {
       fs.writeFileSync(file, contentCompression)

@@ -7,12 +7,13 @@ import { BROWSER_ENGINE } from '../constants'
 /**
  * NOTE - Crawl profile of the ISR queue
  * - default: the original throttle, made for chromium (limit 2-4 crawls,
- *   2 render workers, fixed waits after the page loaded)
+ *   2 render workers, a start delay per queued crawl)
  * - fast: for lightpanda, where a render costs a few MB and ~0.1 CPU second.
- *   More crawls in parallel (based on the CPUs), no start delay, and a page is
- *   done when the network is really idle instead of after fixed waits. A new
- *   crawl only starts while enough memory is available.
+ *   More crawls in parallel (based on the CPUs), render workers kept ready, no
+ *   start delay. A new crawl only starts while enough memory is available.
  * Default: fast when BROWSER_ENGINE=lightpanda, override with CRAWL_PROFILE.
+ * How a render waits for its page does not depend on the profile, see
+ * CRAWL_WAIT below.
  */
 export type TCrawlProfile = 'default' | 'fast'
 
@@ -65,9 +66,11 @@ export const getAvailableMemoryMB = () => {
 
 // NOTE - Fast profile: maximum renders at the same time (from new requests
 // and from the waiting list together)
+// NOTE - CPUs x 2: a render is mostly CPU, more parallel renders only made
+// each one slower (2 vCPU: 6 at once -> all ready in ~4s, 4 at once -> ~2.5s)
 export const FAST_CONCURRENCY =
   Number(PROCESS_ENV.CRAWL_CONCURRENCY) ||
-  Math.min(12, Math.max(2, getCpuCount() * 3))
+  Math.min(12, Math.max(2, getCpuCount() * 2))
 
 // NOTE - Crawls started from new requests
 export const CRAWL_LIMIT = IS_FAST_CRAWL
@@ -85,10 +88,29 @@ export const CRAWL_WAITING_LIMIT = IS_FAST_CRAWL
 export const CRAWL_WORKERS = IS_FAST_CRAWL ? FAST_CONCURRENCY : 2
 
 export const FAST_CRAWL_OPTIONS = {
-  // NOTE - The page is done when no request is pending for this duration
-  networkIdleMs: 500,
-  maxWaitMs: 15000,
   minAvailableMemoryMB: Number(PROCESS_ENV.CRAWL_MIN_FREE_MEMORY_MB) || 400,
+}
+
+// NOTE - How a render waits for its page, for both engines (CRAWL_WAIT):
+// - network-idle (default): done when no request has been pending for
+//   networkIdleMs (max maxWaitMs)
+// - fixed: the original fixed waits after the page loaded (~3-4s more)
+export const IS_NETWORK_IDLE_WAIT =
+  String(PROCESS_ENV.CRAWL_WAIT || '').toLowerCase() !== 'fixed'
+
+export const CRAWL_WAIT_OPTIONS = {
+  networkIdleMs: Number(PROCESS_ENV.CRAWL_NETWORK_IDLE_MS) || 500,
+  // NOTE - Extra wait for a page that has no <title> yet when the network is
+  // idle (not rendered yet)
+  titleWaitMs: 5000,
+  // NOTE - A request pending longer than this (ex: a down API) does not hold
+  // the page anymore
+  requestTimeoutMs: Number(PROCESS_ENV.CRAWL_REQUEST_TIMEOUT_MS) || 3000,
+  maxWaitMs: 15000,
+  // NOTE - A request of a page that is not cached yet waits this long for the
+  // render before answering 503 (the bot gets the page on its first visit
+  // instead of coming back later), 0 to disable
+  firstResponseWaitMs: Number(PROCESS_ENV.CRAWL_FIRST_RESPONSE_WAIT_MS ?? 5000),
 }
 
 // NOTE - Whether a new crawl can start now (always true for default). In the

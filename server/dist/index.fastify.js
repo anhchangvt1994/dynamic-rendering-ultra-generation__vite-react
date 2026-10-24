@@ -96,7 +96,7 @@ const startServer = async () => {
                     const content = _fs2.default.readFileSync(staticPath)
                     tmpBody =
                       contentEncoding === 'br'
-                        ? _zlib.brotliCompressSync.call(void 0, content)
+                        ? _zlib.brotliCompressSync.call(void 0, content, _constants.BROTLI_OPTIONS)
                         : contentEncoding === 'gzip'
                           ? _zlib.gzipSync.call(void 0, content)
                           : content

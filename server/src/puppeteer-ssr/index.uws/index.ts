@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { HttpResponse, TemplatedApp } from 'uWebSockets.js'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
-import { COOKIE_EXPIRED, SERVER_LESS } from '../../constants'
+import { COOKIE_EXPIRED, SERVER_LESS, BROTLI_OPTIONS } from '../../constants'
 import DetectBotMiddle from '../../middlewares/uws/DetectBot'
 import DetectDeviceMiddle from '../../middlewares/uws/DetectDevice'
 import DetectLocaleMiddle from '../../middlewares/uws/DetectLocale'
@@ -534,7 +534,7 @@ const puppeteerSSRService = (async () => {
 
               switch (true) {
                 case contentEncoding === 'br':
-                  return brotliCompressSync(html)
+                  return brotliCompressSync(html, BROTLI_OPTIONS)
                 case contentEncoding === 'gzip':
                   return gzipSync(html)
                 default:

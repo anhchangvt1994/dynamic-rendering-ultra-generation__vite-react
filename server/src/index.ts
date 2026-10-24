@@ -5,7 +5,7 @@ import fs from 'fs'
 import mime from 'mime-types'
 import path from 'path'
 import { brotliCompressSync, gzipSync } from 'zlib'
-import { COOKIE_EXPIRED } from './constants'
+import { COOKIE_EXPIRED, BROTLI_OPTIONS } from './constants'
 import Console from './utils/ConsoleHandler'
 import { setCookie } from './utils/CookieHandler'
 import detectBot from './utils/DetectBot'
@@ -94,7 +94,7 @@ const startServer = async () => {
                     const content = fs.readFileSync(staticPath)
                     tmpBody =
                       contentEncoding === 'br'
-                        ? brotliCompressSync(content)
+                        ? brotliCompressSync(content, BROTLI_OPTIONS)
                         : contentEncoding === 'gzip'
                           ? gzipSync(content)
                           : content

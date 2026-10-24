@@ -1,3 +1,4 @@
+import { constants as zlibConstants } from 'zlib'
 import ServerConfig from './server.config'
 import { ENV, PROCESS_ENV } from './utils/InitEnv'
 
@@ -369,6 +370,14 @@ export const LOCALE_LIST_WITH_LANGUAGE = {
 
 export const COUNTRY_CODE_DEFAULT = ServerConfig.locale.defaultCountry || 'vn'
 export const LANGUAGE_CODE_DEFAULT = ServerConfig.locale.defaultLang || 'vi'
+// NOTE - Brotli quality of the cached / served html and API data. Node
+// defaults to 11, which is ~70-200x slower than 9 for a ~5-25% smaller output
+// (ex: 300KB API JSON: 171ms vs 0.8ms): too much CPU for a small VPS
+export const BROTLI_QUALITY = Number(PROCESS_ENV.BROTLI_QUALITY) || 9
+export const BROTLI_OPTIONS = {
+  params: { [zlibConstants.BROTLI_PARAM_QUALITY]: BROTLI_QUALITY },
+}
+
 export const ENABLE_CONSOLE_DEBUGGER = Boolean(
   PROCESS_ENV.ENABLE_CONSOLE_DEBUGGER
 )

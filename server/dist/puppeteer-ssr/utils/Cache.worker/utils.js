@@ -5,6 +5,7 @@ var _zlib = require('zlib');
 var _serverconfig = require('../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 
+var _constants = require('../../../constants');
 // import { getPagesPath } from '../../../utils/PathHandler'
 
 // const pagesPath = getPagesPath()
@@ -266,7 +267,7 @@ const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain
   if (_fs2.default.existsSync(file)) {
     const contentCompression = Buffer.isBuffer(html)
       ? html
-      : _zlib.brotliCompressSync.call(void 0, html)
+      : _zlib.brotliCompressSync.call(void 0, html, _constants.BROTLI_OPTIONS)
 
     try {
       _fs2.default.writeFileSync(file, contentCompression)

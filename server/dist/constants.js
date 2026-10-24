@@ -1,4 +1,5 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _serverconfig = require('./server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _zlib = require('zlib');
+var _serverconfig = require('./server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _InitEnv = require('./utils/InitEnv');
 
  const resourceExtension = _InitEnv.PROCESS_ENV.IS_SERVER ? 'js' : 'ts'; exports.resourceExtension = resourceExtension
@@ -369,6 +370,14 @@ var _InitEnv = require('./utils/InitEnv');
 
  const COUNTRY_CODE_DEFAULT = _serverconfig2.default.locale.defaultCountry || 'vn'; exports.COUNTRY_CODE_DEFAULT = COUNTRY_CODE_DEFAULT
  const LANGUAGE_CODE_DEFAULT = _serverconfig2.default.locale.defaultLang || 'vi'; exports.LANGUAGE_CODE_DEFAULT = LANGUAGE_CODE_DEFAULT
+// NOTE - Brotli quality of the cached / served html and API data. Node
+// defaults to 11, which is ~70-200x slower than 9 for a ~5-25% smaller output
+// (ex: 300KB API JSON: 171ms vs 0.8ms): too much CPU for a small VPS
+ const BROTLI_QUALITY = Number(_InitEnv.PROCESS_ENV.BROTLI_QUALITY) || 9; exports.BROTLI_QUALITY = BROTLI_QUALITY
+ const BROTLI_OPTIONS = {
+  params: { [_zlib.constants.BROTLI_PARAM_QUALITY]: exports.BROTLI_QUALITY },
+}; exports.BROTLI_OPTIONS = BROTLI_OPTIONS
+
  const ENABLE_CONSOLE_DEBUGGER = Boolean(
   _InitEnv.PROCESS_ENV.ENABLE_CONSOLE_DEBUGGER
 ); exports.ENABLE_CONSOLE_DEBUGGER = ENABLE_CONSOLE_DEBUGGER

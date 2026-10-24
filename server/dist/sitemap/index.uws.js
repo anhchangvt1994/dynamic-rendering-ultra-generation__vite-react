@@ -3,6 +3,7 @@ var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 
 var _zlib = require('zlib');
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _constants = require('../constants');
 
 const SitemapRouter = (() => {
   let _app
@@ -38,7 +39,7 @@ const SitemapRouter = (() => {
         const result = (() => {
           switch (true) {
             case contentEncoding === 'br':
-              return _zlib.brotliCompressSync.call(void 0, originalContent)
+              return _zlib.brotliCompressSync.call(void 0, originalContent, _constants.BROTLI_OPTIONS)
             case contentEncoding === 'gzip':
               return _zlib.gzipSync.call(void 0, originalContent)
             default:
@@ -91,7 +92,7 @@ const SitemapRouter = (() => {
         const result = (() => {
           switch (true) {
             case contentEncoding === 'br':
-              return _zlib.brotliCompressSync.call(void 0, originalContent)
+              return _zlib.brotliCompressSync.call(void 0, originalContent, _constants.BROTLI_OPTIONS)
             case contentEncoding === 'gzip':
               return _zlib.gzipSync.call(void 0, originalContent)
             default:

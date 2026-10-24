@@ -39,11 +39,27 @@ If `true`, a page that lightpanda fails to render (no result or status >= 500) i
 **Crawl queue (ISR)**
 
 - **CRAWL_PROFILE** `( default: "fast" when BROWSER_ENGINE=lightpanda, otherwise "default" )`
-`default`: the original throttle made for chromium (`ServerConfig.crawl.limit` crawls, 2 render workers, a start delay of `speed / 20` per queued crawl and fixed waits after the page loaded). `fast`: up to `CRAWL_CONCURRENCY` renders at the same time (from new requests and from the waiting list together, one render worker each), no start delay, the waiting list is drained every 500ms, a page is done when no request has been pending for 500ms (max 15s), and a new crawl only starts while enough memory is available.
-- **CRAWL_CONCURRENCY** `( default: CPUs x 3, between 2 and 12 )`
+`default`: the original throttle made for chromium (`ServerConfig.crawl.limit` crawls, 2 render workers, a start delay of `speed / 20` per queued crawl). `fast`: up to `CRAWL_CONCURRENCY` renders at the same time (from new requests and from the waiting list together, one render worker each, kept ready), no start delay, the waiting list is drained every 500ms, and a new crawl only starts while enough memory is available.
+- **CRAWL_CONCURRENCY** `( default: CPUs x 2, between 2 and 12 )`
 Maximum renders at the same time in the `fast` profile. CPUs are read from the cgroup quota in a container.
 - **CRAWL_MIN_FREE_MEMORY_MB** `( default: 400 )`
 `fast` profile: a new crawl waits in the queue while the available memory (cgroup limit in a container, MemAvailable on a VPS) is lower than this. One crawl can always run.
+
+- **CRAWL_WAIT** `( default: "network-idle" )`
+How a render waits for its page, for both engines. `network-idle`: the page is done when no request has been pending for `CRAWL_NETWORK_IDLE_MS` (requests pending longer than `CRAWL_REQUEST_TIMEOUT_MS` excepted), its pending scripts ran, and it has a `<title>` (a page without title waits up to 5s more), max 15s. `fixed`: the original fixed waits after the page loaded (~3-4s more per page), only to fall back on, it is not a speed option.
+- **CRAWL_NETWORK_IDLE_MS** `( default: 500 )`
+Quiet network duration of the `network-idle` wait.
+- **CRAWL_REQUEST_TIMEOUT_MS** `( default: 3000 )`
+`network-idle` wait: a request pending longer than this (ex: a down API) does not hold the page anymore, it is saved with the data it has. While rendering, an API host that just timed out (408) is answered with a 503 at once for 30s (shared by every worker and process), so the next renders do not wait for it again.
+- **CRAWL_FIRST_RESPONSE_WAIT_MS** `( default: 5000 )`
+A bot request of a page that is not cached yet (rendering or queued) waits this long for it, so the bot gets the page (200) on its first visit when it is ready in time, otherwise the 503 page. `0` disables it.
+- **ISR_RETRY_AFTER_SECONDS** `( default: 10 )`
+`Retry-After` of the 503 page sent while a page renders (it was 120).
+
+**Compression**
+
+- **BROTLI_QUALITY** `( default: 9 )`
+Brotli quality of the cached html, the API cache and the compressed responses. Node defaults to 11, which is ~70-200x slower than 9 (ex: 300KB API JSON: 171ms vs 0.8ms, home page html: 90ms vs ~1-35ms) for a ~5-25% smaller output.
 
 **Preflight of the start scripts**
 

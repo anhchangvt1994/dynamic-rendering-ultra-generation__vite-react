@@ -1,9 +1,13 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _zlib = require('zlib');
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+var _os = require('os'); var _os2 = _interopRequireDefault(_os);
+var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../utils/InitEnv');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
+var _constants = require('../constants');
 
 const {
   compressData,
@@ -15,6 +19,37 @@ const {
 } = _InitEnv.PROCESS_ENV.REDIS
   ? require('./utils/CacheManager/redis/utils')
   : require('./utils/CacheManager')
+
+// NOTE - Upstream API hosts that just timed out (ex: a down API answers after
+// the 10s fetch timeout): during DOWN_HOST_DURATION the renders get a 503 at
+// once instead of waiting for it again, the page renders the same way.
+// Marked with a file, shared by every render worker and server process
+const DOWN_HOST_DURATION = 30000
+const downHostsPath = _path2.default.join(_os2.default.tmpdir(), 'api-down-hosts')
+const _getDownHostFile = (host) =>
+  _path2.default.join(downHostsPath, encodeURIComponent(host))
+
+const _isHostDown = (host) => {
+  try {
+    return (
+      Date.now() - _fs2.default.statSync(_getDownHostFile(host)).mtimeMs <
+      DOWN_HOST_DURATION
+    )
+  } catch (e) {
+    return false
+  }
+} // _isHostDown
+
+const _setHostDown = (host, isDown) => {
+  try {
+    if (isDown) {
+      _fs2.default.mkdirSync(downHostsPath, { recursive: true })
+      _fs2.default.writeFileSync(_getDownHostFile(host), '')
+    } else _fs2.default.rmSync(_getDownHostFile(host), { force: true })
+  } catch (err) {
+    _ConsoleHandler2.default.error(err)
+  }
+} // _setHostDown
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -50,7 +85,7 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, result.data)
+        ? _zlib.brotliCompressSync.call(void 0, result.data, _constants.BROTLI_OPTIONS)
         : contentEncoding === 'gzip'
           ? _zlib.gzipSync.call(void 0, result.data)
           : result.data
@@ -272,6 +307,12 @@ const apiService = async (req) => {
   //   } // IF has apiCache
   // } // IF enableCache
 
+  if (_isHostDown(requestInfo.baseUrl))
+    return {
+      status: 503,
+      body: '{}',
+    }
+
   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
   const fetchAPITarget = _FetchManager.fetchData.call(void 0, fetchUrl, {
     method,
@@ -287,6 +328,9 @@ const apiService = async (req) => {
   } else removeDataCache(requestInfo.cacheKey)
 
   const result = await fetchAPITarget
+
+  _setHostDown(requestInfo.baseUrl, result.status === 408)
+
   const data = convertData(result, '')
   const { data: _, ...resultToSave } = result
 

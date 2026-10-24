@@ -14,6 +14,7 @@ import {
 import { getDataCompression } from './utils/CacheManager/utils'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
+import { BROTLI_OPTIONS } from '../constants'
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -49,7 +50,7 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? brotliCompressSync(result.data)
+        ? brotliCompressSync(result.data, BROTLI_OPTIONS)
         : contentEncoding === 'gzip'
           ? gzipSync(result.data)
           : result.data

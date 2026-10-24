@@ -1,9 +1,13 @@
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { brotliCompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
+import { BROTLI_OPTIONS } from '../constants'
 
 const {
   compressData,
@@ -15,6 +19,37 @@ const {
 } = PROCESS_ENV.REDIS
   ? require('./utils/CacheManager/redis/utils')
   : require('./utils/CacheManager')
+
+// NOTE - Upstream API hosts that just timed out (ex: a down API answers after
+// the 10s fetch timeout): during DOWN_HOST_DURATION the renders get a 503 at
+// once instead of waiting for it again, the page renders the same way.
+// Marked with a file, shared by every render worker and server process
+const DOWN_HOST_DURATION = 30000
+const downHostsPath = path.join(os.tmpdir(), 'api-down-hosts')
+const _getDownHostFile = (host: string) =>
+  path.join(downHostsPath, encodeURIComponent(host))
+
+const _isHostDown = (host: string) => {
+  try {
+    return (
+      Date.now() - fs.statSync(_getDownHostFile(host)).mtimeMs <
+      DOWN_HOST_DURATION
+    )
+  } catch {
+    return false
+  }
+} // _isHostDown
+
+const _setHostDown = (host: string, isDown: boolean) => {
+  try {
+    if (isDown) {
+      fs.mkdirSync(downHostsPath, { recursive: true })
+      fs.writeFileSync(_getDownHostFile(host), '')
+    } else fs.rmSync(_getDownHostFile(host), { force: true })
+  } catch (err) {
+    Console.error(err)
+  }
+} // _setHostDown
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -50,7 +85,7 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? brotliCompressSync(result.data)
+        ? brotliCompressSync(result.data, BROTLI_OPTIONS)
         : contentEncoding === 'gzip'
           ? gzipSync(result.data)
           : result.data
@@ -272,6 +307,12 @@ const apiService = async (req) => {
   //   } // IF has apiCache
   // } // IF enableCache
 
+  if (_isHostDown(requestInfo.baseUrl))
+    return {
+      status: 503,
+      body: '{}',
+    }
+
   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
   const fetchAPITarget = fetchData(fetchUrl, {
     method,
@@ -287,6 +328,9 @@ const apiService = async (req) => {
   } else removeDataCache(requestInfo.cacheKey)
 
   const result = await fetchAPITarget
+
+  _setHostDown(requestInfo.baseUrl, result.status === 408)
+
   const data = convertData(result, '')
   const { data: _, ...resultToSave } = result
 

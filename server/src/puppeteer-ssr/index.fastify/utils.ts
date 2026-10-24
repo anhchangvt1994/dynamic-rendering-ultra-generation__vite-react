@@ -1,8 +1,9 @@
 import fs from 'fs'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
-import { CACHEABLE_STATUS_CODE } from '../constants'
+import { CACHEABLE_STATUS_CODE, ISR_RETRY_AFTER_SECONDS } from '../constants'
 import { ISSRResult } from '../types'
 import Console from '../../utils/ConsoleHandler'
+import { BROTLI_OPTIONS } from '../../constants'
 
 export const handleResultAfterISRGenerator = (
 	res,
@@ -31,7 +32,7 @@ export const handleResultAfterISRGenerator = (
 			res.raw.setHeader('Content-Encoding', contentEncoding)
 		}
 
-		if (result.status === 503) res.header('Retry-After', '120')
+		if (result.status === 503) res.header('Retry-After', ISR_RETRY_AFTER_SECONDS)
 	} else {
 		return res.status(504).send('504 Gateway Timeout')
 	}
@@ -46,7 +47,7 @@ export const handleResultAfterISRGenerator = (
 			if (enableContentEncoding) {
 				tmpBody = result.html
 					? contentEncoding === 'br'
-						? brotliCompressSync(result.html)
+						? brotliCompressSync(result.html, BROTLI_OPTIONS)
 						: contentEncoding === 'gzip'
 						? gzipSync(result.html)
 						: result.html
@@ -60,7 +61,13 @@ export const handleResultAfterISRGenerator = (
 							}
 
 							if (contentEncoding === 'br') return tmpContent
-							else if (tmpContent && Buffer.isBuffer(tmpContent))
+							// NOTE - Only the cache files are brotli: decompressing the plain 503 page
+							// threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+							else if (
+								tmpContent &&
+								Buffer.isBuffer(tmpContent) &&
+								result.response.endsWith('.br')
+							)
 								tmpContent = brotliDecompressSync(tmpContent).toString()
 
 							if (result.status === 200) {
@@ -103,7 +110,7 @@ export const handleResultAfterISRGenerator = (
 				try {
 					tmpBody = result.html
 						? contentEncoding === 'br'
-							? brotliCompressSync(result.html)
+							? brotliCompressSync(result.html, BROTLI_OPTIONS)
 							: contentEncoding === 'gzip'
 							? gzipSync(result.html)
 							: result.html

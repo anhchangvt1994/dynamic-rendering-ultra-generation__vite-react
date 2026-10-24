@@ -23,6 +23,13 @@ import {
 
 const viewsPath = getViewsPath()
 
+// NOTE - A stray rejected promise (ex: page.close() rejects with "Target
+// closed" once the CDP connection is closed) must not kill this worker thread:
+// workerpool would then fail the next render with "Worker is terminated"
+process.on('unhandledRejection', (err) =>
+  Console.error('Unhandled rejection in SSR worker:', err)
+)
+
 interface SSRHandlerParam {
   url: string
   baseUrl: string
@@ -296,7 +303,9 @@ const SSRHandler = async (params: SSRHandlerParam) => {
       Console.log('SSRHandler line 297:')
       Console.log('Crawler is fail!')
       Console.error(err)
-      safePage()?.close()
+      safePage()
+        ?.close()
+        .catch(() => {})
 
       return {
         status: 500,
@@ -306,11 +315,15 @@ const SSRHandler = async (params: SSRHandlerParam) => {
     if (CACHEABLE_STATUS_CODE[status]) {
       try {
         html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
-        safePage()?.close()
+        safePage()
+          ?.close()
+          .catch(() => {})
       } catch (err) {
         Console.log('SSRHandler line 315:')
         Console.error(err)
-        safePage()?.close()
+        safePage()
+          ?.close()
+          .catch(() => {})
 
         return
       }

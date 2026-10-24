@@ -534,7 +534,7 @@ const puppeteerSSRService = (async () => {
 
               switch (true) {
                 case contentEncoding === 'br':
-                  return _zlib.brotliCompressSync.call(void 0, html)
+                  return _zlib.brotliCompressSync.call(void 0, html, _constants.BROTLI_OPTIONS)
                 case contentEncoding === 'gzip':
                   return _zlib.gzipSync.call(void 0, html)
                 default:

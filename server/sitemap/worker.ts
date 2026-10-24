@@ -12,6 +12,13 @@ interface ICrawlHandlerParams {
 
 let connectedBrowser: Browser | undefined
 
+// NOTE - A stray rejected promise (ex: page.close() rejects with "Target
+// closed" once the CDP connection is closed) must not kill this worker thread:
+// workerpool would then fail the next render with "Worker is terminated"
+process.on('unhandledRejection', (err) =>
+  Console.error('Unhandled rejection in sitemap worker:', err)
+)
+
 const _getSafePage = (page: Page) => {
   const SafePage = page
 
@@ -107,17 +114,23 @@ const _crawlHandler = async (params: ICrawlHandlerParams) => {
       }
     } catch (err) {
       Console.error('Error during page setup:', err.message)
-      safePage()?.close()
+      safePage()
+        ?.close()
+        .catch(() => {})
       return { status: 500 }
     }
 
     try {
       html = (await safePage()?.content()) ?? ''
-      safePage()?.close()
+      safePage()
+        ?.close()
+        .catch(() => {})
     } catch (err) {
       Console.log('ISRHandler line 315:')
       Console.error(err)
-      safePage()?.close()
+      safePage()
+        ?.close()
+        .catch(() => {})
 
       return
     }

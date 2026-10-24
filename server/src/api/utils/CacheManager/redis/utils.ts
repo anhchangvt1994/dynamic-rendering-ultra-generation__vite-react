@@ -16,6 +16,7 @@ import {
   ISetCacheOptionsParam,
   IStatus,
 } from '../types'
+import { BROTLI_OPTIONS } from '../../../../constants'
 
 // Redis client configuration for LRU Cache replacement
 const redisClient = new Redis({
@@ -296,7 +297,7 @@ export const set = async (
         : JSON.stringify(content)
 
     if (options.isCompress && !(content instanceof Buffer)) {
-      const compressed = brotliCompressSync(contentToString)
+      const compressed = brotliCompressSync(contentToString, BROTLI_OPTIONS)
       // Store compressed content as base64 to preserve binary data in JSON
       return compressed.toString('base64')
     }
@@ -438,7 +439,7 @@ export const compressData = async (key, data) => {
     const gzipCompressAsync = promisify(gzip)
 
     const tmpCompressDataPromise = await Promise.allSettled([
-      brottliCompressAsync(data),
+      brottliCompressAsync(data, BROTLI_OPTIONS),
       gzipCompressAsync(data),
     ])
 

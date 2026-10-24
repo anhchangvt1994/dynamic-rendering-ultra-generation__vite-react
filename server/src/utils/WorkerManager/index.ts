@@ -102,54 +102,31 @@ const WorkerManager = (() => {
 				cancel: () => void
 			}
 
+			// NOTE - The global counter (shared by the worker threads / processes)
+			// only sizes the start delay of getFreePool. It used to be updated after a
+			// `workerOrder * 1000`ms timeout, which delayed every getFreePool() of the
+			// second worker thread by 2s (cache, API, render...)
+			const _updateGlobalCounter = (diff: 1 | -1) => {
+				const counter = Math.max(
+					0,
+					Number(getTextData(`${workerManagerPath}/counter.txt`) || 0) + diff
+				)
+
+				setTextData(`${workerManagerPath}/counter.txt`, counter.toString())
+
+				return counter
+			} // _updateGlobalCounter
+
 			const _getCounterIncreased = async () => {
 				if (!initOptions.enableGlobalCounter) return rootCounter++
 
-				let counter = await new Promise<number>((res) => {
-					let tmpCounter: number
-					setTimeout(
-						() => {
-							tmpCounter = Number(
-								getTextData(`${workerManagerPath}/counter.txt`) || 0
-							)
-							tmpCounter++
-
-							setTextData(
-								`${workerManagerPath}/counter.txt`,
-								tmpCounter.toString()
-							)
-							res(tmpCounter)
-						},
-						workerOrder > 1 ? workerOrder * 1000 : 0
-					)
-				})
-
-				return counter
+				return _updateGlobalCounter(1)
 			} // _getCounterIncreased
 
 			const _getCounterDecreased = async () => {
 				if (!initOptions.enableGlobalCounter) return rootCounter--
 
-				let counter = await new Promise<number>((res) => {
-					let tmpCounter: number
-					setTimeout(
-						() => {
-							tmpCounter = Number(
-								getTextData(`${workerManagerPath}/counter.txt`) || 0
-							)
-							tmpCounter = tmpCounter ? tmpCounter - 1 : 0
-
-							setTextData(
-								`${workerManagerPath}/counter.txt`,
-								tmpCounter.toString()
-							)
-							res(tmpCounter)
-						},
-						workerOrder > 1 ? workerOrder * 1000 : 0
-					)
-				})
-
-				return counter
+				return _updateGlobalCounter(-1)
 			} // _getCounterDecreased
 
 			const _getTerminate = (

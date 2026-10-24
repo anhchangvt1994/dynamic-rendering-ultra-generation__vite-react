@@ -14,6 +14,7 @@ var _CacheManager = require('./utils/CacheManager');
 var _utils = require('./utils/CacheManager/utils');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
+var _constants = require('../constants');
 
 const fetchCache = (() => {
   return (cacheKey) =>
@@ -49,7 +50,7 @@ const convertData = (
   switch (true) {
     case result.status === 200:
       return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, result.data)
+        ? _zlib.brotliCompressSync.call(void 0, result.data, _constants.BROTLI_OPTIONS)
         : contentEncoding === 'gzip'
           ? _zlib.gzipSync.call(void 0, result.data)
           : result.data

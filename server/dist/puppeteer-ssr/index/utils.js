@@ -3,6 +3,7 @@ var _zlib = require('zlib');
 var _constants = require('../constants');
 
 var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _constants3 = require('../../constants');
 
  const handleResultAfterISRGenerator = (
 	res,
@@ -36,7 +37,7 @@ var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler
 			})
 		}
 
-		if (result.status === 503) res.set('Retry-After', '120')
+		if (result.status === 503) res.set('Retry-After', _constants.ISR_RETRY_AFTER_SECONDS)
 	} else {
 		next(new Error('504 Gateway Timeout'))
 		return
@@ -52,7 +53,7 @@ var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler
 			if (enableContentEncoding) {
 				tmpBody = result.html
 					? contentEncoding === 'br'
-						? _zlib.brotliCompressSync.call(void 0, result.html)
+						? _zlib.brotliCompressSync.call(void 0, result.html, _constants3.BROTLI_OPTIONS)
 						: contentEncoding === 'gzip'
 						? _zlib.gzipSync.call(void 0, result.html)
 						: result.html
@@ -66,7 +67,13 @@ var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler
 							}
 
 							if (contentEncoding === 'br') return tmpContent
-							else if (tmpContent && Buffer.isBuffer(tmpContent))
+							// NOTE - Only the cache files are brotli: decompressing the plain 503 page
+							// threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+							else if (
+								tmpContent &&
+								Buffer.isBuffer(tmpContent) &&
+								result.response.endsWith('.br')
+							)
 								tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
 
 							if (result.status === 200) {
@@ -108,7 +115,7 @@ var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler
 				try {
 					tmpBody = result.html
 						? contentEncoding === 'br'
-							? _zlib.brotliCompressSync.call(void 0, result.html)
+							? _zlib.brotliCompressSync.call(void 0, result.html, _constants3.BROTLI_OPTIONS)
 							: contentEncoding === 'gzip'
 							? _zlib.gzipSync.call(void 0, result.html)
 							: result.html
