@@ -376,11 +376,14 @@ if (!_fs2.default.existsSync(storePath)) {
         modifiedAt: curTime,
         changedAt: curTime,
         status: options.status,
+        // NOTE - Do not spread a Buffer (one key per byte)
         ...(typeof content === 'string'
           ? {
               cache: content,
             }
-          : content),
+          : Buffer.isBuffer(content)
+            ? {}
+            : content),
       }
     })()
 

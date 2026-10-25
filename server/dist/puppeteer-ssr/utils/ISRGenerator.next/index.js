@@ -22,7 +22,8 @@ var _ISRHandlerworker = require('../ISRHandler.worker'); var _ISRHandlerworker2 
 
 
 var _utils = require('../SSRGenerator.next/utils');
-var _utils3 = require('./CacheManager.worker/utils'); var _utils4 = _interopRequireDefault(_utils3);
+var _utils3 = require('../Cache.worker/utils');
+var _utils5 = require('./CacheManager.worker/utils'); var _utils6 = _interopRequireDefault(_utils5);
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
@@ -52,16 +53,24 @@ let totalRequestsWaitingToCrawl = 0
 // NOTE - Urls being rendered right now. A waiting item of an url that is
 // already rendering is dropped: forceToCrawl would remove its cache and
 // restart the render from scratch
+// NOTE - Kept by page cache key: the urls of a page differ by their bot /
+// locale / environment info (ex: the sitemap prerender and a bot request)
 const crawlingUrls = new Set()
+const _isCrawling = (url) => crawlingUrls.has(_utils3.getKey.call(void 0, url) )
 
 const _crawl = (params) => {
-  crawlingUrls.add(params.url)
+  const key = _utils3.getKey.call(void 0, params.url) 
+  crawlingUrls.add(key)
 
-  return _ISRHandlerworker2.default.call(void 0, params).finally(() => crawlingUrls.delete(params.url))
+  return _ISRHandlerworker2.default.call(void 0, params).finally(() => crawlingUrls.delete(key))
 } // _crawl
 
 const _getRunningCrawls = () =>
   totalRequestsToCrawl + totalRequestsWaitingToCrawl
+
+// NOTE - Running crawls (the sitemap prerender only runs while it is 0)
+ const getRunningCrawlCount = () =>
+  _getRunningCrawls() + waitingToCrawlList.size; exports.getRunningCrawlCount = getRunningCrawlCount
 
 // NOTE - Start crawls from the waiting list while the limit and the
 // resources allow it
@@ -74,7 +83,7 @@ const _crawlNextWaiting = () => {
     const nextCrawlItem = waitingToCrawlList.values().next().value
     waitingToCrawlList.delete(nextCrawlItem.url)
 
-    if (crawlingUrls.has(nextCrawlItem.url)) continue
+    if (_isCrawling(nextCrawlItem.url)) continue
 
     resetTotalToCrawlTimeout()
     totalRequestsWaitingToCrawl++
@@ -140,7 +149,7 @@ const ISRGenerator = async ({
       ISRHandlerParams.url + `&renderingInfo={"type":"ISR"}`
   }
 
-  const cacheManager = _utils4.default.call(void 0, ISRHandlerParams.url, pagesPath)
+  const cacheManager = _utils6.default.call(void 0, ISRHandlerParams.url, pagesPath)
   if (!_InitEnv.PROCESS_ENV.BASE_URL) {
     _ConsoleHandler2.default.error('Missing base url!')
     return
@@ -356,7 +365,7 @@ const ISRGenerator = async ({
         Boolean(
           ISRHandlerParams.forceToCrawl &&
           !NonNullableResult.available &&
-          !crawlingUrls.has(ISRHandlerParams.url)
+          !_isCrawling(ISRHandlerParams.url)
         )
 
       // NOTE - A crawl from the waiting list that does not run frees its slot
@@ -551,7 +560,7 @@ const ISRGenerator = async ({
     !ISRHandlerParams.forceToCrawl &&
     _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0 &&
     (waitingToCrawlList.has(ISRHandlerParams.url) ||
-      crawlingUrls.has(ISRHandlerParams.url))
+      _isCrawling(ISRHandlerParams.url))
   ) {
     const deadline = startGenerating + _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs
 

@@ -1,13 +1,12 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
-var _os = require('os'); var _os2 = _interopRequireDefault(_os);
-var _path = require('path'); var _path2 = _interopRequireDefault(_path);
-var _zlib = require('zlib');
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _zlib = require('zlib');
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../utils/InitEnv');
 var _FetchManager = require('./utils/FetchManager');
+var _HostHealth = require('./utils/HostHealth');
 var _StringHelper = require('./utils/StringHelper');
 var _constants = require('../constants');
+var _CrawlProfile = require('../puppeteer-ssr/utils/CrawlProfile');
 
 const {
   compressData,
@@ -20,59 +19,69 @@ const {
   ? require('./utils/CacheManager/redis/utils')
   : require('./utils/CacheManager')
 
-// NOTE - Upstream API hosts that just timed out (ex: a down API answers after
-// the 10s fetch timeout): during DOWN_HOST_DURATION the renders get a 503 at
-// once instead of waiting for it again, the page renders the same way.
-// Marked with a file, shared by every render worker and server process
-const DOWN_HOST_DURATION = 30000
-const downHostsPath = _path2.default.join(_os2.default.tmpdir(), 'api-down-hosts')
-const _getDownHostFile = (host) =>
-  _path2.default.join(downHostsPath, encodeURIComponent(host))
+const { getDataCompression } = _InitEnv.PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager/utils')
 
-const _isHostDown = (host) => {
+
+// NOTE - The compressed data must be there at once (the file cache polls a
+// missing file for 7s): otherwise the render calls the upstream API
+const CACHED_DATA_WAIT = 100
+
+const _getFreshCachedResult = async (requestInfo) => {
   try {
-    return (
-      Date.now() - _fs2.default.statSync(_getDownHostFile(host)).mtimeMs <
-      DOWN_HOST_DURATION
+    const apiCache = await getDataCache(requestInfo.cacheKey)
+    const cache = _optionalChain([apiCache, 'optionalAccess', _2 => _2.cache])
+
+    if (!cache || cache.status !== 200 || apiCache.status === 'fetch') return
+
+    const aliveTime = Date.now() - new Date(apiCache.changedAt).getTime()
+    if (
+      requestInfo.renewTime !== 'infinite' &&
+      !(aliveTime < requestInfo.renewTime)
     )
-  } catch (e) {
-    return false
-  }
-} // _isHostDown
+      return
 
-const _setHostDown = (host, isDown) => {
-  try {
-    if (isDown) {
-      _fs2.default.mkdirSync(downHostsPath, { recursive: true })
-      _fs2.default.writeFileSync(_getDownHostFile(host), '')
-    } else _fs2.default.rmSync(_getDownHostFile(host), { force: true })
+    const data = await Promise.race([
+      getDataCompression(requestInfo.cacheKey, 'br'),
+      new Promise((res) => setTimeout(res, CACHED_DATA_WAIT)),
+    ])
+
+    if (!data) return
+
+    return {
+      cookies: cache.cookies,
+      status: 200,
+      statusMessage: cache.message,
+      body: _zlib.brotliDecompressSync.call(void 0, data),
+    }
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
-} // _setHostDown
+} // _getFreshCachedResult
 
-const fetchCache = (() => {
-  return (cacheKey) =>
-    new Promise((res) => {
-      setTimeout(async () => {
-        const apiCache = await getDataCache(cacheKey)
+// NOTE - Wait for the cache of a request that another request is fetching.
+// It polls until the fetch timeout: a fetch that never stores its result
+// (failed request, cache store down) must not keep the request waiting (each
+// recursive wait used to keep its promise chain alive -> heap out of memory)
+const FETCH_CACHE_POLL_INTERVAL = 50
+const FETCH_CACHE_MAX_WAIT = 10000
+const fetchCache = async (cacheKey) => {
+  const deadline = Date.now() + FETCH_CACHE_MAX_WAIT
 
-        if (!apiCache) return res(null)
+  while (Date.now() < deadline) {
+    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
 
-        if (
-          // apiCache.status === 'ready' ||
-          apiCache.cache &&
-          apiCache.cache.data &&
-          apiCache.cache.data !== '{}'
-        )
-          res(apiCache.cache)
-        else {
-          const tmpCache = await fetchCache(cacheKey)
-          res(tmpCache)
-        }
-      }, 10)
-    })
-})() // fetchCache
+    const apiCache = await getDataCache(cacheKey)
+
+    if (!apiCache) return null
+    if (apiCache.cache &&
+      apiCache.cache.data &&
+      apiCache.cache.data !== '{}') return apiCache.cache
+  }
+
+  return null
+} // fetchCache
 
 const convertData = (
   result
@@ -98,7 +107,7 @@ const convertData = (
 
 const apiService = async (req) => {
   const apiInfo =
-    _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _2 => _2.exec, 'call', _3 => _3(req.url()), 'optionalAccess', _4 => _4.groups]), () => ( {}))
+    _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _3 => _3.exec, 'call', _4 => _4(req.url()), 'optionalAccess', _5 => _5.groups]), () => ( {}))
 
   if (!apiInfo)
     return {
@@ -156,9 +165,9 @@ const apiService = async (req) => {
   // NOTE - Handle query string information
   const strQueryString = (() => {
     const thisAPIQueryString = _optionalChain([req
-, 'access', _5 => _5.url, 'call', _6 => _6()
-, 'access', _7 => _7.split, 'call', _8 => _8('?'), 'access', _9 => _9[1]
-, 'optionalAccess', _10 => _10.replace, 'call', _11 => _11(/requestInfo=([^&]*)/g, '')])
+, 'access', _6 => _6.url, 'call', _7 => _7()
+, 'access', _8 => _8.split, 'call', _9 => _9('?'), 'access', _10 => _10[1]
+, 'optionalAccess', _11 => _11.replace, 'call', _12 => _12(/requestInfo=([^&]*)/g, '')])
 
     if (!thisAPIQueryString) return ''
 
@@ -208,7 +217,7 @@ const apiService = async (req) => {
       autoCreateIfEmpty: { enable: true },
     })
     // NOTE - undefined when the cache store is unavailable (redis down)
-    const tmpAPIStoreData = _optionalChain([apiStore, 'optionalAccess', _12 => _12.data])
+    const tmpAPIStoreData = _optionalChain([apiStore, 'optionalAccess', _13 => _13.data])
 
     if (tmpAPIStoreData) {
       const indexNext = tmpAPIStoreData.indexOf(requestInfo.cacheStore)
@@ -307,7 +316,20 @@ const apiService = async (req) => {
   //   } // IF has apiCache
   // } // IF enableCache
 
-  if (_isHostDown(requestInfo.baseUrl))
+  // NOTE - Render with the cached API data while it is fresh (younger than
+  // renewTime) instead of calling the upstream API on every render
+  if (enableCache && method.toUpperCase() === 'GET') {
+    const cachedResult = await _getFreshCachedResult(requestInfo)
+    if (cachedResult) return cachedResult
+  }
+
+  // NOTE - Marked by the renders only: an upstream API still pending after
+  // requestTimeoutMs (the render does not wait for it longer). The next renders
+  // then skip it at once instead of waiting requestTimeoutMs each, until the
+  // 10s fetch timeout marks the host down for the API proxy too
+  const renderDownHost = `render:${requestInfo.baseUrl}`
+
+  if (_HostHealth.isHostDown.call(void 0, requestInfo.baseUrl) || _HostHealth.isHostDown.call(void 0, renderDownHost))
     return {
       status: 503,
       body: '{}',
@@ -327,9 +349,15 @@ const apiService = async (req) => {
     })
   } else removeDataCache(requestInfo.cacheKey)
 
+  const slowFetchTimeout = setTimeout(
+    () => _HostHealth.setHostDown.call(void 0, renderDownHost, true),
+    _CrawlProfile.CRAWL_WAIT_OPTIONS.requestTimeoutMs
+  )
   const result = await fetchAPITarget
+  clearTimeout(slowFetchTimeout)
 
-  _setHostDown(requestInfo.baseUrl, result.status === 408)
+  _HostHealth.setHostDown.call(void 0, requestInfo.baseUrl, result.status === 408)
+  if (result.status !== 408) _HostHealth.setHostDown.call(void 0, renderDownHost, false)
 
   const data = convertData(result, '')
   const { data: _, ...resultToSave } = result

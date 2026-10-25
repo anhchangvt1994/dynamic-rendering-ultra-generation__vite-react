@@ -152,7 +152,7 @@ const PokemonPage = () => {
         const newPath = getPokemonDetailPath(pokemonState.name)
         navigate(newPath, {
           replace: true,
-          state: { pokemonId: pokemonState.id },
+          state: { pokemonId: pokemonState.id, keepPage: true },
         })
       }
 

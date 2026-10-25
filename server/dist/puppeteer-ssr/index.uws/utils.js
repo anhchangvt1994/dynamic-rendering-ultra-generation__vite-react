@@ -1,4 +1,4 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } }var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
 
 var _zlib = require('zlib');
 var _constants = require('../../constants');
@@ -39,9 +39,59 @@ const _setCookie = (res) => {
   return res
 } // _setCookie
 
+// NOTE - Body of a cache result for the client encoding (exported to cache it
+// in memory)
+ const getResultBody = (
+  result,
+  enableContentEncoding,
+  contentEncoding
+) => {
+  let tmpBody = ''
+
+  if (enableContentEncoding) {
+    tmpBody = result.html
+      ? contentEncoding === 'br'
+        ? _zlib.brotliCompressSync.call(void 0, result.html, _constants.BROTLI_OPTIONS)
+        : contentEncoding === 'gzip'
+          ? _zlib.gzipSync.call(void 0, result.html)
+          : result.html
+      : (() => {
+          let tmpContent = _fs2.default.readFileSync(result.response)
+
+          if (contentEncoding === 'br') return tmpContent
+          // NOTE - Only the cache files are brotli: decompressing the plain 503 page
+          // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+          else if (
+            tmpContent &&
+            Buffer.isBuffer(tmpContent) &&
+            result.response.endsWith('.br')
+          )
+            tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
+
+          if (result.status === 200) {
+            if (contentEncoding === 'gzip') tmpContent = _zlib.gzipSync.call(void 0, tmpContent)
+          }
+
+          return tmpContent
+        })()
+  } else if (result.response.indexOf('.br') !== -1) {
+    const content = _fs2.default.readFileSync(result.response)
+
+    if (content && Buffer.isBuffer(content)) {
+      tmpBody = _zlib.brotliDecompressSync.call(void 0, content).toString()
+    }
+  } else {
+    tmpBody = _fs2.default.readFileSync(result.response)
+  }
+
+  return tmpBody
+}; exports.getResultBody = getResultBody // getResultBody
+
  const handleResultAfterISRGenerator = (
   res,
   params
+
+
 
 
 
@@ -55,50 +105,9 @@ const _setCookie = (res) => {
       result.response
     ) {
       try {
-        const body = (() => {
-          let tmpBody = ''
-
-          if (enableContentEncoding) {
-            tmpBody = result.html
-              ? contentEncoding === 'br'
-                ? _zlib.brotliCompressSync.call(void 0, result.html, _constants.BROTLI_OPTIONS)
-                : contentEncoding === 'gzip'
-                  ? _zlib.gzipSync.call(void 0, result.html)
-                  : result.html
-              : (() => {
-                  let tmpContent = _fs2.default.readFileSync(
-                    result.response
-                  )
-
-                  if (contentEncoding === 'br') return tmpContent
-                  // NOTE - Only the cache files are brotli: decompressing the plain 503 page
-                  // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
-                  else if (
-                    tmpContent &&
-                    Buffer.isBuffer(tmpContent) &&
-                    result.response.endsWith('.br')
-                  )
-                    tmpContent = _zlib.brotliDecompressSync.call(void 0, tmpContent).toString()
-
-                  if (result.status === 200) {
-                    if (contentEncoding === 'gzip')
-                      tmpContent = _zlib.gzipSync.call(void 0, tmpContent)
-                  }
-
-                  return tmpContent
-                })()
-          } else if (result.response.indexOf('.br') !== -1) {
-            const content = _fs2.default.readFileSync(result.response)
-
-            if (content && Buffer.isBuffer(content)) {
-              tmpBody = _zlib.brotliDecompressSync.call(void 0, content).toString()
-            }
-          } else {
-            tmpBody = _fs2.default.readFileSync(result.response)
-          }
-
-          return tmpBody
-        })()
+        const body =
+          _nullishCoalesce(params.body, () => (
+          exports.getResultBody.call(void 0, result, enableContentEncoding, contentEncoding)))
 
         res
           .writeStatus(String(result.status))
@@ -113,13 +122,13 @@ const _setCookie = (res) => {
         if (result.status === 503)
           res.writeHeader('Retry-After', _constants3.ISR_RETRY_AFTER_SECONDS)
 
-        res.end(body, true)
+        res.end(body)
       } catch (err) {
         _ConsoleHandler2.default.log(err)
         res
           .writeStatus('504')
           .writeHeader('Content-Type', 'text/html; charset=utf-8')
-          .end('504 Gateway Timeout', true)
+          .end('504 Gateway Timeout')
       }
     } else if (result.html) {
       res
@@ -149,7 +158,7 @@ const _setCookie = (res) => {
             ? _zlib.gzipSync.call(void 0, result.html)
             : result.html
 
-      res.end(body || '', true)
+      res.end(body || '')
     } else {
       res
         .writeStatus(String(result.status))
@@ -158,14 +167,14 @@ const _setCookie = (res) => {
       // if (enableContentEncoding && result.status === 200) {
       // 	res.writeHeader('Content-Encoding', contentEncoding)
       // }
-      res.end(`${result.status} Error`, true)
+      res.end(`${result.status} Error`)
     }
   } else {
     console.log('SSR result is empty!')
     res
       .writeStatus('504')
       .writeHeader('Content-Type', 'text/html; charset=utf-8')
-      .end('504 Gateway Timeout', true)
+      .end('504 Gateway Timeout')
   }
 }; exports.handleResultAfterISRGenerator = handleResultAfterISRGenerator // handleResultAfterISRGenerator
 
@@ -199,7 +208,7 @@ const _setCookie = (res) => {
         urlLower
       ):
       res.writableEnded = true
-      res.writeStatus('404').end('Not Found!', true)
+      res.writeStatus('404').end('Not Found!')
       break
     default:
       res.writableEnded = false

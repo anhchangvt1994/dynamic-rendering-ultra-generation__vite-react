@@ -1,13 +1,12 @@
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { brotliCompressSync, gzipSync } from 'zlib'
+import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
 import { fetchData, refreshData } from './utils/FetchManager'
+import { isHostDown, setHostDown } from './utils/HostHealth'
 import { decodeRequestInfo } from './utils/StringHelper'
 import { BROTLI_OPTIONS } from '../constants'
+import { CRAWL_WAIT_OPTIONS } from '../puppeteer-ssr/utils/CrawlProfile'
 
 const {
   compressData,
@@ -20,59 +19,69 @@ const {
   ? require('./utils/CacheManager/redis/utils')
   : require('./utils/CacheManager')
 
-// NOTE - Upstream API hosts that just timed out (ex: a down API answers after
-// the 10s fetch timeout): during DOWN_HOST_DURATION the renders get a 503 at
-// once instead of waiting for it again, the page renders the same way.
-// Marked with a file, shared by every render worker and server process
-const DOWN_HOST_DURATION = 30000
-const downHostsPath = path.join(os.tmpdir(), 'api-down-hosts')
-const _getDownHostFile = (host: string) =>
-  path.join(downHostsPath, encodeURIComponent(host))
+const { getDataCompression } = PROCESS_ENV.REDIS
+  ? require('./utils/CacheManager/redis/utils')
+  : require('./utils/CacheManager/utils')
 
-const _isHostDown = (host: string) => {
+
+// NOTE - The compressed data must be there at once (the file cache polls a
+// missing file for 7s): otherwise the render calls the upstream API
+const CACHED_DATA_WAIT = 100
+
+const _getFreshCachedResult = async (requestInfo) => {
   try {
-    return (
-      Date.now() - fs.statSync(_getDownHostFile(host)).mtimeMs <
-      DOWN_HOST_DURATION
+    const apiCache = await getDataCache(requestInfo.cacheKey)
+    const cache = apiCache?.cache
+
+    if (!cache || cache.status !== 200 || apiCache.status === 'fetch') return
+
+    const aliveTime = Date.now() - new Date(apiCache.changedAt).getTime()
+    if (
+      requestInfo.renewTime !== 'infinite' &&
+      !(aliveTime < requestInfo.renewTime)
     )
-  } catch {
-    return false
-  }
-} // _isHostDown
+      return
 
-const _setHostDown = (host: string, isDown: boolean) => {
-  try {
-    if (isDown) {
-      fs.mkdirSync(downHostsPath, { recursive: true })
-      fs.writeFileSync(_getDownHostFile(host), '')
-    } else fs.rmSync(_getDownHostFile(host), { force: true })
+    const data = await Promise.race([
+      getDataCompression(requestInfo.cacheKey, 'br'),
+      new Promise<undefined>((res) => setTimeout(res, CACHED_DATA_WAIT)),
+    ])
+
+    if (!data) return
+
+    return {
+      cookies: cache.cookies,
+      status: 200,
+      statusMessage: cache.message,
+      body: brotliDecompressSync(data),
+    }
   } catch (err) {
     Console.error(err)
   }
-} // _setHostDown
+} // _getFreshCachedResult
 
-const fetchCache = (() => {
-  return (cacheKey) =>
-    new Promise((res) => {
-      setTimeout(async () => {
-        const apiCache = await getDataCache(cacheKey)
+// NOTE - Wait for the cache of a request that another request is fetching.
+// It polls until the fetch timeout: a fetch that never stores its result
+// (failed request, cache store down) must not keep the request waiting (each
+// recursive wait used to keep its promise chain alive -> heap out of memory)
+const FETCH_CACHE_POLL_INTERVAL = 50
+const FETCH_CACHE_MAX_WAIT = 10000
+const fetchCache = async (cacheKey) => {
+  const deadline = Date.now() + FETCH_CACHE_MAX_WAIT
 
-        if (!apiCache) return res(null)
+  while (Date.now() < deadline) {
+    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
 
-        if (
-          // apiCache.status === 'ready' ||
-          apiCache.cache &&
-          apiCache.cache.data &&
-          apiCache.cache.data !== '{}'
-        )
-          res(apiCache.cache)
-        else {
-          const tmpCache = await fetchCache(cacheKey)
-          res(tmpCache)
-        }
-      }, 10)
-    })
-})() // fetchCache
+    const apiCache = await getDataCache(cacheKey)
+
+    if (!apiCache) return null
+    if (apiCache.cache &&
+      apiCache.cache.data &&
+      apiCache.cache.data !== '{}') return apiCache.cache
+  }
+
+  return null
+} // fetchCache
 
 const convertData = (
   result: {
@@ -307,7 +316,20 @@ const apiService = async (req) => {
   //   } // IF has apiCache
   // } // IF enableCache
 
-  if (_isHostDown(requestInfo.baseUrl))
+  // NOTE - Render with the cached API data while it is fresh (younger than
+  // renewTime) instead of calling the upstream API on every render
+  if (enableCache && method.toUpperCase() === 'GET') {
+    const cachedResult = await _getFreshCachedResult(requestInfo)
+    if (cachedResult) return cachedResult
+  }
+
+  // NOTE - Marked by the renders only: an upstream API still pending after
+  // requestTimeoutMs (the render does not wait for it longer). The next renders
+  // then skip it at once instead of waiting requestTimeoutMs each, until the
+  // 10s fetch timeout marks the host down for the API proxy too
+  const renderDownHost = `render:${requestInfo.baseUrl}`
+
+  if (isHostDown(requestInfo.baseUrl) || isHostDown(renderDownHost))
     return {
       status: 503,
       body: '{}',
@@ -327,9 +349,15 @@ const apiService = async (req) => {
     })
   } else removeDataCache(requestInfo.cacheKey)
 
+  const slowFetchTimeout = setTimeout(
+    () => setHostDown(renderDownHost, true),
+    CRAWL_WAIT_OPTIONS.requestTimeoutMs
+  )
   const result = await fetchAPITarget
+  clearTimeout(slowFetchTimeout)
 
-  _setHostDown(requestInfo.baseUrl, result.status === 408)
+  setHostDown(requestInfo.baseUrl, result.status === 408)
+  if (result.status !== 408) setHostDown(renderDownHost, false)
 
   const data = convertData(result, '')
   const { data: _, ...resultToSave } = result

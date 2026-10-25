@@ -39,12 +39,62 @@ const _setCookie = (res: HttpResponse) => {
   return res
 } // _setCookie
 
+// NOTE - Body of a cache result for the client encoding (exported to cache it
+// in memory)
+export const getResultBody = (
+  result: NonNullable<ISSRResult>,
+  enableContentEncoding: boolean,
+  contentEncoding: 'br' | 'gzip' | ''
+) => {
+  let tmpBody: string | Buffer = ''
+
+  if (enableContentEncoding) {
+    tmpBody = result.html
+      ? contentEncoding === 'br'
+        ? brotliCompressSync(result.html, BROTLI_OPTIONS)
+        : contentEncoding === 'gzip'
+          ? gzipSync(result.html)
+          : result.html
+      : (() => {
+          let tmpContent: Buffer | string = fs.readFileSync(result.response)
+
+          if (contentEncoding === 'br') return tmpContent
+          // NOTE - Only the cache files are brotli: decompressing the plain 503 page
+          // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
+          else if (
+            tmpContent &&
+            Buffer.isBuffer(tmpContent) &&
+            result.response.endsWith('.br')
+          )
+            tmpContent = brotliDecompressSync(tmpContent).toString()
+
+          if (result.status === 200) {
+            if (contentEncoding === 'gzip') tmpContent = gzipSync(tmpContent)
+          }
+
+          return tmpContent
+        })()
+  } else if (result.response.indexOf('.br') !== -1) {
+    const content = fs.readFileSync(result.response)
+
+    if (content && Buffer.isBuffer(content)) {
+      tmpBody = brotliDecompressSync(content).toString()
+    }
+  } else {
+    tmpBody = fs.readFileSync(result.response)
+  }
+
+  return tmpBody
+} // getResultBody
+
 export const handleResultAfterISRGenerator = (
   res: HttpResponse,
   params: {
     result: ISSRResult
     enableContentEncoding: boolean
     contentEncoding: 'br' | 'gzip' | ''
+    // NOTE - Precomputed body (from the memory cache)
+    body?: string | Buffer
   }
 ) => {
   const { result, enableContentEncoding, contentEncoding } = params
@@ -55,50 +105,9 @@ export const handleResultAfterISRGenerator = (
       result.response
     ) {
       try {
-        const body = (() => {
-          let tmpBody: string | Buffer = ''
-
-          if (enableContentEncoding) {
-            tmpBody = result.html
-              ? contentEncoding === 'br'
-                ? brotliCompressSync(result.html, BROTLI_OPTIONS)
-                : contentEncoding === 'gzip'
-                  ? gzipSync(result.html)
-                  : result.html
-              : (() => {
-                  let tmpContent: Buffer | string = fs.readFileSync(
-                    result.response
-                  )
-
-                  if (contentEncoding === 'br') return tmpContent
-                  // NOTE - Only the cache files are brotli: decompressing the plain 503 page
-                  // threw, so a client without br (ex: gzip only) got a 504 instead of the 503
-                  else if (
-                    tmpContent &&
-                    Buffer.isBuffer(tmpContent) &&
-                    result.response.endsWith('.br')
-                  )
-                    tmpContent = brotliDecompressSync(tmpContent).toString()
-
-                  if (result.status === 200) {
-                    if (contentEncoding === 'gzip')
-                      tmpContent = gzipSync(tmpContent)
-                  }
-
-                  return tmpContent
-                })()
-          } else if (result.response.indexOf('.br') !== -1) {
-            const content = fs.readFileSync(result.response)
-
-            if (content && Buffer.isBuffer(content)) {
-              tmpBody = brotliDecompressSync(content).toString()
-            }
-          } else {
-            tmpBody = fs.readFileSync(result.response)
-          }
-
-          return tmpBody
-        })()
+        const body =
+          params.body ??
+          getResultBody(result, enableContentEncoding, contentEncoding)
 
         res
           .writeStatus(String(result.status))
@@ -113,13 +122,13 @@ export const handleResultAfterISRGenerator = (
         if (result.status === 503)
           res.writeHeader('Retry-After', ISR_RETRY_AFTER_SECONDS)
 
-        res.end(body, true)
+        res.end(body)
       } catch (err) {
         Console.log(err)
         res
           .writeStatus('504')
           .writeHeader('Content-Type', 'text/html; charset=utf-8')
-          .end('504 Gateway Timeout', true)
+          .end('504 Gateway Timeout')
       }
     } else if (result.html) {
       res
@@ -149,7 +158,7 @@ export const handleResultAfterISRGenerator = (
             ? gzipSync(result.html)
             : result.html
 
-      res.end(body || '', true)
+      res.end(body || '')
     } else {
       res
         .writeStatus(String(result.status))
@@ -158,14 +167,14 @@ export const handleResultAfterISRGenerator = (
       // if (enableContentEncoding && result.status === 200) {
       // 	res.writeHeader('Content-Encoding', contentEncoding)
       // }
-      res.end(`${result.status} Error`, true)
+      res.end(`${result.status} Error`)
     }
   } else {
     console.log('SSR result is empty!')
     res
       .writeStatus('504')
       .writeHeader('Content-Type', 'text/html; charset=utf-8')
-      .end('504 Gateway Timeout', true)
+      .end('504 Gateway Timeout')
   }
 } // handleResultAfterISRGenerator
 
@@ -199,7 +208,7 @@ export const handleInvalidUrl = (res: HttpResponse, req: HttpRequest) => {
         urlLower
       ):
       res.writableEnded = true
-      res.writeStatus('404').end('Not Found!', true)
+      res.writeStatus('404').end('Not Found!')
       break
     default:
       res.writableEnded = false

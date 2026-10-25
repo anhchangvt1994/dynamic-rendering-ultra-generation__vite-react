@@ -10,9 +10,11 @@ import DetectRedirectMiddle from '../../middlewares/uws/DetectRedirect'
 import DetectStaticMiddle from '../../middlewares/uws/DetectStatic'
 import ServerConfig from '../../server.config'
 import { IBotInfo } from '../../types'
+import { ISSRResult } from '../types'
 import CleanerService from '../../utils/CleanerService'
 import Console from '../../utils/ConsoleHandler'
 import { ENV, ENV_MODE, MODE, PROCESS_ENV } from '../../utils/InitEnv'
+import MemoryCache from '../../utils/MemoryCache'
 import { hashCode } from '../../utils/StringHelper'
 import {
   convertUrlHeaderToQueryString,
@@ -21,8 +23,14 @@ import {
 } from '../utils/FormatUrl.uws'
 import ISRGenerator from '../utils/ISRGenerator.next'
 import ISRHandler from '../utils/ISRHandler.worker'
+import ISRPrerender from '../utils/ISRPrerender'
 import SSRGenerator from '../utils/SSRGenerator.next'
-import { handleInvalidUrl, handleResultAfterISRGenerator } from './utils'
+import { getKey as getCacheKey } from '../utils/Cache.worker/utils'
+import {
+  getResultBody,
+  handleInvalidUrl,
+  handleResultAfterISRGenerator,
+} from './utils'
 
 const {
   getData: getDataCache,
@@ -33,6 +41,21 @@ const {
   : require('../../api/utils/CacheManager/utils')
 
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
+
+const BOT_PAGE_CACHE_TTL = Number(PROCESS_ENV.BOT_PAGE_CACHE_TTL_MS) || 3000
+const botPageCache = MemoryCache<{
+  result: ISSRResult
+  body?: string | Buffer
+}>({
+  ttlMs: BOT_PAGE_CACHE_TTL,
+  max: 2000,
+})
+
+const USER_PAGE_CACHE_TTL = Number(PROCESS_ENV.USER_PAGE_CACHE_TTL_MS) || 3000
+const userPageCache = MemoryCache<{ status: string; body: string | Buffer }>({
+  ttlMs: USER_PAGE_CACHE_TTL,
+  max: 1000,
+})
 
 const puppeteerSSRService = (async () => {
   let _app: TemplatedApp
@@ -86,8 +109,7 @@ const puppeteerSSRService = (async () => {
             res
               .writeStatus('200')
               .end(
-                'Welcome to MTr Web Scraping Service, please provide authorization to use it.',
-                true
+                'Welcome to MTr Web Scraping Service, please provide authorization to use it.'
               )
           else {
             const startGenerating = Number(req.getQuery('startGenerating'))
@@ -106,9 +128,7 @@ const puppeteerSSRService = (async () => {
             })
 
             res.cork(() => {
-              res
-                .writeStatus('200')
-                .end(result ? JSON.stringify(result) : '{}', true)
+              res.writeStatus('200').end(result ? JSON.stringify(result) : '{}')
             })
           }
         })
@@ -117,8 +137,7 @@ const puppeteerSSRService = (async () => {
             res
               .writeStatus('200')
               .end(
-                'Welcome to MTr Cleaner Service, please provide authorization to use it.',
-                true
+                'Welcome to MTr Cleaner Service, please provide authorization to use it.'
               )
           else if (!SERVER_LESS)
             res
@@ -137,14 +156,14 @@ const puppeteerSSRService = (async () => {
             Console.log('Finish clean service!')
 
             res.cork(() => {
-              res.writeStatus('200').end('Finish clean service!', true)
+              res.writeStatus('200').end('Finish clean service!')
             })
           }
         })
     }
     _app.get('/*', async function (res, req): Promise<any> {
       // if (req.getUrl().startsWith('/api')) {
-      // 	return res.writeStatus('404').end('Not Found!', true)
+      // 	return res.writeStatus('404').end('Not Found!')
       // }
       handleInvalidUrl(res, req)
 
@@ -217,7 +236,7 @@ const puppeteerSSRService = (async () => {
           path.resolve(__dirname, '../../../403-forbidden.html'),
           'utf8'
         )
-        return res.writeStatus('403').end(html, true)
+        return res.writeStatus('403').end(html)
       }
 
       // NOTE - Detect DeviceInfo
@@ -273,13 +292,36 @@ const puppeteerSSRService = (async () => {
           })
 
           try {
-            const result = await ISRGenerator({
-              url,
-            })
+            // NOTE - A rendered page (200) is served from memory during
+            // BOT_PAGE_CACHE_TTL instead of running ISRGenerator (cache file
+            // checks, read, gzip) on every bot request. A page that is not
+            // rendered yet (503) is not kept
+            const botPageKey = `${getCacheKey(url)}|${
+              enableContentEncoding ? contentEncoding : 'identity'
+            }`
+            let botPage = botPageCache.get(botPageKey)
+
+            if (!botPage) {
+              const result = await ISRGenerator({
+                url,
+              })
+
+              botPage = { result }
+
+              if (result?.status === 200 && result.response && !result.html) {
+                botPage.body = getResultBody(
+                  result,
+                  enableContentEncoding,
+                  contentEncoding
+                )
+                botPageCache.set(botPageKey, botPage)
+              }
+            }
 
             res.cork(() => {
               handleResultAfterISRGenerator(res, {
-                result,
+                result: botPage.result,
+                body: botPage.body,
                 enableContentEncoding,
                 contentEncoding,
               })
@@ -293,7 +335,7 @@ const puppeteerSSRService = (async () => {
                 path.resolve(__dirname, '../../../500-server-error.html'),
                 'utf8'
               )
-              res.writeStatus('500').end(html, true)
+              res.writeStatus('500').end(html)
             }
           }
 
@@ -357,8 +399,7 @@ const puppeteerSSRService = (async () => {
               status: 200,
               originPath: req.getUrl(),
               path: req.getUrl(),
-            }),
-            true
+            })
           )
         } else {
           const reqHeaderAccept = req.getHeader('accept')
@@ -367,8 +408,6 @@ const puppeteerSSRService = (async () => {
             Console.log('Request aborted')
           })
 
-          let html
-          let status = '200'
           const filePath =
             (req.getHeader('static-html-path') as string) ||
             path.resolve(__dirname, '../../../../dist/index.html')
@@ -380,167 +419,185 @@ const puppeteerSSRService = (async () => {
             return tmpUrl
           })()
 
+          // NOTE - The page sent to a user (html + window.API_STORE, compressed)
+          // was rebuilt on every request (read, decompress / parse / stringify the
+          // API data, compress the page): build it once, serve it from memory
+          // during USER_PAGE_CACHE_TTL
+          const deviceType = res.cookies?.deviceInfo?.type
+          const userPageKey = `${pathForCacheKeyConverter}|${deviceType}|${
+            enableContentEncoding ? contentEncoding : 'identity'
+          }|${filePath}`
+          let status = '200'
+
           try {
-            const result = await SSRGenerator({
-              url,
-            })
+            const page = await userPageCache.wrap(userPageKey, async () => {
+              let html
+              let status = '200'
 
-            if (result?.status === 200) {
-              html = fs.readFileSync(result.file)
-            } else if (pointsTo) {
-              status = String(result?.status ?? '503')
-              html =
-                fs.readFileSync(
-                  result?.response ??
-                    path.resolve(__dirname, '../../../503-maintain.html'),
-                  'utf8'
-                ) || ''
-            }
-          } catch (err) {
-            Console.error(err)
-          }
-
-          if (!html) {
-            try {
-              html = fs.readFileSync(filePath, 'utf8') || ''
-            } catch (err) {
-              Console.error(err)
-            }
-          }
-
-          if (
-            html &&
-            status === '200' &&
-            (!html.includes('window.API_STORE') ||
-              html.includes('window.API_STORE={}'))
-          ) {
-            const apiStoreData = await (async () => {
-              if (pointsTo && pointsTo.url) return
-
-              let tmpStoreKey
-              let tmpAPIStore
-
-              tmpStoreKey = hashCode(pathForCacheKeyConverter)
-
-              tmpAPIStore = await getStoreCache(tmpStoreKey)
-
-              if (tmpAPIStore) return tmpAPIStore.data
-
-              const deviceType = res.cookies?.deviceInfo?.type
-
-              tmpStoreKey = hashCode(
-                `${pathForCacheKeyConverter}${
-                  pathForCacheKeyConverter.includes('?') && deviceType
-                    ? '&device=' + deviceType
-                    : '?device=' + deviceType
-                }`
-              )
-
-              tmpAPIStore = await getStoreCache(tmpStoreKey)
-
-              if (tmpAPIStore) return tmpAPIStore.data
-
-              return
-            })()
-
-            let WindowAPIStore = {}
-
-            if (apiStoreData && apiStoreData.length) {
-              for (const cacheKey of apiStoreData) {
-                const apiCache = await getDataCache(cacheKey, {
-                  sizeLimit: 10000,
+              try {
+                const result = await SSRGenerator({
+                  url,
                 })
 
-                if (
-                  !apiCache ||
-                  !apiCache.cache ||
-                  apiCache.cache.status !== 200
-                )
-                  continue
+                if (result?.status === 200) {
+                  html = fs.readFileSync(result.file)
+                } else if (pointsTo) {
+                  status = String(result?.status ?? '503')
+                  html =
+                    fs.readFileSync(
+                      result?.response ??
+                        path.resolve(__dirname, '../../../503-maintain.html'),
+                      'utf8'
+                    ) || ''
+                }
+              } catch (err) {
+                Console.error(err)
+              }
 
-                const data = await getDataCompression(
-                  cacheKey,
-                  contentEncoding as any
-                )
-
-                const dataToSend = data
-                  ? brotliDecompressSync(data).toString()
-                  : ''
-
+              if (!html) {
                 try {
-                  WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
-                } catch {
-                  WindowAPIStore[cacheKey] = dataToSend
+                  html = fs.readFileSync(filePath, 'utf8') || ''
+                } catch (err) {
+                  Console.error(err)
                 }
               }
-            }
 
-            WindowAPIStore = JSON.stringify(WindowAPIStore)
+              if (
+                html &&
+                status === '200' &&
+                (!html.includes('window.API_STORE') ||
+                  html.includes('window.API_STORE={}'))
+              ) {
+                const apiStoreData = await (async () => {
+                  if (pointsTo && pointsTo.url) return
 
-            try {
-              if (WindowAPIStore !== '{}') {
-                try {
-                  html = brotliDecompressSync(html).toString() || ''
-                } catch (decompressErr) {
-                  Console.error(
-                    'Failed to decompress HTML for API_STORE:',
-                    decompressErr
+                  let tmpStoreKey
+                  let tmpAPIStore
+
+                  tmpStoreKey = hashCode(pathForCacheKeyConverter)
+
+                  tmpAPIStore = await getStoreCache(tmpStoreKey)
+
+                  if (tmpAPIStore) return tmpAPIStore.data
+
+                  tmpStoreKey = hashCode(
+                    `${pathForCacheKeyConverter}${
+                      pathForCacheKeyConverter.includes('?') && deviceType
+                        ? '&device=' + deviceType
+                        : '?device=' + deviceType
+                    }`
                   )
-                  // Keep original html if decompression fails
-                }
 
-                if (html.includes('window.API_STORE={}')) {
-                  html = html.replace(
-                    'window.API_STORE={}',
-                    `window.API_STORE=${WindowAPIStore}`
-                  )
-                } else if (html.includes('</head>')) {
-                  html = html.replace(
-                    '</head>',
-                    `<script>window.API_STORE=${WindowAPIStore}</script></head>`
-                  )
-                } else {
-                  html = html.replace(
-                    '<body',
-                    `<script>window.API_STORE=${WindowAPIStore}</script><body`
-                  )
-                }
-              }
-            } catch (err) {
-              Console.error(err)
-            }
-          }
+                  tmpAPIStore = await getStoreCache(tmpStoreKey)
 
-          try {
-            const body = (() => {
-              if (enableContentEncoding && Buffer.isBuffer(html)) return html
+                  if (tmpAPIStore) return tmpAPIStore.data
 
-              if (!enableContentEncoding) {
-                switch (true) {
-                  case Buffer.isBuffer(html):
+                  return
+                })()
+
+                let WindowAPIStore = {}
+
+                if (apiStoreData && apiStoreData.length) {
+                  for (const cacheKey of apiStoreData) {
+                    const apiCache = await getDataCache(cacheKey, {
+                      sizeLimit: 10000,
+                    })
+
+                    if (
+                      !apiCache ||
+                      !apiCache.cache ||
+                      apiCache.cache.status !== 200
+                    )
+                      continue
+
+                    // NOTE - Always the brotli data: it is brotli decompressed below
+                    // (the client encoding gave gzip data to brotliDecompressSync)
+                    const data = await getDataCompression(cacheKey, 'br')
+
+                    const dataToSend = data
+                      ? brotliDecompressSync(data).toString()
+                      : ''
+
                     try {
-                      return brotliDecompressSync(html).toString()
+                      WindowAPIStore[cacheKey] = JSON.parse(dataToSend)
+                    } catch {
+                      WindowAPIStore[cacheKey] = dataToSend
+                    }
+                  }
+                }
+
+                WindowAPIStore = JSON.stringify(WindowAPIStore)
+
+                try {
+                  if (WindowAPIStore !== '{}') {
+                    try {
+                      html = brotliDecompressSync(html).toString() || ''
                     } catch (decompressErr) {
                       Console.error(
-                        'Failed to decompress HTML buffer:',
+                        'Failed to decompress HTML for API_STORE:',
                         decompressErr
                       )
-                      return html.toString()
+                      // Keep original html if decompression fails
                     }
+
+                    if (html.includes('window.API_STORE={}')) {
+                      html = html.replace(
+                        'window.API_STORE={}',
+                        `window.API_STORE=${WindowAPIStore}`
+                      )
+                    } else if (html.includes('</head>')) {
+                      html = html.replace(
+                        '</head>',
+                        `<script>window.API_STORE=${WindowAPIStore}</script></head>`
+                      )
+                    } else {
+                      html = html.replace(
+                        '<body',
+                        `<script>window.API_STORE=${WindowAPIStore}</script><body`
+                      )
+                    }
+                  }
+                } catch (err) {
+                  Console.error(err)
+                }
+              }
+
+              const body = (() => {
+                if (contentEncoding === 'br' && Buffer.isBuffer(html))
+                  return html
+
+                if (!enableContentEncoding) {
+                  switch (true) {
+                    case Buffer.isBuffer(html):
+                      try {
+                        return brotliDecompressSync(html).toString()
+                      } catch (decompressErr) {
+                        Console.error(
+                          'Failed to decompress HTML buffer:',
+                          decompressErr
+                        )
+                        return html.toString()
+                      }
+                    default:
+                      return html
+                  }
+                }
+
+                switch (true) {
+                  case contentEncoding === 'br':
+                    return brotliCompressSync(html, BROTLI_OPTIONS)
+                  case contentEncoding === 'gzip':
+                    return gzipSync(html)
                   default:
                     return html
                 }
-              }
+              })()
 
-              switch (true) {
-                case contentEncoding === 'br':
-                  return brotliCompressSync(html, BROTLI_OPTIONS)
-                case contentEncoding === 'gzip':
-                  return gzipSync(html)
-                default:
-                  return html
-              }
-            })()
+              return { status, body }
+            })
+
+            status = page?.status ?? '200'
+            const body = page?.body ?? ''
 
             res.cork(() => {
               res.writeStatus(status)
@@ -570,7 +627,7 @@ const puppeteerSSRService = (async () => {
                   `country=${res.cookies.country};Path=/`
                 )
 
-              res.end(body, true)
+              res.end(body)
             })
           } catch (err) {
             if (!res.writableEnded) {
@@ -588,7 +645,7 @@ const puppeteerSSRService = (async () => {
                       ? 'application/json'
                       : 'text/html; charset=utf-8'
                   )
-                  .end(html, true)
+                  .end(html)
               })
             }
           }
@@ -602,6 +659,7 @@ const puppeteerSSRService = (async () => {
       if (!app) return Console.warn('You need provide uWebSockets app!')
       _app = app
       _allRequestHandler()
+      ISRPrerender.start()
     },
   }
 })()

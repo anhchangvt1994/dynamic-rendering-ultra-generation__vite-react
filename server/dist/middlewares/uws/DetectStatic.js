@@ -38,7 +38,7 @@ const DetectStaticMiddle = (res, req) => {
           .writeStatus('200')
           .writeHeader('Cache-Control', 'public, max-age=31556952')
           .writeHeader('Content-Type', mimeType )
-          .end(body, true)
+          .end(body)
       } else {
         const mimeType = _mimetypes2.default.lookup(staticPath)
 
@@ -156,10 +156,10 @@ const DetectStaticMiddle = (res, req) => {
           res.writeHeader('Content-Encoding', contentEncoding )
         }
 
-        res.writeHeader('Content-Type', mimeType ).end(body, true)
+        res.writeHeader('Content-Type', mimeType ).end(body)
       }
     } catch (err) {
-      res.writeStatus('404').end('File not found', true)
+      res.writeStatus('404').end('File not found')
     }
 
     res.writableEnded = true

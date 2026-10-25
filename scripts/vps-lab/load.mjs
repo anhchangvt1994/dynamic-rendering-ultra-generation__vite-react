@@ -153,7 +153,24 @@ const load = async ({
   }
 } // load
 
-const modes = { check, burst, load }
+// NOTE - Hammer one kind of request: vus users request paths (round robin)
+// with headers for durationMs
+const hammer = async ({ base, paths, headers, vus, durationMs }) => {
+  const results = []
+  const deadline = Date.now() + durationMs
+  let index = 0
+
+  await Promise.all(
+    Array.from({ length: vus }, async () => {
+      while (Date.now() < deadline)
+        results.push(await request(base + paths[index++ % paths.length], headers))
+    })
+  )
+
+  return summarize(results, durationMs, (item) => item.status === 200)
+} // hammer
+
+const modes = { check, burst, load, hammer }
 
 modes[options.mode](options)
   .then((result) => console.log(JSON.stringify(result)))

@@ -23,7 +23,7 @@ const DetectRedirectMiddle = (res, req) => {
 					)};Max-Age=${COOKIE_EXPIRED_SECOND};Path=/`
 				)
 				.writeHeader('Cache-Control', 'no-store')
-				.end(JSON.stringify(redirectResult), true)
+				.end(JSON.stringify(redirectResult))
 		} else {
 			if (redirectResult.path.length > 1)
 				redirectResult.path = redirectResult.path.replace(/\/$|\/(\?)/, '$1')
@@ -36,7 +36,7 @@ const DetectRedirectMiddle = (res, req) => {
 					}`
 				)
 				.writeHeader('cache-control', 'no-store')
-				.end('', true)
+				.end('')
 		}
 
 		res.writableEnded = true

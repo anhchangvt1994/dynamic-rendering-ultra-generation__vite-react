@@ -2,6 +2,7 @@ import path from 'path'
 import { resourceExtension } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
 import WorkerManager from '../../../utils/WorkerManager'
+import { fetchData as fetchDataInThread } from './utils'
 
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.${resourceExtension}`),
@@ -11,6 +12,10 @@ const workerManager = WorkerManager.init(
   },
   ['fetchData', 'refreshData']
 )
+
+// NOTE - Identical GET requests to the upstream API running at the same time
+// share one fetch
+const inflightFetches = new Map<string, ReturnType<typeof fetchDataInThread>>()
 
 export const fetchData = async (
   input: RequestInfo | URL,
@@ -32,22 +37,21 @@ export const fetchData = async (
     }
   }
 
-  const freePool = await workerManager.getFreePool()
-  const pool = freePool.pool
-  let result
+  // NOTE - fetch is async I/O: it runs in this thread. In the worker pool, the
+  // response (up to hundreds of KB) was copied between threads twice
+  const method = (init?.method || 'GET').toUpperCase()
+  if (method !== 'GET' || init?.body) return fetchDataInThread(input, init)
 
-  try {
-    result = await pool.exec('fetchData', [input, init])
-  } catch (err) {
-    Console.error(err)
-    result = { status: 500, data: {}, message: 'input is required' }
-  }
+  const key = String(input)
+  const inflightFetch = inflightFetches.get(key)
+  if (inflightFetch) return inflightFetch
 
-  freePool.terminate({
-    force: true,
-  })
+  const newFetch = fetchDataInThread(input, init).finally(() =>
+    inflightFetches.delete(key)
+  )
+  inflightFetches.set(key, newFetch)
 
-  return result
+  return newFetch
 } // fetchData
 
 export const refreshData = async (cacheKeyList: string[]) => {

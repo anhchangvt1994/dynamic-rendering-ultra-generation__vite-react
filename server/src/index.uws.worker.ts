@@ -133,17 +133,17 @@ const startServer = async () => {
     app.any('/*', (res, req) => {
       setupCors(res)
 
-      res.end('', true) // end the request
+      res.end('') // end the request
     })
 
     if (!ServerConfig.isRemoteCrawler) {
       app.get('/robots.txt', (res, req) => {
         try {
           const body = fs.readFileSync(path.resolve(__dirname, '../robots.txt'))
-          res.end(body, true)
+          res.end(body)
         } catch {
           res.writeStatus('404')
-          res.end('File not found', true)
+          res.end('File not found')
         }
       })
     }

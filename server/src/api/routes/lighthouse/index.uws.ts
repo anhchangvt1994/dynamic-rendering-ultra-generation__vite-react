@@ -26,7 +26,7 @@ const apiLighthouse = (() => {
 	const _allRequestHandler = () => {
 		_app.get('/api/lighthouse', async (res, req) => {
 			if (totalRequests >= limitRequest) {
-				res.writeStatus('429 Too many requests').end('Too many requests', true)
+				res.writeStatus('429 Too many requests').end('Too many requests')
 				return
 			}
 
@@ -68,8 +68,7 @@ const apiLighthouse = (() => {
 						'400 `url` querystring params does not match the correct format'
 					)
 					.end(
-						'`url` querystring params does not match the correct format',
-						true
+						'`url` querystring params does not match the correct format'
 					)
 				res.writableEnded = true // disable to write
 			}
@@ -101,7 +100,7 @@ const apiLighthouse = (() => {
 							res
 								.writeHeader('Access-Control-Allow-Origin', '*') // Ensure header is sent in the final response
 								.writeStatus(`${result.status} ${statusMessage}`)
-								.end(statusMessage, true) // end the request
+								.end(statusMessage) // end the request
 							res.writableEnded = true // disable to write
 						})
 					}

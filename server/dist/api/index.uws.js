@@ -5,10 +5,12 @@
 
 
 var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
+var _MemoryCache = require('../utils/MemoryCache'); var _MemoryCache2 = _interopRequireDefault(_MemoryCache);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../utils/InitEnv');
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
 var _FetchManager = require('./utils/FetchManager');
+var _HostHealth = require('./utils/HostHealth');
 var _StringHelper = require('./utils/StringHelper');
 
 const {
@@ -29,6 +31,13 @@ const {
   ? require('./utils/CacheManager/redis/utils')
   : require('./utils/CacheManager/utils')
 
+const API_RESPONSE_CACHE_TTL =
+  Number(_InitEnv.PROCESS_ENV.API_RESPONSE_CACHE_TTL_MS) || 2000
+const apiResponseCache = _MemoryCache2.default({
+  ttlMs: API_RESPONSE_CACHE_TTL,
+  max: 2000,
+})
+
 const handleArrayBuffer = (message) => {
   if (message instanceof ArrayBuffer) {
     const decoder = new TextDecoder()
@@ -37,30 +46,48 @@ const handleArrayBuffer = (message) => {
   return message
 }
 
-const fetchCache = (() => {
-  return (cacheKey) =>
-    new Promise((res) => {
-      setTimeout(async () => {
-        const apiCache = await getDataCache(cacheKey)
+// NOTE - Wait for the cache of a request that another request is fetching.
+// It polls until the fetch timeout: a fetch that never stores its result
+// (failed request, cache store down) must not keep the request waiting (each
+// recursive wait used to keep its promise chain alive -> heap out of memory)
+const FETCH_CACHE_POLL_INTERVAL = 50
+const FETCH_CACHE_MAX_WAIT = 10000
+// (the wait counts from startedAt: the fetch start of the cache entry)
+const fetchCache = async (cacheKey, startedAt = Date.now()) => {
+  const deadline = startedAt + FETCH_CACHE_MAX_WAIT
 
-        if (!apiCache) return res(null)
+  while (Date.now() < deadline) {
+    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
 
-        if (
-          // apiCache.status === 'ready' ||
-          apiCache.cache
-          // && apiCache.cache.data &&
-          // apiCache.cache.data !== '{}'
-        )
-          res(apiCache.cache)
-        else {
-          const tmpCache = await fetchCache(cacheKey)
-          res(tmpCache)
-        }
-      })
-    })
-})() // fetchCache
+    const apiCache = await getDataCache(cacheKey)
 
-const resEnd = (res, resInfo) => {
+    if (!apiCache) return null
+    if (apiCache.cache) return apiCache.cache
+  }
+
+  return null
+} // fetchCache
+
+// NOTE - A down upstream host (it just timed out) answers 503 at once: the
+// requests waiting for it would hold the browser connections (6 per host) and
+// delay the other API requests of the page
+const fetchUpstream = async (
+  baseUrl,
+  url,
+  init
+) => {
+  if (_HostHealth.isHostDown.call(void 0, baseUrl)) return { ..._HostHealth.HOST_DOWN_RESULT } 
+
+  const result = await _FetchManager.fetchData.call(void 0, url, init)
+  _HostHealth.setHostDown.call(void 0, baseUrl, result.status === 408)
+
+  return result
+} // fetchUpstream
+
+// NOTE - serverTiming: Server-Timing header (DevTools > Network > Timing), it
+// tells where the time went (memory / store cache, upstream API, waiting for
+// the fetch of another request)
+const resEnd = (res, resInfo, serverTiming) => {
   if (!res || !resInfo) return
 
   const {
@@ -88,6 +115,7 @@ const resEnd = (res, resInfo) => {
       if (contentEncoding) {
         res.writeHeader('Content-Encoding', contentEncoding)
       }
+      if (serverTiming) res.writeHeader('Server-Timing', serverTiming)
       // NOTE - uWS only accepts string / ArrayBuffer / TypedArray, a failed
       // upstream fetch (ex: 408 timeout) returns an object and would crash
       // the whole server
@@ -96,8 +124,7 @@ const resEnd = (res, resInfo) => {
           data instanceof ArrayBuffer ||
           ArrayBuffer.isView(data)
           ? data
-          : JSON.stringify(_nullishCoalesce(data, () => ( ''))),
-        true
+          : JSON.stringify(_nullishCoalesce(data, () => ( '')))
       )
     })
   }
@@ -113,6 +140,9 @@ const apiService = (async () => {
 
   const _allRequestHandler = () => {
     _app.all('/api', async function (res, req) {
+      const startAt = Date.now()
+      const getServerTiming = (timing) =>
+        `${timing}, total;dur=${Date.now() - startAt}`
       res.onAborted(() => {
         res.writableEnded = true
         _ConsoleHandler2.default.log('Request aborted')
@@ -126,6 +156,20 @@ const apiService = (async () => {
         return '' 
       })()
 
+      // NOTE - A cached API response (GET, 200) is served from memory during
+      // API_RESPONSE_CACHE_TTL: no decoding, no cache store reads / writes, no
+      // parsing on every request
+      const apiResponseKey =
+        req.getMethod() === 'get'
+          ? `${req.getUrl()}?${req.getQuery()}|${contentEncoding}`
+          : undefined
+      const apiResponse = apiResponseKey
+        ? apiResponseCache.get(apiResponseKey)
+        : undefined
+
+      if (apiResponse)
+        return resEnd(res, apiResponse, getServerTiming('cache;desc="memory"'))
+
       // NOTE - Get the API information
       const apiInfo =
         _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.getQuery()), 'optionalAccess', _3 => _3.groups]), () => ( {}))
@@ -137,7 +181,7 @@ const apiService = (async () => {
           .writeStatus('500')
           .writeHeader('Content-Type', 'application/json')
           .writeHeader('Cache-Control', 'no-store')
-          .end('Internal Server Error', true)
+          .end('Internal Server Error')
       }
 
       // NOTE - Get the Request information
@@ -162,7 +206,7 @@ const apiService = (async () => {
           .writeStatus('500')
           .writeHeader('Content-Type', 'application/json')
           .writeHeader('Cache-Control', 'no-store')
-          .end('Internal Server Error', true)
+          .end('Internal Server Error')
       }
 
       if (!res.writableEnded) {
@@ -297,7 +341,7 @@ const apiService = (async () => {
 
                   const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
-                  _FetchManager.fetchData.call(void 0, fetchUrl, {
+                  fetchUpstream(requestInfo.baseUrl, fetchUrl, {
                     method,
                     headers: objHeaders,
                     body,
@@ -333,7 +377,15 @@ const apiService = (async () => {
 
               let cache = apiCache.cache
 
-              if (!cache) cache = await fetchCache(requestInfo.cacheKey)
+              // NOTE - A placeholder older than the fetch timeout is never filled (ex:
+              // the server stopped during the fetch): no wait, fetch below
+              const waitStartAt = Date.now()
+              if (!cache)
+                cache = await fetchCache(
+                  requestInfo.cacheKey,
+                  new Date(apiCache.changedAt).getTime() || Date.now()
+                )
+              const waitDuration = Date.now() - waitStartAt
 
               const data = await getDataCompression(
                 requestInfo.cacheKey,
@@ -347,14 +399,28 @@ const apiService = (async () => {
               // }
 
               // NOTE - No cache (ex: redis down): fetch the API below
-              if (cache)
-                resEnd(res, {
+              if (cache) {
+                const resInfo = {
                   status: cache.status,
                   message: cache.message,
                   contentEncoding,
                   cookies: cache.cookies,
                   data,
-                })
+                }
+
+                if (apiResponseKey && Number(cache.status) === 200 && data)
+                  apiResponseCache.set(apiResponseKey, resInfo)
+
+                resEnd(
+                  res,
+                  resInfo,
+                  getServerTiming(
+                    waitDuration
+                      ? `wait;desc="fetch of another request";dur=${waitDuration}`
+                      : 'cache;desc="store"'
+                  )
+                )
+              }
             } // IF expiredTime is valid
           } // IF has apiCache
         } // IF requestInfo.expiredTime > 0
@@ -362,7 +428,7 @@ const apiService = (async () => {
         if (!res.writableEnded) {
           const fetchUrl = `${requestInfo.baseUrl}${requestInfo.endpoint}${strQueryString}`
 
-          const fetchAPITarget = _FetchManager.fetchData.call(void 0, fetchUrl, {
+          const fetchAPITarget = fetchUpstream(requestInfo.baseUrl, fetchUrl, {
             method,
             headers: objHeaders,
             body,
@@ -375,7 +441,12 @@ const apiService = (async () => {
             })
           } else removeDataCache(requestInfo.cacheKey)
 
+          const upstreamStartAt = Date.now()
           const { data, ...result } = await fetchAPITarget
+          const upstreamTiming =
+            result.message === _HostHealth.HOST_DOWN_RESULT.message
+              ? 'upstream;desc="host down"'
+              : `upstream;dur=${Date.now() - upstreamStartAt}`
 
           if (enableCache) {
             Promise.all([
@@ -400,28 +471,21 @@ const apiService = (async () => {
             ])
           }
 
-          let dataToSend = await getDataCompression(
-            requestInfo.cacheKey,
-            contentEncoding 
-          )
-
-          if (!dataToSend) {
-            // data = convertData(result, contentEncoding)
-            // data = JSON.stringify(result.data)
-            dataToSend = data
-          }
-
           if (requestInfo.relativeCacheKey.length) {
             _FetchManager.refreshData.call(void 0, requestInfo.relativeCacheKey)
           }
 
-          resEnd(res, {
-            status: result.status,
-            message: result.message,
-            contentEncoding: '',
-            cookies: result.cookies,
-            data,
-          })
+          resEnd(
+            res,
+            {
+              status: result.status,
+              message: result.message,
+              contentEncoding: '',
+              cookies: result.cookies,
+              data,
+            },
+            getServerTiming(upstreamTiming)
+          )
         }
       } // IF !res.writableEnded
     })

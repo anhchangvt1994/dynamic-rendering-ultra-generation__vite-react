@@ -50,11 +50,26 @@ How a render waits for its page, for both engines. `network-idle`: the page is d
 - **CRAWL_NETWORK_IDLE_MS** `( default: 500 )`
 Quiet network duration of the `network-idle` wait.
 - **CRAWL_REQUEST_TIMEOUT_MS** `( default: 3000 )`
-`network-idle` wait: a request pending longer than this (ex: a down API) does not hold the page anymore, it is saved with the data it has. While rendering, an API host that just timed out (408) is answered with a 503 at once for 30s (shared by every worker and process), so the next renders do not wait for it again.
+`network-idle` wait: a request pending longer than this (ex: a down API) does not hold the page anymore, it is saved with the data it has. An API host still pending after this time is answered with a 503 at once for the next renders (not after its 10s fetch timeout), and a host that timed out (408) also for the API proxy. The mark lasts 30s, doubled on each failure in a row up to 5min, a success removes it (shared by every worker and process), so the renders do not wait for a down API again.
 - **CRAWL_FIRST_RESPONSE_WAIT_MS** `( default: 5000 )`
 A bot request of a page that is not cached yet (rendering or queued) waits this long for it, so the bot gets the page (200) on its first visit when it is ready in time, otherwise the 503 page. `0` disables it.
 - **ISR_RETRY_AFTER_SECONDS** `( default: 10 )`
 `Retry-After` of the 503 page sent while a page renders (it was 120).
+
+**Prerender and memory caches**
+
+- **ISR_PRERENDER** `( default: true )`
+Renders the sitemap pages (`server/sitemap/sitemaps/*.xml`) ahead, one at a time and only while no other crawl runs, so bots get them from the cache at once instead of waiting for a render on their first visit. One server process prerenders (lock file in the OS temp dir). `false` disables it.
+- **ISR_PRERENDER_SITEMAP_PATH** `( default: server/sitemap/sitemaps )` / **ISR_PRERENDER_INTERVAL_MS** `( default: 1800000 )`
+Folder of the sitemap files, and how often it is scanned again for pages that are not cached (new / expired).
+- **BOT_PAGE_CACHE_TTL_MS** `( default: 3000 )`
+A rendered page (200) is served to bots from memory during this time instead of reading its cache file on every request. Pages that are not rendered yet (503) are not kept.
+- **USER_PAGE_CACHE_TTL_MS** `( default: 3000 )`
+The page sent to users (`index.html` + `window.API_STORE`, compressed) is built once and served from memory during this time.
+- **API_RESPONSE_CACHE_TTL_MS** `( default: 2000 )`
+A cached API proxy response (GET, 200) is served from memory during this time (no decoding, cache store reads or parsing).
+- **UPSTREAM_KEEP_ALIVE_MS** `( default: 60000 )`
+How long an idle connection to an upstream API stays open. The fetch default is 4s: the first API request after a pause of a few seconds opened a new connection (DNS + TCP + TLS, ~+100ms locally, several hundreds of ms far from the API).
 
 **Compression**
 

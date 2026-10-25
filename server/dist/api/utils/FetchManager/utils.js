@@ -1,4 +1,6 @@
-"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+"use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; } function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }var _undici = require('undici');
+var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
+var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
 
 
@@ -8,6 +10,21 @@ var _PathHandler = require('../../../utils/PathHandler');
 var _utils = require('../CacheManager/utils');
 
 const dataPath = _PathHandler.getDataPath.call(void 0, )
+
+// NOTE - Keep the connections to the upstream APIs open while they are idle.
+// The default keep-alive of fetch (undici) is 4s: the first request after a
+// pause of a few seconds (ex: a user changes the pokemon slides, stops, then
+// changes again) opened a new connection (DNS + TCP + TLS handshakes, +100ms
+// up to several hundreds of ms far from the API)
+const UPSTREAM_KEEP_ALIVE =
+  Number(_InitEnv.PROCESS_ENV.UPSTREAM_KEEP_ALIVE_MS) || 60 * 1000
+
+_undici.setGlobalDispatcher.call(void 0, 
+  new (0, _undici.Agent)({
+    keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
+    keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
+  })
+)
 
  const fetchData = async (
   input,

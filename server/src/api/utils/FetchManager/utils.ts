@@ -1,4 +1,6 @@
+import { Agent, setGlobalDispatcher } from 'undici'
 import Console from '../../../utils/ConsoleHandler'
+import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getDataPath } from '../../../utils/PathHandler'
 import { ICacheResult } from '../CacheManager/types'
 import {
@@ -8,6 +10,21 @@ import {
 } from '../CacheManager/utils'
 
 const dataPath = getDataPath()
+
+// NOTE - Keep the connections to the upstream APIs open while they are idle.
+// The default keep-alive of fetch (undici) is 4s: the first request after a
+// pause of a few seconds (ex: a user changes the pokemon slides, stops, then
+// changes again) opened a new connection (DNS + TCP + TLS handshakes, +100ms
+// up to several hundreds of ms far from the API)
+const UPSTREAM_KEEP_ALIVE =
+  Number(PROCESS_ENV.UPSTREAM_KEEP_ALIVE_MS) || 60 * 1000
+
+setGlobalDispatcher(
+  new Agent({
+    keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
+    keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
+  })
+)
 
 export const fetchData = async (
   input: RequestInfo | URL,

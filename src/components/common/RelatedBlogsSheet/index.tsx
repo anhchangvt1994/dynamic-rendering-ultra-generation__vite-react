@@ -9,13 +9,32 @@ import {
   OverlayStyle,
 } from './styles'
 
+const SEARCH_DELAY = 500
+
 const RelatedBlogsSheet = (props) => {
   const { keyword = '' } = props
   const [isOpen, setIsOpen] = useState(false)
 
-  const cacheKey = getSearchArticlesByTitlePath(keyword)
-  const { data = getAPIStore(cacheKey) } =
-    useSearchArticlesByTitleQuery(keyword)
+  // NOTE - Search when the keyword stays the same for SEARCH_DELAY (ex: the
+  // pokemon slides are changed quickly), the first keyword at once: a search
+  // per passed keyword used to hold the browser connections and delay the
+  // pokemon API requests
+  const [searchKeyword, setSearchKeyword] = useState(keyword)
+
+  useEffect(() => {
+    if (keyword === searchKeyword) return
+    if (!searchKeyword) return setSearchKeyword(keyword)
+
+    const timeout = setTimeout(() => setSearchKeyword(keyword), SEARCH_DELAY)
+
+    return () => clearTimeout(timeout)
+  }, [keyword])
+
+  const cacheKey = getSearchArticlesByTitlePath(searchKeyword)
+  const { data = getAPIStore(cacheKey) } = useSearchArticlesByTitleQuery(
+    searchKeyword,
+    { skip: !searchKeyword }
+  )
   const isDataAvailable = !!data && !!data.data && !!data.data.length
 
   const open = () => {
@@ -29,7 +48,7 @@ const RelatedBlogsSheet = (props) => {
   const blogListBody = useMemo(() => {
     if (!isDataAvailable) return null
 
-    return <BlogList keyword={keyword} searchResults={data.data || []} />
+    return <BlogList keyword={searchKeyword} searchResults={data.data || []} />
   }, [JSON.stringify(data)])
 
   return (

@@ -321,7 +321,14 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
     changedAt: curTime.toISOString(),
     status: options.status,
     extension,
-    ...(typeof content === 'string' ? { cache: content } : content),
+    // NOTE - A Buffer (compressed data, stored in content as base64) must not
+    // be spread: it added one key per byte to the entry (ex: 300KB of API data
+    // -> 300k keys to stringify, send to redis and parse on every read)
+    ...(typeof content === 'string'
+      ? { cache: content }
+      : Buffer.isBuffer(content)
+        ? {}
+        : content),
   }
 
   // Calculate TTL based on expiredTime from content.cache

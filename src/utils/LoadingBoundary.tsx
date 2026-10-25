@@ -20,10 +20,14 @@ export default function LoadingBoundary({
   children,
   delay,
   fallback,
+  resetKey,
 }: {
   children?: ReactNode | undefined
   delay?: number
   fallback?: ReactNode
+  // NOTE - The children are mounted again when it changes (default: on every
+  // render)
+  resetKey?: string
 }): ReactElement {
   const delayTime: number = Number(delay) || 0
   const timestamp = Date.now()
@@ -31,7 +35,7 @@ export default function LoadingBoundary({
   const Component: ReactNode = useWithDelay(delayTime, fallback)
 
   return (
-    <Suspense fallback={Component} key={timestamp}>
+    <Suspense fallback={Component} key={resetKey ?? timestamp}>
       {children}
     </Suspense>
   )

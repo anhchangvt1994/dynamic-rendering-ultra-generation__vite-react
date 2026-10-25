@@ -21,6 +21,13 @@ import LoadingBoundary from 'utils/LoadingBoundary'
 // Memoized Outlet wrapper that only re-renders when route location changes
 const OutletWrapper = React.memo(() => {
   const route = useRoute()
+  const location = useLocation()
+
+  // NOTE - The page is mounted again on every navigation, except a navigation
+  // that only updates the url of the page (state.keepPage, ex: the pokemon
+  // slides): it used to destroy the page and reset its state on every slide
+  const pageKeyRef = useRef(location.key)
+  if (!location.state?.keepPage) pageKeyRef.current = location.key
 
   // This useMemo ensures the key changes on location, forcing remount on route change
 
@@ -57,7 +64,11 @@ const OutletWrapper = React.memo(() => {
 
   return (
     <React.Fragment key={route.id}>
-      <LoadingBoundary delay={150} fallback={loading}>
+      <LoadingBoundary
+        delay={150}
+        fallback={loading}
+        resetKey={pageKeyRef.current}
+      >
         <Outlet />
       </LoadingBoundary>
     </React.Fragment>

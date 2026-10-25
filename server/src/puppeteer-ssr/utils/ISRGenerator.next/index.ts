@@ -22,6 +22,7 @@ import {
   isAvailablePointsTo,
   isPointsToRoute,
 } from '../SSRGenerator.next/utils'
+import { getKey } from '../Cache.worker/utils'
 import CacheManager from './CacheManager.worker/utils'
 
 const pagesPath = getPagesPath()
@@ -52,16 +53,24 @@ let totalRequestsWaitingToCrawl = 0
 // NOTE - Urls being rendered right now. A waiting item of an url that is
 // already rendering is dropped: forceToCrawl would remove its cache and
 // restart the render from scratch
+// NOTE - Kept by page cache key: the urls of a page differ by their bot /
+// locale / environment info (ex: the sitemap prerender and a bot request)
 const crawlingUrls = new Set<string>()
+const _isCrawling = (url: string) => crawlingUrls.has(getKey(url) as string)
 
 const _crawl = (params: Parameters<typeof ISRHandler>[0]) => {
-  crawlingUrls.add(params.url)
+  const key = getKey(params.url) as string
+  crawlingUrls.add(key)
 
-  return ISRHandler(params).finally(() => crawlingUrls.delete(params.url))
+  return ISRHandler(params).finally(() => crawlingUrls.delete(key))
 } // _crawl
 
 const _getRunningCrawls = () =>
   totalRequestsToCrawl + totalRequestsWaitingToCrawl
+
+// NOTE - Running crawls (the sitemap prerender only runs while it is 0)
+export const getRunningCrawlCount = () =>
+  _getRunningCrawls() + waitingToCrawlList.size
 
 // NOTE - Start crawls from the waiting list while the limit and the
 // resources allow it
@@ -74,7 +83,7 @@ const _crawlNextWaiting = () => {
     const nextCrawlItem = waitingToCrawlList.values().next().value
     waitingToCrawlList.delete(nextCrawlItem.url)
 
-    if (crawlingUrls.has(nextCrawlItem.url)) continue
+    if (_isCrawling(nextCrawlItem.url)) continue
 
     resetTotalToCrawlTimeout()
     totalRequestsWaitingToCrawl++
@@ -356,7 +365,7 @@ const ISRGenerator = async ({
         Boolean(
           ISRHandlerParams.forceToCrawl &&
           !NonNullableResult.available &&
-          !crawlingUrls.has(ISRHandlerParams.url)
+          !_isCrawling(ISRHandlerParams.url)
         )
 
       // NOTE - A crawl from the waiting list that does not run frees its slot
@@ -551,7 +560,7 @@ const ISRGenerator = async ({
     !ISRHandlerParams.forceToCrawl &&
     CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0 &&
     (waitingToCrawlList.has(ISRHandlerParams.url) ||
-      crawlingUrls.has(ISRHandlerParams.url))
+      _isCrawling(ISRHandlerParams.url))
   ) {
     const deadline = startGenerating + CRAWL_WAIT_OPTIONS.firstResponseWaitMs
 

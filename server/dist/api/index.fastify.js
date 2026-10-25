@@ -16,28 +16,28 @@ var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
 var _constants = require('../constants');
 
-const fetchCache = (() => {
-  return (cacheKey) =>
-    new Promise((res) => {
-      setTimeout(async () => {
-        const apiCache = await _CacheManager.getData.call(void 0, cacheKey)
+// NOTE - Wait for the cache of a request that another request is fetching.
+// It polls until the fetch timeout: a fetch that never stores its result
+// (failed request, cache store down) must not keep the request waiting (each
+// recursive wait used to keep its promise chain alive -> heap out of memory)
+const FETCH_CACHE_POLL_INTERVAL = 50
+const FETCH_CACHE_MAX_WAIT = 10000
+const fetchCache = async (cacheKey) => {
+  const deadline = Date.now() + FETCH_CACHE_MAX_WAIT
 
-        if (!apiCache) return res(null)
+  while (Date.now() < deadline) {
+    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
 
-        if (
-          // apiCache.status === 'ready' ||
-          apiCache.cache &&
-          apiCache.cache.data &&
-          apiCache.cache.data !== '{}'
-        )
-          res(apiCache.cache)
-        else {
-          const tmpCache = await fetchCache(cacheKey)
-          res(tmpCache)
-        }
-      }, 10)
-    })
-})() // fetchCache
+    const apiCache = await _CacheManager.getData.call(void 0, cacheKey)
+
+    if (!apiCache) return null
+    if (apiCache.cache &&
+      apiCache.cache.data &&
+      apiCache.cache.data !== '{}') return apiCache.cache
+  }
+
+  return null
+} // fetchCache
 
 const convertData = (
   result
