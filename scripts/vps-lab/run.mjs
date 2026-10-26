@@ -19,6 +19,7 @@
  *
  * Options (env): VPS_CPUS=2 VPS_MEMORY=4g VPS_DISK=75G NET_RATE=50mbit
  * NET_DELAY=30ms BURST_PAGES=20 BURST_PATHS= LOAD_VUS=50 LOAD_SECONDS=90
+ * TCP_PROFILE=baseline|ram VPS_SKIP_BUILD=1 (use an existing image)
  */
 import { execFileSync, spawnSync } from 'child_process'
 import fs from 'fs'
@@ -46,7 +47,11 @@ const CONFIG = {
   burstPages: Number(env('BURST_PAGES', 20)),
   loadVus: Number(env('LOAD_VUS', 50)),
   loadSeconds: Number(env('LOAD_SECONDS', 90)),
+  tcpProfile: env('TCP_PROFILE', 'baseline'),
+  skipBuild: env('VPS_SKIP_BUILD', '0') === '1',
 }
+if (!['baseline', 'ram'].includes(CONFIG.tcpProfile))
+  throw new Error('TCP_PROFILE must be baseline or ram')
 const SCENARIOS = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['chromium', 'lightpanda', 'chromium+redis', 'lightpanda+redis']
@@ -127,17 +132,21 @@ const client = (options) =>
   )
 
 const setupVps = () => {
-  // NOTE - Rebuild so the VPS runs the current code (cached when unchanged)
-  log(`Build ${IMAGE}...`)
-  docker([
-    'build',
-    '-q',
-    '-f',
-    path.join(LAB_DIR, 'Dockerfile'),
-    '-t',
-    IMAGE,
-    ROOT,
-  ])
+  if (!CONFIG.skipBuild) {
+    // NOTE - Rebuild so the VPS runs the current code (cached when unchanged)
+    log(`Build ${IMAGE}...`)
+    docker([
+      'build',
+      '-q',
+      '-f',
+      path.join(LAB_DIR, 'Dockerfile'),
+      '-t',
+      IMAGE,
+      ROOT,
+    ])
+  } else {
+    log(`Use existing image ${IMAGE} (VPS_SKIP_BUILD=1)`)
+  }
   spawnSync('docker', ['network', 'create', NETWORK], { stdio: 'ignore' })
   spawnSync('docker', ['rm', '-f', VPS], { stdio: 'ignore' })
 
@@ -161,11 +170,34 @@ const setupVps = () => {
     '--cap-add',
     'NET_ADMIN',
   ]
+  let bufferMax = 0
+  const profileArgs = []
+  if (CONFIG.tcpProfile === 'ram') {
+    const match = /^(\d+)([kmg]?)$/i.exec(CONFIG.memory)
+    if (!match) throw new Error(`Unsupported VPS_MEMORY value: ${CONFIG.memory}`)
+    const scale = { '': 1, k: 1024, m: 1024 ** 2, g: 1024 ** 3 }[
+      match[2].toLowerCase()
+    ]
+    const memoryKiB = Math.floor((Number(match[1]) * scale) / 1024)
+    bufferMax = execFileSync(
+      'bash',
+      [path.join(ROOT, 'scripts/vps-setup/network-profile.sh'), String(memoryKiB)],
+      { encoding: 'utf8' }
+    ).trim()
+    // Docker permits these namespaced sysctls at container creation, while
+    // the runtime procfs mount rejects writes after startup.
+    profileArgs.push(
+      '--sysctl',
+      `net.ipv4.tcp_rmem=4096 131072 ${bufferMax}`,
+      '--sysctl',
+      `net.ipv4.tcp_wmem=4096 16384 ${bufferMax}`
+    )
+  }
   try {
-    docker([...runArgs, '--storage-opt', `size=${CONFIG.disk}`, IMAGE])
+    docker([...runArgs, ...profileArgs, '--storage-opt', `size=${CONFIG.disk}`, IMAGE])
   } catch {
     spawnSync('docker', ['rm', '-f', VPS], { stdio: 'ignore' })
-    docker([...runArgs, IMAGE])
+    docker([...runArgs, ...profileArgs, IMAGE])
   }
   // NOTE - overlayfs on ext4 may accept --storage-opt without enforcing it,
   // so check the real size of the root filesystem
@@ -175,8 +207,14 @@ const setupVps = () => {
   const diskLimited = diskSizeGB <= parseInt(CONFIG.disk, 10) + 1
 
   docker(['cp', `${LAB_DIR}/.`, `${VPS}:/app/scripts/vps-lab/`])
+  docker(['cp', `${ROOT}/scripts/vps-setup/.`, `${VPS}:/app/scripts/vps-setup/`])
   vpsExec(
     `tc qdisc replace dev eth0 root netem delay ${CONFIG.netDelay} 5ms rate ${CONFIG.netRate}`
+  )
+  log(
+    `TCP profile ${CONFIG.tcpProfile}: RAM ceiling ${vpsExec('cat /sys/fs/cgroup/memory.max')} bytes` +
+      `${bufferMax ? `, buffer max ${bufferMax} bytes` : ''}, ` +
+      `tcp_rmem ${vpsExec('cat /proc/sys/net/ipv4/tcp_rmem')}`
   )
   log(
     `VPS: ${vpsExec('cat /etc/centos-release')}, ${CONFIG.cpus} CPU, ${CONFIG.memory} RAM, ` +
@@ -337,6 +375,7 @@ const runScenario = async (name) => {
     name,
     engine,
     redis,
+    tcpProfile: CONFIG.tcpProfile,
     startupMs,
     preflight,
     apiPaths: apiPaths.length,

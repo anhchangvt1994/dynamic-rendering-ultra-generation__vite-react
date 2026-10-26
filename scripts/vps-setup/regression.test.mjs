@@ -36,8 +36,9 @@ SSH_PORT=2222
 SSH_CONNECTION='198.51.100.10 50000 203.0.113.10 2200'
 ORIGINAL_SSH_PORTS='22 2200'
 FAMILY=debian
+FIREWALL_BACKEND=ufw
 harden_ssh
-firewall_lockdown
+firewall_open_web
 `
     const result = spawnSync('bash', ['-c', script], { encoding: 'utf8' })
     assert.equal(result.status, 0, result.stderr)
@@ -79,8 +80,8 @@ firewall_lockdown
         [
           '-c',
           script.replace(
-            'harden_ssh\nfirewall_lockdown',
-            `${failure}\nharden_ssh\nfirewall_lockdown`
+            'harden_ssh\nfirewall_open_web',
+            `${failure}\nharden_ssh\nfirewall_open_web`
           ),
         ],
         { encoding: 'utf8' }

@@ -42,4 +42,4 @@ output=$(bash setup.sh --dry-run --domain example.com --host root@203.0.113.10 -
 [[ $output == *'App directory: /srv/existing-app'* ]] || { echo 'Remote existing repo override was ignored'; exit 1; }
 bash setup.sh --help >/dev/null
 echo 'PASS: syntax, help, preview, route rendering and invalid inputs'
-node --test regression.test.mjs
+node --test regression.test.mjs security.test.mjs

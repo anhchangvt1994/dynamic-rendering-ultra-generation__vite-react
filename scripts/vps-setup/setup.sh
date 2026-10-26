@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # NOTE - One-shot VPS setup: nginx (HTTP/2 + HTTP/3/QUIC) as a reverse proxy or
-# static file server, Let's Encrypt SSL, firewall, SSH hardening, fail2ban,
+# static file server, Let's Encrypt SSL, existing firewall rules, fail2ban,
 # kernel hardening and automatic security updates. Uses the existing repository
 # to install Node.js + yarn + pm2 and run the project as a systemd service.
 # Supports Ubuntu / Debian and the RHEL family (Rocky, Alma, CentOS Stream,
-# RHEL, Fedora). Safe to re-run: every file it writes is regenerated.
+# RHEL, Fedora). Re-runs regenerate managed files; review changes on existing VPSes.
 #
 #   On the VPS:          sudo bash setup.sh --domain example.com --email you@example.com
 #   From your machine:   bash setup.sh --host root@<VPS_IP> --domain example.com
@@ -28,6 +28,7 @@ SSH_PORT=''
 SSH_KEY=''
 NEW_USER=''
 ORIGINAL_SSH_PORTS=''
+FIREWALL_BACKEND=''
 SSH_CONNECTION=${VPS_SETUP_SSH_CONNECTION:-${SSH_CONNECTION:-}}
 SSL_MODE=letsencrypt # letsencrypt | staging | self-signed
 SKIP_DNS_CHECK=0
@@ -36,7 +37,7 @@ RATE=30
 BURST=100
 MAX_BODY=10m
 PROXY_TIMEOUT=120s
-SKIP_UPGRADE=0
+SKIP_UPGRADE=1
 INTERACTIVE=0
 DRY_RUN=0
 
@@ -84,7 +85,7 @@ Usage:
 
 Example:
   bash setup.sh --host root@203.0.113.10 --domain anhchangvt1994.com \\
-    --email you@anhchangvt1994.com --www --route /=8080
+    --email you@anhchangvt1994.com --www --route /=8080 --app-dir /srv/anhchangvt1994.com
 
 Remote (from macOS / Linux / Windows Git Bash or WSL; the VPS itself must be Linux)
   --host <USER@VPS_IP>       SSH into the VPS, upload this script and run it there
@@ -126,7 +127,9 @@ App (install Node.js, build and run the existing project behind nginx)
                              yarn start:redis-api:pm2:worker under vps-app.service
 
 SSH / users
+                             By default SSH configuration and its service are left untouched.
   --ssh-port <PORT>          Add an SSH port; keep existing ports for safe reconnection
+                             Requires a regular ssh/sshd service (socket activation is refused).
                                $(eg --ssh-port)
   --ssh-key <PUBKEY|FILE>    Public key to authorize (for --user, else the sudo user, else root)
                                $(eg --ssh-key)
@@ -142,7 +145,8 @@ Tuning
                                $(eg --max-body)
   --proxy-timeout <TIME>     Upstream read/send timeout (default 120s)
                                $(eg --proxy-timeout)
-  --no-upgrade               Skip the full system package upgrade
+  --upgrade                  Opt in to a full system package upgrade (may restart services)
+  --no-upgrade               Skip the full system package upgrade (default)
   --dry-run                  Validate inputs and print route configuration locally; change nothing
   -h, --help                 Show this help
 EOF
@@ -194,6 +198,7 @@ parse_args() {
       --max-body) need "$@"; MAX_BODY=$2; shift ;;
       --proxy-timeout) need "$@"; PROXY_TIMEOUT=$2; shift ;;
       --no-upgrade) SKIP_UPGRADE=1 ;;
+      --upgrade) SKIP_UPGRADE=0 ;;
       --dry-run) DRY_RUN=1 ;;
       -h | --help) usage; exit 0 ;;
       *) die "Unknown option: $1 (bash setup.sh --help lists them)" ;;
@@ -240,8 +245,11 @@ run_remote() {
   has ssh || die "ssh is not installed (Windows: run this from Git Bash or WSL)"
   [[ $REMOTE_HOST =~ ^([a-zA-Z0-9_][a-zA-Z0-9_.-]*@)?[a-zA-Z0-9][a-zA-Z0-9.:-]*$ ]] || die "Invalid --host, $(eg --host)"
   [[ -z $REMOTE_PORT ]] || { [[ $REMOTE_PORT =~ ^[0-9]{1,5}$ ]] && ((10#$REMOTE_PORT > 0 && 10#$REMOTE_PORT < 65536)); } || die "Invalid --host-port (1-65535)"
-  local self=${BASH_SOURCE[0]} opts=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+  local self=${BASH_SOURCE[0]} self_dir profile opts=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
   [[ -f $self ]] || die "Run the script from a file (bash setup.sh ...), not from a pipe"
+  self_dir=$(cd -- "$(dirname -- "$self")" && pwd)
+  profile=$self_dir/network-profile.sh
+  [[ -f $profile ]] || die "Missing companion file: $profile"
   [[ -n $REMOTE_PORT ]] && opts+=(-p "$REMOTE_PORT")
   [[ -n $REMOTE_KEY ]] && opts+=(-i "$REMOTE_KEY")
 
@@ -267,21 +275,28 @@ run_remote() {
       key=$(grep -m1 -E '^(ssh-|ecdsa-|sk-)' "$a" || true)
       [[ -n $key ]] && { args+=(--ssh-key "$key"); ok "Authorizing your public key $a on the VPS"; break; }
     done
-    [[ -n $key ]] || warn "No local public key found (~/.ssh/id_*.pub): SSH password login stays on"
+    [[ -n $key ]] || warn "No local public key found (~/.ssh/id_*.pub): the existing SSH authentication policy is retained"
   fi
 
-  local cmd='' payload
+  local cmd='' payload profile_payload
   for a in ${args[@]+"${args[@]}"}; do cmd+=" $(shq "$a")"; done
   # NOTE - Script and run in ONE ssh session: one password prompt, and a TTY for
   # the questions and sudo. base64 survives any login shell
   payload=$(base64 <"$self" | tr -d '\n')
+  profile_payload=$(base64 <"$profile" | tr -d '\n')
   log "Running setup.sh on $REMOTE_HOST ($PLATFORM -> VPS over SSH)"
   local rc=0
   ssh -t "${opts[@]}" "$REMOTE_HOST" "umask 077
-    tmp=\$(mktemp /tmp/vps-setup.XXXXXXXXXX) || exit 1
-    trap 'rm -f \"\$tmp\"' EXIT HUP INT TERM
-    echo $payload | base64 -d > \"\$tmp\" || exit 1
-    if [ \"\$(id -u)\" = 0 ]; then bash \"\$tmp\"$cmd; else sudo env VPS_SETUP_SSH_CONNECTION=\"\$SSH_CONNECTION\" bash \"\$tmp\"$cmd; fi" || rc=$?
+    tmp=\$(mktemp -d /tmp/vps-setup.XXXXXXXXXX) || exit 1
+    trap 'rm -rf \"\$tmp\"' EXIT HUP INT TERM
+    echo $payload | base64 -d > \"\$tmp/setup.sh\" || exit 1
+    echo $profile_payload | base64 -d > \"\$tmp/network-profile.sh\" || exit 1
+    if [ \"\$(id -u)\" = 0 ]; then bash \"\$tmp/setup.sh\"$cmd; else sudo env VPS_SETUP_SSH_CONNECTION=\"\$SSH_CONNECTION\" bash \"\$tmp/setup.sh\"$cmd; fi" || rc=$?
+  if ((rc == 0)); then
+    ok "Remote setup finished; its temporary SSH session has closed normally"
+    echo "Reconnect from a second terminal: ssh ${REMOTE_PORT:+-p $REMOTE_PORT }$REMOTE_HOST"
+    echo "A new connection timing out is NOT normal completion; use the provider console and README recovery steps."
+  fi
   exit $rc
 }
 
@@ -434,7 +449,7 @@ detect_os() {
 }
 
 apt_get() {
-  DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get -y -q \
+  DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l apt-get -y -q \
     -o DPkg::Lock::Timeout=600 \
     -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"
 }
@@ -448,7 +463,7 @@ install_base() {
   if [[ $FAMILY == debian ]]; then
     apt_get update
     ((SKIP_UPGRADE)) || apt_get upgrade
-    pkg_install ca-certificates curl gnupg openssl dnsutils ufw fail2ban python3-systemd \
+    pkg_install ca-certificates curl gnupg openssl dnsutils fail2ban nftables python3-systemd \
       certbot unattended-upgrades
   else
     if [[ $OS_ID != fedora ]] && ! rpm -q epel-release >/dev/null 2>&1; then
@@ -456,7 +471,7 @@ install_base() {
         dnf -y -q install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OS_MAJOR}.noarch.rpm"
     fi
     ((SKIP_UPGRADE)) || dnf -y -q upgrade
-    pkg_install ca-certificates curl openssl bind-utils firewalld fail2ban policycoreutils-python-utils
+    pkg_install ca-certificates curl openssl bind-utils fail2ban nftables policycoreutils-python-utils
     pkg_install fail2ban-systemd >/dev/null 2>&1 || true
     pkg_install certbot || warn "certbot is not packaged here, installing it with pip"
     pkg_install dnf-automatic || pkg_install dnf5-plugin-automatic || warn "No dnf-automatic package found"
@@ -960,10 +975,22 @@ check_dns() {
 }
 
 current_ssh_ports() {
-  mkdir -p /run/sshd
-  local ports
-  ports=$(sshd -T 2>/dev/null | awk '$1 == "port" { print $2 }' | sort -u)
-  echo "${ports:-22}"
+  # Never invent port 22 when config inspection fails.
+  (sshd -T 2>/dev/null || true) | awk '$1 == "port" { print $2 }' | sort -u
+}
+
+live_ssh_ports() {
+  (ss -H -ltnp 2>/dev/null || true) |
+    awk '/"sshd"/ { n = split($4, address, ":"); print address[n] }'
+  local unit
+  for unit in ssh.socket sshd.socket; do
+    if systemctl is-active -q "$unit" 2>/dev/null; then
+      (systemctl show "$unit" --property=Listen --value 2>/dev/null || true) |
+        awk '{ for (i=1; i<NF; i++) if ($(i+1) == "(Stream)" && $i !~ /^\//) {
+          n=split($i, address, ":"); print address[n]
+        } }'
+    fi
+  done
 }
 
 safe_ssh_ports() {
@@ -972,26 +999,56 @@ safe_ssh_ports() {
   {
     printf '%s\n' $ORIGINAL_SSH_PORTS
     current_ssh_ports
+    live_ssh_ports
     [[ -z $SSH_CONNECTION ]] || printf '%s\n' "${SSH_CONNECTION##* }"
     [[ -z $SSH_PORT ]] || printf '%s\n' "$SSH_PORT"
   } | awk '/^[0-9]+$/ && $1 > 0 && $1 < 65536' | sort -nu
 }
 
+detect_firewall() {
+  local ufw_active=0 firewalld_active=0
+  if has ufw && LC_ALL=C ufw status 2>/dev/null | grep '^Status: active' >/dev/null; then ufw_active=1; fi
+  if has firewall-cmd && firewall-cmd --state >/dev/null 2>&1; then firewalld_active=1; fi
+  ((ufw_active == 0 || firewalld_active == 0)) ||
+    die "Both UFW and firewalld are active. Resolve this in the provider console before running setup"
+  FIREWALL_BACKEND=none
+  ((ufw_active == 0)) || FIREWALL_BACKEND=ufw
+  ((firewalld_active == 0)) || FIREWALL_BACKEND=firewalld
+  ok "Existing firewall: $FIREWALL_BACKEND"
+}
+
 firewall_open_web() {
-  log "Opening HTTP / HTTPS / HTTP3 (UDP 443) in the firewall"
-  local p
-  if [[ $FAMILY == debian ]]; then
+  log "Adding web and SSH allowances to the existing active firewall"
+  [[ -n $FIREWALL_BACKEND ]] || detect_firewall
+  if [[ $FIREWALL_BACKEND == none ]]; then
+    warn "No active UFW/firewalld detected; firewall activation and existing nftables/iptables rules are left to the administrator. Configure the provider firewall before exposing the app"
+    return 0
+  fi
+  local p ports zone zones
+  ports=$(safe_ssh_ports)
+  [[ -n $ports ]] || die "Cannot identify SSH ports; refusing to change firewall rules"
+  if [[ $FIREWALL_BACKEND == ufw ]]; then
+    for p in $ports; do ufw insert 1 allow "$p/tcp" >/dev/null; done
     ufw allow 80/tcp >/dev/null
     ufw allow 443/tcp >/dev/null
     ufw allow 443/udp >/dev/null
-    for p in $(safe_ssh_ports); do ufw insert 1 allow "$p/tcp" >/dev/null; done
   else
-    systemctl enable --now firewalld >/dev/null 2>&1
-    firewall-cmd -q --permanent --add-service=http --add-service=https --add-port=443/udp
-    for p in $(safe_ssh_ports); do firewall-cmd -q --permanent --add-port="$p/tcp"; done
-    firewall-cmd -q --reload
+    # Sources and interfaces may use non-default zones. Add to active zones plus
+    # the default, without reloading away unrelated runtime-only allowances.
+    zones=$({ firewall-cmd --get-default-zone; firewall-cmd --get-active-zones | awk '/^[^[:space:]]/ {print $1}'; } | sort -u)
+    [[ -n $zones ]] || die "Cannot identify active firewalld zones"
+    for zone in $zones; do
+      for p in $ports; do
+        firewall-cmd -q --zone="$zone" --add-port="$p/tcp"
+        firewall-cmd -q --permanent --zone="$zone" --add-port="$p/tcp"
+      done
+      for p in 80/tcp 443/tcp 443/udp; do
+        firewall-cmd -q --zone="$zone" --add-port="$p"
+        firewall-cmd -q --permanent --zone="$zone" --add-port="$p"
+      done
+    done
   fi
-  ok "80/tcp, 443/tcp, 443/udp open"
+  ok "Web allowances added; SSH ports retained: $(echo $ports). Existing firewall policies preserved"
 }
 
 issue_cert() {
@@ -1085,12 +1142,29 @@ configure_site() {
 # Hardening
 # ---------------------------------------------------------------------------
 
+restore_fail2ban_config() {
+  local backup=$1 file
+  for file in /etc/fail2ban/jail.d/zz-vps.conf /etc/fail2ban/filter.d/nginx-probe.conf; do
+    if [[ -f $backup/${file##*/} ]]; then
+      cp -a "$backup/${file##*/}" "$file"
+    else
+      rm -f "$file"
+    fi
+  done
+  rm -rf "$backup"
+}
+
 setup_fail2ban() {
   log "Configuring fail2ban"
-  local port client_ip=''
+  local port client_ip='' backup file
   port=$(safe_ssh_ports | paste -sd, -)
+  [[ -n $port ]] || die "Cannot identify SSH ports for the fail2ban sshd jail"
   [[ -z $SSH_CONNECTION ]] || client_ip=${SSH_CONNECTION%% *}
   [[ $client_ip =~ ^[0-9a-fA-F:.]+$ ]] || client_ip=''
+  backup=$(mktemp -d)
+  for file in /etc/fail2ban/jail.d/zz-vps.conf /etc/fail2ban/filter.d/nginx-probe.conf; do
+    [[ ! -f $file ]] || cp -a "$file" "$backup/${file##*/}"
+  done
   cat >/etc/fail2ban/filter.d/nginx-probe.conf <<'EOF'
 # Managed by vps-setup (scripts/vps-setup/setup.sh) - re-running it overwrites this file
 # Every line of probe.log is a request to a blocked path (see snippets/block-exploits.conf)
@@ -1113,13 +1187,15 @@ ignoreip = 127.0.0.1/8 ::1${client_ip:+ $client_ip}
 enabled = true
 port = $port
 backend = systemd
-mode = aggressive
+mode = normal
+action = nftables-multiport[name=vps-sshd, port="$port", protocol=tcp]
 
-# Bans on all ports and protocols, so HTTP/3 (UDP 443) is covered too
+# Web bans must never block SSH. QUIC is a separate, port-limited UDP action.
 [nginx-limit-req]
 enabled = true
 logpath = /var/log/nginx/error.log
-banaction = %(banaction_allports)s
+action = nftables-multiport[actname=vps-limit-tcp, name=vps-limit-tcp, port="80,443", protocol=tcp]
+         nftables-multiport[actname=vps-limit-udp, name=vps-limit-udp, port="443", protocol=udp]
 findtime = 1m
 maxretry = 20
 
@@ -1127,19 +1203,33 @@ maxretry = 20
 enabled = true
 filter = nginx-probe
 logpath = /var/log/nginx/probe.log
-banaction = %(banaction_allports)s
+action = nftables-multiport[actname=vps-probe-tcp, name=vps-probe-tcp, port="80,443", protocol=tcp]
+         nftables-multiport[actname=vps-probe-udp, name=vps-probe-udp, port="443", protocol=udp]
 findtime = 1h
 maxretry = 3
 bantime = 1d
 EOF
+  if ! fail2ban-client -t; then
+    restore_fail2ban_config "$backup"
+    die "fail2ban validation failed; previous files restored and its running service was not restarted"
+  fi
   systemctl enable fail2ban >/dev/null 2>&1
-  systemctl restart fail2ban
+  if ! systemctl restart fail2ban; then
+    restore_fail2ban_config "$backup"
+    systemctl restart fail2ban || warn "fail2ban recovery failed; inspect journalctl -u fail2ban"
+    die "fail2ban restart failed; previous configuration restored"
+  fi
   local i
   for i in {1..15}; do
     fail2ban-client ping >/dev/null 2>&1 && break
     sleep 1
   done
-  fail2ban-client ping >/dev/null 2>&1 || die "fail2ban did not start: journalctl -u fail2ban"
+  if ! fail2ban-client ping >/dev/null 2>&1; then
+    restore_fail2ban_config "$backup"
+    systemctl restart fail2ban || true
+    die "fail2ban did not become ready; previous configuration restored. Inspect journalctl -u fail2ban"
+  fi
+  rm -rf "$backup"
   if [[ -n $client_ip ]]; then
     local jail
     for jail in sshd nginx-probe nginx-limit-req; do
@@ -1151,12 +1241,17 @@ EOF
 
 setup_sysctl() {
   log "Kernel network hardening"
-  local file=/etc/sysctl.d/90-vps-hardening.conf
+  local file=/etc/sysctl.d/90-vps-hardening.conf buffer_max
+  # The helper is shipped beside setup.sh in remote mode and lives beside it
+  # in local mode. Per-flow autotuning grows only when a connection needs it.
+  if ! declare -F vps_network_buffer_max_bytes >/dev/null; then
+    source "$(dirname -- "${BASH_SOURCE[0]:-$0}")/network-profile.sh"
+  fi
+  buffer_max=$(vps_network_buffer_max_bytes)
   cat >$file <<EOF
 $MARKER
-# Spoofing / redirects / source routing
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
+# Preserve rp_filter: strict reverse-path checks can break cloud/VPN routing.
+# Redirects / source routing
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 net.ipv4.conf.all.secure_redirects = 0
@@ -1180,9 +1275,11 @@ kernel.kptr_restrict = 2
 kernel.dmesg_restrict = 1
 fs.protected_hardlinks = 1
 fs.protected_symlinks = 1
-# QUIC (HTTP/3) needs larger UDP buffers
-net.core.rmem_max = 7500000
-net.core.wmem_max = 7500000
+# RAM-capped TCP autotuning and QUIC (HTTP/3) UDP buffers
+net.core.rmem_max = $buffer_max
+net.core.wmem_max = $buffer_max
+net.ipv4.tcp_rmem = 4096 131072 $buffer_max
+net.ipv4.tcp_wmem = 4096 16384 $buffer_max
 EOF
   if modprobe tcp_bbr 2>/dev/null && grep -qw bbr /proc/sys/net/ipv4/tcp_available_congestion_control; then
     echo tcp_bbr >/etc/modules-load.d/bbr.conf
@@ -1225,15 +1322,19 @@ EOF
   fi
 }
 
-restart_ssh() {
-  if systemctl is-active -q ssh.socket 2>/dev/null; then
-    systemctl daemon-reload && systemctl restart ssh.socket && systemctl restart ssh.service
-  else
-    systemctl restart ssh 2>/dev/null || systemctl restart sshd
-  fi
+reload_ssh() {
+  # Reload the listener without restarting established SSH sessions.
+  systemctl reload ssh 2>/dev/null || systemctl reload sshd
 }
 
 harden_ssh() {
+  if [[ -z $SSH_PORT ]]; then
+    ok "SSH configuration and service left untouched (no --ssh-port requested)"
+    return 0
+  fi
+  if systemctl is-active -q ssh.socket 2>/dev/null || systemctl is-active -q sshd.socket 2>/dev/null; then
+    die "--ssh-port cannot change a socket-activated SSH listener safely. Configure ssh.socket in the provider console; run setup without --ssh-port"
+  fi
   log "Hardening SSH"
   local conf=/etc/ssh/sshd_config.d/00-vps-hardening.conf backup ports p
   ports=$(safe_ssh_ports)
@@ -1278,35 +1379,25 @@ EOF
     rm -rf "$backup"
     die "sshd rejected the hardened config; the previous configuration was restored"
   fi
-  # NOTE - Ubuntu 22.10+ starts sshd from ssh.socket, the port lives in the socket
-  if ! restart_ssh; then
+  if ! reload_ssh; then
     cp -a "$backup/sshd_config" /etc/ssh/sshd_config
     if [[ -f $backup/hardening.conf ]]; then cp -a "$backup/hardening.conf" "$conf"; else rm -f "$conf"; fi
-    restart_ssh || warn "SSH recovery failed: use the provider console to inspect the SSH service"
+    reload_ssh || warn "SSH recovery failed: use the provider console to inspect the SSH service"
     rm -rf "$backup"
-    die "SSH restart failed; the previous configuration was restored"
+    die "SSH reload failed; the previous configuration was restored"
   fi
 
   rm -rf "$backup"
   ok "System root/password login policy preserved; SSH ports: $(echo $ports)"
 }
 
-firewall_lockdown() {
-  log "Firewall: deny everything else"
-  local p
-  if [[ $FAMILY == debian ]]; then
-    ufw default deny incoming >/dev/null
-    ufw default allow outgoing >/dev/null
-    for p in $(safe_ssh_ports); do ufw insert 1 allow "$p/tcp" >/dev/null; done
-    ufw --force enable >/dev/null
-    ok "ufw active: $(ufw status | awk 'NR > 4 && !/\(v6\)/ { print $1 }' | paste -sd' ' -)"
-  else
-    for p in $(safe_ssh_ports); do firewall-cmd -q --permanent --add-port="$p/tcp"; done
-    # Rocky / Alma expose the Cockpit admin panel (9090) by default
-    firewall-cmd -q --permanent --remove-service=cockpit 2>/dev/null || true
-    firewall-cmd -q --reload
-    ok "firewalld: $(firewall-cmd --list-services) $(firewall-cmd --list-ports)"
-  fi
+firewall_status() {
+  log "Firewall status (activation and default policies are administrator-managed)"
+  case $FIREWALL_BACKEND in
+    ufw) ufw status ;;
+    firewalld) firewall-cmd --get-active-zones ;;
+    *) echo "    No active UFW/firewalld was managed by this run" ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -1509,9 +1600,17 @@ verify() {
 }
 
 summary() {
-  local ssh_port=${SSH_PORT:-$(current_ssh_ports | head -1)} ssh_host='<VPS_IP>'
+  local ssh_port=$SSH_PORT ssh_host='<VPS_IP>'
+  if [[ -z $ssh_port && -n $SSH_CONNECTION ]]; then ssh_port=${SSH_CONNECTION##* }; fi
+  [[ -n $ssh_port ]] || ssh_port=$(live_ssh_ports | sort -nu | head -1)
+  [[ -n $ssh_port ]] || ssh_port=$(current_ssh_ports | head -1)
+  ssh_port=${ssh_port:-<SSH_PORT>}
   [[ -z $SSH_CONNECTION ]] || ssh_host=$(echo "$SSH_CONNECTION" | awk '{print $3}')
-  printf '\n\033[1;32m✔ Done.\033[0m  https://%s\n\n' "$DOMAIN"
+  if ((${#WARNINGS[@]})); then
+    printf '\n\033[1;33mSetup finished with warnings (review below).\033[0m  https://%s\n\n' "$DOMAIN"
+  else
+    printf '\n\033[1;32m✔ Setup finished.\033[0m  https://%s\n\n' "$DOMAIN"
+  fi
   echo "  Site config     /etc/nginx/conf.d/$DOMAIN.conf"
   echo "  Edit headers    /etc/nginx/snippets/security-headers.conf (CSP is there, commented)"
   echo "  Logs            /var/log/nginx/{access,error,probe}.log, setup log $LOG_FILE"
@@ -1525,6 +1624,9 @@ summary() {
   echo "  TLS grade       https://www.ssllabs.com/ssltest/analyze.html?d=$DOMAIN"
   echo
   echo "  Cloud firewall (AWS SG, GCP, Oracle, ...): allow TCP 80, TCP 443, UDP 443, TCP $ssh_port"
+  echo "  Verify SSH from a NEW terminal before closing the current session:"
+  echo "    ssh -p $ssh_port ${NEW_USER:-${SUDO_USER:-root}}@$ssh_host"
+  echo "  Completion does not verify Internet-to-VPS connectivity. A timeout requires console diagnosis."
   if [[ -n $SSH_PORT ]]; then
     printf '\n\033[1;33m  SSH port %s requested; existing ports are retained. KEEP THIS SESSION OPEN and test:\033[0m\n' "$SSH_PORT"
     echo "    ssh -p $SSH_PORT ${NEW_USER:-${SUDO_USER:-root}}@$ssh_host"
@@ -1551,6 +1653,9 @@ main() {
     echo "    Domain: $DOMAIN; SSL: $SSL_MODE; www: $WWW"
     if ((SKIP_APP)); then echo '    App: skipped'; else echo "    App directory: ${APP_DIR:-<existing directory on VPS: pass --app-dir>}"; fi
     echo "    Required inbound: TCP 80/443, UDP 443, SSH ${SSH_PORT:-${REMOTE_PORT:-22}}"
+    echo "    SSH: ${SSH_PORT:+add port $SSH_PORT; }existing service unchanged unless --ssh-port is requested"
+    echo "    Firewall: update existing active manager only; do not enable or replace policies"
+    echo "    Full OS upgrade: $([[ $SKIP_UPGRADE == 1 ]] && echo skipped || echo requested)"
     render_upstreams
     render_locations
     return 0
@@ -1568,15 +1673,15 @@ main() {
   resolve_app_directory
   validate_args
   confirm_plan
-  # NOTE - Re-running without --ssh-port keeps the port moved by a previous run
-  [[ -n $SSH_PORT ]] || SSH_PORT=$(awk '$1 == "Port" { print $2; exit }' /etc/ssh/sshd_config.d/00-vps-hardening.conf 2>/dev/null || true)
   touch "$LOG_FILE" && chmod 600 "$LOG_FILE"
   exec > >(tee -a "$LOG_FILE") 2>&1
   echo "===== vps-setup $(date -Is) $*"
 
   log "Detecting the OS"
   detect_os
-  ORIGINAL_SSH_PORTS=$(current_ssh_ports)
+  ORIGINAL_SSH_PORTS=$(SSH_PORT='' safe_ssh_ports)
+  [[ -n $ORIGINAL_SSH_PORTS ]] || die "Cannot identify SSH listeners/configuration; inspect SSH from the provider console before setup"
+  detect_firewall
   install_base
   setup_users
   install_nginx
@@ -1595,9 +1700,9 @@ main() {
   setup_fail2ban
   setup_sysctl
   setup_auto_updates
-  # NOTE - Last: everything above can fail without touching remote access
+  # An SSH port change is explicit; default runs do not modify the SSH listener.
   harden_ssh
-  firewall_lockdown
+  firewall_status
   verify
   summary
 }
