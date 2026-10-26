@@ -1,29 +1,39 @@
-const fs = require('fs-extra')
 const { spawn } = require('child_process')
 
-const serverDistPath = './server/dist'
-
-// if (fs.existsSync(serverDistPath)) {
-//   try {
-//     fs.emptyDirSync(serverDistPath)
-//   } catch (err) {
-//     console.error(err)
-//   }
-// }
-
+// Resolve the project dependency directly; do not depend on a global CLI or PATH.
+let sucrase
+try {
+  sucrase = require.resolve('sucrase/bin/sucrase')
+} catch {
+  console.error(
+    'Sucrase is missing. Run yarn install --production=false in the project root.'
+  )
+  process.exit(1)
+}
 const child = spawn(
-  'sucrase',
-  ['--quiet ./server/src -d ./server/dist --transforms typescript,imports'],
+  process.execPath,
+  [
+    sucrase,
+    '--quiet',
+    './server/src',
+    '-d',
+    './server/dist',
+    '--transforms',
+    'typescript,imports',
+  ],
   {
     stdio: 'inherit',
-    shell: true,
   }
 )
 
+child.on('error', (error) => {
+  console.error(`Could not start Sucrase: ${error.message}`)
+  process.exit(1)
+})
 child.on('close', (code) => {
   if (code !== 0) {
     console.error(`Sucrase exited with code ${code}`)
-    process.exit(code)
+    process.exit(code || 1)
   }
   console.log('Sucrase build completed successfully')
 })

@@ -27,6 +27,8 @@ SPA=0
 SSH_PORT=''
 SSH_KEY=''
 NEW_USER=''
+ORIGINAL_SSH_PORTS=''
+SSH_CONNECTION=${VPS_SETUP_SSH_CONNECTION:-${SSH_CONNECTION:-}}
 SSL_MODE=letsencrypt # letsencrypt | staging | self-signed
 SKIP_DNS_CHECK=0
 HSTS_PRELOAD=0
@@ -126,10 +128,10 @@ App (optional: install Node.js, build and run this project behind nginx)
   --app-user <NAME>          Linux user that owns and runs the app, no sudo (default deploy)
                                $(eg --app-user)
                              Installs Node.js 22 + yarn + pm2, runs yarn build and
-                             yarn start:pm2:worker under vps-app.service
+                             yarn start:redis-api:pm2:worker under vps-app.service
 
 SSH / users
-  --ssh-port <PORT>          Move SSH to this port
+  --ssh-port <PORT>          Add an SSH port; keep existing ports for safe reconnection
                                $(eg --ssh-port)
   --ssh-key <PUBKEY|FILE>    Public key to authorize (for --user, else the sudo user, else root)
                                $(eg --ssh-key)
@@ -285,7 +287,7 @@ run_remote() {
     tmp=\$(mktemp /tmp/vps-setup.XXXXXXXXXX) || exit 1
     trap 'rm -f \"\$tmp\"' EXIT HUP INT TERM
     echo $payload | base64 -d > \"\$tmp\" || exit 1
-    if [ \"\$(id -u)\" = 0 ]; then bash \"\$tmp\"$cmd; else sudo bash \"\$tmp\"$cmd; fi" || rc=$?
+    if [ \"\$(id -u)\" = 0 ]; then bash \"\$tmp\"$cmd; else sudo env VPS_SETUP_SSH_CONNECTION=\"\$SSH_CONNECTION\" bash \"\$tmp\"$cmd; fi" || rc=$?
   exit $rc
 }
 
@@ -965,6 +967,17 @@ current_ssh_ports() {
   echo "${ports:-22}"
 }
 
+safe_ssh_ports() {
+  # sshd -T can differ from ssh.socket's live port. Include the connected port
+  # and the snapshot taken before package upgrades / configuration changes.
+  {
+    printf '%s\n' $ORIGINAL_SSH_PORTS
+    current_ssh_ports
+    [[ -z $SSH_CONNECTION ]] || printf '%s\n' "${SSH_CONNECTION##* }"
+    [[ -z $SSH_PORT ]] || printf '%s\n' "$SSH_PORT"
+  } | awk '/^[0-9]+$/ && $1 > 0 && $1 < 65536' | sort -nu
+}
+
 firewall_open_web() {
   log "Opening HTTP / HTTPS / HTTP3 (UDP 443) in the firewall"
   local p
@@ -972,11 +985,11 @@ firewall_open_web() {
     ufw allow 80/tcp >/dev/null
     ufw allow 443/tcp >/dev/null
     ufw allow 443/udp >/dev/null
-    for p in $(current_ssh_ports); do ufw limit "$p/tcp" >/dev/null; done
+    for p in $(safe_ssh_ports); do ufw insert 1 allow "$p/tcp" >/dev/null; done
   else
     systemctl enable --now firewalld >/dev/null 2>&1
     firewall-cmd -q --permanent --add-service=http --add-service=https --add-port=443/udp
-    for p in $(current_ssh_ports); do firewall-cmd -q --permanent --add-port="$p/tcp"; done
+    for p in $(safe_ssh_ports); do firewall-cmd -q --permanent --add-port="$p/tcp"; done
     firewall-cmd -q --reload
   fi
   ok "80/tcp, 443/tcp, 443/udp open"
@@ -1075,7 +1088,10 @@ configure_site() {
 
 setup_fail2ban() {
   log "Configuring fail2ban"
-  local port=${SSH_PORT:-$(current_ssh_ports | paste -sd, -)}
+  local port client_ip=''
+  port=$(safe_ssh_ports | paste -sd, -)
+  [[ -z $SSH_CONNECTION ]] || client_ip=${SSH_CONNECTION%% *}
+  [[ $client_ip =~ ^[0-9a-fA-F:.]+$ ]] || client_ip=''
   cat >/etc/fail2ban/filter.d/nginx-probe.conf <<'EOF'
 # Managed by vps-setup (scripts/vps-setup/setup.sh) - re-running it overwrites this file
 # Every line of probe.log is a request to a blocked path (see snippets/block-exploits.conf)
@@ -1092,7 +1108,7 @@ bantime.increment = true
 bantime.maxtime = 4w
 findtime = 10m
 maxretry = 5
-ignoreip = 127.0.0.1/8 ::1
+ignoreip = 127.0.0.1/8 ::1${client_ip:+ $client_ip}
 
 [sshd]
 enabled = true
@@ -1125,6 +1141,12 @@ EOF
     sleep 1
   done
   fail2ban-client ping >/dev/null 2>&1 || die "fail2ban did not start: journalctl -u fail2ban"
+  if [[ -n $client_ip ]]; then
+    local jail
+    for jail in sshd nginx-probe nginx-limit-req; do
+      fail2ban-client set "$jail" unbanip "$client_ip" >/dev/null || true
+    done
+  fi
   ok "Jails: $(fail2ban-client status | sed -n 's/.*Jail list:\s*//p')"
 }
 
@@ -1204,39 +1226,39 @@ EOF
   fi
 }
 
+restart_ssh() {
+  if systemctl is-active -q ssh.socket 2>/dev/null; then
+    systemctl daemon-reload && systemctl restart ssh.socket && systemctl restart ssh.service
+  else
+    systemctl restart ssh 2>/dev/null || systemctl restart sshd
+  fi
+}
+
 harden_ssh() {
   log "Hardening SSH"
-  local conf=/etc/ssh/sshd_config.d/00-vps-hardening.conf login_user=${SUDO_USER:-root}
-  local key_user='' root_login='' u
-  for u in "$NEW_USER" "$login_user"; do
-    [[ -n $u && $u != root ]] && has_usable_key "$u" && { key_user=$u; break; }
-  done
-  if [[ -n $key_user ]]; then
-    root_login=no
-  elif has_usable_key root; then
-    key_user=root
-    root_login=prohibit-password
-  fi
+  local conf=/etc/ssh/sshd_config.d/00-vps-hardening.conf backup ports p
+  ports=$(safe_ssh_ports)
+  backup=$(mktemp -d)
+  cp -a /etc/ssh/sshd_config "$backup/sshd_config"
+  [[ ! -f $conf ]] || cp -a "$conf" "$backup/hardening.conf"
 
   mkdir -p /etc/ssh/sshd_config.d /run/sshd
   # NOTE - sshd keeps the FIRST value it reads, so the drop-ins must be included
   # at the top and ours is named "00-" to beat e.g. 50-cloud-init.conf
   grep -qE '^\s*Include\s+/etc/ssh/sshd_config\.d/\*\.conf' /etc/ssh/sshd_config ||
     sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config
-  [[ -n $SSH_PORT ]] && sed -i -E 's/^\s*Port\s+/#&/' /etc/ssh/sshd_config
-
   {
     echo "$MARKER"
-    [[ -n $SSH_PORT ]] && echo "Port $SSH_PORT"
-    if [[ -n $key_user ]]; then
-      echo "PermitRootLogin $root_login"
-      echo 'PasswordAuthentication no'
-      echo 'KbdInteractiveAuthentication no'
+    for p in $ports; do echo "Port $p"; done
+    # An authorized_keys file does not prove the administrator has its private
+    # key. Keep the system's root/password authentication policy unchanged.
+    if [[ -f $backup/hardening.conf ]]; then
+      awk 'tolower($1) ~ /^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication)$/ { print }' "$backup/hardening.conf"
     fi
     cat <<'EOF'
 PubkeyAuthentication yes
 PermitEmptyPasswords no
-MaxAuthTries 3
+MaxAuthTries 6
 LoginGraceTime 30
 X11Forwarding no
 AllowAgentForwarding no
@@ -1252,53 +1274,35 @@ EOF
   fi
 
   if ! sshd -t; then
-    rm -f $conf
-    die "sshd rejected the hardened config, it was removed and SSH is unchanged"
+    cp -a "$backup/sshd_config" /etc/ssh/sshd_config
+    if [[ -f $backup/hardening.conf ]]; then cp -a "$backup/hardening.conf" "$conf"; else rm -f "$conf"; fi
+    rm -rf "$backup"
+    die "sshd rejected the hardened config; the previous configuration was restored"
   fi
   # NOTE - Ubuntu 22.10+ starts sshd from ssh.socket, the port lives in the socket
-  if systemctl is-active -q ssh.socket 2>/dev/null; then
-    systemctl daemon-reload
-    systemctl restart ssh.socket
-    systemctl restart ssh.service
-  else
-    systemctl restart ssh 2>/dev/null || systemctl restart sshd
+  if ! restart_ssh; then
+    cp -a "$backup/sshd_config" /etc/ssh/sshd_config
+    if [[ -f $backup/hardening.conf ]]; then cp -a "$backup/hardening.conf" "$conf"; else rm -f "$conf"; fi
+    restart_ssh || warn "SSH recovery failed: use the provider console to inspect the SSH service"
+    rm -rf "$backup"
+    die "SSH restart failed; the previous configuration was restored"
   fi
 
-  if [[ -n $key_user ]]; then
-    ok "Key-only login (key found for $key_user), root login: $root_login"
-  else
-    warn "No SSH public key found for root/${login_user}${NEW_USER:+/$NEW_USER}: password login is still ON. Add a key (--ssh-key) and re-run"
-  fi
-  ok "SSH port: ${SSH_PORT:-$(current_ssh_ports | paste -sd, -)}"
+  rm -rf "$backup"
+  ok "System root/password login policy preserved; SSH ports: $(echo $ports)"
 }
 
 firewall_lockdown() {
   log "Firewall: deny everything else"
-  local new=${SSH_PORT:-} p
+  local p
   if [[ $FAMILY == debian ]]; then
     ufw default deny incoming >/dev/null
     ufw default allow outgoing >/dev/null
-    if [[ -n $new ]]; then
-      ufw limit "$new/tcp" >/dev/null
-      for p in 22 $(current_ssh_ports); do
-        [[ $p == "$new" ]] && continue
-        ufw delete limit "$p/tcp" >/dev/null 2>&1 || true
-        ufw delete allow "$p/tcp" >/dev/null 2>&1 || true
-      done
-      ufw delete allow OpenSSH >/dev/null 2>&1 || true
-    fi
+    for p in $(safe_ssh_ports); do ufw insert 1 allow "$p/tcp" >/dev/null; done
     ufw --force enable >/dev/null
     ok "ufw active: $(ufw status | awk 'NR > 4 && !/\(v6\)/ { print $1 }' | paste -sd' ' -)"
   else
-    if [[ -n $new ]]; then
-      firewall-cmd -q --permanent --add-port="$new/tcp"
-      if [[ $new != 22 ]]; then
-        firewall-cmd -q --permanent --remove-service=ssh 2>/dev/null || true
-      fi
-      for p in 22 $(current_ssh_ports); do
-        [[ $p == "$new" ]] || firewall-cmd -q --permanent --remove-port="$p/tcp" 2>/dev/null || true
-      done
-    fi
+    for p in $(safe_ssh_ports); do firewall-cmd -q --permanent --add-port="$p/tcp"; done
     # Rocky / Alma expose the Cockpit admin panel (9090) by default
     firewall-cmd -q --permanent --remove-service=cockpit 2>/dev/null || true
     firewall-cmd -q --reload
@@ -1313,7 +1317,7 @@ firewall_lockdown() {
 node_major() { node -v 2>/dev/null | sed -n 's/^v\([0-9]\{1,\}\).*/\1/p'; }
 
 install_node() {
-  if has node && [[ $(node_major) -ge 20 ]]; then
+  if has node && node -e 'const [m,n]=process.versions.node.split(".").map(Number); process.exit((m===20 && n>=19)||(m===22 && n>=12)||m>22 ? 0 : 1)' 2>/dev/null; then
     ok "Node $(node -v) already installed"
   else
     log "Installing Node.js 22 (NodeSource)"
@@ -1430,7 +1434,7 @@ User=$APP_USER
 Group=$(id -gn "$APP_USER")
 WorkingDirectory=$APP_DIR
 Environment=NODE_ENV=production
-ExecStart=$npm_bin run start:pm2:worker
+ExecStart=$npm_bin run start:redis-api:pm2:worker
 Restart=always
 RestartSec=5
 # NOTE - pm2 forks its own workers, keep them in the unit's cgroup
@@ -1467,6 +1471,11 @@ setup_app() {
   create_app_user || return 1
   fetch_app || return 1
   build_app || return 1
+  # Install privileged OS dependencies before the service runs without sudo.
+  # Browser binaries live inside APP_DIR; return ownership to the app user.
+  (cd "$APP_DIR" && node --input-type=module -e \
+    'import preflight from "./config/utils/Preflight.mjs"; await preflight({redis: true})') || return 1
+  chown -R "$APP_USER":"$(id -gn "$APP_USER")" "$APP_DIR" || return 1
   write_app_service || return 1
   wait_app
 } # setup_app
@@ -1524,7 +1533,8 @@ verify() {
 }
 
 summary() {
-  local ssh_port=${SSH_PORT:-$(current_ssh_ports | head -1)}
+  local ssh_port=${SSH_PORT:-$(current_ssh_ports | head -1)} ssh_host='<VPS_IP>'
+  [[ -z $SSH_CONNECTION ]] || ssh_host=$(echo "$SSH_CONNECTION" | awk '{print $3}')
   printf '\n\033[1;32m✔ Done.\033[0m  https://%s\n\n' "$DOMAIN"
   echo "  Site config     /etc/nginx/conf.d/$DOMAIN.conf"
   echo "  Edit headers    /etc/nginx/snippets/security-headers.conf (CSP is there, commented)"
@@ -1540,8 +1550,9 @@ summary() {
   echo
   echo "  Cloud firewall (AWS SG, GCP, Oracle, ...): allow TCP 80, TCP 443, UDP 443, TCP $ssh_port"
   if [[ -n $SSH_PORT ]]; then
-    printf '\n\033[1;33m  SSH moved to port %s. KEEP THIS SESSION OPEN and test in a new terminal:\033[0m\n' "$SSH_PORT"
-    echo "    ssh -p $SSH_PORT ${NEW_USER:-${SUDO_USER:-root}}@$DOMAIN"
+    printf '\n\033[1;33m  SSH port %s requested; existing ports are retained. KEEP THIS SESSION OPEN and test:\033[0m\n' "$SSH_PORT"
+    echo "    ssh -p $SSH_PORT ${NEW_USER:-${SUDO_USER:-root}}@$ssh_host"
+    echo "    Use the VPS IP, including when the site is behind Cloudflare. Close old ports only after testing."
   fi
   if ((${#WARNINGS[@]})); then
     printf '\n\033[1;33m  Warnings:\033[0m\n'
@@ -1584,6 +1595,7 @@ main() {
 
   log "Detecting the OS"
   detect_os
+  ORIGINAL_SSH_PORTS=$(current_ssh_ports)
   install_base
   setup_users
   install_nginx

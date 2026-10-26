@@ -9,6 +9,12 @@ import { PM2_PROCESS_NAME } from './constants'
 const CLUSTER_INSTANCES = 2
 const CLUSTER_KILL_TIMEOUT =
   PROCESS_ENV.CLUSTER_INSTANCES === 'max' ? 7000 : 2000
+const runtimeOptions = {
+  interpreter: process.execPath,
+  node_args:
+    '--max-old-space-size=1538' +
+    (resourceExtension === 'ts' ? ' --require sucrase/register' : ''),
+}
 
 // connect to pm2 daemon
 pm2.connect(false, (err) => {
@@ -24,43 +30,41 @@ pm2.connect(false, (err) => {
       process.exit(2)
     }
 
-    const hasRestarted = await new Promise((resAfterCheckToRestart) => {
-      const totalProcess = processList.length
-      if (!totalProcess) resAfterCheckToRestart(false)
-
-      let counter = 0
-      for (const process of processList) {
-        if (
-          (process.name === 'start-puppeteer-ssr' ||
-            process.name === PM2_PROCESS_NAME) &&
-          process.pm_id !== undefined
-        ) {
-          pm2.restart(process.pm_id, function (err) {
-            counter++
-            if (err) {
-              console.error(err)
-              selfProcess.exit(2)
-            }
-
-            if (counter === totalProcess) resAfterCheckToRestart(true)
+    const existingWorkers = processList.filter(
+      (app) =>
+        (app.name === 'start-puppeteer-ssr' || app.name === PM2_PROCESS_NAME) &&
+        app.pm_id !== undefined
+    )
+    const hasRestarted = existingWorkers.length > 0
+    await Promise.all(
+      existingWorkers.map(
+        (app) =>
+          new Promise<void>((resolve) => {
+            // Update persisted PM2 options too, including previously broken workers.
+            pm2.restart(
+              app.pm_id!,
+              { ...runtimeOptions, updateEnv: true },
+              // @ts-expect-error PM2 5 types omit the supported restart(id, options, callback) overload.
+              (err: Error | null) => {
+                if (err) {
+                  Console.error(err)
+                  selfProcess.exit(2)
+                }
+                resolve()
+              }
+            )
           })
-        } else {
-          counter++
-        }
-      }
-    })
+      )
+    )
 
     if (!hasRestarted) {
       pm2.start(
         {
           name: PM2_PROCESS_NAME,
           script: `server/${resourceDirectory}/index.uws.worker.${resourceExtension}`,
-          node_args: '--max-old-space-size=1538',
+          ...runtimeOptions,
           instances: CLUSTER_INSTANCES,
           exec_mode: 'cluster',
-          interpreter:
-            resourceExtension === 'ts' ? './node_modules/.bin/sucrase' : 'node',
-          interpreter_args: '--require sucrase/register',
           wait_ready: true,
           kill_timeout: CLUSTER_KILL_TIMEOUT,
           cwd: '.',

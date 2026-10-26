@@ -68,7 +68,7 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
 | `--app-dir` | Thư mục clone (mặc định `/srv/<domain>`) | `/srv/anhchangvt1994.com` |
 | `--app-branch` | Branch/tag deploy | `main` |
 | `--app-user` | User chạy app, không sudo (mặc định `deploy`) | `deploy` |
-| `--ssh-port` | Đổi port SSH | `2222` |
+| `--ssh-port` | Thêm port SSH, giữ các port cũ để tránh mất kết nối | `2222` |
 | `--ssh-key` | Public key được phép đăng nhập | `~/.ssh/id_ed25519.pub` |
 | `--user` | Tạo user sudo mới | `deploy` |
 | `--staging` / `--self-signed` | Let's Encrypt staging / cert tự ký (test) | |
@@ -90,7 +90,12 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
    phục vụ thư mục tĩnh; host lạ / truy cập IP trực tiếp bị drop (`444`).
 5. **Bảo mật**: ufw/firewalld chỉ mở 80/tcp, 443/tcp, 443/udp + port SSH;
    fail2ban (sshd, rate-limit, scanner probe); sysctl chống spoof/SYN flood;
-   SSH key-only + tắt root password; cập nhật bảo mật tự động.
+   giữ chính sách đăng nhập root/password của hệ thống, thêm public key nếu có;
+   cập nhật bảo mật tự động. Không tự chuyển sang key-only chỉ vì tìm thấy key.
+   Nếu file managed cũ đã cấu hình key-only/tắt root thì giữ nguyên các giá trị
+   đó khi chạy lại; khôi phục VPS bị khóa theo mục bên dưới trước.
+   IP của phiên SSH chạy setup được thêm vào `ignoreip` của fail2ban để tránh
+   tự ban khi cấu hình/test. Rà soát mục này nếu IP quản trị thay đổi.
 6. **App** (nếu `--app`): Node 22 + yarn + pm2, clone/build, systemd unit
    `vps-app.service`, chờ app trả 200 trên `127.0.0.1:8080`.
 
@@ -98,7 +103,8 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
 
 - Repo private: thêm deploy key cho `--app-user` trên GitHub (hoặc copy source
   lên VPS rồi truyền đường dẫn tuyệt đối vào `--app`).
-- Mặc định chạy `yarn build` → `yarn server-build` → `yarn start:pm2:worker`.
+- Mặc định chạy `yarn build` → `yarn server-build`, chuẩn bị Redis/browser
+  bằng quyền root, rồi chạy `yarn start:redis-api:pm2:worker` dưới systemd.
 - App chạy bằng user không có sudo; file thuộc user đó.
 - Kiểm tra: `systemctl status vps-app`, `journalctl -u vps-app -f`,
   `sudo -u deploy pm2 ls`.
@@ -117,7 +123,68 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
 - Kiểm tra TLS: <https://www.ssllabs.com/ssltest/analyze.html?d=anhchangvt1994.com>.
 - Cloud firewall (AWS/GCP/Oracle/...): mở TCP 80, TCP 443, UDP 443 và port SSH.
 - **Nếu có `--ssh-port`**: giữ session cũ, mở terminal mới test
-  `ssh -p 2222 deploy@anhchangvt1994.com` trước khi đóng session cũ.
+  `ssh -p 2222 deploy@<VPS_IP>` trước khi đóng session cũ. Port cũ vẫn được
+  giữ trong sshd và firewall; chỉ đóng thủ công sau khi đã thử đăng nhập mới.
+  SSH dùng IP VPS trực tiếp; domain có proxy Cloudflare thường không chuyển SSH.
+
+## Chạy Yarn và Redis worker trên VPS
+
+Để setup chuẩn bị cả Node, compiler, thư viện browser, Redis và app, truyền
+`--app /duong/dan/project` (hoặc URL repo). Không có `--app` thì setup chỉ
+cài hạ tầng web/bảo mật.
+
+Trong thư mục gốc project, sau khi cập nhật code:
+
+```bash
+yarn
+yarn build
+yarn start:redis-api:pm2:worker
+```
+
+Chạy bằng cùng user sở hữu project/PM2. Nếu đã dùng `vps-app.service`, cập nhật
+và restart service theo hướng dẫn bên trên thay vì khởi chạy thêm một app trùng port.
+Node cần 20.19+, 22.12+ hoặc bản mới hơn tương thích Vite; setup sẽ nâng bản
+cũ lên Node 22. File `.yarnrc` pin Yarn Classic 1.22.22 và cài cả devDependencies
+khi `NODE_ENV=production`, vì quy trình hiện tại build server khi start. Sucrase,
+cross-env, chokidar được khai báo trực tiếp cho server. Không cần cài Sucrase global.
+Worker TypeScript chạy qua Node với `--require sucrase/register`; CLI `sucrase`
+chỉ dùng để biên dịch.
+
+Lệnh start kiểm tra Redis/browser trước khi build và chạy PM2. Nếu tự chạy ngoài
+setup, lần đầu có thể cần sudo để cài package hệ thống. Redis remote phải có sẵn
+và cấu hình `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` đúng; script chỉ tự cài
+Redis local. Chạy `yarn build` trước lần start đầu để tạo frontend `dist`.
+
+## Khôi phục VPS đã mất SSH do bản setup cũ
+
+Code mới trên máy local không tự sửa VPS đã bị khóa. Vào console/VNC/rescue của
+nhà cung cấp (hoặc giữ phiên SSH cũ đang mở), kiểm tra:
+
+```bash
+sudo sshd -T | grep -E '^(port|permitrootlogin|passwordauthentication|kbdinteractiveauthentication) '
+sudo ss -ltnp
+sudo fail2ban-client status sshd
+sudo ufw status numbered  # Ubuntu/Debian; RHEL dùng firewall-cmd --list-all
+```
+
+Sao lưu rồi sửa `/etc/ssh/sshd_config.d/00-vps-hardening.conf`: bỏ các dòng
+`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`
+hoặc `PermitRootLogin prohibit-password` do bản cũ thêm vào, khôi phục phương thức
+đăng nhập bạn dùng trước đó. Nếu đăng nhập **root bằng mật khẩu** trước đây, cần
+`PermitRootLogin yes` và `PasswordAuthentication yes` trong cấu hình có hiệu lực;
+kiểm tra lại bằng `sshd -T` vì cloud-init cũng có thể đặt các giá trị này.
+Giữ dòng `Port` tương ứng port muốn đăng nhập, mở port đó trong firewall VPS lẫn
+firewall nhà cung cấp, và unban đúng IP máy bạn nếu cần:
+
+```bash
+sudo fail2ban-client set sshd unbanip <IP_MAY_BAN>
+sudo sshd -t
+```
+
+Chỉ khi `sshd -t` thành công mới restart `ssh` (Ubuntu/Debian) hoặc `sshd` (RHEL).
+Nếu `ssh.socket` đang active, cần `systemctl daemon-reload`, restart `ssh.socket`
+và `ssh.service` nữa. Thử SSH từ terminal mới bằng IP VPS trước khi đóng console.
+Sau đó chạy lại bản setup mới; nó sẽ giữ port hiện có và không tự tắt đăng nhập mật khẩu.
 
 ## Ghi chú
 

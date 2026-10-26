@@ -26,3 +26,4 @@ reject --domain 'example.com;bad'
 reject --route
 bash setup.sh --help >/dev/null
 echo 'PASS: syntax, help, preview, route rendering and invalid inputs'
+node --test regression.test.mjs

@@ -9,7 +9,9 @@
   "dependencies": {
     "@fastify/middie": "^9.0.3",
     "@types/express": "^5.0.0",
+    "chokidar": "^3.5.3",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "express": "5.1.0",
     "fastify": "^5.2.1",
@@ -20,6 +22,7 @@
     "pm2": "^5.4.3",
     "puppeteer-ssr": "file:./src/puppeteer-ssr",
     "sharp": "^0.34.2",
+    "sucrase": "3.35.1",
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.56.0",
     "undici": "6.21.0",
     "workerpool": "^9.2.0"
