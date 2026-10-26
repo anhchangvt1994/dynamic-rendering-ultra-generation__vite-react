@@ -2,46 +2,48 @@
 
 Một file bash duy nhất: chạy xong là có VPS hoàn chỉnh — nginx (HTTP/2 + HTTP/3),
 SSL Let's Encrypt, domain, firewall, fail2ban, hardening SSH/kernel, tự cập nhật
-bảo mật, và (tuỳ chọn) build + chạy luôn app Node phía sau nginx.
+bảo mật, build + chạy app Node từ repo hiện có phía sau nginx.
 
 Tự nhận môi trường: Ubuntu / Debian, Rocky / Alma / CentOS Stream / RHEL / Fedora
 ở phía VPS; macOS / Linux / Windows (Git Bash hoặc WSL) ở phía máy bạn. Chạy lại
 nhiều lần được — mọi file nó ghi đều được tạo lại an toàn.
 
-## Chạy 1 lệnh (từ máy của bạn)
+## Chạy trong repo đã clone trên VPS
 
 Điều kiện: VPS Linux dùng systemd, quyền root/sudo, domain thuộc quyền quản lý
 của bạn. Trỏ DNS A về IPv4 VPS; chỉ tạo AAAA nếu IPv6 của VPS hoạt động.
 Script không mua domain hay tự sửa DNS tại nhà cung cấp. Ubuntu 24.04 LTS là
 lựa chọn khuyến nghị; package nginx HTTP/3 phải có sẵn cho phiên bản OS đó.
 
-Xem trước trên máy hiện tại, không kết nối SSH hay thay đổi hệ thống:
+Sau khi clone repo và cấu hình env trên VPS, vào thư mục gốc project.
+Setup tự nhận repo từ vị trí `scripts/vps-setup/setup.sh`, không clone/pull/fetch
+hay checkout branch. Nên đặt repo trong `/srv` hoặc `/var/www` để user `deploy`
+có thể truy cập; tránh thư mục riêng tư như `/root`.
+
+Xem trước, không kết nối SSH hay thay đổi hệ thống:
 
 ```bash
 bash scripts/vps-setup/setup.sh --dry-run \
-  --host root@203.0.113.10 \
   --domain anhchangvt1994.com \
   --route /=/var/www/anhchangvt1994.com --spa \
   --route /api=http://127.0.0.1:3000/
 ```
 
-Thay IP ví dụ bằng IP VPS thật. Với route thư mục, upload bản build (có
+Với route thư mục, chuẩn bị bản build (có
 `index.html`) tới **thư mục trên VPS** trước khi chạy. Với reverse proxy,
-ứng dụng phải chạy tại upstream đã chọn; script không tự tạo ứng dụng nếu
-không có `--app`.
+setup chạy app tại port mặc định 8080. Nếu dùng `--skip-app`, tự khởi chạy
+ứng dụng ở upstream đã chọn.
 
 ```bash
-bash scripts/vps-setup/setup.sh \
-  --host root@203.0.113.10 \
+sudo bash scripts/vps-setup/setup.sh \
   --domain anhchangvt1994.com \
   --email you@anhchangvt1994.com \
   --www \
-  --route /=8080 \
-  --app https://github.com/anhchangvt1994/<repo>.git
+  --route /=8080
 ```
 
-Script tự upload chính nó qua SSH rồi chạy trên VPS (1 lần nhập mật khẩu SSH).
-Public key của bạn được gửi kèm để bật đăng nhập bằng key.
+Không cần `--app` hoặc URL GitHub. Script dùng source bạn đã clone, cài môi
+trường/dependency, chuẩn bị Redis/browser, build và tạo `vps-app.service`.
 
 Không truyền flag nào thì nó hỏi từng giá trị, có gợi ý placeholder:
 
@@ -49,11 +51,18 @@ Không truyền flag nào thì nó hỏi từng giá trị, có gợi ý placeho
 bash scripts/vps-setup/setup.sh
 ```
 
-Trên chính VPS:
+Nếu điều khiển từ máy khác, truyền đường dẫn repo **đã có trên VPS**:
 
 ```bash
-sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --route /=8080
+bash scripts/vps-setup/setup.sh \
+  --host root@203.0.113.10 \
+  --domain anhchangvt1994.com \
+  --app-dir /srv/anhchangvt1994.com
 ```
+
+Thay IP ví dụ bằng IP VPS thật. Chế độ `--host` chỉ upload file setup.sh, không
+upload source; do đó cần `--app-dir` hoặc `--skip-app`. Public key của máy bạn
+được gửi kèm nếu có.
 
 ## Các flag chính
 
@@ -64,9 +73,8 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
 | `--www` | Phục vụ thêm `www.` và redirect về domain chính | |
 | `--route <PATH>=<TARGET>` | URL path ánh xạ tới đâu, lặp lại được | `/=8080`, `/api=http://127.0.0.1:3000`, `/static=/var/www/static` |
 | `--spa` | Route tĩnh fallback về `index.html` (React/Vue) | |
-| `--app <URL\|DIR>` | Clone/build/chạy app Node sau nginx | git URL hoặc `/srv/app` |
-| `--app-dir` | Thư mục clone (mặc định `/srv/<domain>`) | `/srv/anhchangvt1994.com` |
-| `--app-branch` | Branch/tag deploy | `main` |
+| `--app-dir` | Repo đã có trên VPS; mặc định tự nhận từ vị trí setup.sh, cần chỉ rõ khi dùng `--host` | `/srv/anhchangvt1994.com` |
+| `--skip-app` | Chỉ cài hạ tầng web/bảo mật, bỏ qua cài và chạy app | |
 | `--app-user` | User chạy app, không sudo (mặc định `deploy`) | `deploy` |
 | `--ssh-port` | Thêm port SSH, giữ các port cũ để tránh mất kết nối | `2222` |
 | `--ssh-key` | Public key được phép đăng nhập | `~/.ssh/id_ed25519.pub` |
@@ -96,22 +104,22 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
    đó khi chạy lại; khôi phục VPS bị khóa theo mục bên dưới trước.
    IP của phiên SSH chạy setup được thêm vào `ignoreip` của fail2ban để tránh
    tự ban khi cấu hình/test. Rà soát mục này nếu IP quản trị thay đổi.
-6. **App** (nếu `--app`): Node 22 + yarn + pm2, clone/build, systemd unit
+6. **App** (mặc định, trừ khi `--skip-app`): Node 22 + yarn + pm2, dùng repo
+   hiện có để build, tạo systemd unit
    `vps-app.service`, chờ app trả 200 trên `127.0.0.1:8080`.
 
-## App (tuỳ chọn)
+## App từ repo hiện có
 
-- Repo private: thêm deploy key cho `--app-user` trên GitHub (hoặc copy source
-  lên VPS rồi truyền đường dẫn tuyệt đối vào `--app`).
+- Bạn clone/copy repo trước; setup không cần deploy key GitHub để lấy source.
 - Mặc định chạy `yarn build` → `yarn server-build`, chuẩn bị Redis/browser
   bằng quyền root, rồi chạy `yarn start:redis-api:pm2:worker` dưới systemd.
 - App chạy bằng user không có sudo; file thuộc user đó.
 - Kiểm tra: `systemctl status vps-app`, `journalctl -u vps-app -f`,
   `sudo -u deploy pm2 ls`.
-- Cập nhật code về sau:
+- Sau khi tự cập nhật source, build lại và restart:
 
   ```bash
-  sudo -u deploy bash -lc 'cd /srv/anhchangvt1994.com && git pull && \
+  sudo -u deploy bash -lc 'cd /srv/anhchangvt1994.com && \
     yarn install --production=false && yarn build && yarn server-build'
   sudo systemctl restart vps-app
   ```
@@ -129,9 +137,9 @@ sudo bash setup.sh --domain anhchangvt1994.com --email you@anhchangvt1994.com --
 
 ## Chạy Yarn và Redis worker trên VPS
 
-Để setup chuẩn bị cả Node, compiler, thư viện browser, Redis và app, truyền
-`--app /duong/dan/project` (hoặc URL repo). Không có `--app` thì setup chỉ
-cài hạ tầng web/bảo mật.
+Chạy `sudo bash scripts/vps-setup/setup.sh ...` ngay trong repo đã clone trên
+VPS: setup mặc định chuẩn bị Node, compiler, thư viện browser, Redis và app.
+Chỉ khi truyền `--skip-app` mới bỏ qua phần này.
 
 Trong thư mục gốc project, sau khi cập nhật code:
 

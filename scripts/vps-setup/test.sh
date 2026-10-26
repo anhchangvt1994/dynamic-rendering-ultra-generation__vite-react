@@ -24,6 +24,22 @@ reject --route /=8080 --route /=3000
 reject --route '/api;return=8080'
 reject --domain 'example.com;bad'
 reject --route
+reject --app https://github.com/example/repo.git
+reject --app-dir https://github.com/example/repo.git
+reject --app-dir /srv/app --skip-app
+output=$(bash setup.sh --dry-run --domain example.com)
+[[ $output == *"App directory: $(cd ../.. && pwd)"* ]] || { echo 'Repository was not detected from setup.sh'; exit 1; }
+setup_path="$(pwd)/setup.sh"
+output=$(cd /tmp && bash "$setup_path" --dry-run --domain example.com)
+[[ $output == *"App directory: $(cd ../.. && pwd)"* ]] || { echo 'Repository detection depends on the working directory'; exit 1; }
+output=$(bash setup.sh --dry-run --domain example.com --app-dir /srv/existing-app)
+[[ $output == *'App directory: /srv/existing-app'* ]] || { echo 'Existing app directory override was ignored'; exit 1; }
+output=$(bash setup.sh --dry-run --domain example.com --skip-app)
+[[ $output == *'App: skipped'* ]] || { echo 'Infrastructure-only mode was ignored'; exit 1; }
+output=$(bash setup.sh --dry-run --domain example.com --host root@203.0.113.10)
+[[ $output != *"App directory: $(cd ../.. && pwd)"* ]] || { echo 'Local repo path was forwarded as a remote repo'; exit 1; }
+output=$(bash setup.sh --dry-run --domain example.com --host root@203.0.113.10 --app-dir /srv/existing-app)
+[[ $output == *'App directory: /srv/existing-app'* ]] || { echo 'Remote existing repo override was ignored'; exit 1; }
 bash setup.sh --help >/dev/null
 echo 'PASS: syntax, help, preview, route rendering and invalid inputs'
 node --test regression.test.mjs

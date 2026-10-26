@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # NOTE - One-shot VPS setup: nginx (HTTP/2 + HTTP/3/QUIC) as a reverse proxy or
 # static file server, Let's Encrypt SSL, firewall, SSH hardening, fail2ban,
-# kernel hardening and automatic security updates. With --app it also installs
-# Node.js + yarn + pm2 and runs the project as a systemd service.
+# kernel hardening and automatic security updates. Uses the existing repository
+# to install Node.js + yarn + pm2 and run the project as a systemd service.
 # Supports Ubuntu / Debian and the RHEL family (Rocky, Alma, CentOS Stream,
 # RHEL, Fedora). Safe to re-run: every file it writes is regenerated.
 #
 #   On the VPS:          sudo bash setup.sh --domain example.com --email you@example.com
 #   From your machine:   bash setup.sh --host root@<VPS_IP> --domain example.com
 #                        (macOS, Linux, Windows Git Bash / WSL: uploads itself and runs there)
-#   With the app:        bash setup.sh --host root@<VPS_IP> --domain example.com --app <REPO_URL>
+#   Existing remote app: bash setup.sh --host root@<VPS_IP> --domain example.com --app-dir /srv/app
 #   Without flags:       asks for each value, with a hint
 #
 # Run "bash setup.sh --help" for every option.
@@ -40,9 +40,9 @@ SKIP_UPGRADE=0
 INTERACTIVE=0
 DRY_RUN=0
 
-APP_SOURCE='' # git URL or absolute directory on the VPS, empty = infrastructure only
-APP_DIR=''    # where a git URL is cloned (default /srv/<domain>)
-APP_BRANCH='' # empty = the repository default branch
+APP_SOURCE='' # existing repository on the VPS (resolved below)
+APP_DIR=''    # defaults to the repository containing this script
+SKIP_APP=0
 APP_USER=deploy
 APP_SERVICE=vps-app
 
@@ -65,9 +65,7 @@ hint() {
     --ssh-port) echo '2222' ;;
     --ssh-key) echo '~/.ssh/id_ed25519.pub | "ssh-ed25519 AAAAC3Nz... you@laptop"' ;;
     --user) echo 'deploy' ;;
-    --app) echo 'https://github.com/anhchangvt1994/<repo>.git | /srv/app' ;;
     --app-dir) echo '/srv/anhchangvt1994.com' ;;
-    --app-branch) echo 'main' ;;
     --app-user) echo 'deploy' ;;
     --rate) echo '30' ;;
     --burst) echo '100' ;;
@@ -116,15 +114,12 @@ SSL
   --skip-dns-check           Do not check the domain points here (e.g. behind the Cloudflare proxy)
   --hsts-preload             HSTS includeSubDomains + preload (only if EVERY subdomain is HTTPS)
 
-App (optional: install Node.js, build and run this project behind nginx)
-  --app <REPO_URL|DIR>       Git URL to clone, or an absolute project directory already on the VPS
-                               $(eg --app)
-                             Private SSH repos need a deploy key for --app-user, or copy the
-                             project to the VPS first and pass its path
-  --app-dir <DIR>            Clone target for a git URL (default /srv/<DOMAIN>)
+App (install Node.js, build and run the existing project behind nginx)
+                             Defaults to the repository containing this setup.sh on the VPS.
+                             No git clone, fetch, pull or checkout is performed.
+  --app-dir <DIR>            Existing project directory on the VPS (needed with --host)
                                $(eg --app-dir)
-  --app-branch <BRANCH>      Branch or tag to deploy (default: the repository default)
-                               $(eg --app-branch)
+  --skip-app                 Only configure web infrastructure and security
   --app-user <NAME>          Linux user that owns and runs the app, no sudo (default deploy)
                                $(eg --app-user)
                              Installs Node.js 22 + yarn + pm2, runs yarn build and
@@ -191,9 +186,8 @@ parse_args() {
       --ssh-port) need "$@"; SSH_PORT=$2; shift ;;
       --ssh-key) need "$@"; SSH_KEY=$2; shift ;;
       --user) need "$@"; NEW_USER=$2; shift ;;
-      --app) need "$@"; APP_SOURCE=$2; shift ;;
       --app-dir) need "$@"; APP_DIR=$2; shift ;;
-      --app-branch) need "$@"; APP_BRANCH=$2; shift ;;
+      --skip-app) SKIP_APP=1 ;;
       --app-user) need "$@"; APP_USER=$2; shift ;;
       --rate) need "$@"; RATE=$2; shift ;;
       --burst) need "$@"; BURST=$2; shift ;;
@@ -316,11 +310,26 @@ prompt_missing() {
     ask answer "Also serve www.$DOMAIN (redirects to $DOMAIN)?" 'y/N' n
     [[ $answer == [yY]* ]] && WWW=1
   fi
-  if [[ -z $APP_SOURCE ]]; then
-    ask answer 'Deploy a project on this VPS now?' 'git URL or absolute folder, Enter to skip' ''
-    [[ -n $answer ]] && APP_SOURCE=$answer
-  fi
   return 0
+}
+
+resolve_app_directory() {
+  if ((SKIP_APP)); then
+    [[ -z $APP_DIR ]] || die "--skip-app cannot be combined with --app-dir"
+    return 0
+  fi
+  # In remote mode only this script is uploaded, not the local repository.
+  # The remote run needs an explicit directory that already exists on the VPS.
+  if [[ -z $APP_DIR && -z $REMOTE_HOST ]]; then
+    local script_dir candidate
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+    candidate=$(cd "$script_dir/../.." && pwd -P)
+    if [[ -f $candidate/package.json && -f $candidate/server/server-build.js && -d $candidate/config/scripts ]]; then
+      APP_DIR=$candidate
+    fi
+  fi
+  [[ -n $APP_DIR ]] || die "Cannot locate the existing VPS repository. Run scripts/vps-setup/setup.sh inside it, pass --app-dir /srv/app with --host, or use --skip-app"
+  APP_SOURCE=$APP_DIR
 }
 
 confirm_plan() {
@@ -356,22 +365,12 @@ validate_args() {
   [[ -z $SSH_PORT ]] || { [[ $SSH_PORT =~ ^[0-9]+$ ]] && ((SSH_PORT > 0 && SSH_PORT < 65536)); } ||
     die "Invalid --ssh-port: $SSH_PORT (1-65535), $(eg --ssh-port)"
   [[ -z $NEW_USER || $NEW_USER =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "Invalid --user: $NEW_USER (lowercase, digits, _ -), $(eg --user)"
-  if [[ -z $APP_SOURCE ]]; then
-    [[ -z $APP_DIR && -z $APP_BRANCH ]] || die "--app-dir and --app-branch need --app, $(eg --app)"
-  else
+  if [[ -n $APP_SOURCE ]]; then
     [[ $APP_USER != root ]] || die "--app-user can not be root, $(eg --app-user)"
     [[ $APP_USER =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "Invalid --app-user: $APP_USER (lowercase, digits, _ -), $(eg --app-user)"
-    if [[ $APP_SOURCE == /* ]]; then
-      # NOTE - A directory on the VPS: it IS the deploy directory
-      [[ -n $APP_DIR ]] || APP_DIR=$APP_SOURCE
-    else
-      [[ $APP_SOURCE =~ ^(https?://|git@|ssh://)[^[:space:]]+$ ]] ||
-        die "Invalid --app: $APP_SOURCE (a git URL or an absolute directory), $(eg --app)"
-      [[ -n $APP_DIR ]] || APP_DIR=/srv/$DOMAIN
-    fi
     [[ $APP_DIR =~ ^/[A-Za-z0-9._/-]+$ ]] || die "Invalid --app-dir: $APP_DIR (absolute, no spaces), $(eg --app-dir)"
     APP_DIR=${APP_DIR%/}
-    [[ -z $APP_BRANCH || $APP_BRANCH =~ ^[A-Za-z0-9._/-]+$ ]] || die "Invalid --app-branch: $APP_BRANCH, $(eg --app-branch)"
+    APP_SOURCE=$APP_DIR
   fi
   [[ $RATE =~ ^[1-9][0-9]*$ ]] || die "Invalid --rate: $RATE, $(eg --rate)"
   [[ $BURST =~ ^[0-9]+$ ]] || die "Invalid --burst: $BURST, $(eg --burst)"
@@ -1311,7 +1310,7 @@ firewall_lockdown() {
 }
 
 # ---------------------------------------------------------------------------
-# App deployment (optional, --app)
+# App deployment from the existing repository
 # ---------------------------------------------------------------------------
 
 node_major() { node -v 2>/dev/null | sed -n 's/^v\([0-9]\{1,\}\).*/\1/p'; }
@@ -1369,41 +1368,18 @@ create_app_user() {
   return 0
 } # create_app_user
 
-fetch_app() {
-  local dir=$APP_DIR
-  if [[ -d $APP_SOURCE ]]; then
-    APP_DIR=${APP_SOURCE%/}
-    chown -R "$APP_USER":"$(id -gn "$APP_USER")" "$APP_DIR" || return 1
-    ok "Using the project already on this server: $APP_DIR"
-    return 0
-  fi
-
-  # NOTE - An absolute --app is a directory on this server, not something to clone
-  if [[ $APP_SOURCE == /* ]]; then
-    warn "There is no directory $APP_SOURCE on this server (git URLs start with https://, ssh:// or git@)"
+prepare_existing_app() {
+  if [[ ! -f $APP_DIR/package.json || ! -f $APP_DIR/server/server-build.js || ! -d $APP_DIR/config/scripts ]]; then
+    warn "No project found at $APP_DIR: clone/copy the repository first, then run its setup.sh"
     return 1
   fi
-
-  mkdir -p "$(dirname "$dir")" || return 1
-  if [[ -d $dir/.git ]]; then
-    runuser -u "$APP_USER" -- git -C "$dir" fetch --prune origin || return 1
-    [[ -z $APP_BRANCH ]] || runuser -u "$APP_USER" -- git -C "$dir" checkout "$APP_BRANCH" || return 1
-    runuser -u "$APP_USER" -- git -C "$dir" pull --ff-only ||
-      warn "git pull did not fast-forward, deploying the revision already checked out"
-  else
-    if [[ -d $dir ]] && [[ -n $(ls -A "$dir" 2>/dev/null) ]]; then
-      warn "$dir exists, is not a git checkout and is not empty: pass --app-dir for another folder"
-      return 1
-    fi
-    local args=(clone --depth 1)
-    [[ -z $APP_BRANCH ]] || args+=(--branch "$APP_BRANCH")
-    ok "Cloning $APP_SOURCE"
-    runuser -u "$APP_USER" -- git clone "${args[@]}" "$APP_SOURCE" "$dir" ||
-      { warn "git clone failed: for a private repo add a deploy key for $APP_USER (or copy the project and pass its path)"; return 1; }
+  chown -R "$APP_USER":"$(id -gn "$APP_USER")" "$APP_DIR" || return 1
+  if ! runuser -u "$APP_USER" -- test -r "$APP_DIR/package.json"; then
+    warn "$APP_USER cannot access $APP_DIR. Place the repository under /srv or /var/www instead of a private home such as /root"
+    return 1
   fi
-  chown -R "$APP_USER":"$(id -gn "$APP_USER")" "$dir" || return 1
-  ok "Source at $dir ($(runuser -u "$APP_USER" -- git -C "$dir" rev-parse --short HEAD 2>/dev/null))"
-} # fetch_app
+  ok "Using the existing repository at $APP_DIR (source is not updated)"
+} # prepare_existing_app
 
 build_app() {
   log "Installing packages and building the app (a few minutes)"
@@ -1469,7 +1445,7 @@ setup_app() {
   install_node || return 1
   install_app_packages || return 1
   create_app_user || return 1
-  fetch_app || return 1
+  prepare_existing_app || return 1
   build_app || return 1
   # Install privileged OS dependencies before the service runs without sudo.
   # Browser binaries live inside APP_DIR; return ownership to the app user.
@@ -1543,7 +1519,7 @@ summary() {
   if [[ -n $APP_SOURCE ]]; then
     echo "  App             $APP_DIR (user $APP_USER), systemd unit $APP_SERVICE"
     echo "  App logs        journalctl -u $APP_SERVICE -f   |   pm2: sudo -u $APP_USER pm2 ls"
-    echo "  Redeploy        sudo -u $APP_USER bash -lc 'cd $APP_DIR && git pull && yarn install --production=false && yarn build && yarn server-build' && sudo systemctl restart $APP_SERVICE"
+    echo "  Rebuild         sudo -u $APP_USER bash -lc 'cd $APP_DIR && yarn install --production=false && yarn build && yarn server-build' && sudo systemctl restart $APP_SERVICE"
   fi
   echo "  HTTP/3 check    https://http3check.net/?host=$DOMAIN"
   echo "  TLS grade       https://www.ssllabs.com/ssltest/analyze.html?d=$DOMAIN"
@@ -1566,10 +1542,14 @@ main() {
   parse_args ${FORWARD_ARGS[@]+"${FORWARD_ARGS[@]}"}
   detect_platform
   if ((DRY_RUN)); then
+    if [[ -z $REMOTE_HOST || -n $APP_DIR ]] || ((SKIP_APP)); then
+      resolve_app_directory
+    fi
     validate_args
     log "Preview only: no SSH connection, package installation or system changes"
     echo "    Client platform: $PLATFORM; target: ${REMOTE_HOST:-this machine}"
     echo "    Domain: $DOMAIN; SSL: $SSL_MODE; www: $WWW"
+    if ((SKIP_APP)); then echo '    App: skipped'; else echo "    App directory: ${APP_DIR:-<existing directory on VPS: pass --app-dir>}"; fi
     echo "    Required inbound: TCP 80/443, UDP 443, SSH ${SSH_PORT:-${REMOTE_PORT:-22}}"
     render_upstreams
     render_locations
@@ -1585,6 +1565,7 @@ main() {
   [[ $EUID -eq 0 ]] || die "Run as root: sudo bash $0 $*"
   [[ -d /run/systemd/system ]] || die "systemd is not running here (a container?): this script needs a real VPS / VM"
   prompt_missing
+  resolve_app_directory
   validate_args
   confirm_plan
   # NOTE - Re-running without --ssh-port keeps the port moved by a previous run
