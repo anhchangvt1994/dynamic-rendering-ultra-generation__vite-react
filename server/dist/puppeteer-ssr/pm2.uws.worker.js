@@ -7,6 +7,15 @@ var _InitEnv = require('../utils/InitEnv');
 var _constants3 = require('./constants');
 var _ResourceBudget = require('../utils/ResourceBudget');
 
+// Type declarations cannot guarantee that the installed package has this API.
+// Check before changing any processes in the existing daemon.
+if (typeof _pm22.default.scale !== 'function') {
+  _ConsoleHandler2.default.error(
+    'PM2 is missing the scale API. Run yarn install --production=false in the project root.'
+  )
+  process.exit(2)
+}
+
 const budget = _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV)
 const CLUSTER_INSTANCES = budget.instances
 const CLUSTER_KILL_TIMEOUT =
@@ -57,7 +66,7 @@ _pm22.default.connect(false, (err) => {
         }
         await new Promise((resolve, reject) => {
           // Environment updates require PM2's ecosystem-object API. Passing
-          // env to restart(id, options) is explicitly rejected by PM2 5.
+          // env to restart(id, options) is explicitly rejected by PM2.
           _pm22.default.restart(
             {
               apps: [
@@ -74,7 +83,7 @@ _pm22.default.connect(false, (err) => {
               ],
             } ,
             { updateEnv: true } ,
-            // @ts-expect-error PM2 5 types omit its supported config/options/callback overload.
+            // @ts-expect-error PM2 types omit its supported config/options/callback overload.
             (error) => (error ? reject(error) : resolve())
           )
         })

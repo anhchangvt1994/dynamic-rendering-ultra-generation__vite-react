@@ -351,6 +351,24 @@ Thay user/path/service cho đúng máy. Nếu đang tự chạy PM2, dùng cùng
 `PM2_HOME` đã dùng trước đó, rồi chạy `yarn start:redis-api:pm2:worker`; launcher
 cập nhật cả interpreter/env và số instances của nhóm app hiện có.
 
+Dependency PM2 của app được ghim ở `7.1.1`. Bản này có API `scale` lúc chạy,
+nhưng thiếu khai báo trong type đi kèm; `server/types/pm2.d.ts` bổ sung type và
+launcher kiểm tra API thật trước khi kết nối daemon. Không cần cài PM2 global
+để chạy các lệnh `yarn start:*`.
+
+Nếu VPS đang có daemon PM2 phiên bản cũ, sau `yarn install`, chạy các lệnh sau
+trong thư mục repo bằng **đúng user và `PM2_HOME` của daemon hiện có**:
+
+```bash
+./node_modules/.bin/pm2 update
+yarn start:redis-api:pm2:worker
+```
+
+`pm2 update` nâng daemon đang chạy và khởi động lại các app do daemon đó quản lý.
+Chỉ cài dependency mới chưa thay phiên bản daemon đang nằm trong bộ nhớ.
+Kiểm tra API/worker trên daemon tạm riêng bằng
+`node scripts/vps-lab/check-pm2.mjs`.
+
 Chẩn đoán tại VPS:
 
 ```bash

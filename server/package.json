@@ -19,7 +19,7 @@
     "geoip-lite": "^1.4.10",
     "ioredis": "5.10.0",
     "mime-types": "3.0.1",
-    "pm2": "^5.4.3",
+    "pm2": "7.1.1",
     "puppeteer-ssr": "file:./src/puppeteer-ssr",
     "sharp": "^0.34.2",
     "sucrase": "3.35.1",

@@ -109,6 +109,49 @@ firewall_open_web
   }
 })
 
+test('PM2 launcher rejects a missing scale API before connecting to the daemon', () => {
+  const errors = []
+  let connected = false
+  const exit = new Error('launcher exited')
+  const source = fs.readFileSync(
+    `${root}/server/src/puppeteer-ssr/pm2.uws.worker.ts`,
+    'utf8'
+  )
+  assert.throws(
+    () =>
+      vm.runInNewContext(
+        transform(source, { transforms: ['typescript', 'imports'] }).code,
+        {
+          require: (name) => {
+            if (name === 'pm2')
+              return {
+                connect: () => {
+                  connected = true
+                },
+              }
+            if (name === '../utils/ConsoleHandler')
+              return { error: (message) => errors.push(message) }
+            if (name === '../utils/InitEnv') return { PROCESS_ENV: {} }
+            if (name === '../utils/ResourceBudget')
+              return { getResourceBudget: () => ({ instances: 1 }) }
+            return {}
+          },
+          exports: {},
+          process: {
+            execPath: process.execPath,
+            exit: (code) => {
+              assert.equal(code, 2)
+              throw exit
+            },
+          },
+        }
+      ),
+    (error) => error === exit
+  )
+  assert.equal(connected, false)
+  assert.match(errors.join('\n'), /PM2.*scale.*yarn install/i)
+})
+
 for (const existing of [0, 1, 2])
   test(`PM2 starts or reconciles ${existing} existing TypeScript workers with Node and Sucrase`, async () => {
     let options
