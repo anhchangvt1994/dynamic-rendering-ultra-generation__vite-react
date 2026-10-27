@@ -8,6 +8,8 @@ var _serverconfig = require('../server.config'); var _serverconfig2 = _interopRe
 var _MemoryCache = require('../utils/MemoryCache'); var _MemoryCache2 = _interopRequireDefault(_MemoryCache);
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../utils/InitEnv');
+var _ResourceBudget = require('../utils/ResourceBudget');
+var _crypto = require('crypto');
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
 var _FetchManager = require('./utils/FetchManager');
 var _HostHealth = require('./utils/HostHealth');
@@ -36,6 +38,12 @@ const API_RESPONSE_CACHE_TTL =
 const apiResponseCache = _MemoryCache2.default({
   ttlMs: API_RESPONSE_CACHE_TTL,
   max: 2000,
+  maxBytes: _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV).hotCacheBytes / 4,
+  sizeOf: (value) =>
+    typeof value.data === 'string'
+      ? Buffer.byteLength(value.data)
+      : (_nullishCoalesce(_optionalChain([value, 'access', _ => _.data, 'optionalAccess', _2 => _2.byteLength]), () => (
+        Buffer.byteLength(JSON.stringify(_nullishCoalesce(value.data, () => ( ''))))))),
 })
 
 const handleArrayBuffer = (message) => {
@@ -115,6 +123,8 @@ const resEnd = (res, resInfo, serverTiming) => {
       if (contentEncoding) {
         res.writeHeader('Content-Encoding', contentEncoding)
       }
+      res.writeHeader('Vary', 'Accept-Encoding')
+      if (Number(status) === 503) res.writeHeader('Retry-After', '2')
       if (serverTiming) res.writeHeader('Server-Timing', serverTiming)
       // NOTE - uWS only accepts string / ArrayBuffer / TypedArray, a failed
       // upstream fetch (ex: 408 timeout) returns an object and would crash
@@ -161,7 +171,18 @@ const apiService = (async () => {
       // parsing on every request
       const apiResponseKey =
         req.getMethod() === 'get'
-          ? `${req.getUrl()}?${req.getQuery()}|${contentEncoding}`
+          ? `${req.getUrl()}?${req.getQuery()}|${contentEncoding}|${_crypto.createHash.call(void 0, 
+              'sha256'
+            )
+              .update(
+                JSON.stringify([
+                  req.getHeader('authorization'),
+                  req.getHeader('cookie'),
+                  req.getHeader('accept-language'),
+                  req.getHeader('lang'),
+                ])
+              )
+              .digest('hex')}`
           : undefined
       const apiResponse = apiResponseKey
         ? apiResponseCache.get(apiResponseKey)
@@ -172,7 +193,7 @@ const apiService = (async () => {
 
       // NOTE - Get the API information
       const apiInfo =
-        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _ => _.exec, 'call', _2 => _2(req.getQuery()), 'optionalAccess', _3 => _3.groups]), () => ( {}))
+        _nullishCoalesce(_optionalChain([/requestInfo=(?<requestInfo>[^&]*)/, 'access', _3 => _3.exec, 'call', _4 => _4(req.getQuery()), 'optionalAccess', _5 => _5.groups]), () => ( {}))
 
       // NOTE - Response 500 Error if the apiInfo is empty
       if (!res.writableEnded && !apiInfo) {
@@ -239,9 +260,9 @@ const apiService = (async () => {
         // NOTE - Handle query string information
         const strQueryString = (() => {
           const thisAPIQueryString = _optionalChain([req
-, 'access', _4 => _4.getUrl, 'call', _5 => _5()
-, 'access', _6 => _6.split, 'call', _7 => _7('?'), 'access', _8 => _8[1]
-, 'optionalAccess', _9 => _9.replace, 'call', _10 => _10(/requestInfo=([^&]*)/g, '')])
+, 'access', _6 => _6.getUrl, 'call', _7 => _7()
+, 'access', _8 => _8.split, 'call', _9 => _9('?'), 'access', _10 => _10[1]
+, 'optionalAccess', _11 => _11.replace, 'call', _12 => _12(/requestInfo=([^&]*)/g, '')])
 
           if (!thisAPIQueryString) return ''
 
@@ -297,7 +318,7 @@ const apiService = (async () => {
             autoCreateIfEmpty: { enable: true },
           })
           // NOTE - undefined when the cache store is unavailable (redis down)
-          const tmpAPIStoreData = _optionalChain([apiStore, 'optionalAccess', _11 => _11.data])
+          const tmpAPIStoreData = _optionalChain([apiStore, 'optionalAccess', _13 => _13.data])
 
           if (tmpAPIStoreData) {
             const indexNext = tmpAPIStoreData.indexOf(requestInfo.cacheStore)
@@ -348,7 +369,7 @@ const apiService = (async () => {
                   }).then(({ data, ...result }) => {
                     const enableToSetCache =
                       result.status === 200 ||
-                      !_optionalChain([apiCache, 'optionalAccess', _12 => _12.cache]) ||
+                      !_optionalChain([apiCache, 'optionalAccess', _14 => _14.cache]) ||
                       apiCache.cache.status !== 200
                     if (enableToSetCache) {
                       setDataCache(

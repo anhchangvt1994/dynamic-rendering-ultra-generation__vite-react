@@ -19,6 +19,18 @@ const API_HEADERS = {
   Accept: 'application/json',
   'Accept-Encoding': 'gzip, deflate, br',
 }
+const HUMAN_HEADERS = {
+  desktop: {
+    ...BOT_HEADERS,
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+  },
+  mobile: {
+    ...BOT_HEADERS,
+    'User-Agent':
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
+  },
+}
 const REQUEST_TIMEOUT = 30000
 
 const options = JSON.parse(process.argv[2] || '{}')
@@ -109,15 +121,22 @@ const load = async ({
   cachedPaths,
   apiPaths,
   freshPaths,
+  seed = 12345,
 }) => {
-  const results = { cached: [], api: [], fresh: [] }
-  const deadline = Date.now() + durationMs
+  const results = { cached: [], api: [], fresh: [], mobile: [], desktop: [] }
+  const startedAt = Date.now()
+  const deadline = startedAt + durationMs
   let freshIndex = 0
-  const pick = (list) => list[Math.floor(Math.random() * list.length)]
+  let state = seed >>> 0
+  const random = () => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0
+    return state / 2 ** 32
+  }
+  const pick = (list) => list[Math.floor(random() * list.length)]
 
   const user = async () => {
     while (Date.now() < deadline) {
-      const roll = Math.random()
+      const roll = random()
       if (roll < mix.fresh && freshIndex < freshPaths.length) {
         const path = freshPaths[freshIndex++]
         results.fresh.push({
@@ -126,6 +145,11 @@ const load = async ({
         })
       } else if (roll < mix.fresh + mix.api) {
         results.api.push(await request(base + pick(apiPaths), API_HEADERS))
+      } else if (roll < mix.fresh + mix.api + (mix.interactive ?? 0)) {
+        const kind = random() < 0.5 ? 'mobile' : 'desktop'
+        results[kind].push(
+          await request(base + pick(cachedPaths), HUMAN_HEADERS[kind])
+        )
       } else {
         results.cached.push(
           await request(base + pick(cachedPaths), BOT_HEADERS)
@@ -135,18 +159,22 @@ const load = async ({
   }
 
   await Promise.all(Array.from({ length: vus }, user))
+  const elapsedMs = Date.now() - startedAt
 
   return {
-    cached: summarize(
-      results.cached,
-      durationMs,
+    elapsedMs,
+    cached: summarize(results.cached, elapsedMs, (item) => item.status === 200),
+    api: summarize(results.api, elapsedMs, (item) => item.status === 200),
+    mobile: summarize(results.mobile, elapsedMs, (item) => item.status === 200),
+    desktop: summarize(
+      results.desktop,
+      elapsedMs,
       (item) => item.status === 200
     ),
-    api: summarize(results.api, durationMs, (item) => item.status === 200),
     // NOTE - A fresh page is usually answered 503 while it renders in background
     fresh: summarize(
       results.fresh,
-      durationMs,
+      elapsedMs,
       (item) => typeof item.status === 'number'
     ),
     freshRequested: results.fresh.map((item) => item.path),
@@ -163,7 +191,9 @@ const hammer = async ({ base, paths, headers, vus, durationMs }) => {
   await Promise.all(
     Array.from({ length: vus }, async () => {
       while (Date.now() < deadline)
-        results.push(await request(base + paths[index++ % paths.length], headers))
+        results.push(
+          await request(base + paths[index++ % paths.length], headers)
+        )
     })
   )
 

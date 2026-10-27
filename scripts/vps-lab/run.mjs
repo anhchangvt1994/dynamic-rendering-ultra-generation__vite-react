@@ -20,6 +20,8 @@
  * Options (env): VPS_CPUS=2 VPS_MEMORY=4g VPS_DISK=75G NET_RATE=50mbit
  * NET_DELAY=30ms BURST_PAGES=20 BURST_PATHS= LOAD_VUS=50 LOAD_SECONDS=90
  * TCP_PROFILE=baseline|ram VPS_SKIP_BUILD=1 (use an existing image)
+ * Add +pm2 to exercise start:redis-api:pm2:worker. VPS_SOURCE_REF=<git ref>
+ * compares committed server sources with the working tree in the same image.
  */
 import { execFileSync, spawnSync } from 'child_process'
 import fs from 'fs'
@@ -31,7 +33,7 @@ const ROOT = path.resolve(
 )
 const LAB_DIR = path.join(ROOT, 'scripts/vps-lab')
 const OUT_DIR = path.join(ROOT, '.vps-lab')
-const IMAGE = 'vps-lab/centos-app:latest'
+const IMAGE = process.env.VPS_IMAGE || 'vps-lab/centos-app:latest'
 const CLIENT_IMAGE = 'node:22-alpine'
 const NETWORK = 'vps-lab'
 const VPS = 'vps-centos'
@@ -49,6 +51,10 @@ const CONFIG = {
   loadSeconds: Number(env('LOAD_SECONDS', 90)),
   tcpProfile: env('TCP_PROFILE', 'baseline'),
   skipBuild: env('VPS_SKIP_BUILD', '0') === '1',
+  sourceRef: env('VPS_SOURCE_REF', ''),
+  image: IMAGE,
+  seed: Number(env('LOAD_SEED', 12345)),
+  crawlConcurrency: env('CRAWL_CONCURRENCY', ''),
 }
 if (!['baseline', 'ram'].includes(CONFIG.tcpProfile))
   throw new Error('TCP_PROFILE must be baseline or ram')
@@ -174,14 +180,18 @@ const setupVps = () => {
   const profileArgs = []
   if (CONFIG.tcpProfile === 'ram') {
     const match = /^(\d+)([kmg]?)$/i.exec(CONFIG.memory)
-    if (!match) throw new Error(`Unsupported VPS_MEMORY value: ${CONFIG.memory}`)
+    if (!match)
+      throw new Error(`Unsupported VPS_MEMORY value: ${CONFIG.memory}`)
     const scale = { '': 1, k: 1024, m: 1024 ** 2, g: 1024 ** 3 }[
       match[2].toLowerCase()
     ]
     const memoryKiB = Math.floor((Number(match[1]) * scale) / 1024)
     bufferMax = execFileSync(
       'bash',
-      [path.join(ROOT, 'scripts/vps-setup/network-profile.sh'), String(memoryKiB)],
+      [
+        path.join(ROOT, 'scripts/vps-setup/network-profile.sh'),
+        String(memoryKiB),
+      ],
       { encoding: 'utf8' }
     ).trim()
     // Docker permits these namespaced sysctls at container creation, while
@@ -194,7 +204,13 @@ const setupVps = () => {
     )
   }
   try {
-    docker([...runArgs, ...profileArgs, '--storage-opt', `size=${CONFIG.disk}`, IMAGE])
+    docker([
+      ...runArgs,
+      ...profileArgs,
+      '--storage-opt',
+      `size=${CONFIG.disk}`,
+      IMAGE,
+    ])
   } catch {
     spawnSync('docker', ['rm', '-f', VPS], { stdio: 'ignore' })
     docker([...runArgs, ...profileArgs, IMAGE])
@@ -207,7 +223,35 @@ const setupVps = () => {
   const diskLimited = diskSizeGB <= parseInt(CONFIG.disk, 10) + 1
 
   docker(['cp', `${LAB_DIR}/.`, `${VPS}:/app/scripts/vps-lab/`])
-  docker(['cp', `${ROOT}/scripts/vps-setup/.`, `${VPS}:/app/scripts/vps-setup/`])
+  docker([
+    'cp',
+    `${ROOT}/scripts/vps-setup/.`,
+    `${VPS}:/app/scripts/vps-setup/`,
+  ])
+  // Even with a cached dependency image, execute the requested server sources.
+  if (CONFIG.sourceRef) {
+    const archive = execFileSync(
+      'git',
+      [
+        'archive',
+        CONFIG.sourceRef,
+        'server/src',
+        'server/server-build.js',
+        'config/scripts',
+        'config/utils',
+      ],
+      { cwd: ROOT, maxBuffer: 1 << 28 }
+    )
+    docker(['cp', '-', `${VPS}:/app`], { input: archive })
+  } else {
+    for (const directory of ['server/src', 'config/scripts', 'config/utils'])
+      docker(['cp', `${ROOT}/${directory}/.`, `${VPS}:/app/${directory}/`])
+    docker([
+      'cp',
+      `${ROOT}/server/server-build.js`,
+      `${VPS}:/app/server/server-build.js`,
+    ])
+  }
   vpsExec(
     `tc qdisc replace dev eth0 root netem delay ${CONFIG.netDelay} 5ms rate ${CONFIG.netRate}`
   )
@@ -226,6 +270,7 @@ const setupVps = () => {
 const resetVps = () => {
   vpsExec(
     [
+      'node /app/node_modules/pm2/bin/pm2 kill >/dev/null 2>&1 || true',
       // NOTE - "[x]" so a pattern does not match this sh -c command itself
       "pkill -f '[s]cripts/vps-lab/sampler.sh'",
       "pkill -f '[n]pm run start'",
@@ -241,8 +286,14 @@ const resetVps = () => {
   )
 } // resetVps
 
-const startServer = async ({ engine, redis, crawlProfile }) => {
-  const script = redis ? 'start:redis-api' : 'start'
+const startServer = async ({ engine, redis, crawlProfile, pm2 }) => {
+  const script = pm2
+    ? redis
+      ? 'start:redis-api:pm2:worker'
+      : 'start:pm2:worker'
+    : redis
+      ? 'start:redis-api'
+      : 'start'
   const startTime = Date.now()
   docker([
     'exec',
@@ -251,6 +302,8 @@ const startServer = async ({ engine, redis, crawlProfile }) => {
     `BROWSER_ENGINE=${engine}`,
     '-e',
     `CRAWL_PROFILE=${crawlProfile}`,
+    '-e',
+    `CRAWL_CONCURRENCY=${CONFIG.crawlConcurrency}`,
     VPS,
     'sh',
     '-c',
@@ -274,9 +327,36 @@ const readSamples = () =>
     .split('\n')
     .filter(Boolean)
     .map((line) => {
-      const [time, anon, total, cpu, oom, node, browser, browserProcs, redis] =
-        line.split(' ').map(Number)
-      return { time, anon, total, cpu, oom, node, browser, browserProcs, redis }
+      const [
+        time,
+        anon,
+        total,
+        cpu,
+        oom,
+        node,
+        browser,
+        browserProcs,
+        redis,
+        nodeProcs,
+        nodeThreads,
+        cpuPressure,
+        memoryPressure,
+      ] = line.split(' ').map(Number)
+      return {
+        time,
+        anon,
+        total,
+        cpu,
+        oom,
+        node,
+        browser,
+        browserProcs,
+        redis,
+        nodeProcs,
+        nodeThreads,
+        cpuPressure,
+        memoryPressure,
+      }
     })
 
 const phaseStats = (samples, from, to) => {
@@ -296,6 +376,10 @@ const phaseStats = (samples, from, to) => {
     peakBrowserMB: +max('browser').toFixed(0),
     peakBrowserProcs: max('browserProcs'),
     peakRedisMB: +max('redis').toFixed(0),
+    peakNodeProcesses: max('nodeProcs'),
+    peakNodeThreads: max('nodeThreads'),
+    avgCpuPressurePct: +avg('cpuPressure').toFixed(2),
+    peakMemoryPressurePct: max('memoryPressure'),
     avgCpuCores: +(
       (last.cpu - first.cpu) /
       1000 /
@@ -308,11 +392,12 @@ const phaseStats = (samples, from, to) => {
 const runScenario = async (name) => {
   const engine = name.split('+')[0]
   const redis = name.includes('+redis')
+  const pm2 = name.includes('+pm2')
   const crawlProfile = /\+(default|fast)\b/.exec(name)?.[1] ?? ''
   log(`=== ${name} ===`)
 
   resetVps()
-  const startupMs = await startServer({ engine, redis, crawlProfile })
+  const startupMs = await startServer({ engine, redis, crawlProfile, pm2 })
   const preflight = vpsExec("grep -a '\\[preflight\\]' /tmp/server.log || true")
   log(
     `server ready in ${(startupMs / 1000).toFixed(1)}s${preflight ? `\n${preflight}` : ''}`
@@ -330,6 +415,8 @@ const runScenario = async (name) => {
     headers: { Accept: 'application/json' },
   })
   const apiPaths = API_PATHS.filter((_, i) => apiCheck[i].status === 200)
+  if (!apiPaths.length)
+    throw new Error('No working API paths; refusing a misleading API benchmark')
 
   const idleFrom = vpsTime()
   await sleep(15000)
@@ -346,14 +433,16 @@ const runScenario = async (name) => {
     mode: 'load',
     durationMs: CONFIG.loadSeconds * 1000,
     vus: CONFIG.loadVus,
-    mix: { fresh: 0.05, api: 0.3 },
+    mix: { fresh: 0.05, api: 0.3, interactive: 0.2 },
     cachedPaths: BURST_PATHS,
     apiPaths,
     freshPaths: FRESH_PATHS,
+    seed: CONFIG.seed,
   })
   const loadTo = vpsTime()
 
-  // NOTE - How many of the new pages asked during the load got rendered
+  // A bot GET can itself trigger rendering. This is a post-load readiness
+  // check, not a count of renders completed strictly within the load window.
   const freshCheck = load.freshRequested.length
     ? client({ mode: 'check', paths: load.freshRequested })
     : []
@@ -375,6 +464,7 @@ const runScenario = async (name) => {
     name,
     engine,
     redis,
+    pm2,
     tcpProfile: CONFIG.tcpProfile,
     startupMs,
     preflight,
@@ -395,6 +485,9 @@ const runScenario = async (name) => {
       ...phaseStats(samples, loadFrom, loadTo),
       cached: load.cached,
       api: load.api,
+      mobile: load.mobile,
+      desktop: load.desktop,
+      elapsedMs: load.elapsedMs,
       fresh: load.fresh,
       freshRendered: freshCheck.filter((item) => item.status === 200).length,
     },
@@ -411,6 +504,8 @@ const printReport = (results) => {
     'node MB': result[phase].peakNodeMB,
     'redis MB': result[phase].peakRedisMB,
     'CPU cores': result[phase].avgCpuCores,
+    'Node threads': result[phase].peakNodeThreads,
+    'CPU PSI %': result[phase].avgCpuPressurePct,
     OOM: result[phase].oomKills,
   })
 
@@ -445,7 +540,7 @@ const printReport = (results) => {
   console.log('\n--- load: mixed traffic ---')
   console.table(
     results.flatMap((result) =>
-      ['cached', 'api'].map((kind) => ({
+      ['cached', 'api', 'mobile', 'desktop'].map((kind) => ({
         scenario: result.name,
         kind,
         'req/s': result.load[kind].rps,
@@ -462,7 +557,7 @@ const printReport = (results) => {
     results.map((result) => ({
       scenario: result.name,
       'new pages asked': result.load.fresh.count,
-      'rendered during load': result.load.freshRendered,
+      'ready at post-load check': result.load.freshRendered,
       'server errors in log': result.serverErrors,
       'startup s': +(result.startupMs / 1000).toFixed(1),
     }))
@@ -491,6 +586,7 @@ const main = async () => {
     JSON.stringify({ config: { ...CONFIG, diskLimited }, results }, null, 2)
   )
   log(`Report written to ${file}`)
+  if (results.length !== SCENARIOS.length) process.exitCode = 1
 }
 
 main().catch((err) => {

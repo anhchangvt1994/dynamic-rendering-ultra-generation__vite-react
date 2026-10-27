@@ -11,8 +11,14 @@ import {
   type TBrowserEngine,
 } from '../../constants'
 import BrowserManager from '../BrowserManager'
-import { CRAWL_WORKERS, IS_FAST_CRAWL } from '../CrawlProfile'
+import {
+  CRAWL_WORKERS,
+  IS_FAST_CRAWL,
+  RESOURCE_BUDGET,
+  crawlGate,
+} from '../CrawlProfile'
 import CacheManager from '../CacheManager.worker/utils'
+import { closeRenderTarget } from '../RenderCleanup'
 import { type IISRHandlerWorkerParam } from './types'
 
 const pagesPath = getPagesPath()
@@ -22,12 +28,16 @@ const { parentPort, isMainThread } = require('worker_threads')
 const workerManager = WorkerManager.init(
   path.resolve(__dirname, `./worker.${resourceExtension}`),
   {
-    // NOTE - Fast profile keeps all its render workers ready: starting a
-    // worker thread when the crawl arrives took 2-3s on a 2 vCPU VPS
-    minWorkers: IS_FAST_CRAWL ? CRAWL_WORKERS : 1,
-    // NOTE - default profile: 2 (reduced from 5 to prevent EAGAIN resource
-    // exhaustion), fast profile: the crawl concurrency
+    minWorkers: 1,
     maxWorkers: CRAWL_WORKERS,
+    maxQueueSize: RESOURCE_BUDGET.queueLimit,
+    reuseWorkers: true,
+    workerThreadOpts: {
+      execArgv: process.execArgv.filter(
+        (arg) => !/^--max[-_]old[-_]space[-_]size/.test(arg)
+      ),
+      resourceLimits: { maxOldGenerationSizeMb: RESOURCE_BUDGET.workerHeapMB },
+    },
     enableGlobalCounter: !isMainThread,
   },
   ['ISRHandler']
@@ -69,56 +79,35 @@ const _render = async (
   let result
   const cacheManager = CacheManager(params.url, pagesPath)
 
+  let html: string | undefined
+  let targetId: string | undefined
   try {
-    result = await new Promise(async (res, rej) => {
-      let html
-      const timeout = setTimeout(async () => {
-        if (html) {
-          const tmpResult = await cacheManager.set({
-            html,
-            isRaw: !params.hasCache,
-          })
-
-          res(tmpResult)
-        } else {
-          res(undefined)
-        }
-      }, 52000)
-      try {
-        const tmpResult = await pool.exec(
-          'ISRHandler',
-          [
-            {
-              ...params,
-              baseUrl: PROCESS_ENV.BASE_URL,
-              wsEndpoint,
-              engine,
-            },
-          ],
+    result = await pool
+      .exec(
+        'ISRHandler',
+        [
           {
-            on: (payload) => {
-              if (!payload) return
-              if (
-                typeof payload === 'object' &&
-                payload.name === 'html' &&
-                payload.value
-              ) {
-                html = payload.value
-              }
-            },
-          }
-        )
-
-        res(tmpResult)
-      } catch (err) {
-        rej(err)
-      } finally {
-        clearTimeout(timeout)
-      }
-    })
-  } catch (err) {
-    // clearTimeout(timeoutToCloseBrowserPage)
-    Console.error(err)
+            ...params,
+            baseUrl: PROCESS_ENV.BASE_URL,
+            wsEndpoint,
+            engine,
+          },
+        ],
+        {
+          on: (payload) => {
+            if (payload?.name === 'html' && payload.value) html = payload.value
+            if (payload?.name === 'page') targetId = payload.value
+          },
+        }
+      )
+      .timeout(52000)
+  } catch (error) {
+    // workerpool cancels the timed-out task, so its render permit is not
+    // returned while the old worker keeps consuming CPU in the background.
+    Console.error(error)
+    if (browser && engine === 'chromium')
+      await closeRenderTarget(browser, targetId)
+    if (html) result = await cacheManager.set({ html, isRaw: !params.hasCache })
   }
 
   const url = params.url.split('?')[0]
@@ -135,11 +124,12 @@ const _render = async (
     force: true,
     // delay: 30000,
   })
+  if (!isMainThread && engine === 'chromium') await browser?.disconnect()
 
   return result
 } // _render
 
-const ISRHandler = async (params: IISRHandlerWorkerParam) => {
+const render = async (params: IISRHandlerWorkerParam) => {
   if (!browserManager || !params.url) return
 
   let result = await _render(params, BROWSER_ENGINE)
@@ -166,5 +156,14 @@ const ISRHandler = async (params: IISRHandlerWorkerParam) => {
 
   return result
 } // ISRHandler
+
+const ISRHandler = (params: IISRHandlerWorkerParam) =>
+  crawlGate
+    .run(() => render(params))
+    .catch(async (error) => {
+      Console.error(error.message)
+      await CacheManager(params.url, pagesPath).remove()
+      return undefined
+    })
 
 export default ISRHandler

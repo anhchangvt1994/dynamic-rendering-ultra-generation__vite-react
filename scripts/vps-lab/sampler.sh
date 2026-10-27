@@ -11,11 +11,13 @@ while :; do
   total=$(awk '{ printf "%.1f", $1 / 1048576 }' "$CG/memory.current")
   cpu=$(awk '$1 == "usage_usec" { print $2 }' "$CG/cpu.stat")
   oom=$(awk '$1 == "oom_kill" { print $2 }' "$CG/memory.events")
-  procs=$(ps -eo rss=,args= | awk '
-    $2 ~ /(^|\/)(node|npm)$/ { node += $1 }
-    $0 ~ /chrom|headless_shell|lightpanda(-bin)? serve/ { browser += $1; count++ }
-    $2 ~ /(redis|valkey)-server/ { redis += $1 }
-    END { printf "%.1f %.1f %d %.1f", node / 1024, browser / 1024, count, redis / 1024 }')
-  echo "$(date +%s%3N) $anon $total $cpu $oom $procs" >> "$OUT"
+  procs=$(ps -eo rss=,nlwp=,args= | awk '
+    $3 ~ /(^|\/)(node|npm)$/ || $3 == "web-scraping" || $3 == "PM2" { node += $1; nodeProcs++; threads += $2 }
+    $3 ~ /chrom|headless_shell|lightpanda/ { browser += $1; count++ }
+    $3 ~ /(redis|valkey)-server/ { redis += $1 }
+    END { printf "%.1f %.1f %d %.1f %d %d", node / 1024, browser / 1024, count, redis / 1024, nodeProcs, threads }')
+  cpuPressure=$(awk '/^some / { split($2, x, "="); print x[2] }' "$CG/cpu.pressure")
+  memoryPressure=$(awk '/^some / { split($2, x, "="); print x[2] }' "$CG/memory.pressure")
+  echo "$(date +%s%3N) $anon $total $cpu $oom $procs $cpuPressure $memoryPressure" >> "$OUT"
   sleep 0.5
 done

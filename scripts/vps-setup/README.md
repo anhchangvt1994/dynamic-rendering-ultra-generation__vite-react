@@ -302,6 +302,83 @@ mỗi profile vài lần trước khi kết luận; một lần chạy ngắn d�
 cache và tải nền. Lab chỉ mô phỏng mạng/VM, không thay thế phép đo từ người dùng
 thật hoặc xác nhận tốc độ của nhà cung cấp VPS.
 
+### Cân bằng tải giữa HTTP/API và render
+
+`start:redis-api:pm2:worker` tự tính ngân sách từ số CPU và RAM thực tế (kể cả
+cgroup trong lab). Máy từ hai CPU và đủ RAM mặc định cho phép hai render; máy
+một CPU hoặc RAM nhỏ có thể hạ xuống một. Mặc định giới hạn tối đa 4 render trên
+VPS, và chia ngân sách đó giữa các PM2 instances. Các HTTP workers trong cùng
+instance dùng chung bộ đếm atomic; ISR và SSR đều phải lấy permit trước khi mở
+render. Vì thế tăng số HTTP workers không tự nhân số tác vụ render đồng thời.
+
+Pool render tái sử dụng worker và có trần heap; cache nóng có trần byte và tự bỏ
+entry hết hạn. Queue có giới hạn số URL và thời gian chờ. Khi quá tải, trang chưa
+render xong có thể trả 503 với `Retry-After`; cache đã có và API vẫn đi đường riêng.
+PM2 có thêm ngưỡng RSS để restart process. Đây là các giới hạn ở ứng dụng/V8;
+RSS còn gồm Buffer, native code và browser nên vẫn cần theo dõi RAM/PSI trên VPS.
+
+Nếu cần thử cấu hình riêng, đặt trong `server/.env.production`, rồi restart app:
+
+Các số đo trong [báo cáo lab](../vps-lab/README.md) dùng `BROWSER_ENGINE=lightpanda`.
+Giữ engine đúng với app đang dùng; phép đo đó không đại diện cho mọi trang/engine.
+
+| Biến | Mặc định / ý nghĩa |
+| --- | --- |
+| `CRAWL_CONCURRENCY` | Ngân sách render của toàn app trên VPS, tự tính theo CPU/RAM nếu bỏ trống |
+| `CLUSTER_INSTANCES` | Tự chọn 1–2; luôn bị giới hạn theo ngân sách render/RAM |
+| `REQUEST_WORKERS` | 1 HTTP worker mỗi PM2 process, có thể tăng trong giới hạn ngân sách |
+| `CRAWL_QUEUE_LIMIT` | 32 URL cho mỗi queue; tối đa 256 |
+| `CRAWL_QUEUE_TIMEOUT_MS` | 15000 ms; tối đa 60000 ms |
+| `CRAWL_MIN_FREE_MEMORY_MB` | Tự chừa 128–512 MiB trước khi nhận render mới |
+| `UPSTREAM_CONNECTIONS` | 8 kết nối mỗi API origin cho mỗi HTTP worker, tối đa 32 |
+| `UPSTREAM_TIMEOUT_MS` | 10000 ms, tính cả thời gian nhận body; hết hạn hủy fetch thật |
+
+`[resources]` trong PM2/app log ghi ngân sách đã áp dụng. Các request GET chỉ gộp
+khi URL và headers khớp; không gộp request có cancellation signal riêng. Các
+workspace nội bộ được khai báo bằng version trùng workspace để Yarn link trực
+tiếp; `yarn install --frozen-lockfile` không phải tạo bản sao dependency tree.
+
+Sau khi đưa source mới lên VPS, chỉ cần cập nhật app, không cần chạy lại toàn bộ
+setup web/firewall:
+
+```bash
+sudo -u deploy bash -lc 'cd /srv/anhchangvt1994.com && yarn install --frozen-lockfile && yarn build && yarn server-build'
+sudo systemctl restart vps-app
+journalctl -u vps-app -n 80 --no-pager
+```
+
+Thay user/path/service cho đúng máy. Nếu đang tự chạy PM2, dùng cùng user và
+`PM2_HOME` đã dùng trước đó, rồi chạy `yarn start:redis-api:pm2:worker`; launcher
+cập nhật cả interpreter/env và số instances của nhóm app hiện có.
+
+Chẩn đoán tại VPS:
+
+```bash
+bash scripts/vps-setup/diagnose.sh
+bash scripts/vps-setup/diagnose.sh 'https://pokeapi.co/api/v2/pokemon/pikachu' 3
+```
+
+Script chỉ đọc CPU/RAM/PSI, tiến trình, BBR/buffer và qdisc **đang dùng** trên
+interface. Thay URL bằng API HTTPS công khai thật của bạn để đo DNS/TCP/TLS/TTFB
+cho IPv4/IPv6. `api.example.com` là placeholder, không dùng để kết luận DNS của
+API thật bị lỗi. `default_qdisc=fq` không chứng minh interface hiện tại dùng fq.
+
+Đo đúng đường PM2 bằng lab, dùng cùng dependency image và thay source app:
+
+```bash
+VPS_SOURCE_REF=97a10e0 VPS_SKIP_BUILD=1 VPS_MEMORY=4g VPS_CPUS=2 \
+  LOAD_VUS=50 LOAD_SECONDS=30 node scripts/vps-lab/run.mjs lightpanda+redis+pm2
+VPS_SKIP_BUILD=1 VPS_MEMORY=4g VPS_CPUS=2 \
+  LOAD_VUS=50 LOAD_SECONDS=30 node scripts/vps-lab/run.mjs lightpanda+redis+pm2
+```
+
+`VPS_SOURCE_REF` lấy server/config từ Git; bỏ biến để dùng working tree. Khi dùng
+image khác, đặt cùng `VPS_IMAGE` ở cả hai lệnh. Lab đồng bộ source cả khi skip
+build; image phải có dependency khớp lockfile. Tải có seed cố định và req/s dùng
+thời gian thực, gồm cả lúc chờ request cuối hoàn tất. Kết quả có HTML với UA mobile
+và desktop, API, bot cache, render, CPU pressure và số thread. UA mobile trong lab
+không mô phỏng CPU/màn hình/trình duyệt thật, nên không suy ra LCP/INP từ phép đo này.
+
 ## 6. Các tùy chọn khác
 
 | Flag | Ý nghĩa |

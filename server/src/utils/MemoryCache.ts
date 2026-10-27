@@ -18,16 +18,33 @@ export interface IMemoryCache<T> {
 const MemoryCache = <T>(options: {
   ttlMs: number
   max: number
+  maxBytes?: number
+  sizeOf?: (value: T) => number
 }): IMemoryCache<T> => {
-  const entries = new Map<string, { value: T; expiresAt: number }>()
+  const entries = new Map<
+    string,
+    { value: T; expiresAt: number; bytes: number }
+  >()
   const loading = new Map<string, Promise<T | undefined>>()
+  let bytes = 0
+  const remove = (key: string) => {
+    const entry = entries.get(key)
+    if (entry) bytes -= entry.bytes
+    entries.delete(key)
+  }
+  const prune = () => {
+    const now = Date.now()
+    for (const [key, entry] of entries) if (entry.expiresAt <= now) remove(key)
+  }
+  // A TTL must also release cold entries that are never requested again.
+  setInterval(prune, Math.max(50, Math.min(options.ttlMs, 5000))).unref?.()
 
   const _get = (key: string) => {
     const entry = entries.get(key)
     if (!entry) return
 
     if (entry.expiresAt <= Date.now()) {
-      entries.delete(key)
+      remove(key)
       return
     }
 
@@ -39,11 +56,21 @@ const MemoryCache = <T>(options: {
   } // _get
 
   const _set = (key: string, value: T, ttlMs = options.ttlMs) => {
-    entries.delete(key)
-    entries.set(key, { value, expiresAt: Date.now() + ttlMs })
-
-    if (entries.size > options.max)
-      entries.delete(entries.keys().next().value as string)
+    prune()
+    remove(key)
+    const entryBytes = options.maxBytes
+      ? (options.sizeOf?.(value) ??
+        Buffer.byteLength(JSON.stringify(value) ?? ''))
+      : 0
+    if (entryBytes > (options.maxBytes ?? Infinity) || ttlMs <= 0) return
+    entries.set(key, {
+      value,
+      expiresAt: Date.now() + ttlMs,
+      bytes: entryBytes,
+    })
+    bytes += entryBytes
+    while (entries.size > options.max || bytes > (options.maxBytes ?? Infinity))
+      remove(entries.keys().next().value as string)
   } // _set
 
   const _wrap = async (
@@ -72,7 +99,7 @@ const MemoryCache = <T>(options: {
   return {
     get: _get,
     set: _set,
-    delete: (key) => entries.delete(key),
+    delete: remove,
     wrap: _wrap,
   }
 }

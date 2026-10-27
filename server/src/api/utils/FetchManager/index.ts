@@ -1,17 +1,8 @@
-import path from 'path'
-import { resourceExtension } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
-import WorkerManager from '../../../utils/WorkerManager'
-import { fetchData as fetchDataInThread } from './utils'
-
-const workerManager = WorkerManager.init(
-  path.resolve(__dirname, `./worker.${resourceExtension}`),
-  {
-    minWorkers: 1,
-    maxWorkers: 3,
-  },
-  ['fetchData', 'refreshData']
-)
+import {
+  fetchData as fetchDataInThread,
+  refreshData as refreshDataInThread,
+} from './utils'
 
 // NOTE - Identical GET requests to the upstream API running at the same time
 // share one fetch
@@ -19,7 +10,7 @@ const inflightFetches = new Map<string, ReturnType<typeof fetchDataInThread>>()
 
 export const fetchData = async (
   input: RequestInfo | URL,
-  init?: RequestInit | undefined
+  init?: Parameters<typeof fetchDataInThread>[1]
 ): Promise<{
   status: number
   data: any
@@ -40,9 +31,19 @@ export const fetchData = async (
   // NOTE - fetch is async I/O: it runs in this thread. In the worker pool, the
   // response (up to hundreds of KB) was copied between threads twice
   const method = (init?.method || 'GET').toUpperCase()
-  if (method !== 'GET' || init?.body) return fetchDataInThread(input, init)
+  if (
+    method !== 'GET' ||
+    init?.body ||
+    init?.signal ||
+    input instanceof Request
+  )
+    return fetchDataInThread(input, init)
 
-  const key = String(input)
+  // Requests with different credentials/languages must never share a result.
+  const headers = [...new Headers(init?.headers).entries()].sort(([a], [b]) =>
+    a.localeCompare(b)
+  )
+  const key = JSON.stringify([String(input), headers, init?.timeout])
   const inflightFetch = inflightFetches.get(key)
   if (inflightFetch) return inflightFetch
 
@@ -60,20 +61,7 @@ export const refreshData = async (cacheKeyList: string[]) => {
     return
   }
 
-  const freePool = await workerManager.getFreePool()
-  const pool = freePool.pool
-  let result
-
-  try {
-    await pool.exec('refreshData', [cacheKeyList])
-    result = 'finish'
-  } catch (err) {
-    Console.error(err)
-  }
-
-  freePool.terminate({
-    force: true,
-  })
-
-  return result
+  // HTTP I/O is asynchronous. A second worker pool only duplicates the heap
+  // and upstream connection pools without increasing network concurrency.
+  return refreshDataInThread(cacheKeyList)
 } // refreshData

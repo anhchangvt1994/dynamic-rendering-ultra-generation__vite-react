@@ -6,6 +6,7 @@ import path from 'node:path'
 import { test } from 'node:test'
 import vm from 'node:vm'
 import { transform } from 'sucrase'
+import PM2API from 'pm2/lib/API.js'
 
 const root = path.resolve(import.meta.dirname, '../..')
 
@@ -108,27 +109,45 @@ firewall_open_web
   }
 })
 
-for (const existing of [false, true])
-  test(`PM2 ${existing ? 'updates an existing' : 'launches a new'} TypeScript worker with Node and Sucrase`, async () => {
+for (const existing of [0, 1, 2])
+  test(`PM2 starts or reconciles ${existing} existing TypeScript workers with Node and Sucrase`, async () => {
     let options
+    let scales = 0
+    const receiver = {
+      _startJson: (config, opts, action, callback) => {
+        options = config.apps[0]
+        callback?.(null)
+      },
+      _operate: (action, id, callback) => callback?.(null),
+      Client: {
+        getProcessByName: (name, callback) =>
+          callback(
+            null,
+            Array.from({ length: existing }, (_, id) => ({
+              pm2_env: { pm_id: id },
+            }))
+          ),
+      },
+    }
     const pm2 = {
       connect: (_, callback) => callback(null),
       list: (callback) =>
-        callback(
-          null,
-          existing
-            ? [
-                { name: 'worker-app', pm_id: 1 },
-                { name: 'unrelated-app', pm_id: 2 },
-              ]
-            : []
-        ),
+        callback(null, [
+          ...Array.from({ length: existing }, (_, id) => ({
+            name: 'worker-app',
+            pm_id: id,
+          })),
+          { name: 'unrelated-app', pm_id: 99 },
+        ]),
       start: (value) => {
         options = value
       },
       restart: (id, value, callback) => {
-        options = value
-        callback?.(null)
+        PM2API.prototype.restart.call(receiver, id, value, callback)
+      },
+      scale: (name, instances, callback) => {
+        scales++
+        PM2API.prototype.scale.call(receiver, name, instances, callback)
       },
     }
     const source = fs.readFileSync(
@@ -143,6 +162,15 @@ for (const existing of [false, true])
           if (name === '../constants')
             return { resourceDirectory: 'src', resourceExtension: 'ts' }
           if (name === '../utils/InitEnv') return { PROCESS_ENV: {} }
+          if (name === '../utils/ResourceBudget')
+            return {
+              getResourceBudget: () => ({
+                instances: 1,
+                requestWorkers: 1,
+                nodeHeapMB: 512,
+                processMemoryMB: 1024,
+              }),
+            }
           if (name === './constants') return { PM2_PROCESS_NAME: 'worker-app' }
           return {}
         },
@@ -154,6 +182,8 @@ for (const existing of [false, true])
     await new Promise((resolve) => setImmediate(resolve))
     assert.ok(options, 'PM2 start was not called')
     assert.equal(options.interpreter, process.execPath)
+    assert.equal(options.env.APP_INSTANCES, '1')
+    assert.equal(scales, existing > 1 ? 1 : 0)
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vps-worker-test-'))
     try {
       const fixture = path.join(dir, 'worker.ts')
@@ -216,6 +246,57 @@ test('plain yarn installs build tools even under NODE_ENV=production', () => {
       fs.existsSync(`${dir}/node_modules/build-probe/package.json`),
       'Yarn skipped the build dependency in production'
     )
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('a fresh frozen install links local workspaces instead of copying their dependency trees', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vps-workspaces-test-'))
+  try {
+    const manifest = JSON.parse(fs.readFileSync(`${root}/package.json`, 'utf8'))
+    fs.writeFileSync(
+      `${dir}/package.json`,
+      JSON.stringify({
+        private: true,
+        workspaces: manifest.workspaces,
+        devDependencies: manifest.devDependencies,
+      })
+    )
+    fs.writeFileSync(`${dir}/yarn.lock`, '# yarn lockfile v1\n')
+    for (const [name, subdirectory] of [
+      ['server', 'server'],
+      ['build-tool-packages', 'config/build-tool-packages'],
+      ['commit-packages', 'config/commit-packages'],
+      ['lint-and-format-packages', 'config/lint-and-format-packages'],
+    ]) {
+      fs.mkdirSync(`${dir}/${subdirectory}`, { recursive: true })
+      fs.writeFileSync(
+        `${dir}/${subdirectory}/package.json`,
+        JSON.stringify({ name, version: '1.0.0' })
+      )
+    }
+    const result = spawnSync(
+      process.execPath,
+      [
+        `${root}/.yarn/releases/yarn-1.22.22.cjs`,
+        'install',
+        '--offline',
+        '--frozen-lockfile',
+        '--ignore-scripts',
+      ],
+      {
+        cwd: dir,
+        env: { ...process.env, YARN_CACHE_FOLDER: `${dir}/cache` },
+        encoding: 'utf8',
+      }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    for (const name of Object.keys(manifest.devDependencies))
+      assert.ok(
+        fs.lstatSync(`${dir}/node_modules/${name}`).isSymbolicLink(),
+        `${name} must be a workspace link`
+      )
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }

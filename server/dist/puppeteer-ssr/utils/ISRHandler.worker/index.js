@@ -11,8 +11,14 @@ var _WorkerManager = require('../../../utils/WorkerManager'); var _WorkerManager
 
 var _constants3 = require('../../constants');
 var _BrowserManager = require('../BrowserManager'); var _BrowserManager2 = _interopRequireDefault(_BrowserManager);
+
+
+
+
+
 var _CrawlProfile = require('../CrawlProfile');
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
+var _RenderCleanup = require('../RenderCleanup');
 
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0, )
@@ -22,12 +28,16 @@ const { parentPort, isMainThread } = require('worker_threads')
 const workerManager = _WorkerManager2.default.init(
   _path2.default.resolve(__dirname, `./worker.${_constants.resourceExtension}`),
   {
-    // NOTE - Fast profile keeps all its render workers ready: starting a
-    // worker thread when the crawl arrives took 2-3s on a 2 vCPU VPS
-    minWorkers: _CrawlProfile.IS_FAST_CRAWL ? _CrawlProfile.CRAWL_WORKERS : 1,
-    // NOTE - default profile: 2 (reduced from 5 to prevent EAGAIN resource
-    // exhaustion), fast profile: the crawl concurrency
+    minWorkers: 1,
     maxWorkers: _CrawlProfile.CRAWL_WORKERS,
+    maxQueueSize: _CrawlProfile.RESOURCE_BUDGET.queueLimit,
+    reuseWorkers: true,
+    workerThreadOpts: {
+      execArgv: process.execArgv.filter(
+        (arg) => !/^--max[-_]old[-_]space[-_]size/.test(arg)
+      ),
+      resourceLimits: { maxOldGenerationSizeMb: _CrawlProfile.RESOURCE_BUDGET.workerHeapMB },
+    },
     enableGlobalCounter: !isMainThread,
   },
   ['ISRHandler']
@@ -69,60 +79,39 @@ const _render = async (
   let result
   const cacheManager = _utils2.default.call(void 0, params.url, pagesPath)
 
+  let html
+  let targetId
   try {
-    result = await new Promise(async (res, rej) => {
-      let html
-      const timeout = setTimeout(async () => {
-        if (html) {
-          const tmpResult = await cacheManager.set({
-            html,
-            isRaw: !params.hasCache,
-          })
-
-          res(tmpResult)
-        } else {
-          res(undefined)
-        }
-      }, 52000)
-      try {
-        const tmpResult = await pool.exec(
-          'ISRHandler',
-          [
-            {
-              ...params,
-              baseUrl: _InitEnv.PROCESS_ENV.BASE_URL,
-              wsEndpoint,
-              engine,
-            },
-          ],
+    result = await pool
+      .exec(
+        'ISRHandler',
+        [
           {
-            on: (payload) => {
-              if (!payload) return
-              if (
-                typeof payload === 'object' &&
-                payload.name === 'html' &&
-                payload.value
-              ) {
-                html = payload.value
-              }
-            },
-          }
-        )
-
-        res(tmpResult)
-      } catch (err) {
-        rej(err)
-      } finally {
-        clearTimeout(timeout)
-      }
-    })
-  } catch (err) {
-    // clearTimeout(timeoutToCloseBrowserPage)
-    _ConsoleHandler2.default.error(err)
+            ...params,
+            baseUrl: _InitEnv.PROCESS_ENV.BASE_URL,
+            wsEndpoint,
+            engine,
+          },
+        ],
+        {
+          on: (payload) => {
+            if (_optionalChain([payload, 'optionalAccess', _4 => _4.name]) === 'html' && payload.value) html = payload.value
+            if (_optionalChain([payload, 'optionalAccess', _5 => _5.name]) === 'page') targetId = payload.value
+          },
+        }
+      )
+      .timeout(52000)
+  } catch (error) {
+    // workerpool cancels the timed-out task, so its render permit is not
+    // returned while the old worker keeps consuming CPU in the background.
+    _ConsoleHandler2.default.error(error)
+    if (browser && engine === 'chromium')
+      await _RenderCleanup.closeRenderTarget.call(void 0, browser, targetId)
+    if (html) result = await cacheManager.set({ html, isRaw: !params.hasCache })
   }
 
   const url = params.url.split('?')[0]
-  _optionalChain([browser, 'optionalAccess', _4 => _4.emit, 'call', _5 => _5('closePage', url)])
+  _optionalChain([browser, 'optionalAccess', _6 => _6.emit, 'call', _7 => _7('closePage', url)])
   if (!isMainThread) {
     parentPort.postMessage({
       name: 'closePage',
@@ -135,11 +124,12 @@ const _render = async (
     force: true,
     // delay: 30000,
   })
+  if (!isMainThread && engine === 'chromium') await _optionalChain([browser, 'optionalAccess', _8 => _8.disconnect, 'call', _9 => _9()])
 
   return result
 } // _render
 
-const ISRHandler = async (params) => {
+const render = async (params) => {
   if (!browserManager || !params.url) return
 
   let result = await _render(params, _constants3.BROWSER_ENGINE)
@@ -166,5 +156,14 @@ const ISRHandler = async (params) => {
 
   return result
 } // ISRHandler
+
+const ISRHandler = (params) =>
+  _CrawlProfile.crawlGate
+    .run(() => render(params))
+    .catch(async (error) => {
+      _ConsoleHandler2.default.error(error.message)
+      await _utils2.default.call(void 0, params.url, pagesPath).remove()
+      return undefined
+    })
 
 exports. default = ISRHandler

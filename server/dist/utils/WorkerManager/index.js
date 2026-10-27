@@ -18,6 +18,12 @@ const workerManagerPath = _PathHandler.getWorkerManagerPath.call(void 0, )
 
 
 
+
+
+
+
+
+
 const workerOrder = _optionalChain([workerData, 'optionalAccess', _ => _.order]) || 0
 
 const WorkerManager = (() => {
@@ -145,6 +151,7 @@ const WorkerManager = (() => {
 						}
 
 						_getCounterDecreased()
+						if (initOptions.reuseWorkers) return
 
 						if (timeout) clearTimeout(timeout)
 						timeout = setTimeout(async () => {

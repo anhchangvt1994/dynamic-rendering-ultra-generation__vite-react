@@ -6,6 +6,7 @@ var _serverconfig = require('./server.config'); var _serverconfig2 = _interopReq
 var _ConsoleHandler = require('./utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('./utils/InitEnv');
 var _PortHandler = require('./utils/PortHandler');
+var _ResourceBudget = require('./utils/ResourceBudget');
 
 const {
   Worker,
@@ -93,16 +94,26 @@ const startServer = async () => {
       })
     } // _createWorkerListener
 
-    // Spawn worker threads - reduced from 5 to 2 to prevent EAGAIN resource exhaustion
-    // (3 PM2 instances × workers × WorkerPools = too many threads)
-    const worker1 = new Worker(__filename, {
-      workerData: { order: 1, port: 4040 },
-    })
-    _createWorkerListener(worker1)
-    const worker2 = new Worker(__filename, {
-      workerData: { order: 2, port: 4041 },
-    })
-    _createWorkerListener(worker2)
+    const budget = _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV)
+    const renderSlots = new SharedArrayBuffer(4)
+    console.log('[resources]', JSON.stringify(budget))
+    for (let order = 1; order <= budget.requestWorkers; order++) {
+      const worker = new Worker(__filename, {
+        workerData: { order, port: 4040 + order - 1, renderSlots },
+        execArgv: process.execArgv.filter(
+          (arg) => !/^--max[-_]old[-_]space[-_]size/.test(arg)
+        ),
+        resourceLimits: { maxOldGenerationSizeMb: budget.workerHeapMB },
+      })
+      worker.on('error', (error) => {
+        _ConsoleHandler2.default.error('HTTP worker failed:', error)
+        process.exit(1)
+      })
+      worker.on('exit', (code) => {
+        if (code !== 0) process.exit(1)
+      })
+      _createWorkerListener(worker)
+    }
   } else {
     const setupCors = (res) => {
       res

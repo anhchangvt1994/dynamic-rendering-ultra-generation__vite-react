@@ -51,10 +51,10 @@
     "swiper": "^12.1.1"
   },
   "devDependencies": {
-    "build-tool-packages": "file:./config/build-tool-packages",
-    "commit-packages": "file:./config/commit-packages",
-    "lint-and-format-packages": "file:./config/lint-and-format-packages",
-    "server": "file:./server"
+    "build-tool-packages": "1.0.0",
+    "commit-packages": "1.0.0",
+    "lint-and-format-packages": "1.0.0",
+    "server": "1.0.0"
   },
   "prettier": "./config/prettier.config.cjs",
   "lint-staged": {

@@ -10,10 +10,12 @@ var _PathHandler = require('../../../utils/PathHandler');
 
 
 
+
 var _constants = require('../../constants');
 
 var _BrowserManager = require('../BrowserManager'); var _BrowserManager2 = _interopRequireDefault(_BrowserManager);
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
+var _CreateRenderPage = require('../CreateRenderPage');
 var _utils3 = require('../OptimizeHtml.worker/utils');
 
 
@@ -22,6 +24,14 @@ var _utils3 = require('../OptimizeHtml.worker/utils');
 var _utils5 = require('./utils/utils');
 
 const viewsPath = _PathHandler.getViewsPath.call(void 0, )
+
+let activePage
+let activeBrowser
+const closeActivePage = async () => {
+  const page = activePage
+  if (page && !page.isClosed()) await page.close()
+  if (activePage === page) activePage = undefined
+}
 
 // NOTE - A stray rejected promise (ex: page.close() rejects with "Target
 // closed" once the CDP connection is closed) must not kill this worker thread:
@@ -125,10 +135,11 @@ const waitResponse = (() => {
   }
 })() // waitResponse
 
-const SSRHandler = async (params) => {
+const render = async (params) => {
   if (!browserManager || !params) return
 
   const browser = await browserManager.get()
+  activeBrowser = browser
 
   if (!browser || !browser.connected) return
 
@@ -141,7 +152,9 @@ const SSRHandler = async (params) => {
   const specialInfo = _nullishCoalesce(_optionalChain([_constants.regexQueryStringSpecialInfo, 'access', _20 => _20.exec, 'call', _21 => _21(url), 'optionalAccess', _22 => _22.groups]), () => ( {}))
 
   if (browser && browser.connected) {
-    const page = await browser.newPage()
+    const page = await _CreateRenderPage.createRenderPage.call(void 0, browser, _constants.BROWSER_ENGINE)
+    activePage = page
+
     const safePage = _getSafePage(page)
 
     const deviceInfo = specialInfo.deviceInfo
@@ -303,9 +316,7 @@ const SSRHandler = async (params) => {
       _ConsoleHandler2.default.log('SSRHandler line 297:')
       _ConsoleHandler2.default.log('Crawler is fail!')
       _ConsoleHandler2.default.error(err)
-      _optionalChain([safePage, 'call', _53 => _53()
-, 'optionalAccess', _54 => _54.close, 'call', _55 => _55()
-, 'access', _56 => _56.catch, 'call', _57 => _57(() => {})])
+      await closeActivePage()
 
       return {
         status: 500,
@@ -314,16 +325,12 @@ const SSRHandler = async (params) => {
 
     if (_constants.CACHEABLE_STATUS_CODE[status]) {
       try {
-        html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _58 => _58(), 'optionalAccess', _59 => _59.content, 'call', _60 => _60()])), async () => ( '')) // serialized HTML of page DOM.
-        _optionalChain([safePage, 'call', _61 => _61()
-, 'optionalAccess', _62 => _62.close, 'call', _63 => _63()
-, 'access', _64 => _64.catch, 'call', _65 => _65(() => {})])
+        html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _53 => _53(), 'optionalAccess', _54 => _54.content, 'call', _55 => _55()])), async () => ( '')) // serialized HTML of page DOM.
+        await closeActivePage()
       } catch (err) {
         _ConsoleHandler2.default.log('SSRHandler line 315:')
         _ConsoleHandler2.default.error(err)
-        _optionalChain([safePage, 'call', _66 => _66()
-, 'optionalAccess', _67 => _67.close, 'call', _68 => _68()
-, 'access', _69 => _69.catch, 'call', _70 => _70(() => {})])
+        await closeActivePage()
 
         return
       }
@@ -355,9 +362,9 @@ const SSRHandler = async (params) => {
             (style) => {
               if (style) {
                 const href =
-                  _optionalChain([/href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/, 'access', _71 => _71.exec, 'call', _72 => _72(
+                  _optionalChain([/href=("|'|)(?<href>[A-Za-z0-9_\-\/]{0,}\.css)("|'|)/, 'access', _56 => _56.exec, 'call', _57 => _57(
                     style
-                  ), 'optionalAccess', _73 => _73.groups, 'optionalAccess', _74 => _74.href])
+                  ), 'optionalAccess', _58 => _58.groups, 'optionalAccess', _59 => _59.href])
 
                 if (href) {
                   const styleResult = _utils5.getInternalStyle.call(void 0, {
@@ -415,6 +422,19 @@ const SSRHandler = async (params) => {
 
   return result
 } // SSRHandler
+
+const SSRHandler = async (params) => {
+  try {
+    return await render(params)
+  } finally {
+    try {
+      await closeActivePage()
+    } finally {
+      await _optionalChain([activeBrowser, 'optionalAccess', _60 => _60.disconnect, 'call', _61 => _61(), 'access', _62 => _62.catch, 'call', _63 => _63(() => {})])
+      activeBrowser = undefined
+    }
+  }
+}
 
 _workerpool2.default.worker({
   SSRHandler,

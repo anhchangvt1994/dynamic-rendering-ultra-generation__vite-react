@@ -15,6 +15,7 @@ var _CleanerService = require('../../utils/CleanerService'); var _CleanerService
 var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../../utils/InitEnv');
 var _MemoryCache = require('../../utils/MemoryCache'); var _MemoryCache2 = _interopRequireDefault(_MemoryCache);
+var _ResourceBudget = require('../../utils/ResourceBudget');
 var _StringHelper = require('../../utils/StringHelper');
 
 
@@ -43,18 +44,23 @@ const {
 const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
 const BOT_PAGE_CACHE_TTL = Number(_InitEnv.PROCESS_ENV.BOT_PAGE_CACHE_TTL_MS) || 3000
+const hotCacheBytes = _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV).hotCacheBytes
 const botPageCache = _MemoryCache2.default
 
 
 ({
   ttlMs: BOT_PAGE_CACHE_TTL,
   max: 2000,
+  maxBytes: hotCacheBytes / 2,
+  sizeOf: (value) => Buffer.byteLength(_nullishCoalesce(_nullishCoalesce(value.body, () => ( _optionalChain([value, 'access', _ => _.result, 'optionalAccess', _2 => _2.html]))), () => ( ''))),
 })
 
 const USER_PAGE_CACHE_TTL = Number(_InitEnv.PROCESS_ENV.USER_PAGE_CACHE_TTL_MS) || 3000
 const userPageCache = _MemoryCache2.default({
   ttlMs: USER_PAGE_CACHE_TTL,
   max: 1000,
+  maxBytes: hotCacheBytes / 4,
+  sizeOf: (value) => Buffer.byteLength(value.body),
 })
 
 const puppeteerSSRService = (async () => {
@@ -189,7 +195,7 @@ const puppeteerSSRService = (async () => {
       _DetectBot2.default.call(void 0, res, req)
       _DetectLocale2.default.call(void 0, res, req)
 
-      const botInfo = _optionalChain([res, 'access', _ => _.cookies, 'optionalAccess', _2 => _2.botInfo])
+      const botInfo = _optionalChain([res, 'access', _3 => _3.cookies, 'optionalAccess', _4 => _4.botInfo])
 
       // NOTE - Check redirect or not
       const isRedirect = _DetectRedirect2.default.call(void 0, res, req)
@@ -213,7 +219,7 @@ const puppeteerSSRService = (async () => {
         const crawlOptionPerRoute =
           _serverconfig2.default.crawl.routes[req.getUrl()] ||
           _serverconfig2.default.crawl.routes[res.urlForCrawler] ||
-          _optionalChain([_serverconfig2.default, 'access', _3 => _3.crawl, 'access', _4 => _4.custom, 'optionalCall', _5 => _5(url)])
+          _optionalChain([_serverconfig2.default, 'access', _5 => _5.crawl, 'access', _6 => _6.custom, 'optionalCall', _7 => _7(url)])
 
         if (crawlOptionPerRoute) {
           enableToCrawl = crawlOptionPerRoute.enable
@@ -308,7 +314,7 @@ const puppeteerSSRService = (async () => {
 
               botPage = { result }
 
-              if (_optionalChain([result, 'optionalAccess', _6 => _6.status]) === 200 && result.response && !result.html) {
+              if (_optionalChain([result, 'optionalAccess', _8 => _8.status]) === 200 && result.response && !result.html) {
                 botPage.body = _utils3.getResultBody.call(void 0, 
                   result,
                   enableContentEncoding,
@@ -367,8 +373,8 @@ const puppeteerSSRService = (async () => {
         })
 
         const pointsTo =
-          _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _7 => _7.routes, 'access', _8 => _8.list, 'optionalAccess', _9 => _9[correctPathname], 'optionalAccess', _10 => _10.pointsTo]), () => (
-          _optionalChain([_serverconfig2.default, 'access', _11 => _11.routes, 'access', _12 => _12.custom, 'optionalCall', _13 => _13(url), 'optionalAccess', _14 => _14.pointsTo])))
+          _nullishCoalesce(_optionalChain([_serverconfig2.default, 'access', _9 => _9.routes, 'access', _10 => _10.list, 'optionalAccess', _11 => _11[correctPathname], 'optionalAccess', _12 => _12.pointsTo]), () => (
+          _optionalChain([_serverconfig2.default, 'access', _13 => _13.routes, 'access', _14 => _14.custom, 'optionalCall', _15 => _15(url), 'optionalAccess', _16 => _16.pointsTo])))
         /**
          * NOTE
          * Cache-Control max-age is 1 year
@@ -423,7 +429,7 @@ const puppeteerSSRService = (async () => {
           // was rebuilt on every request (read, decompress / parse / stringify the
           // API data, compress the page): build it once, serve it from memory
           // during USER_PAGE_CACHE_TTL
-          const deviceType = _optionalChain([res, 'access', _15 => _15.cookies, 'optionalAccess', _16 => _16.deviceInfo, 'optionalAccess', _17 => _17.type])
+          const deviceType = _optionalChain([res, 'access', _17 => _17.cookies, 'optionalAccess', _18 => _18.deviceInfo, 'optionalAccess', _19 => _19.type])
           const userPageKey = `${pathForCacheKeyConverter}|${deviceType}|${
             enableContentEncoding ? contentEncoding : 'identity'
           }|${filePath}`
@@ -439,13 +445,13 @@ const puppeteerSSRService = (async () => {
                   url,
                 })
 
-                if (_optionalChain([result, 'optionalAccess', _18 => _18.status]) === 200) {
+                if (_optionalChain([result, 'optionalAccess', _20 => _20.status]) === 200) {
                   html = _fs2.default.readFileSync(result.file)
                 } else if (pointsTo) {
-                  status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _19 => _19.status]), () => ( '503')))
+                  status = String(_nullishCoalesce(_optionalChain([result, 'optionalAccess', _21 => _21.status]), () => ( '503')))
                   html =
                     _fs2.default.readFileSync(
-                      _nullishCoalesce(_optionalChain([result, 'optionalAccess', _20 => _20.response]), () => (
+                      _nullishCoalesce(_optionalChain([result, 'optionalAccess', _22 => _22.response]), () => (
                         _path2.default.resolve(__dirname, '../../../503-maintain.html'))),
                       'utf8'
                     ) || ''
@@ -596,8 +602,8 @@ const puppeteerSSRService = (async () => {
               return { status, body }
             })
 
-            status = _nullishCoalesce(_optionalChain([page, 'optionalAccess', _21 => _21.status]), () => ( '200'))
-            const body = _nullishCoalesce(_optionalChain([page, 'optionalAccess', _22 => _22.body]), () => ( ''))
+            status = _nullishCoalesce(_optionalChain([page, 'optionalAccess', _23 => _23.status]), () => ( '200'))
+            const body = _nullishCoalesce(_optionalChain([page, 'optionalAccess', _24 => _24.body]), () => ( ''))
 
             res.cork(() => {
               res.writeStatus(status)

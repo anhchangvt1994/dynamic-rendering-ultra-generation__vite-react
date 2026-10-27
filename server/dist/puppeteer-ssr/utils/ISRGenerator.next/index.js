@@ -8,7 +8,9 @@ var _serverconfig = require('../../../server.config'); var _serverconfig2 = _int
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
+var _CrawlQueue = require('../../../utils/CrawlQueue'); var _CrawlQueue2 = _interopRequireDefault(_CrawlQueue);
 var _constants3 = require('../../constants');
+
 
 
 
@@ -33,22 +35,20 @@ const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
 
 
+
+
 const limitRequestToCrawl = _CrawlProfile.CRAWL_LIMIT
 let totalRequestsToCrawl = 0
-const resetTotalToCrawlTimeout = (() => {
-  let timeout
-
-  return () => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => {
-      totalRequestsToCrawl = 0
-      totalRequestsWaitingToCrawl = 0
-    }, 20000)
-  }
-})()
-const waitingToCrawlList = new Map()
+const waitingToCrawlList = new _CrawlQueue2.default({
+  max: _CrawlProfile.RESOURCE_BUDGET.queueLimit,
+  ttlMs: _CrawlProfile.RESOURCE_BUDGET.queueTimeoutMs,
+})
 const limitRequestWaitingToCrawl = _CrawlProfile.CRAWL_WAITING_LIMIT
 let totalRequestsWaitingToCrawl = 0
+
+const queueCrawl = (params) => {
+  waitingToCrawlList.set(params.url, params)
+}
 
 // NOTE - Urls being rendered right now. A waiting item of an url that is
 // already rendering is dropped: forceToCrawl would remove its cache and
@@ -62,7 +62,12 @@ const _crawl = (params) => {
   const key = _utils3.getKey.call(void 0, params.url) 
   crawlingUrls.add(key)
 
-  return _ISRHandlerworker2.default.call(void 0, params).finally(() => crawlingUrls.delete(key))
+  return _ISRHandlerworker2.default.call(void 0, params)
+    .catch((error) => {
+      _ConsoleHandler2.default.error(error.message)
+      return undefined
+    })
+    .finally(() => crawlingUrls.delete(key))
 } // _crawl
 
 const _getRunningCrawls = () =>
@@ -85,14 +90,29 @@ const _crawlNextWaiting = () => {
 
     if (_isCrawling(nextCrawlItem.url)) continue
 
-    resetTotalToCrawlTimeout()
     totalRequestsWaitingToCrawl++
 
+    let started = false
+    let released = false
+    const release = () => {
+      if (released) return
+      released = true
+      totalRequestsWaitingToCrawl = Math.max(0, totalRequestsWaitingToCrawl - 1)
+    }
     ISRGenerator({
       isSkipWaiting: true,
       forceToCrawl: true,
       ...nextCrawlItem,
+      onCrawlStart: () => {
+        started = true
+      },
+      onCrawlFinish: release,
     })
+      .finally(() => {
+        // Another worker may have populated this queued page in the meantime.
+        if (!started) release()
+      })
+      .catch((error) => _ConsoleHandler2.default.error(error))
 
     // NOTE - Default profile keeps starting one waiting crawl at a time
     if (!_CrawlProfile.IS_FAST_CRAWL) break
@@ -101,7 +121,7 @@ const _crawlNextWaiting = () => {
 
 // NOTE - Fast profile: do not wait for a running crawl to finish before
 // starting the waiting ones (ex: they were queued while memory was low)
-if (_CrawlProfile.IS_FAST_CRAWL) setInterval(_crawlNextWaiting, 500).unref()
+setInterval(_crawlNextWaiting, 500).unref()
 
 const getCertainLimitRequestToCrawl = (() => {
   const limitRequestToCrawlIfHasWaitingToCrawl =
@@ -142,6 +162,8 @@ const fetchData = async (
 
 const ISRGenerator = async ({
   isSkipWaiting = false,
+  onCrawlStart,
+  onCrawlFinish,
   ...ISRHandlerParams
 }) => {
   if (!ISRHandlerParams.url.includes('&renderingInfo')) {
@@ -214,8 +236,8 @@ const ISRGenerator = async ({
                   (totalRequestsToCrawl < certainLimitRequestToCrawl &&
                     _CrawlProfile.hasCrawlCapacity.call(void 0, _getRunningCrawls())))
               ) {
+                _optionalChain([onCrawlStart, 'optionalCall', _4 => _4()])
                 if (!ISRHandlerParams.forceToCrawl) {
-                  resetTotalToCrawlTimeout()
                   totalRequestsToCrawl++
                 }
 
@@ -259,10 +281,7 @@ const ISRGenerator = async ({
                         cacheManager.rename()
 
                         if (ISRHandlerParams.forceToCrawl) {
-                          totalRequestsWaitingToCrawl =
-                            totalRequestsWaitingToCrawl > 0
-                              ? totalRequestsWaitingToCrawl - 1
-                              : 0
+                          _optionalChain([onCrawlFinish, 'optionalCall', _5 => _5()])
                         } else {
                           totalRequestsToCrawl =
                             totalRequestsToCrawl > certainLimitRequestToCrawl
@@ -305,10 +324,7 @@ const ISRGenerator = async ({
                         cacheManager.rename()
 
                         if (ISRHandlerParams.forceToCrawl) {
-                          totalRequestsWaitingToCrawl =
-                            totalRequestsWaitingToCrawl > 0
-                              ? totalRequestsWaitingToCrawl - 1
-                              : 0
+                          _optionalChain([onCrawlFinish, 'optionalCall', _6 => _6()])
                         } else {
                           totalRequestsToCrawl =
                             totalRequestsToCrawl > certainLimitRequestToCrawl
@@ -333,7 +349,7 @@ const ISRGenerator = async ({
                   !_CrawlProfile.hasCrawlCapacity.call(void 0, _getRunningCrawls())) &&
                 !waitingToCrawlList.has(ISRHandlerParams.url)
               ) {
-                waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
+                queueCrawl(ISRHandlerParams)
               }
             })
             .finally(() => res('finish'))
@@ -353,7 +369,7 @@ const ISRGenerator = async ({
     result = await cacheManager.get()
 
     _ConsoleHandler2.default.log('Check for condition to create new page.')
-    _ConsoleHandler2.default.log('result.available', _optionalChain([result, 'optionalAccess', _4 => _4.available]))
+    _ConsoleHandler2.default.log('result.available', _optionalChain([result, 'optionalAccess', _7 => _7.available]))
 
     if (result) {
       const NonNullableResult = result
@@ -368,11 +384,6 @@ const ISRGenerator = async ({
           !_isCrawling(ISRHandlerParams.url)
         )
 
-      // NOTE - A crawl from the waiting list that does not run frees its slot
-      if (ISRHandlerParams.forceToCrawl && !isValidToScraping)
-        totalRequestsWaitingToCrawl =
-          totalRequestsWaitingToCrawl > 0 ? totalRequestsWaitingToCrawl - 1 : 0
-
       if (isValidToScraping) {
         if (ISRHandlerParams.forceToCrawl) {
           // NOTE - update create time
@@ -383,7 +394,6 @@ const ISRGenerator = async ({
           }
           cacheManager.get()
         } else {
-          resetTotalToCrawlTimeout()
           totalRequestsToCrawl++
         }
 
@@ -392,9 +402,11 @@ const ISRGenerator = async ({
         }
 
         const specialInfo =
-          _nullishCoalesce(_optionalChain([_constants3.regexQueryStringSpecialInfoWithoutDeviceInfo, 'access', _5 => _5.exec, 'call', _6 => _6(
+          _nullishCoalesce(_optionalChain([_constants3.regexQueryStringSpecialInfoWithoutDeviceInfo, 'access', _8 => _8.exec, 'call', _9 => _9(
             ISRHandlerParams.url
-          ), 'optionalAccess', _7 => _7.groups]), () => ( {}))
+          ), 'optionalAccess', _10 => _10.groups]), () => ( {}))
+
+        _optionalChain([onCrawlStart, 'optionalCall', _11 => _11()])
 
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
         const resultPromise = new Promise(async (res) => {
@@ -417,10 +429,7 @@ const ISRGenerator = async ({
                 }
               ).finally(() => {
                 if (ISRHandlerParams.forceToCrawl) {
-                  totalRequestsWaitingToCrawl =
-                    totalRequestsWaitingToCrawl > 0
-                      ? totalRequestsWaitingToCrawl - 1
-                      : 0
+                  _optionalChain([onCrawlFinish, 'optionalCall', _12 => _12()])
                 } else {
                   totalRequestsToCrawl =
                     totalRequestsToCrawl > certainLimitRequestToCrawl
@@ -439,10 +448,7 @@ const ISRGenerator = async ({
                 ...ISRHandlerParams,
               }).finally(() => {
                 if (ISRHandlerParams.forceToCrawl) {
-                  totalRequestsWaitingToCrawl =
-                    totalRequestsWaitingToCrawl > 0
-                      ? totalRequestsWaitingToCrawl - 1
-                      : 0
+                  _optionalChain([onCrawlFinish, 'optionalCall', _13 => _13()])
                 } else {
                   totalRequestsToCrawl =
                     totalRequestsToCrawl > certainLimitRequestToCrawl
@@ -544,18 +550,40 @@ const ISRGenerator = async ({
     !waitingToCrawlList.has(ISRHandlerParams.url) &&
     isAvailableToCrawl
   ) {
-    waitingToCrawlList.set(ISRHandlerParams.url, ISRHandlerParams)
+    queueCrawl(ISRHandlerParams)
   }
 
   if (!result) {
-    result = await cacheManager.get()
+    result = await cacheManager.achieve()
+    if (!result) {
+      // Queued/rejected work must not create a raw placeholder. Otherwise an
+      // expired queue item locks the next retry out until the 53s file lease
+      // expires, even though no renderer owns that URL.
+      const now = new Date()
+      const maintenance = _path2.default.resolve(
+        __dirname,
+        '../../../../503-maintain.html'
+      )
+      result = {
+        status: 503,
+        response: maintenance,
+        file: maintenance,
+        createdAt: now,
+        updatedAt: now,
+        requestedAt: now,
+        available: false,
+        isInit: false,
+        isRaw: true,
+        ttRenderMs: 0,
+      }
+    }
   }
 
   // NOTE - A page that is queued (or rendered by another request) can also be
   // ready within CRAWL_WAIT_OPTIONS.firstResponseWaitMs: wait for its cache
   // instead of answering 503 right away
   if (
-    _optionalChain([result, 'optionalAccess', _8 => _8.status]) !== 200 &&
+    _optionalChain([result, 'optionalAccess', _14 => _14.status]) !== 200 &&
     !isSkipWaiting &&
     !ISRHandlerParams.forceToCrawl &&
     _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0 &&

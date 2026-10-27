@@ -8,6 +8,8 @@ import ServerConfig from '../server.config'
 import MemoryCache from '../utils/MemoryCache'
 import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
+import { getResourceBudget } from '../utils/ResourceBudget'
+import { createHash } from 'crypto'
 import apiLighthouse from './routes/lighthouse/index.uws'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { HOST_DOWN_RESULT, isHostDown, setHostDown } from './utils/HostHealth'
@@ -36,6 +38,12 @@ const API_RESPONSE_CACHE_TTL =
 const apiResponseCache = MemoryCache<{ [key: string]: any }>({
   ttlMs: API_RESPONSE_CACHE_TTL,
   max: 2000,
+  maxBytes: getResourceBudget(PROCESS_ENV).hotCacheBytes / 4,
+  sizeOf: (value) =>
+    typeof value.data === 'string'
+      ? Buffer.byteLength(value.data)
+      : (value.data?.byteLength ??
+        Buffer.byteLength(JSON.stringify(value.data ?? ''))),
 })
 
 const handleArrayBuffer = (message: ArrayBuffer | string) => {
@@ -115,6 +123,8 @@ const resEnd = (res: any, resInfo: any, serverTiming?: string) => {
       if (contentEncoding) {
         res.writeHeader('Content-Encoding', contentEncoding)
       }
+      res.writeHeader('Vary', 'Accept-Encoding')
+      if (Number(status) === 503) res.writeHeader('Retry-After', '2')
       if (serverTiming) res.writeHeader('Server-Timing', serverTiming)
       // NOTE - uWS only accepts string / ArrayBuffer / TypedArray, a failed
       // upstream fetch (ex: 408 timeout) returns an object and would crash
@@ -161,7 +171,18 @@ const apiService = (async () => {
       // parsing on every request
       const apiResponseKey =
         req.getMethod() === 'get'
-          ? `${req.getUrl()}?${req.getQuery()}|${contentEncoding}`
+          ? `${req.getUrl()}?${req.getQuery()}|${contentEncoding}|${createHash(
+              'sha256'
+            )
+              .update(
+                JSON.stringify([
+                  req.getHeader('authorization'),
+                  req.getHeader('cookie'),
+                  req.getHeader('accept-language'),
+                  req.getHeader('lang'),
+                ])
+              )
+              .digest('hex')}`
           : undefined
       const apiResponse = apiResponseKey
         ? apiResponseCache.get(apiResponseKey)

@@ -1,4 +1,4 @@
-import { Agent, setGlobalDispatcher } from 'undici'
+import { Agent } from 'undici'
 import Console from '../../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { getDataPath } from '../../../utils/PathHandler'
@@ -19,20 +19,19 @@ const dataPath = getDataPath()
 const UPSTREAM_KEEP_ALIVE =
   Number(PROCESS_ENV.UPSTREAM_KEEP_ALIVE_MS) || 60 * 1000
 
-setGlobalDispatcher(
-  new Agent({
-    keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
-    keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
-  })
-)
+const upstreamAgent = new Agent({
+  connections: Math.max(
+    1,
+    Math.min(32, Number(PROCESS_ENV.UPSTREAM_CONNECTIONS) || 8)
+  ),
+  pipelining: 1,
+  keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
+  keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
+})
 
 export const fetchData = async (
   input: RequestInfo | URL,
-  init?:
-    | (RequestInit & {
-        timeout?: number | 'infinite'
-      })
-    | undefined
+  init?: RequestInit & { timeout?: number | 'infinite' }
 ): Promise<{
   status: number
   data: any
@@ -40,180 +39,108 @@ export const fetchData = async (
   cookies?: string[]
   message?: string
 }> => {
-  if (!input) {
-    Console.error('URL is required!')
+  if (!input)
     return {
       status: 500,
       data: {},
       compressData: {},
       message: 'URL is required',
     }
+
+  const controller = new AbortController()
+  const callerSignal =
+    init?.signal ?? (input instanceof Request ? input.signal : undefined)
+  const cancel = () => controller.abort(callerSignal?.reason)
+  if (callerSignal?.aborted) cancel()
+  else callerSignal?.addEventListener('abort', cancel, { once: true })
+
+  let timedOut = false
+  const timeout =
+    init?.timeout ?? (Number(PROCESS_ENV.UPSTREAM_TIMEOUT_MS) || 10000)
+  const timer =
+    timeout === 'infinite'
+      ? undefined
+      : setTimeout(() => {
+          timedOut = true
+          controller.abort()
+        }, timeout)
+
+  try {
+    const headers = new Headers(
+      init?.headers ?? (input instanceof Request ? input.headers : undefined)
+    )
+    for (const key of [...headers.keys()]) {
+      if (
+        /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
+          key
+        )
+      )
+        headers.delete(key)
+    }
+    headers.set('accept-encoding', 'gzip, deflate, br')
+    const { timeout: ignoredTimeout, ...requestInit } = init ?? {}
+    const response = await fetch(input, {
+      ...requestInit,
+      headers,
+      signal: controller.signal,
+      dispatcher: upstreamAgent,
+    } as RequestInit)
+    // Keep the timeout armed through body consumption, not just headers.
+    const data = await response.text()
+    return {
+      status: response.status,
+      message: response.statusText,
+      cookies: response.headers.getSetCookie(),
+      data,
+      compressData: {},
+    }
+  } catch (error) {
+    if (!controller.signal.aborted) Console.error(error)
+    return {
+      status: timedOut ? 408 : 500,
+      data: {},
+      compressData: {},
+      message: timedOut ? 'Request Timeout' : 'Server Error',
+    }
+  } finally {
+    clearTimeout(timer)
+    callerSignal?.removeEventListener('abort', cancel)
   }
-
-  const response = await new Promise<{
-    status: number
-    data: any
-    compressData: any
-    cookies?: string[]
-    message?: string
-  }>(async (rootResolve) => {
-    const timeout = init?.timeout ?? 10000
-    if (timeout !== 'infinite') {
-      var responseTimeout: NodeJS.Timeout = setTimeout(() => {
-        rootResolve({
-          status: 408,
-          message: 'Request Timeout',
-          data: {},
-          compressData: {},
-        })
-      }, timeout)
-    }
-
-    try {
-      if (init && init.headers) {
-        const headers = new Headers()
-        for (const headerKey in init.headers) {
-          if (
-            /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
-              headerKey.toLowerCase()
-            )
-          )
-            continue
-
-          headers.append(headerKey, init.headers[headerKey])
-        }
-
-        headers.append('accept-encoding', 'gzip, deflate, br')
-
-        init.headers = headers
-      }
-
-      const response = await fetch(input, {
-        method: init?.method || 'GET',
-        headers: init?.headers,
-        body: init?.body || null,
-      })
-        .then(async (res) => {
-          if (responseTimeout) clearTimeout(responseTimeout)
-          const data = await new Promise(async (resolve) => {
-            // let tmpData
-            // const buffer = await res.clone().arrayBuffer()
-
-            // const contentEncoding = res.headers.get('content-encoding')
-
-            // if (contentEncoding?.includes('gzip')) {
-            //   try {
-            //     tmpData = gunzipSync(buffer)?.toString()
-            //   } catch {}
-            // } else if (contentEncoding?.includes('deflate')) {
-            //   try {
-            //     tmpData = inflateSync(buffer)?.toString()
-            //   } catch {}
-            // } else if (contentEncoding?.includes('br')) {
-            //   try {
-            //     tmpData = brotliDecompressSync(buffer)?.toString()
-            //   } catch {}
-            // }
-
-            // if (!tmpData) {
-            //   const text = await res.clone().text()
-
-            //   try {
-            //     tmpData = JSON.parse(text)
-            //   } catch (error) {
-            //     tmpData = {}
-            //   }
-            // } else JSON.parse(tmpData)
-
-            const data = await res.text()
-
-            resolve(data)
-          })
-
-          return {
-            status: res.status,
-            message: res.statusText,
-            cookies: res.headers.getSetCookie(),
-            data,
-            compressData: {},
-          }
-        })
-        .catch((err) => {
-          if (responseTimeout) clearTimeout(responseTimeout)
-          if (err.name !== 'AbortError') Console.error(err)
-          return {
-            status: 500,
-            data: {},
-            compressData: {},
-            message: 'Server Error',
-          }
-        })
-
-      rootResolve(response)
-    } catch (error) {
-      Console.error(error)
-      rootResolve({
-        status: 500,
-        data: {},
-        compressData: {},
-        message: 'Server Error',
-      })
-    }
-  })
-
-  return response
 } // fetchData
 
 export const refreshData = async (cacheKeyList: string[]) => {
-  if (!cacheKeyList || !cacheKeyList.length) return
-
-  const arrRefreshData: (Promise<any> | undefined)[] = []
-
-  for (const cacheKeyItem of cacheKeyList) {
-    const apiCache = await getDataCache(dataPath, cacheKeyItem, 'br')
-
-    if (!apiCache || !apiCache.cache || !apiCache.url) continue
-
-    updateDataCacheStatus(dataPath, cacheKeyItem, 'br', 'fetch')
-
-    arrRefreshData.push(
-      new Promise(async (res) => {
-        const headers = new Headers()
-        for (const key in apiCache.headers) {
-          headers.append(key, apiCache.headers[key])
-        }
-
-        await fetchData(apiCache.url as string, {
-          method: apiCache.method,
-          headers: apiCache.headers,
-          body: apiCache.body,
-        }).then((result) => {
-          const cacheResult = apiCache.cache as Exclude<
-            NonNullable<ICacheResult>['cache'],
-            string | Buffer | undefined
-          >
-          const enableToSetCache =
-            result.status === 200 || !cacheResult || cacheResult.status !== 200
-          if (enableToSetCache) {
-            setDataCache(dataPath, cacheKeyItem, 'br', {
-              url: apiCache.url as string,
-              method: apiCache.method as string,
-              body: apiCache.body,
-              headers: apiCache.headers,
-              cache: {
-                expiredTime: cacheResult.expiredTime,
-                ...result,
-              },
-            })
-
-            res('finish')
-          }
-        })
+  if (!cacheKeyList?.length) return
+  const keys = [...new Set(cacheKeyList)]
+  let next = 0
+  const refresh = async () => {
+    while (next < keys.length) {
+      const key = keys[next++]
+      const apiCache = await getDataCache(dataPath, key, 'br')
+      if (!apiCache?.cache || !apiCache.url) continue
+      await updateDataCacheStatus(dataPath, key, 'br', 'fetch')
+      const result = await fetchData(apiCache.url as string, {
+        method: apiCache.method,
+        headers: apiCache.headers,
+        body: apiCache.body,
       })
-    )
+      const cached = apiCache.cache as Exclude<
+        NonNullable<ICacheResult>['cache'],
+        string | Buffer | undefined
+      >
+      // A failed refresh retains an existing successful response and still
+      // completes, rather than leaving an unresolved promise behind.
+      if (result.status === 200 || !cached || cached.status !== 200) {
+        await setDataCache(dataPath, key, 'br', {
+          url: apiCache.url as string,
+          method: apiCache.method as string,
+          body: apiCache.body,
+          headers: apiCache.headers,
+          cache: { expiredTime: cached?.expiredTime, ...result },
+        })
+      }
+      await updateDataCacheStatus(dataPath, key, 'br', 'ready')
+    }
   }
-
-  if (arrRefreshData.length) await Promise.all(arrRefreshData)
-
+  await Promise.all(Array.from({ length: Math.min(4, keys.length) }, refresh))
   return 'finish'
 } // refreshData

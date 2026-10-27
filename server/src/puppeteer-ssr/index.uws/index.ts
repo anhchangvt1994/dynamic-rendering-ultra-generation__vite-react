@@ -15,6 +15,7 @@ import CleanerService from '../../utils/CleanerService'
 import Console from '../../utils/ConsoleHandler'
 import { ENV, ENV_MODE, MODE, PROCESS_ENV } from '../../utils/InitEnv'
 import MemoryCache from '../../utils/MemoryCache'
+import { getResourceBudget } from '../../utils/ResourceBudget'
 import { hashCode } from '../../utils/StringHelper'
 import {
   convertUrlHeaderToQueryString,
@@ -43,18 +44,23 @@ const {
 const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
 const BOT_PAGE_CACHE_TTL = Number(PROCESS_ENV.BOT_PAGE_CACHE_TTL_MS) || 3000
+const hotCacheBytes = getResourceBudget(PROCESS_ENV).hotCacheBytes
 const botPageCache = MemoryCache<{
   result: ISSRResult
   body?: string | Buffer
 }>({
   ttlMs: BOT_PAGE_CACHE_TTL,
   max: 2000,
+  maxBytes: hotCacheBytes / 2,
+  sizeOf: (value) => Buffer.byteLength(value.body ?? value.result?.html ?? ''),
 })
 
 const USER_PAGE_CACHE_TTL = Number(PROCESS_ENV.USER_PAGE_CACHE_TTL_MS) || 3000
 const userPageCache = MemoryCache<{ status: string; body: string | Buffer }>({
   ttlMs: USER_PAGE_CACHE_TTL,
   max: 1000,
+  maxBytes: hotCacheBytes / 4,
+  sizeOf: (value) => Buffer.byteLength(value.body),
 })
 
 const puppeteerSSRService = (async () => {

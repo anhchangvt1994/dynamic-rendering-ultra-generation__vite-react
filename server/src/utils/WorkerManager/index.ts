@@ -11,6 +11,12 @@ interface IInitOptions {
 	maxWorkers: number
 	enableGlobalCounter?: boolean
 	workerTerminateTimeout?: number
+	reuseWorkers?: boolean
+	maxQueueSize?: number
+	workerThreadOpts?: {
+		execArgv?: string[]
+		resourceLimits?: { maxOldGenerationSizeMb: number }
+	}
 }
 
 interface IGetFreePool {
@@ -145,6 +151,7 @@ const WorkerManager = (() => {
 						}
 
 						_getCounterDecreased()
+						if (initOptions.reuseWorkers) return
 
 						if (timeout) clearTimeout(timeout)
 						timeout = setTimeout(async () => {

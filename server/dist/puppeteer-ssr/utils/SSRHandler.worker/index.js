@@ -6,7 +6,10 @@ var _InitEnv = require('../../../utils/InitEnv');
 var _PathHandler = require('../../../utils/PathHandler');
 var _WorkerManager = require('../../../utils/WorkerManager'); var _WorkerManager2 = _interopRequireDefault(_WorkerManager);
 var _BrowserManager = require('../BrowserManager'); var _BrowserManager2 = _interopRequireDefault(_BrowserManager);
+var _CrawlProfile = require('../CrawlProfile');
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
+var _RenderCleanup = require('../RenderCleanup');
+var _constants3 = require('../../constants');
 
 const { parentPort, isMainThread } = require('worker_threads')
 
@@ -15,15 +18,22 @@ const viewsPath = _PathHandler.getViewsPath.call(void 0, )
 const workerManager = _WorkerManager2.default.init(
   _path2.default.resolve(__dirname, `./worker.${_constants.resourceExtension}`),
   {
-    minWorkers: 1,
-    maxWorkers: 5,
-  },
-  ['SSRHandler']
+    minWorkers: 0,
+    maxWorkers: _CrawlProfile.CRAWL_WORKERS,
+    maxQueueSize: _CrawlProfile.RESOURCE_BUDGET.queueLimit,
+    reuseWorkers: true,
+    workerThreadOpts: {
+      execArgv: process.execArgv.filter(
+        (arg) => !/^--max[-_]old[-_]space[-_]size/.test(arg)
+      ),
+      resourceLimits: { maxOldGenerationSizeMb: _CrawlProfile.RESOURCE_BUDGET.workerHeapMB },
+    },
+  }
 )
 
 const browserManager = _BrowserManager2.default.call(void 0, )
 
-const SSRHandler = async (params) => {
+const render = async (params) => {
   if (!browserManager || !params.url) return
 
   const browser = await browserManager.get()
@@ -38,45 +48,35 @@ const SSRHandler = async (params) => {
   const pool = freePool.pool
 
   let result
+  let targetId
   const cacheManager = _utils2.default.call(void 0, params.url, viewsPath)
 
   try {
-    result = await new Promise(async (res, rej) => {
-      let html
-      const timeout = setTimeout(async () => {
-        if (html) {
-          const tmpResult = await cacheManager.set({
-            html,
-            isRaw: !params.hasCache,
-          })
-
-          res(tmpResult)
-        } else {
-          res(undefined)
-        }
-      }, 10000)
-      try {
-        const tmpResult = await pool.exec('SSRHandler', [
+    result = await pool
+      .exec(
+        'SSRHandler',
+        [
           {
             ...params,
             baseUrl: _InitEnv.PROCESS_ENV.BASE_URL,
             wsEndpoint,
           },
-        ])
-
-        res(tmpResult)
-      } catch (err) {
-        rej(err)
-      } finally {
-        clearTimeout(timeout)
-      }
-    })
+        ],
+        {
+          on: (payload) => {
+            if (_optionalChain([payload, 'optionalAccess', _ => _.name]) === 'page') targetId = payload.value
+          },
+        }
+      )
+      .timeout(10000)
   } catch (err) {
     _ConsoleHandler2.default.error(err)
+    if (_constants3.BROWSER_ENGINE === 'chromium')
+      await _RenderCleanup.closeRenderTarget.call(void 0, browser, targetId)
   }
 
   const url = params.url.split('?')[0]
-  _optionalChain([browser, 'optionalAccess', _ => _.emit, 'call', _2 => _2('closePage', url)])
+  _optionalChain([browser, 'optionalAccess', _2 => _2.emit, 'call', _3 => _3('closePage', url)])
   if (!isMainThread) {
     parentPort.postMessage({
       name: 'closePage',
@@ -95,8 +95,19 @@ const SSRHandler = async (params) => {
     force: true,
     // delay: 30000,
   })
+  if (!isMainThread && _constants3.BROWSER_ENGINE === 'chromium')
+    await _optionalChain([browser, 'optionalAccess', _4 => _4.disconnect, 'call', _5 => _5()])
 
   return result
 } // getData
+
+const SSRHandler = (params) =>
+  _CrawlProfile.crawlGate
+    .run(() => render(params))
+    .catch(async (error) => {
+      _ConsoleHandler2.default.error(error.message)
+      await _utils2.default.call(void 0, params.url, viewsPath).remove()
+      return undefined
+    })
 
 exports. default = SSRHandler

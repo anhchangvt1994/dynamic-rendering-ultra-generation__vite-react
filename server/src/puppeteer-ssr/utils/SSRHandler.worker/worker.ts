@@ -1,4 +1,4 @@
-import { Page } from 'puppeteer'
+import { Browser, Page } from 'puppeteer'
 import WorkerPool from 'workerpool'
 import apiService from '../../../api/index.crawler'
 import ServerConfig from '../../../server.config'
@@ -6,6 +6,7 @@ import Console from '../../../utils/ConsoleHandler'
 import { getViewsPath } from '../../../utils/PathHandler'
 import {
   CACHEABLE_STATUS_CODE,
+  BROWSER_ENGINE,
   DESKTOP_UA,
   MOBILE_UA,
   regexNotFoundPageID,
@@ -14,6 +15,7 @@ import {
 import { SSRResult } from '../../types'
 import BrowserManager from '../BrowserManager'
 import CacheManager from '../CacheManager.worker/utils'
+import { createRenderPage } from '../CreateRenderPage'
 import { compressContent } from '../OptimizeHtml.worker/utils'
 import {
   getInternalHTML,
@@ -22,6 +24,14 @@ import {
 } from './utils/utils'
 
 const viewsPath = getViewsPath()
+
+let activePage: Page | undefined
+let activeBrowser: Browser | undefined
+const closeActivePage = async () => {
+  const page = activePage
+  if (page && !page.isClosed()) await page.close()
+  if (activePage === page) activePage = undefined
+}
 
 // NOTE - A stray rejected promise (ex: page.close() rejects with "Target
 // closed" once the CDP connection is closed) must not kill this worker thread:
@@ -125,10 +135,11 @@ const waitResponse = (() => {
   }
 })() // waitResponse
 
-const SSRHandler = async (params: SSRHandlerParam) => {
+const render = async (params: SSRHandlerParam) => {
   if (!browserManager || !params) return
 
   const browser = await browserManager.get()
+  activeBrowser = browser
 
   if (!browser || !browser.connected) return
 
@@ -141,7 +152,9 @@ const SSRHandler = async (params: SSRHandlerParam) => {
   const specialInfo = regexQueryStringSpecialInfo.exec(url)?.groups ?? {}
 
   if (browser && browser.connected) {
-    const page = await browser.newPage()
+    const page = await createRenderPage(browser, BROWSER_ENGINE)
+    activePage = page
+
     const safePage = _getSafePage(page)
 
     const deviceInfo = specialInfo.deviceInfo
@@ -303,9 +316,7 @@ const SSRHandler = async (params: SSRHandlerParam) => {
       Console.log('SSRHandler line 297:')
       Console.log('Crawler is fail!')
       Console.error(err)
-      safePage()
-        ?.close()
-        .catch(() => {})
+      await closeActivePage()
 
       return {
         status: 500,
@@ -315,15 +326,11 @@ const SSRHandler = async (params: SSRHandlerParam) => {
     if (CACHEABLE_STATUS_CODE[status]) {
       try {
         html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
-        safePage()
-          ?.close()
-          .catch(() => {})
+        await closeActivePage()
       } catch (err) {
         Console.log('SSRHandler line 315:')
         Console.error(err)
-        safePage()
-          ?.close()
-          .catch(() => {})
+        await closeActivePage()
 
         return
       }
@@ -415,6 +422,19 @@ const SSRHandler = async (params: SSRHandlerParam) => {
 
   return result
 } // SSRHandler
+
+const SSRHandler = async (params: SSRHandlerParam) => {
+  try {
+    return await render(params)
+  } finally {
+    try {
+      await closeActivePage()
+    } finally {
+      await activeBrowser?.disconnect().catch(() => {})
+      activeBrowser = undefined
+    }
+  }
+}
 
 WorkerPool.worker({
   SSRHandler,

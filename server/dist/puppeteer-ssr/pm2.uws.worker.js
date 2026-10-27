@@ -5,10 +5,23 @@ var _constants = require('../constants');
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _InitEnv = require('../utils/InitEnv');
 var _constants3 = require('./constants');
+var _ResourceBudget = require('../utils/ResourceBudget');
 
-const CLUSTER_INSTANCES = 2
+const budget = _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV)
+const CLUSTER_INSTANCES = budget.instances
 const CLUSTER_KILL_TIMEOUT =
   _InitEnv.PROCESS_ENV.CLUSTER_INSTANCES === 'max' ? 7000 : 2000
+const runtimeOptions = {
+  interpreter: process.execPath,
+  node_args:
+    `--max-old-space-size=${budget.nodeHeapMB}` +
+    (_constants.resourceExtension === 'ts' ? ' --require sucrase/register' : ''),
+  max_memory_restart: `${budget.processMemoryMB}M`,
+  env: {
+    APP_INSTANCES: String(CLUSTER_INSTANCES),
+    REQUEST_WORKERS: String(budget.requestWorkers),
+  },
+}
 
 // connect to pm2 daemon
 _pm22.default.connect(false, (err) => {
@@ -24,47 +37,77 @@ _pm22.default.connect(false, (err) => {
       process.exit(2)
     }
 
-    const hasRestarted = await new Promise((resAfterCheckToRestart) => {
-      const totalProcess = processList.length
-      if (!totalProcess) resAfterCheckToRestart(false)
-
-      let counter = 0
-      for (const process of processList) {
-        if (
-          (process.name === 'start-puppeteer-ssr' ||
-            process.name === _constants3.PM2_PROCESS_NAME) &&
-          process.pm_id !== undefined
-        ) {
-          _pm22.default.restart(process.pm_id, function (err) {
-            counter++
-            if (err) {
-              console.error(err)
-              selfProcess.exit(2)
-            }
-
-            if (counter === totalProcess) resAfterCheckToRestart(true)
-          })
-        } else {
-          counter++
+    const existingWorkers = processList.filter(
+      (app) =>
+        (app.name === 'start-puppeteer-ssr' || app.name === _constants3.PM2_PROCESS_NAME) &&
+        app.pm_id !== undefined
+    )
+    const hasRestarted = existingWorkers.length > 0
+    if (hasRestarted) {
+      try {
+        const groups = [...new Set(existingWorkers.map((app) => app.name))]
+        const primary = groups.includes(_constants3.PM2_PROCESS_NAME)
+          ? _constants3.PM2_PROCESS_NAME
+          : groups[0]
+        for (const name of groups) {
+          if (name !== primary)
+            await new Promise((resolve, reject) =>
+              _pm22.default.delete(name, (error) => (error ? reject(error) : resolve()))
+            )
         }
+        await new Promise((resolve, reject) => {
+          // Environment updates require PM2's ecosystem-object API. Passing
+          // env to restart(id, options) is explicitly rejected by PM2 5.
+          _pm22.default.restart(
+            {
+              apps: [
+                {
+                  name: primary,
+                  script: `server/${_constants.resourceDirectory}/index.uws.worker.${_constants.resourceExtension}`,
+                  ...runtimeOptions,
+                  instances: CLUSTER_INSTANCES,
+                  exec_mode: 'cluster',
+                  wait_ready: true,
+                  kill_timeout: CLUSTER_KILL_TIMEOUT,
+                  cwd: '.',
+                },
+              ],
+            } ,
+            { updateEnv: true } ,
+            // @ts-expect-error PM2 5 types omit its supported config/options/callback overload.
+            (error) => (error ? reject(error) : resolve())
+          )
+        })
+        const current = await new Promise((resolve, reject) =>
+          _pm22.default.list((error, apps) => (error ? reject(error) : resolve(apps)))
+        )
+        // PM2 reports "Same process number" as an error, so skip no-op scale.
+        if (
+          current.filter((app) => app.name === primary).length !==
+          CLUSTER_INSTANCES
+        )
+          await new Promise((resolve, reject) =>
+            _pm22.default.scale(primary, CLUSTER_INSTANCES, (error) =>
+              error ? reject(error) : resolve()
+            )
+          )
+      } catch (error) {
+        _ConsoleHandler2.default.error(error)
+        selfProcess.exit(2)
       }
-    })
+    }
 
     if (!hasRestarted) {
       _pm22.default.start(
         {
           name: _constants3.PM2_PROCESS_NAME,
           script: `server/${_constants.resourceDirectory}/index.uws.worker.${_constants.resourceExtension}`,
-          node_args: '--max-old-space-size=1538',
+          ...runtimeOptions,
           instances: CLUSTER_INSTANCES,
           exec_mode: 'cluster',
-          interpreter:
-            _constants.resourceExtension === 'ts' ? './node_modules/.bin/sucrase' : 'node',
-          interpreter_args: '--require sucrase/register',
           wait_ready: true,
           kill_timeout: CLUSTER_KILL_TIMEOUT,
           cwd: '.',
-          env: {},
         },
         function (err, apps) {
           if (err) {

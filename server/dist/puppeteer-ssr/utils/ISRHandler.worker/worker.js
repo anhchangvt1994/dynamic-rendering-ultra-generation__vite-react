@@ -22,6 +22,7 @@ var _constants3 = require('../../constants');
 
 var _CrawlProfile = require('../CrawlProfile');
 var _utils = require('../CacheManager.worker/utils'); var _utils2 = _interopRequireDefault(_utils);
+var _CreateRenderPage = require('../CreateRenderPage');
 
 
 
@@ -46,6 +47,13 @@ const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
 
 let connectedBrowser
+
+let activePage
+const closeActivePage = async () => {
+  const page = activePage
+  if (page && !page.isClosed()) await page.close()
+  if (activePage === page) activePage = undefined
+}
 
 // NOTE - A stray rejected promise (ex: page.close() rejects with "Target
 // closed" once the CDP connection is closed) must not kill this worker thread:
@@ -481,7 +489,9 @@ const _ISRHandler = async (params) => {
     if (browser && browser.connected) {
       enableOptimizeAndCompressIfRemoteCrawlerFail = true
       _ConsoleHandler2.default.log('Create new page')
-      const page = await browser.newPage()
+      const page = await _CreateRenderPage.createRenderPage.call(void 0, browser, params.engine)
+      activePage = page
+
       const safePage = _getSafePage(page)
 
       _ConsoleHandler2.default.log('Create new page success!')
@@ -658,9 +668,7 @@ const _ISRHandler = async (params) => {
         cacheManager.remove().catch((err) => {
           _ConsoleHandler2.default.error(err)
         })
-        _optionalChain([safePage, 'call', _65 => _65()
-, 'optionalAccess', _66 => _66.close, 'call', _67 => _67()
-, 'access', _68 => _68.catch, 'call', _69 => _69(() => {})])
+        await closeActivePage()
         if (params.hasCache) {
           cacheManager.rename()
         }
@@ -672,16 +680,12 @@ const _ISRHandler = async (params) => {
 
       if (_constants3.CACHEABLE_STATUS_CODE[status]) {
         try {
-          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _70 => _70(), 'optionalAccess', _71 => _71.content, 'call', _72 => _72()])), async () => ( '')) // serialized HTML of page DOM.
-          _optionalChain([safePage, 'call', _73 => _73()
-, 'optionalAccess', _74 => _74.close, 'call', _75 => _75()
-, 'access', _76 => _76.catch, 'call', _77 => _77(() => {})])
+          html = await _asyncNullishCoalesce((await _optionalChain([safePage, 'call', _65 => _65(), 'optionalAccess', _66 => _66.content, 'call', _67 => _67()])), async () => ( '')) // serialized HTML of page DOM.
+          await closeActivePage()
         } catch (err) {
           _ConsoleHandler2.default.log('ISRHandler line 315:')
           _ConsoleHandler2.default.error(err)
-          _optionalChain([safePage, 'call', _78 => _78()
-, 'optionalAccess', _79 => _79.close, 'call', _80 => _80()
-, 'access', _81 => _81.catch, 'call', _82 => _82(() => {})])
+          await closeActivePage()
           if (params.hasCache) {
             cacheManager.rename()
           }
@@ -707,7 +711,7 @@ const _ISRHandler = async (params) => {
 
     const pathname = new URL(url).pathname
 
-    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _83 => _83.crawl, 'access', _84 => _84.custom, 'optionalCall', _85 => _85(url)])
+    const crawlCustomOption = _optionalChain([_serverconfig2.default, 'access', _68 => _68.crawl, 'access', _69 => _69.custom, 'optionalCall', _70 => _70(url)])
 
     const optimizeOption = (
       _nullishCoalesce(_nullishCoalesce(crawlCustomOption, () => (
@@ -827,9 +831,13 @@ const ISRHandler = async (params) => {
   try {
     return await _ISRHandler(params)
   } finally {
-    if (_optionalChain([params, 'optionalAccess', _86 => _86.engine]) === 'lightpanda' && connectedBrowser) {
-      connectedBrowser.disconnect().catch(() => {})
-      connectedBrowser = undefined
+    try {
+      await closeActivePage()
+    } finally {
+      if (_optionalChain([params, 'optionalAccess', _71 => _71.engine]) === 'lightpanda' && connectedBrowser) {
+        await connectedBrowser.disconnect().catch(() => {})
+        connectedBrowser = undefined
+      }
     }
   }
 } // ISRHandler

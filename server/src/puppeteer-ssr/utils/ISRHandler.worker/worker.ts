@@ -22,6 +22,7 @@ import {
 import { ISSRResult } from '../../types'
 import { CRAWL_WAIT_OPTIONS, IS_NETWORK_IDLE_WAIT } from '../CrawlProfile'
 import CacheManager from '../CacheManager.worker/utils'
+import { createRenderPage } from '../CreateRenderPage'
 import {
   compressContent,
   deepOptimizeContent,
@@ -46,6 +47,13 @@ interface IISRHandlerParam {
 }
 
 let connectedBrowser: Browser | undefined
+
+let activePage: Page | undefined
+const closeActivePage = async () => {
+  const page = activePage
+  if (page && !page.isClosed()) await page.close()
+  if (activePage === page) activePage = undefined
+}
 
 // NOTE - A stray rejected promise (ex: page.close() rejects with "Target
 // closed" once the CDP connection is closed) must not kill this worker thread:
@@ -481,7 +489,9 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
     if (browser && browser.connected) {
       enableOptimizeAndCompressIfRemoteCrawlerFail = true
       Console.log('Create new page')
-      const page = await browser.newPage()
+      const page = await createRenderPage(browser, params.engine)
+      activePage = page
+
       const safePage = _getSafePage(page)
 
       Console.log('Create new page success!')
@@ -658,9 +668,7 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
         cacheManager.remove().catch((err) => {
           Console.error(err)
         })
-        safePage()
-          ?.close()
-          .catch(() => {})
+        await closeActivePage()
         if (params.hasCache) {
           cacheManager.rename()
         }
@@ -673,15 +681,11 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
       if (CACHEABLE_STATUS_CODE[status]) {
         try {
           html = (await safePage()?.content()) ?? '' // serialized HTML of page DOM.
-          safePage()
-            ?.close()
-            .catch(() => {})
+          await closeActivePage()
         } catch (err) {
           Console.log('ISRHandler line 315:')
           Console.error(err)
-          safePage()
-            ?.close()
-            .catch(() => {})
+          await closeActivePage()
           if (params.hasCache) {
             cacheManager.rename()
           }
@@ -827,9 +831,13 @@ const ISRHandler = async (params: IISRHandlerParam) => {
   try {
     return await _ISRHandler(params)
   } finally {
-    if (params?.engine === 'lightpanda' && connectedBrowser) {
-      connectedBrowser.disconnect().catch(() => {})
-      connectedBrowser = undefined
+    try {
+      await closeActivePage()
+    } finally {
+      if (params?.engine === 'lightpanda' && connectedBrowser) {
+        await connectedBrowser.disconnect().catch(() => {})
+        connectedBrowser = undefined
+      }
     }
   }
 } // ISRHandler

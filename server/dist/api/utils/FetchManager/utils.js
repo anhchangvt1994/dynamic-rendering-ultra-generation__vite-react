@@ -19,12 +19,15 @@ const dataPath = _PathHandler.getDataPath.call(void 0, )
 const UPSTREAM_KEEP_ALIVE =
   Number(_InitEnv.PROCESS_ENV.UPSTREAM_KEEP_ALIVE_MS) || 60 * 1000
 
-_undici.setGlobalDispatcher.call(void 0, 
-  new (0, _undici.Agent)({
-    keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
-    keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
-  })
-)
+const upstreamAgent = new (0, _undici.Agent)({
+  connections: Math.max(
+    1,
+    Math.min(32, Number(_InitEnv.PROCESS_ENV.UPSTREAM_CONNECTIONS) || 8)
+  ),
+  pipelining: 1,
+  keepAliveTimeout: UPSTREAM_KEEP_ALIVE,
+  keepAliveMaxTimeout: Math.max(UPSTREAM_KEEP_ALIVE, 10 * 60 * 1000),
+})
 
  const fetchData = async (
   input,
@@ -35,185 +38,109 @@ _undici.setGlobalDispatcher.call(void 0,
 
 
 
-
-
-
-
 ) => {
-  if (!input) {
-    _ConsoleHandler2.default.error('URL is required!')
+  if (!input)
     return {
       status: 500,
       data: {},
       compressData: {},
       message: 'URL is required',
     }
+
+  const controller = new AbortController()
+  const callerSignal =
+    _nullishCoalesce(_optionalChain([init, 'optionalAccess', _ => _.signal]), () => ( (input instanceof Request ? input.signal : undefined)))
+  const cancel = () => controller.abort(_optionalChain([callerSignal, 'optionalAccess', _2 => _2.reason]))
+  if (_optionalChain([callerSignal, 'optionalAccess', _3 => _3.aborted])) cancel()
+  else _optionalChain([callerSignal, 'optionalAccess', _4 => _4.addEventListener, 'call', _5 => _5('abort', cancel, { once: true })])
+
+  let timedOut = false
+  const timeout =
+    _nullishCoalesce(_optionalChain([init, 'optionalAccess', _6 => _6.timeout]), () => ( (Number(_InitEnv.PROCESS_ENV.UPSTREAM_TIMEOUT_MS) || 10000)))
+  const timer =
+    timeout === 'infinite'
+      ? undefined
+      : setTimeout(() => {
+          timedOut = true
+          controller.abort()
+        }, timeout)
+
+  try {
+    const headers = new Headers(
+      _nullishCoalesce(_optionalChain([init, 'optionalAccess', _7 => _7.headers]), () => ( (input instanceof Request ? input.headers : undefined)))
+    )
+    for (const key of [...headers.keys()]) {
+      if (
+        /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
+          key
+        )
+      )
+        headers.delete(key)
+    }
+    headers.set('accept-encoding', 'gzip, deflate, br')
+    const { timeout: ignoredTimeout, ...requestInit } = _nullishCoalesce(init, () => ( {}))
+    const response = await fetch(input, {
+      ...requestInit,
+      headers,
+      signal: controller.signal,
+      dispatcher: upstreamAgent,
+    } )
+    // Keep the timeout armed through body consumption, not just headers.
+    const data = await response.text()
+    return {
+      status: response.status,
+      message: response.statusText,
+      cookies: response.headers.getSetCookie(),
+      data,
+      compressData: {},
+    }
+  } catch (error) {
+    if (!controller.signal.aborted) _ConsoleHandler2.default.error(error)
+    return {
+      status: timedOut ? 408 : 500,
+      data: {},
+      compressData: {},
+      message: timedOut ? 'Request Timeout' : 'Server Error',
+    }
+  } finally {
+    clearTimeout(timer)
+    _optionalChain([callerSignal, 'optionalAccess', _8 => _8.removeEventListener, 'call', _9 => _9('abort', cancel)])
   }
-
-  const response = await new Promise
-
-
-
-
-
-(async (rootResolve) => {
-    const timeout = _nullishCoalesce(_optionalChain([init, 'optionalAccess', _ => _.timeout]), () => ( 10000))
-    if (timeout !== 'infinite') {
-      var responseTimeout = setTimeout(() => {
-        rootResolve({
-          status: 408,
-          message: 'Request Timeout',
-          data: {},
-          compressData: {},
-        })
-      }, timeout)
-    }
-
-    try {
-      if (init && init.headers) {
-        const headers = new Headers()
-        for (const headerKey in init.headers) {
-          if (
-            /referer|static-html-path|accept-encoding|connection|host|x-real-ip|x-forwarded-|sec-fetch-|priority|cookie/.test(
-              headerKey.toLowerCase()
-            )
-          )
-            continue
-
-          headers.append(headerKey, init.headers[headerKey])
-        }
-
-        headers.append('accept-encoding', 'gzip, deflate, br')
-
-        init.headers = headers
-      }
-
-      const response = await fetch(input, {
-        method: _optionalChain([init, 'optionalAccess', _2 => _2.method]) || 'GET',
-        headers: _optionalChain([init, 'optionalAccess', _3 => _3.headers]),
-        body: _optionalChain([init, 'optionalAccess', _4 => _4.body]) || null,
-      })
-        .then(async (res) => {
-          if (responseTimeout) clearTimeout(responseTimeout)
-          const data = await new Promise(async (resolve) => {
-            // let tmpData
-            // const buffer = await res.clone().arrayBuffer()
-
-            // const contentEncoding = res.headers.get('content-encoding')
-
-            // if (contentEncoding?.includes('gzip')) {
-            //   try {
-            //     tmpData = gunzipSync(buffer)?.toString()
-            //   } catch {}
-            // } else if (contentEncoding?.includes('deflate')) {
-            //   try {
-            //     tmpData = inflateSync(buffer)?.toString()
-            //   } catch {}
-            // } else if (contentEncoding?.includes('br')) {
-            //   try {
-            //     tmpData = brotliDecompressSync(buffer)?.toString()
-            //   } catch {}
-            // }
-
-            // if (!tmpData) {
-            //   const text = await res.clone().text()
-
-            //   try {
-            //     tmpData = JSON.parse(text)
-            //   } catch (error) {
-            //     tmpData = {}
-            //   }
-            // } else JSON.parse(tmpData)
-
-            const data = await res.text()
-
-            resolve(data)
-          })
-
-          return {
-            status: res.status,
-            message: res.statusText,
-            cookies: res.headers.getSetCookie(),
-            data,
-            compressData: {},
-          }
-        })
-        .catch((err) => {
-          if (responseTimeout) clearTimeout(responseTimeout)
-          if (err.name !== 'AbortError') _ConsoleHandler2.default.error(err)
-          return {
-            status: 500,
-            data: {},
-            compressData: {},
-            message: 'Server Error',
-          }
-        })
-
-      rootResolve(response)
-    } catch (error) {
-      _ConsoleHandler2.default.error(error)
-      rootResolve({
-        status: 500,
-        data: {},
-        compressData: {},
-        message: 'Server Error',
-      })
-    }
-  })
-
-  return response
 }; exports.fetchData = fetchData // fetchData
 
  const refreshData = async (cacheKeyList) => {
-  if (!cacheKeyList || !cacheKeyList.length) return
-
-  const arrRefreshData = []
-
-  for (const cacheKeyItem of cacheKeyList) {
-    const apiCache = await _utils.get.call(void 0, dataPath, cacheKeyItem, 'br')
-
-    if (!apiCache || !apiCache.cache || !apiCache.url) continue
-
-    _utils.updateStatus.call(void 0, dataPath, cacheKeyItem, 'br', 'fetch')
-
-    arrRefreshData.push(
-      new Promise(async (res) => {
-        const headers = new Headers()
-        for (const key in apiCache.headers) {
-          headers.append(key, apiCache.headers[key])
-        }
-
-        await exports.fetchData.call(void 0, apiCache.url , {
-          method: apiCache.method,
-          headers: apiCache.headers,
-          body: apiCache.body,
-        }).then((result) => {
-          const cacheResult = apiCache.cache 
-
-
-
-          const enableToSetCache =
-            result.status === 200 || !cacheResult || cacheResult.status !== 200
-          if (enableToSetCache) {
-            _utils.set.call(void 0, dataPath, cacheKeyItem, 'br', {
-              url: apiCache.url ,
-              method: apiCache.method ,
-              body: apiCache.body,
-              headers: apiCache.headers,
-              cache: {
-                expiredTime: cacheResult.expiredTime,
-                ...result,
-              },
-            })
-
-            res('finish')
-          }
-        })
+  if (!_optionalChain([cacheKeyList, 'optionalAccess', _10 => _10.length])) return
+  const keys = [...new Set(cacheKeyList)]
+  let next = 0
+  const refresh = async () => {
+    while (next < keys.length) {
+      const key = keys[next++]
+      const apiCache = await _utils.get.call(void 0, dataPath, key, 'br')
+      if (!_optionalChain([apiCache, 'optionalAccess', _11 => _11.cache]) || !apiCache.url) continue
+      await _utils.updateStatus.call(void 0, dataPath, key, 'br', 'fetch')
+      const result = await exports.fetchData.call(void 0, apiCache.url , {
+        method: apiCache.method,
+        headers: apiCache.headers,
+        body: apiCache.body,
       })
-    )
+      const cached = apiCache.cache 
+
+
+
+      // A failed refresh retains an existing successful response and still
+      // completes, rather than leaving an unresolved promise behind.
+      if (result.status === 200 || !cached || cached.status !== 200) {
+        await _utils.set.call(void 0, dataPath, key, 'br', {
+          url: apiCache.url ,
+          method: apiCache.method ,
+          body: apiCache.body,
+          headers: apiCache.headers,
+          cache: { expiredTime: _optionalChain([cached, 'optionalAccess', _12 => _12.expiredTime]), ...result },
+        })
+      }
+      await _utils.updateStatus.call(void 0, dataPath, key, 'br', 'ready')
+    }
   }
-
-  if (arrRefreshData.length) await Promise.all(arrRefreshData)
-
+  await Promise.all(Array.from({ length: Math.min(4, keys.length) }, refresh))
   return 'finish'
 }; exports.refreshData = refreshData // refreshData
