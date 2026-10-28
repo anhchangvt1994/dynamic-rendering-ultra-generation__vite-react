@@ -123,3 +123,64 @@ trên. Các cảnh báo peer dependency của bộ lint cũ vẫn tồn tại.
 
 Hướng dẫn triển khai app và chẩn đoán tại VPS:
 [README setup](../vps-setup/README.md#cân-bằng-tải-giữa-httpapi-và-render).
+
+## Tối ưu regex HTML
+
+Baseline: `77d781d`, trước thay đổi regex. Đo cục bộ trên Apple M4, macOS arm64,
+Node 22.23.4; 5 lượt warmup, 21 mẫu mỗi phiên bản, chạy xen kẽ trước/sau.
+Đây là thời gian xử lý HTML trong cùng process, không phải latency website hay
+phép đo VPS giới hạn 2 CPU/4 GiB ở phần trên.
+
+Median toàn luồng ISR `script/style → shallow → minify → deep`, đơn vị ms:
+
+| HTML đầu vào | Trước | Sau | Thử đưa minify về cuối |
+| --- | ---: | ---: | ---: |
+| 500 card, khoảng 106 KiB | 7.930 | 2.305 | 2.331 |
+| 500 link, khoảng 122 KiB | 83.918 | 3.091 | 3.072 |
+| 1000 video/audio, khoảng 143 KiB | 117.806 | 2.427 | 2.437 |
+| HTML lab đã sạch, khoảng 85 KiB | 2.139 | 2.362 | 2.437 |
+
+HTML đã sạch không tăng tốc: việc đọc thuộc tính theo dấu nháy và bảo vệ raw text
+thêm khoảng 0,22 ms trong mẫu này. Trường hợp nhiều link/media được lợi lớn nhất
+từ việc giới hạn lookahead trong opening tag và bỏ lặp chồng nhau. Mẫu form
+51.507 byte có 100 thuộc tính nhưng thiếu tag đóng khiến baseline vượt timeout
+1 giây; bản sửa hoàn tất khoảng 2,5 ms. Đây là một ca cụ thể, không phải chứng minh
+mọi HTML lỗi đều có thời gian xử lý tuyến tính.
+
+Thứ tự minify trước deep được giữ nguyên: đưa minify về cuối không cho lợi ích
+tốc độ ổn định trong các mẫu trên. Thay đổi thứ tự cần thiết nằm trước đó:
+script/style/shallow được gộp một lượt khi cùng bật, và icon được nhận diện trước
+khi bỏ class. Chế độ low vẫn chạy riêng, không còn là bước bắt buộc trước shallow.
+
+Các wrapper div được thay bằng ranh giới khoảng trắng; không chèn khoảng trắng
+giữa các span inline. Loại `<i/>`/`<i></i>` rỗng (kể cả chỉ có class) trước minify:
+`<div>thomas</div><div><i/></div><div>edition</div>` cho đúng `thomas edition`,
+một dấu cách. Test so sánh chuỗi đầu ra nguyên bản, không tự gộp khoảng trắng.
+Các thuộc tính chỉ được xóa trong opening tag, giữ nguyên
+giá trị thuộc tính khác, JSON-LD, comment và ví dụ pre/code. Comment marker thông
+thường không chặn xử lý anchor bên ngoài. Khi một anchor/button bao quanh code
+hoặc raw markup được bảo vệ, giữ nguyên cặp tag đó để tránh sửa nội dung ví dụ.
+Input là void element, không được ghép với tag đóng của anchor/button phía sau.
+
+Đầu ra trước/sau có thể khác kích thước: bản cũ có thể xóa nhầm link hợp lệ,
+giữ icon/media không cần thiết và dính chữ. Test kiểm tra các nội dung cần giữ/xóa,
+không dùng việc giảm byte làm bằng chứng HTML còn đúng.
+
+Chạy lại với các fixture tổng hợp có sẵn:
+
+```bash
+node --test scripts/vps-lab/html-optimization.test.mjs
+HTML_BASELINE_REF=77d781d node scripts/vps-lab/bench-html-optimization.mjs compare
+```
+
+Thêm đường dẫn file HTML sau `compare` để đo dữ liệu thực tế; `HTML_BENCH_CARDS`
+đổi số phần tử tổng hợp, mặc định 500. Kết quả đầy đủ nằm tại
+`.vps-lab/html-optimization/compare.json`; các log/test đầu vào động không commit.
+Lượt đo tại workspace còn dùng
+`.vps-lab/tmp/pre/pre-shallow-1792856504848.html` làm mẫu HTML lab đã sạch.
+
+Đã kiểm tra `yarn build`, cập nhật ba file JavaScript tương ứng trong server/dist,
+và chạy 60/60 Node tests, gồm 21 test tập trung vào tối ưu HTML.
+
+So sánh thư viện/cấu hình minify, dung lượng Brotli và độ đúng của HTML:
+[báo cáo minifier](./MINIFIERS.md).

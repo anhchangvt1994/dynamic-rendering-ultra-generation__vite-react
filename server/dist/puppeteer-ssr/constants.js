@@ -92,40 +92,152 @@ const userDataPath = _PathHandler.getUserDataPath.call(void 0, )
 }; exports.defaultBrowserOptions = defaultBrowserOptions
 
 // NOTE - Regex Handler
- const regexRemoveScriptTag =
-  /(<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*>(.|[\r\n])*?<\/script>|<script(?![\s\S]type="application\/(ld\+json|xml|rdf\+xml)")(\s[^>]+)*\/>)|(<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>))|<iframe\s+(?:[^>]*?\s+)?((src|id)=["']?[^"]*\b((partytown|insider-worker)(?:-[a-z]+)?)\b[^"]*["']|\bvideo\b)?[^>]*>(?:[^<]*|<(?!\/iframe>))*<\/iframe>/g; exports.regexRemoveScriptTag = regexRemoveScriptTag
- const regexRemoveStyleTag =
-  /(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>)|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*))/g; exports.regexRemoveStyleTag = regexRemoveStyleTag
-// const regexRemoveDivTag =
-// 	/<div(>|[\s\S](?!only-dev)[\s\S]*?(>))[\s\S]*?<\/div>(?:[\s\S]*?|$)/g
-// export const regexRemoveDivTag: RegExp = /(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g
- const regexLowOptimize =
-  /(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)/g; exports.regexLowOptimize = regexLowOptimize
-// NOTE - The lookaheads of the <img> / <label> patterns stay inside the tag
-// ([^>]*): with ".*" they scanned to the end of the (minified, one line)
-// document for every tag, ex: 14s for a page with 500 images, and could match
-// an attribute of another tag
- const regexShallowOptimize =
-  /<img\s+(?=[^>]*alt=["']?[^"'>]*\b(icon(-\w*)*(?:-[a-z]+)?)\b)[^>]*>|<img\s+(?=[^>]*class=["']?[^"'>]*\b(fa-|material-icons|icon(-\w*)|ri-))[^>]*>|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=[^>]*for=)[^>]*>|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g; exports.regexShallowOptimize = regexShallowOptimize
+// Quoted values are indivisible: a ">" or markup inside an attribute is not
+// a tag boundary. Avoid overlapping repeats such as (\s[^>]+)*.
+const htmlTagAttributes = String.raw`[^"'<>]*(?:(?:"[^"]*"|'[^']*')[^"'<>]*)*`
+const htmlTagBoundary = String.raw`(?=[\s/>])`
+const htmlOpeningTag = String.raw`<[a-z][\w:-]*${htmlTagBoundary}${htmlTagAttributes}>`
+const htmlQuotedMarkupTag = String.raw`<[a-z][\w:-]*${htmlTagBoundary}(?=${htmlTagAttributes}(?:"[^"]*<[^"]*"|'[^']*<[^']*'))${htmlTagAttributes}>`
+const htmlDivTags = String.raw`(?:<\/?div${htmlTagBoundary}${htmlTagAttributes}>)+`
+const htmlPairedTag = (tag) =>
+  String.raw`<${tag}${htmlTagBoundary}${htmlTagAttributes}(?:\/>|>[\s\S]*?<\/${tag}\s*>)`
 
- const regexRemoveSpecialTag =
-  /(<link\s+(?=.*(rel=["']?(dns-prefetch|preconnect|modulepreload|preload|prefetch)["']?).*?(\/|)?)(?:.*?\/?>))|<iframe\s+(?:[^>]*?\s+)?((src|id)=["']?[^"]*\b((partytown|insider-worker)(?:-[a-z]+)?)\b[^"]*["']|\bvideo\b)?[^>]*>(?:[^<]*|<(?!\/iframe>))*<\/iframe>|(<style(\s[^>]+)*>(.|[\r\n])*?<\/style>|<style(\s[^>]+)*\/>|<link\s+(?=.*(rel=["']?(stylesheet|shortcut icon)["']?|href=["']?.*?(css|style).*?["']?).*?(\/|)?)(?:.*?\/?>))/g; exports.regexRemoveSpecialTag = regexRemoveSpecialTag
- const regexFullOptimizeBody =
-  /<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=[^>]*for=)[^>]*>|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|<img\s+(?=[^>]*class=["']?[^"'>]*\b(fa-|material-icons|icon(-\w*)|ri-))[^>]*>|<img\s+(?=[^>]*alt=["']?[^"'>]*\b(icon(-\w*)*(?:-[a-z]+)?)\b)[^>]*>|style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g; exports.regexFullOptimizeBody = regexFullOptimizeBody
- const regexRemoveIconTagFirst =
-  /<img\s+(?=[^>]*alt=["']?[^"'>]*\b(icon(-\w*)*(?:-[a-z]+)?)\b)[^>]*>/g; exports.regexRemoveIconTagFirst = regexRemoveIconTagFirst
- const regexRemoveIconTagSecond =
-  /<img\s+(?=[^>]*class=["']?[^"'>]*\b(fa-|material-icons|icon(-\w*)|ri-))[^>]*>/g; exports.regexRemoveIconTagSecond = regexRemoveIconTagSecond
- const regexRemoveClassAndStyleAttrs =
-  /style=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)|class=(?:("|'|)([^"']+)("|'|\s)[^>\s]*)/g; exports.regexRemoveClassAndStyleAttrs = regexRemoveClassAndStyleAttrs
- const regexHandleAttrsImageTag = /<(source|img)([^>]*)(\/|)>/g; exports.regexHandleAttrsImageTag = regexHandleAttrsImageTag
- const regexHandleAttrsHtmlTag = /<(html)([^>]*)>/g; exports.regexHandleAttrsHtmlTag = regexHandleAttrsHtmlTag
- const regexHalfOptimizeBody =
-  /<video(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/video>|<audio(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*>(.|[\r\n])*?<\/audio>|<(video|audio)(?![\s\S]*seo-tag=("|'|)true("|'|\s))(\s[^>]+)*\/>|<form(\s[^>]+)*>(.|[\r\n])*?<\/form>|<input(?![^>]*\b(?:type=['"](?:button|submit)['"]|type=(?:button|submit)\b)[^>]*>)[^>]*>|<textarea(\s[^>]+)*\/>|<textarea(\s[^>]+)*>(.|[\r\n])*?<\/textarea>|<label\s+(?=[^>]*for=)[^>]*>|<svg(\s[^>]+)*>(.|[\r\n])*?<\/svg>|<span\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/span>))*<\/span>|<i\s+(?:[^>]*?\s+)?class=["']?[^"]*\b((fa-|material-icons|icon(-\w*)*|ri-)(?:-[a-z]+)?)\b[^"]*["']?[^>]*>(?:[^<]*|<(?!\/i>))*<\/i>|(<div(>|[\s\S]*?(>))|<\/div>)(?:[\s\S]*?|$)/g; exports.regexHalfOptimizeBody = regexHalfOptimizeBody
-// export const regexHandleAttrsInteractiveTag: RegExp =
-// 	/<(a|button|input)(?![^>]*rel="nofollow")([^>]*)(\/|)>([\s\S]*?)<\/(a|button)>/g
- const regexHandleAttrsInteractiveTag =
-  /<(a|button|input)([^>]*)(\/|)>([\s\S]*?)<\/(a|button)>/g; exports.regexHandleAttrsInteractiveTag = regexHandleAttrsInteractiveTag
+// Scan attributes in this opening tag only, skipping complete quoted values.
+const htmlAttribute = (name, value, contains = false) => {
+  const quoted = (quote) =>
+    contains ? `[^${quote}]*\\b(?:${value})[^${quote}]*` : `(?:${value})`
+  const unquoted = contains
+    ? String.raw`[^\s"'=<>\x60]*\b(?:${value})[^\s"'=<>\x60]*`
+    : `(?:${value})`
+  return String.raw`\s${name}\s*=\s*(?:"${quoted('"')}"|'${quoted("'")}'|${unquoted}(?=[\s/>]))`
+}
+const hasHtmlAttribute = (name, value, contains = false) =>
+  `${htmlTagAttributes}${htmlAttribute(name, value, contains)}`
+
+const htmlStructuredData = hasHtmlAttribute(
+  'type',
+  String.raw`application/(?:ld\+json|xml|rdf\+xml)`
+)
+const htmlScript = String.raw`<script${htmlTagBoundary}(?!${htmlStructuredData})${htmlTagAttributes}(?:\/>|>[\s\S]*?<\/script\s*>)`
+const htmlResourceLink = String.raw`<link${htmlTagBoundary}(?=${hasHtmlAttribute('rel', String.raw`(?:dns-prefetch|preconnect|modulepreload|preload|prefetch)\b`, true)})${htmlTagAttributes}>`
+const htmlStyleLink = String.raw`<link${htmlTagBoundary}(?=${hasHtmlAttribute('rel', String.raw`(?:stylesheet|shortcut icon)\b`, true)}|${hasHtmlAttribute('href', '(?:css|style)', true)})${htmlTagAttributes}>`
+const htmlScriptRemovals = [
+  htmlScript,
+  htmlResourceLink,
+  htmlPairedTag('iframe'),
+]
+const htmlStyleRemovals = [htmlPairedTag('style'), htmlStyleLink]
+const htmlBaseRemovals = [...htmlScriptRemovals, ...htmlStyleRemovals]
+
+const htmlIconClass = String.raw`(?:fa-|material-icons\b|icon(?:-[\w-]+)?\b|ri-)`
+const htmlIconAlt = String.raw`icon(?:-[\w-]+)?\b`
+const htmlIconImageAlt = String.raw`<img${htmlTagBoundary}(?=${hasHtmlAttribute('alt', htmlIconAlt, true)})${htmlTagAttributes}>`
+const htmlIconImageClass = String.raw`<img${htmlTagBoundary}(?=${hasHtmlAttribute('class', htmlIconClass, true)})${htmlTagAttributes}>`
+const htmlIconElement = (tag) =>
+  String.raw`<${tag}${htmlTagBoundary}(?=${hasHtmlAttribute('class', htmlIconClass, true)})${htmlTagAttributes}>[\s\S]*?<\/${tag}\s*>`
+const htmlMedia = (tag) =>
+  String.raw`<${tag}${htmlTagBoundary}(?!${hasHtmlAttribute('seo-tag', 'true')})${htmlTagAttributes}(?:\/>|>[\s\S]*?<\/${tag}\s*>)`
+// Empty i tags have no text to preserve. Allow class-only variants too: class
+// is removed by low/shallow optimization anyway. Keep aria/id/style attributes.
+const htmlEmptyIcon = String.raw`<i(?:\s+class\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>\x60]+))*\s*(?:\/>|>\s*<\/i\s*>)`
+const htmlBodyRemovals = [
+  htmlEmptyIcon,
+  htmlMedia('video'),
+  htmlMedia('audio'),
+  htmlPairedTag('form'),
+  String.raw`<input${htmlTagBoundary}(?!${hasHtmlAttribute('type', '(?:button|submit)')})${htmlTagAttributes}>`,
+  htmlPairedTag('textarea'),
+  String.raw`<label${htmlTagBoundary}(?=${hasHtmlAttribute('for', String.raw`[^\s"'<>]+`)})${htmlTagAttributes}>`,
+  htmlPairedTag('svg'),
+  htmlIconElement('span'),
+  htmlIconElement('i'),
+  htmlIconImageClass,
+  htmlIconImageAlt,
+]
+
+// Earlier alternatives consume raw text/comments before their contents can be
+// mistaken for tags. Removal alternatives still take priority for each mode.
+const htmlRawText = [
+  String.raw`<!--[\s\S]*?-->`,
+  ...['script', 'style', 'pre', 'code', 'textarea', 'title'].map(htmlPairedTag),
+].join('|')
+const htmlPreserved = `${htmlRawText}|${htmlQuotedMarkupTag}`
+ const regexHasPreservedHtml = new RegExp(htmlPreserved, 'i'); exports.regexHasPreservedHtml = regexHasPreservedHtml
+ const regexHtmlTransformSegments = new RegExp(
+  `(${htmlPreserved})|${htmlOpeningTag}`,
+  'gi'
+); exports.regexHtmlTransformSegments = regexHtmlTransformSegments
+const htmlOptimizationRegex = (removals, stripDiv = false) =>
+  new RegExp(
+    `(${removals.length ? removals.join('|') : '(?!)'})|(${htmlRawText})|(${stripDiv ? htmlDivTags : '(?!)'})|(${htmlOpeningTag})`,
+    'gi'
+  )
+
+// Four capture groups: removed element, preserved content, div boundary, tag.
+ const regexRemoveScriptTag = htmlOptimizationRegex(htmlScriptRemovals); exports.regexRemoveScriptTag = regexRemoveScriptTag
+ const regexRemoveStyleTag = htmlOptimizationRegex(htmlStyleRemovals); exports.regexRemoveStyleTag = regexRemoveStyleTag
+ const regexRemoveSpecialTag = htmlOptimizationRegex(htmlBaseRemovals); exports.regexRemoveSpecialTag = regexRemoveSpecialTag
+ const regexLowOptimize = htmlOptimizationRegex([htmlEmptyIcon], true); exports.regexLowOptimize = regexLowOptimize
+ const regexShallowOptimize = htmlOptimizationRegex(
+  htmlBodyRemovals,
+  true
+); exports.regexShallowOptimize = regexShallowOptimize
+ const regexFullOptimizeBody = htmlOptimizationRegex(
+  [...htmlBaseRemovals, ...htmlBodyRemovals],
+  true
+); exports.regexFullOptimizeBody = regexFullOptimizeBody
+// Cheap non-global probes avoid building a replacement string for documents
+// which have no matching removals. False positives in raw text are harmless:
+// the actual replacement pass still protects it.
+ const regexHasScriptRemoval = new RegExp(
+  htmlScriptRemovals.join('|'),
+  'i'
+); exports.regexHasScriptRemoval = regexHasScriptRemoval
+ const regexHasStyleRemoval = new RegExp(
+  [...htmlStyleRemovals, String.raw`\sstyle\s*=`].join('|'),
+  'i'
+); exports.regexHasStyleRemoval = regexHasStyleRemoval
+ const regexHasShallowOptimization = new RegExp(
+  [...htmlBodyRemovals, htmlDivTags, String.raw`\sclass\s*=`].join('|'),
+  'i'
+); exports.regexHasShallowOptimization = regexHasShallowOptimization
+ const regexHasFullOptimization = new RegExp(
+  [
+    ...htmlBaseRemovals,
+    ...htmlBodyRemovals,
+    htmlDivTags,
+    String.raw`\s(?:class|style)\s*=`,
+  ].join('|'),
+  'i'
+); exports.regexHasFullOptimization = regexHasFullOptimization
+ const regexHalfOptimizeBody = exports.regexShallowOptimize; exports.regexHalfOptimizeBody = regexHalfOptimizeBody
+ const regexRemoveDivTag = new RegExp(htmlDivTags, 'gi'); exports.regexRemoveDivTag = regexRemoveDivTag
+ const regexRemoveIconTagFirst = new RegExp(htmlIconImageAlt, 'gi'); exports.regexRemoveIconTagFirst = regexRemoveIconTagFirst
+ const regexRemoveIconTagSecond = new RegExp(htmlIconImageClass, 'gi'); exports.regexRemoveIconTagSecond = regexRemoveIconTagSecond
+
+// Use only within an opening tag. The quoted alternatives protect values of
+// other attributes (e.g. title=" class='literal'") from being edited.
+const htmlRemovableAttrs = (names) =>
+  new RegExp(
+    String.raw`"[^"]*"|'[^']*'|\s+(?:${names})\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>\x60]+)`,
+    'gi'
+  )
+ const regexRemoveClassAttrs = htmlRemovableAttrs('class'); exports.regexRemoveClassAttrs = regexRemoveClassAttrs
+ const regexRemoveStyleAttrs = htmlRemovableAttrs('style'); exports.regexRemoveStyleAttrs = regexRemoveStyleAttrs
+ const regexRemoveClassAndStyleAttrs = htmlRemovableAttrs('class|style'); exports.regexRemoveClassAndStyleAttrs = regexRemoveClassAndStyleAttrs
+ const regexHandleAttrsImageTag = new RegExp(
+  String.raw`<(source|img)${htmlTagBoundary}(${htmlTagAttributes}?)\s*\/?>`,
+  'gi'
+); exports.regexHandleAttrsImageTag = regexHandleAttrsImageTag
+ const regexHandleAttrsHtmlTag = new RegExp(
+  String.raw`<(html)${htmlTagBoundary}(${htmlTagAttributes})>`,
+  'gi'
+); exports.regexHandleAttrsHtmlTag = regexHandleAttrsHtmlTag
+ const regexHandleAttrsInteractiveTag = new RegExp(
+  // input is void: pairing it with a later </a> would discard sibling content.
+  String.raw`<(a|button)${htmlTagBoundary}(${htmlTagAttributes}?)(\/?)>([\s\S]*?)<\/(\1)\s*>`,
+  'gi'
+); exports.regexHandleAttrsInteractiveTag = regexHandleAttrsInteractiveTag
  const regexQueryStringSpecialInfo =
   /botInfo=(?<botInfo>[^&]*)&deviceInfo=(?<deviceInfo>[^&]*)&localeInfo=(?<localeInfo>[^&]*)&environmentInfo=(?<environmentInfo>[^&]*)/; exports.regexQueryStringSpecialInfo = regexQueryStringSpecialInfo
  const regexQueryStringSpecialInfoWithoutDeviceInfo =

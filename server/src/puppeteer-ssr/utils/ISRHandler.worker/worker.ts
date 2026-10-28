@@ -759,12 +759,23 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
         html = crawlCustomOption.onContentCrawled({ html }) as string
       }
 
-      if (enableScriptOptimize) html = await scriptOptimizeContent(html)
+      const combineShallowOptimize =
+        enableScriptOptimize &&
+        enableStyleOptimize &&
+        (enableShallowOptimize || enableDeepOptimize)
 
-      if (enableStyleOptimize) html = await styleOptimizeContent(html)
+      if (combineShallowOptimize) {
+        // Remove assets and identify icons before stripping their classes,
+        // using one scan instead of separate script/style/low/shallow passes.
+        html = await shallowOptimizeContent(html, true)
+      } else {
+        if (enableScriptOptimize) html = await scriptOptimizeContent(html)
+        if (enableStyleOptimize) html = await styleOptimizeContent(html)
+      }
 
-      if (enableLowOptimize || enableShallowOptimize || enableDeepOptimize)
-        html = await lowOptimizeContent(html)
+      // Shallow already strips wrappers/classes after identifying icon tags.
+      // A low pass first both repeats the scan and hides the icon classes.
+      if (enableLowOptimize) html = await lowOptimizeContent(html)
 
       if (cacheManager.getStatus() !== 'renew') {
         WorkerPool.workerEmit({
@@ -773,7 +784,10 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
         })
       }
 
-      if (enableShallowOptimize || enableDeepOptimize)
+      if (
+        !combineShallowOptimize &&
+        (enableShallowOptimize || enableDeepOptimize)
+      )
         html = await shallowOptimizeContent(html)
 
       if (cacheManager.getStatus() !== 'renew') {
