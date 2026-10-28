@@ -102,6 +102,7 @@ const LightpandaManager = (): IBrowser | undefined => {
     isExiting = true
     lightpandaProcess?.kill('SIGKILL')
     fs.rmSync(pidFilePath, { force: true })
+    fs.rmSync(getWsEndpointFilePath('lightpanda'), { force: true })
   })
 
   _killOrphanLightpanda()

@@ -4,6 +4,7 @@ var _path = require('path'); var _path2 = _interopRequireDefault(_path);
 var _zlib = require('zlib');
 var _ConsoleHandler = require('../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
 var _constants = require('../constants');
+var _path3 = require('./path');
 
 const SitemapRouter = (() => {
   let _app
@@ -26,11 +27,15 @@ const SitemapRouter = (() => {
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-          return '' 
+          return ''
         })()
 
         // Read original file
-        const filePath = _path2.default.resolve(__dirname, `../../sitemap/${url}`)
+        const filePath = _path3.resolveSitemapFile.call(void 0,
+          _path2.default.resolve(__dirname, '../../sitemap'),
+          url,
+          req.getQuery()
+        )
         _ConsoleHandler2.default.log('Sitemap filePath:', filePath)
         _ConsoleHandler2.default.log('File exists:', _fs2.default.existsSync(filePath))
         const originalContent = _fs2.default.readFileSync(filePath, 'utf-8')
@@ -79,11 +84,15 @@ const SitemapRouter = (() => {
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-          return '' 
+          return ''
         })()
 
         // Read original file
-        const filePath = _path2.default.resolve(__dirname, `../../sitemap/${url}`)
+        const filePath = _path3.resolveSitemapFile.call(void 0,
+          _path2.default.resolve(__dirname, '../../sitemap'),
+          url,
+          req.getQuery()
+        )
         _ConsoleHandler2.default.log('Sitemap filePath:', filePath)
         _ConsoleHandler2.default.log('File exists:', _fs2.default.existsSync(filePath))
         const originalContent = _fs2.default.readFileSync(filePath, 'utf-8')

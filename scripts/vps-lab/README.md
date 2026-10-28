@@ -1,5 +1,8 @@
 # VPS application load lab
 
+Kiểm thử cấu hình RAM nhỏ, tải đồng thời app + Redis + ISR + sitemap và lỗi
+Lightpanda phát hiện khi đo: [MINIMUM.md](./MINIMUM.md).
+
 ## Phân tích và thay đổi ngày 2026-10-27
 
 Nguồn yêu cầu: [bài phân tích VPS](https://chatgpt.com/share/6adf8ae6-3fec-83ec-9536-e445d01b1abf).
@@ -184,3 +187,9 @@ và chạy 60/60 Node tests, gồm 21 test tập trung vào tối ưu HTML.
 
 So sánh thư viện/cấu hình minify, dung lượng Brotli và độ đúng của HTML:
 [báo cáo minifier](./MINIFIERS.md).
+
+## Sitemap generator
+
+Luồng `yarn start:sgen`, nguyên nhân chỉ xuất một file, cấu hình CPU/RAM,
+test hồi quy và benchmark trước/sau có tại [server/sitemap/README.md](../../server/sitemap/README.md).
+Script đo riêng: `scripts/vps-lab/bench-sitemap.mjs`.

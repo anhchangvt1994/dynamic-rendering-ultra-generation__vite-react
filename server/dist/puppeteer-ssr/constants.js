@@ -305,7 +305,9 @@ const htmlRemovableAttrs = (names) =>
 
  const getWsEndpointFilePath = (engine) =>
   engine === 'lightpanda'
-    ? `${userDataPath}/wsEndpoint.lightpanda.txt`
+    // Worker threads share their owner's PID; sitemap and other PM2
+    // processes must never redirect those workers to a different browser.
+    ? `${userDataPath}/wsEndpoint.lightpanda.${process.pid}.txt`
     : `${userDataPath}/wsEndpoint.txt`; exports.getWsEndpointFilePath = getWsEndpointFilePath
 
  const DISABLE_SSR_CACHE = Boolean(_InitEnv.PROCESS_ENV.DISABLE_SSR_CACHE); exports.DISABLE_SSR_CACHE = DISABLE_SSR_CACHE

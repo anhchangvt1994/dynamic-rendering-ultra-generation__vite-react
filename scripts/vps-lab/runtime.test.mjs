@@ -85,6 +85,21 @@ test('multicore defaults match the measured two-render profile while low RAM sta
   )
 })
 
+test('Lightpanda endpoints isolate sitemap and PM2 processes while workers share their owner PID', () => {
+  const endpoint = (pid) => load('server/src/puppeteer-ssr/constants.ts', {
+    '../constants': { SERVER_LESS: false },
+    '../utils/InitEnv': { PROCESS_ENV: { PLATFORM: 'linux' } },
+    '../utils/PathHandler': { getUserDataPath: () => '/tmp/browsers' },
+  }, '', { process: { ...process, pid } }).getWsEndpointFilePath('lightpanda')
+  const app = endpoint(100)
+  const appWorker = endpoint(100)
+  const sitemap = endpoint(200)
+  const secondPm2 = endpoint(300)
+  assert.equal(app, appWorker)
+  assert.notEqual(app, sitemap)
+  assert.notEqual(app, secondPm2)
+})
+
 test('render permits are shared across actual worker threads', async () => {
   const modulePath = path.join(root, 'server/src/utils/RenderGate.ts')
   const state = new SharedArrayBuffer(4)

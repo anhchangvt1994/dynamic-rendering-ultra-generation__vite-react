@@ -102,6 +102,7 @@ const LightpandaManager = () => {
     isExiting = true
     _optionalChain([lightpandaProcess, 'optionalAccess', _4 => _4.kill, 'call', _5 => _5('SIGKILL')])
     _fs2.default.rmSync(pidFilePath, { force: true })
+    _fs2.default.rmSync(_constants.getWsEndpointFilePath.call(void 0, 'lightpanda'), { force: true })
   })
 
   _killOrphanLightpanda()

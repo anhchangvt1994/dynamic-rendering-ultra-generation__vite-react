@@ -305,7 +305,9 @@ export const LIGHTPANDA_FALLBACK_TO_CHROMIUM = ['true', 'TRUE', '1'].includes(
 
 export const getWsEndpointFilePath = (engine: TBrowserEngine) =>
   engine === 'lightpanda'
-    ? `${userDataPath}/wsEndpoint.lightpanda.txt`
+    // Worker threads share their owner's PID; sitemap and other PM2
+    // processes must never redirect those workers to a different browser.
+    ? `${userDataPath}/wsEndpoint.lightpanda.${process.pid}.txt`
     : `${userDataPath}/wsEndpoint.txt`
 
 export const DISABLE_SSR_CACHE = Boolean(PROCESS_ENV.DISABLE_SSR_CACHE)

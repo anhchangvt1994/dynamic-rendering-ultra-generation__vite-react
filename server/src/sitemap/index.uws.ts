@@ -4,6 +4,7 @@ import { TemplatedApp } from 'uWebSockets.js'
 import { brotliCompressSync, gzipSync } from 'zlib'
 import Console from '../utils/ConsoleHandler'
 import { BROTLI_OPTIONS } from '../constants'
+import { resolveSitemapFile } from './path'
 
 const SitemapRouter = (() => {
   let _app: TemplatedApp
@@ -30,7 +31,11 @@ const SitemapRouter = (() => {
         })()
 
         // Read original file
-        const filePath = path.resolve(__dirname, `../../sitemap/${url}`)
+        const filePath = resolveSitemapFile(
+          path.resolve(__dirname, '../../sitemap'),
+          url,
+          req.getQuery()
+        )
         Console.log('Sitemap filePath:', filePath)
         Console.log('File exists:', fs.existsSync(filePath))
         const originalContent = fs.readFileSync(filePath, 'utf-8')
@@ -83,7 +88,11 @@ const SitemapRouter = (() => {
         })()
 
         // Read original file
-        const filePath = path.resolve(__dirname, `../../sitemap/${url}`)
+        const filePath = resolveSitemapFile(
+          path.resolve(__dirname, '../../sitemap'),
+          url,
+          req.getQuery()
+        )
         Console.log('Sitemap filePath:', filePath)
         Console.log('File exists:', fs.existsSync(filePath))
         const originalContent = fs.readFileSync(filePath, 'utf-8')

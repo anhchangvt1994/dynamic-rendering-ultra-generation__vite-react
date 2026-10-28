@@ -572,7 +572,7 @@ const puppeteerSSRService = (async () => {
                 if (contentEncoding === 'br' && Buffer.isBuffer(html))
                   return html
 
-                if (!enableContentEncoding) {
+                if (!enableContentEncoding || !contentEncoding) {
                   switch (true) {
                     case Buffer.isBuffer(html):
                       try {
@@ -593,6 +593,15 @@ const puppeteerSSRService = (async () => {
                   case contentEncoding === 'br':
                     return _zlib.brotliCompressSync.call(void 0, html, _constants.BROTLI_OPTIONS)
                   case contentEncoding === 'gzip':
+                    // SSR cache buffers are Brotli. Decode them before gzip,
+                    // otherwise the response is gzip(Brotli(HTML)).
+                    if (Buffer.isBuffer(html)) {
+                      try {
+                        return _zlib.gzipSync.call(void 0, _zlib.brotliDecompressSync.call(void 0, html))
+                      } catch (e2) {
+                        return _zlib.gzipSync.call(void 0, html)
+                      }
+                    }
                     return _zlib.gzipSync.call(void 0, html)
                   default:
                     return html

@@ -209,8 +209,13 @@ const waitResponse = (() => {
     ).speed
 
     const commonWaitingDuration = crawlSpeedOption / 10
-    const waitUntil =
-      commonWaitingDuration <= 800 ? 'networkidle2' : 'domcontentloaded'
+    // The custom idle tracker below already waits for pending requests and
+    // React tasks. networkidle2 here would impose a second fixed 500ms wait.
+    const waitUntil = IS_NETWORK_IDLE_WAIT
+      ? 'domcontentloaded'
+      : commonWaitingDuration <= 800
+        ? 'networkidle2'
+        : 'domcontentloaded'
 
     const firstWaitingDuration = IS_NETWORK_IDLE_WAIT
       ? 0

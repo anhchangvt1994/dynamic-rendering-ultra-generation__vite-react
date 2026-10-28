@@ -1,0 +1,8 @@
+ARG MIN_BASE=vps-lab/centos-app:latest
+FROM ${MIN_BASE}
+
+# Keep synthetic content and lab environment inside the image only.
+RUN node -e "const fs=require('fs');fs.writeFileSync('server/.env','PLATFORM=linux\n');fs.writeFileSync('server/.env.production','IS_SERVER=true\nHOST=http://vps-min-candidate:8080\nBROWSER_ENGINE=lightpanda\nREDIS_HOST=127.0.0.1\nREDIS_PORT=6379\nISR_PRERENDER=false\nSITEMAP_CRAWL_ORIGIN=http://127.0.0.1:8080\n');"
+RUN ENV=production node --input-type=module -e "import preflight from './config/utils/Preflight.mjs'; await preflight({redis:true});"
+RUN node scripts/vps-lab/minimum-fixture.cjs
+CMD ["sleep", "infinity"]
