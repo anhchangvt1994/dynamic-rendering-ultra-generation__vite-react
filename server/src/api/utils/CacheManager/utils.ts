@@ -24,7 +24,7 @@ const storePath = getStorePath()
 
 if (!fs.existsSync(dataPath)) {
   try {
-    fs.mkdirSync(dataPath)
+    fs.mkdirSync(dataPath, { recursive: true })
   } catch (err) {
     Console.error(err)
   }
@@ -32,7 +32,7 @@ if (!fs.existsSync(dataPath)) {
 
 if (!fs.existsSync(storePath)) {
   try {
-    fs.mkdirSync(storePath)
+    fs.mkdirSync(storePath, { recursive: true })
   } catch (err) {
     Console.error(err)
   }
@@ -63,7 +63,7 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
   const result = await new Promise<IFileInfo>((res) => {
     fs.stat(file, (err, stats) => {
       if (err) {
-        Console.error(err)
+        if (err.code !== 'ENOENT') Console.error(err)
         res(undefined)
         return
       }
@@ -83,31 +83,16 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
 } // getFileInfo
 
 export const setRequestTimeInfo = async (file: string, value: unknown) => {
-  if (!file || typeof file !== 'string' || !fs.existsSync(file)) {
-    Console.error('File does not exist!')
-    return
-  }
-
-  let stats
+  if (!file) return
+  let fd: number | undefined
   try {
-    stats = fs.statSync(file)
+    fd = fs.openSync(file, 'r')
+    const stats = fs.fstatSync(fd)
+    fs.futimesSync(fd, value as Date, stats.mtime)
   } catch (err) {
-    Console.error(err)
-  }
-
-  try {
-    const info = await getFileInfo(file)
-    Console.log('file info', info)
-    const fd = fs.openSync(file, 'r')
-    fs.futimesSync(
-      fd,
-      value as typeof stats.atime,
-      info?.updatedAt ?? new Date()
-    )
-    fs.close(fd)
-    Console.log('File access time updated.')
-  } catch (err) {
-    Console.error(err)
+    if (err.code !== 'ENOENT') Console.error(err)
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
   }
 } // setRequestTimeInfo
 
@@ -199,6 +184,7 @@ export const get = async (
     Console.log(`Create file ${file}`)
 
     try {
+      fs.mkdirSync(directory, { recursive: true })
       fs.writeFileSync(file, '')
       Console.log(`File ${key}.br has been created.`)
 
@@ -257,7 +243,7 @@ export const get = async (
     try {
       tmpContent = fs.readFileSync(file)
     } catch (err) {
-      Console.error(err)
+      if (err.code !== 'ENOENT') Console.error(err)
       return null
     }
 
@@ -349,6 +335,7 @@ export const set = async (
   })()
 
   try {
+    fs.mkdirSync(directory, { recursive: true })
     fs.writeFileSync(file, contentToSave)
     const fileTarget = `${directory}/${key}${
       !options.status || options.status === 'ready' ? '' : '.' + options.status

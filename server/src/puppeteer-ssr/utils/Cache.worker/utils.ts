@@ -58,6 +58,12 @@ export const getKey = (url: string) => {
   return crypto.createHash('md5').update(url).digest('hex')
 } // getKey
 
+const getInfoText = (url: string) => (new URL(url).searchParams.get('infoTxt') || url)
+    .replace('/?', '?')
+    .replace(regexKeyConverterWithoutLocaleInfo, '')
+    .replace(/,"os":"([^&]*)"/, '')
+    .replace(/(\?|\&)$/, '')
+
 export const getFileInfo = async (file: string): Promise<IFileInfo> => {
   if (!file) {
     Console.error('Need provide "file" param!')
@@ -67,7 +73,7 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
   const result = await new Promise<IFileInfo>((res) => {
     fs.stat(file, (err, stats) => {
       if (err) {
-        Console.error(err)
+        if (err.code !== 'ENOENT') Console.error(err)
         res(undefined)
         return
       }
@@ -85,31 +91,16 @@ export const getFileInfo = async (file: string): Promise<IFileInfo> => {
 } // getFileInfo
 
 export const setRequestTimeInfo = async (file: string, value: unknown) => {
-  if (!file || !fs.existsSync(file)) {
-    Console.error('File does not exist!')
-    return
-  }
-
-  let stats
+  if (!file) return
+  let fd: number | undefined
   try {
-    stats = fs.statSync(file)
+    fd = fs.openSync(file, 'r')
+    const stats = fs.fstatSync(fd)
+    fs.futimesSync(fd, value as Date, stats.mtime)
   } catch (err) {
-    Console.error(err)
-  }
-
-  try {
-    const info = await getFileInfo(file)
-    Console.log('file info', info)
-    const fd = fs.openSync(file, 'r')
-    fs.futimesSync(
-      fd,
-      value as typeof stats.atime,
-      info?.updatedAt ?? new Date()
-    )
-    fs.close(fd)
-    Console.log('File access time updated.')
-  } catch (err) {
-    Console.error(err)
+    if (err.code !== 'ENOENT') Console.error(err)
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
   }
 } // setRequestTimeInfo
 
@@ -135,11 +126,7 @@ export const get = async (
 
   const key = getKey(url)
 
-  const infoTxt = (new URL(url).searchParams.get('infoTxt') || url)
-    .replace('/?', '?')
-    .replace(regexKeyConverterWithoutLocaleInfo, '')
-    .replace(/,"os":"([^&]*)"/, '')
-    .replace(/(\?|\&)$/, '')
+  const infoTxt = getInfoText(url)
 
   let file = `${cachePath}/${key}.br`
   let isRaw = false
@@ -162,6 +149,7 @@ export const get = async (
     Console.log(`Create file ${file}`)
 
     try {
+      fs.mkdirSync(`${cachePath}/info`, { recursive: true })
       await Promise.all([
         fs.writeFileSync(file, ''),
         fs.writeFileSync(`${cachePath}/info/${key}.txt`, infoTxt),
@@ -264,12 +252,21 @@ export const set = async (
   }
 
   // NOTE - If file is exist and isRaw or not disable compress process, will be created new or updated
-  if (fs.existsSync(file)) {
+  if (
+    !isRaw || fs.existsSync(file) ||
+    (!fs.existsSync(`${cachePath}/${key}.br`) && !fs.existsSync(`${cachePath}/${key}.renew.br`))
+  ) {
     const contentCompression = Buffer.isBuffer(html)
       ? html
       : brotliCompressSync(html, BROTLI_OPTIONS)
 
     try {
+      fs.mkdirSync(`${cachePath}/info`, { recursive: true })
+      try {
+        fs.writeFileSync(`${cachePath}/info/${key}.txt`, getInfoText(url), { flag: 'wx' })
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+      }
       fs.writeFileSync(file, contentCompression)
       Console.log(`File ${file} was updated!`)
     } catch (err) {

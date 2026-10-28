@@ -58,6 +58,12 @@ var _constants = require('../../../constants');
   return _crypto2.default.createHash('md5').update(url).digest('hex')
 }; exports.getKey = getKey // getKey
 
+const getInfoText = (url) => (new URL(url).searchParams.get('infoTxt') || url)
+    .replace('/?', '?')
+    .replace(exports.regexKeyConverterWithoutLocaleInfo, '')
+    .replace(/,"os":"([^&]*)"/, '')
+    .replace(/(\?|\&)$/, '')
+
  const getFileInfo = async (file) => {
   if (!file) {
     _ConsoleHandler2.default.error('Need provide "file" param!')
@@ -67,7 +73,7 @@ var _constants = require('../../../constants');
   const result = await new Promise((res) => {
     _fs2.default.stat(file, (err, stats) => {
       if (err) {
-        _ConsoleHandler2.default.error(err)
+        if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
         res(undefined)
         return
       }
@@ -85,31 +91,16 @@ var _constants = require('../../../constants');
 }; exports.getFileInfo = getFileInfo // getFileInfo
 
  const setRequestTimeInfo = async (file, value) => {
-  if (!file || !_fs2.default.existsSync(file)) {
-    _ConsoleHandler2.default.error('File does not exist!')
-    return
-  }
-
-  let stats
+  if (!file) return
+  let fd
   try {
-    stats = _fs2.default.statSync(file)
+    fd = _fs2.default.openSync(file, 'r')
+    const stats = _fs2.default.fstatSync(fd)
+    _fs2.default.futimesSync(fd, value , stats.mtime)
   } catch (err) {
-    _ConsoleHandler2.default.error(err)
-  }
-
-  try {
-    const info = await exports.getFileInfo.call(void 0, file)
-    _ConsoleHandler2.default.log('file info', info)
-    const fd = _fs2.default.openSync(file, 'r')
-    _fs2.default.futimesSync(
-      fd,
-      value ,
-      _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.updatedAt]), () => ( new Date()))
-    )
-    _fs2.default.close(fd)
-    _ConsoleHandler2.default.log('File access time updated.')
-  } catch (err) {
-    _ConsoleHandler2.default.error(err)
+    if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
+  } finally {
+    if (fd !== undefined) _fs2.default.closeSync(fd)
   }
 }; exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
 
@@ -135,11 +126,7 @@ const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain
 
   const key = exports.getKey.call(void 0, url)
 
-  const infoTxt = (new URL(url).searchParams.get('infoTxt') || url)
-    .replace('/?', '?')
-    .replace(exports.regexKeyConverterWithoutLocaleInfo, '')
-    .replace(/,"os":"([^&]*)"/, '')
-    .replace(/(\?|\&)$/, '')
+  const infoTxt = getInfoText(url)
 
   let file = `${cachePath}/${key}.br`
   let isRaw = false
@@ -162,6 +149,7 @@ const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain
     _ConsoleHandler2.default.log(`Create file ${file}`)
 
     try {
+      _fs2.default.mkdirSync(`${cachePath}/info`, { recursive: true })
       await Promise.all([
         _fs2.default.writeFileSync(file, ''),
         _fs2.default.writeFileSync(`${cachePath}/info/${key}.txt`, infoTxt),
@@ -204,13 +192,13 @@ const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain
       file,
       response: maintainFile,
       status: 503,
-      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.createdAt]), () => ( curTime)),
-      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.updatedAt]), () => ( curTime)),
-      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.requestedAt]), () => ( curTime)),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.requestedAt]), () => ( curTime)),
       ttRenderMs: 200,
       available: false,
       isInit:
-        Date.now() - new Date(_nullishCoalesce(_optionalChain([info, 'optionalAccess', _8 => _8.createdAt]), () => ( curTime))).getTime() >= 53000,
+        Date.now() - new Date(_nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.createdAt]), () => ( curTime))).getTime() >= 53000,
       isRaw,
     }
   }
@@ -264,12 +252,21 @@ const maintainFile = _path2.default.resolve(__dirname, '../../../../503-maintain
   }
 
   // NOTE - If file is exist and isRaw or not disable compress process, will be created new or updated
-  if (_fs2.default.existsSync(file)) {
+  if (
+    !isRaw || _fs2.default.existsSync(file) ||
+    (!_fs2.default.existsSync(`${cachePath}/${key}.br`) && !_fs2.default.existsSync(`${cachePath}/${key}.renew.br`))
+  ) {
     const contentCompression = Buffer.isBuffer(html)
       ? html
       : _zlib.brotliCompressSync.call(void 0, html, _constants.BROTLI_OPTIONS)
 
     try {
+      _fs2.default.mkdirSync(`${cachePath}/info`, { recursive: true })
+      try {
+        _fs2.default.writeFileSync(`${cachePath}/info/${key}.txt`, getInfoText(url), { flag: 'wx' })
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+      }
       _fs2.default.writeFileSync(file, contentCompression)
       _ConsoleHandler2.default.log(`File ${file} was updated!`)
     } catch (err) {

@@ -58,7 +58,7 @@ var _InitEnv = require('../InitEnv');
             root = _serverconfig2.default.rootCache
           } else {
             try {
-              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache, { recursive: true })
               root = _serverconfig2.default.rootCache
             } catch (err) {
               _ConsoleHandler2.default.error(err.message)
@@ -103,7 +103,7 @@ var _InitEnv = require('../InitEnv');
             root = _serverconfig2.default.rootCache
           } else {
             try {
-              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache, { recursive: true })
               root = _serverconfig2.default.rootCache
             } catch (err) {
               _ConsoleHandler2.default.error(err.message)
@@ -127,7 +127,7 @@ var _InitEnv = require('../InitEnv');
             root = _serverconfig2.default.rootCache
           } else {
             try {
-              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache, { recursive: true })
               root = _serverconfig2.default.rootCache
             } catch (err) {
               _ConsoleHandler2.default.error(err.message)
@@ -173,7 +173,7 @@ var _InitEnv = require('../InitEnv');
             root = _serverconfig2.default.rootCache
           } else {
             try {
-              _fs2.default.mkdirSync(_serverconfig2.default.rootCache)
+              _fs2.default.mkdirSync(_serverconfig2.default.rootCache, { recursive: true })
               root = _serverconfig2.default.rootCache
             } catch (err) {
               _ConsoleHandler2.default.error(err.message)

@@ -8,7 +8,7 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 	const filePath = _path2.default.dirname(file)
 
 	if (!_fs2.default.existsSync(filePath)) {
-		_fs2.default.mkdirSync(filePath)
+		_fs2.default.mkdirSync(filePath, { recursive: true })
 	}
 
 	try {
@@ -40,7 +40,7 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 
 	if (!_fs2.default.existsSync(filePath)) {
 		try {
-			_fs2.default.mkdirSync(filePath)
+			_fs2.default.mkdirSync(filePath, { recursive: true })
 		} catch (err) {
 			_ConsoleHandler2.default.error(err)
 		}
@@ -61,7 +61,7 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 	try {
 		result = _fs2.default.readFileSync(file, 'utf8')
 	} catch (err) {
-		_ConsoleHandler2.default.error(err)
+		if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
 	}
 
 	return result
@@ -75,7 +75,7 @@ var _ConsoleHandler = require('../ConsoleHandler'); var _ConsoleHandler2 = _inte
 	try {
 		result = _fs2.default.readFileSync(file, 'utf8')
 	} catch (err) {
-		_ConsoleHandler2.default.error(err)
+		if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
 	}
 
 	return result

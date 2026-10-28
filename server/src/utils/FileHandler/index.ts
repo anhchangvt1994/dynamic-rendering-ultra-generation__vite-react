@@ -8,7 +8,7 @@ export const setJsonData = (file: string, data: any) => {
 	const filePath = path.dirname(file)
 
 	if (!fs.existsSync(filePath)) {
-		fs.mkdirSync(filePath)
+		fs.mkdirSync(filePath, { recursive: true })
 	}
 
 	try {
@@ -40,7 +40,7 @@ export const setTextData = (file: string, data: string) => {
 
 	if (!fs.existsSync(filePath)) {
 		try {
-			fs.mkdirSync(filePath)
+			fs.mkdirSync(filePath, { recursive: true })
 		} catch (err) {
 			Console.error(err)
 		}
@@ -61,7 +61,7 @@ export const getJsonData = (file: string) => {
 	try {
 		result = fs.readFileSync(file, 'utf8')
 	} catch (err) {
-		Console.error(err)
+		if (err.code !== 'ENOENT') Console.error(err)
 	}
 
 	return result
@@ -75,7 +75,7 @@ export const getTextData = (file: string) => {
 	try {
 		result = fs.readFileSync(file, 'utf8')
 	} catch (err) {
-		Console.error(err)
+		if (err.code !== 'ENOENT') Console.error(err)
 	}
 
 	return result

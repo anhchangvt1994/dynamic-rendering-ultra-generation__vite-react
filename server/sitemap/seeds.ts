@@ -1,8 +1,8 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { parse, type DefaultTreeAdapterMap } from 'parse5'
 import { normalizeCrawlUrl } from './config'
 import { resolveSitemapFile } from '../src/sitemap/path'
+import { readSitemapXml } from './storage'
 type Node = DefaultTreeAdapterMap['node']
 const text = (node: Node): string =>
   'value' in node
@@ -19,7 +19,6 @@ export const readSitemapSeeds = (
   host: string,
   maxPages: number
 ): string[] => {
-  if (!fs.existsSync(file)) return []
   const root = path.dirname(path.resolve(file))
   const pending = [path.resolve(file)],
     seen = new Set<string>(),
@@ -28,10 +27,12 @@ export const readSitemapSeeds = (
     const filename = pending.pop()!
     if (seen.has(filename)) continue
     seen.add(filename)
-    const stat = fs.statSync(filename)
-    if (stat.size > 52428800)
-      throw new Error('Seed sitemap exceeds XML byte limit')
-    const doc = parse(fs.readFileSync(filename, 'utf8'))
+    const doc = parse(
+      readSitemapXml(
+        filename,
+        filename === path.resolve(file) ? 'sitemapindex' : 'urlset'
+      )
+    )
     const stack = [doc as Node]
     const locs: string[] = []
     let index = false

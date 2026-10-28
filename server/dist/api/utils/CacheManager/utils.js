@@ -24,7 +24,7 @@ const storePath = _PathHandler.getStorePath.call(void 0, )
 
 if (!_fs2.default.existsSync(dataPath)) {
   try {
-    _fs2.default.mkdirSync(dataPath)
+    _fs2.default.mkdirSync(dataPath, { recursive: true })
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
@@ -32,7 +32,7 @@ if (!_fs2.default.existsSync(dataPath)) {
 
 if (!_fs2.default.existsSync(storePath)) {
   try {
-    _fs2.default.mkdirSync(storePath)
+    _fs2.default.mkdirSync(storePath, { recursive: true })
   } catch (err) {
     _ConsoleHandler2.default.error(err)
   }
@@ -63,7 +63,7 @@ if (!_fs2.default.existsSync(storePath)) {
   const result = await new Promise((res) => {
     _fs2.default.stat(file, (err, stats) => {
       if (err) {
-        _ConsoleHandler2.default.error(err)
+        if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
         res(undefined)
         return
       }
@@ -83,31 +83,16 @@ if (!_fs2.default.existsSync(storePath)) {
 }; exports.getFileInfo = getFileInfo // getFileInfo
 
  const setRequestTimeInfo = async (file, value) => {
-  if (!file || typeof file !== 'string' || !_fs2.default.existsSync(file)) {
-    _ConsoleHandler2.default.error('File does not exist!')
-    return
-  }
-
-  let stats
+  if (!file) return
+  let fd
   try {
-    stats = _fs2.default.statSync(file)
+    fd = _fs2.default.openSync(file, 'r')
+    const stats = _fs2.default.fstatSync(fd)
+    _fs2.default.futimesSync(fd, value , stats.mtime)
   } catch (err) {
-    _ConsoleHandler2.default.error(err)
-  }
-
-  try {
-    const info = await exports.getFileInfo.call(void 0, file)
-    _ConsoleHandler2.default.log('file info', info)
-    const fd = _fs2.default.openSync(file, 'r')
-    _fs2.default.futimesSync(
-      fd,
-      value ,
-      _nullishCoalesce(_optionalChain([info, 'optionalAccess', _ => _.updatedAt]), () => ( new Date()))
-    )
-    _fs2.default.close(fd)
-    _ConsoleHandler2.default.log('File access time updated.')
-  } catch (err) {
-    _ConsoleHandler2.default.error(err)
+    if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
+  } finally {
+    if (fd !== undefined) _fs2.default.closeSync(fd)
   }
 }; exports.setRequestTimeInfo = setRequestTimeInfo // setRequestTimeInfo
 
@@ -199,6 +184,7 @@ if (!_fs2.default.existsSync(storePath)) {
     _ConsoleHandler2.default.log(`Create file ${file}`)
 
     try {
+      _fs2.default.mkdirSync(directory, { recursive: true })
       _fs2.default.writeFileSync(file, '')
       _ConsoleHandler2.default.log(`File ${key}.br has been created.`)
 
@@ -223,11 +209,11 @@ if (!_fs2.default.existsSync(storePath)) {
     const curTime = new Date()
     _ConsoleHandler2.default.log(`File ${file} is empty`)
     return {
-      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _2 => _2.createdAt]), () => ( curTime)),
-      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _3 => _3.updatedAt]), () => ( curTime)),
-      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.requestedAt]), () => ( curTime)),
-      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.modifiedAt]), () => ( curTime)),
-      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.changedAt]), () => ( curTime)),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _ => _.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _2 => _2.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _3 => _3.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _4 => _4.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _5 => _5.changedAt]), () => ( curTime)),
       status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
@@ -236,11 +222,11 @@ if (!_fs2.default.existsSync(storePath)) {
     const curTime = new Date()
     _ConsoleHandler2.default.log(`File lager than sizeLimit`)
     return {
-      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.createdAt]), () => ( curTime)),
-      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _8 => _8.updatedAt]), () => ( curTime)),
-      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _9 => _9.requestedAt]), () => ( curTime)),
-      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _10 => _10.modifiedAt]), () => ( curTime)),
-      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _11 => _11.changedAt]), () => ( curTime)),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _6 => _6.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _7 => _7.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _8 => _8.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _9 => _9.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _10 => _10.changedAt]), () => ( curTime)),
       status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
@@ -257,7 +243,7 @@ if (!_fs2.default.existsSync(storePath)) {
     try {
       tmpContent = _fs2.default.readFileSync(file)
     } catch (err) {
-      _ConsoleHandler2.default.error(err)
+      if (err.code !== 'ENOENT') _ConsoleHandler2.default.error(err)
       return null
     }
 
@@ -284,11 +270,11 @@ if (!_fs2.default.existsSync(storePath)) {
   if (content === null) {
     const curTime = new Date()
     return {
-      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _12 => _12.createdAt]), () => ( curTime)),
-      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _13 => _13.updatedAt]), () => ( curTime)),
-      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _14 => _14.requestedAt]), () => ( curTime)),
-      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _15 => _15.modifiedAt]), () => ( curTime)),
-      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _16 => _16.changedAt]), () => ( curTime)),
+      createdAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _11 => _11.createdAt]), () => ( curTime)),
+      updatedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _12 => _12.updatedAt]), () => ( curTime)),
+      requestedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _13 => _13.requestedAt]), () => ( curTime)),
+      modifiedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _14 => _14.modifiedAt]), () => ( curTime)),
+      changedAt: _nullishCoalesce(_optionalChain([info, 'optionalAccess', _15 => _15.changedAt]), () => ( curTime)),
       status: status || optionsFormatted.autoCreateIfEmpty.status,
     }
   }
@@ -349,6 +335,7 @@ if (!_fs2.default.existsSync(storePath)) {
   })()
 
   try {
+    _fs2.default.mkdirSync(directory, { recursive: true })
     _fs2.default.writeFileSync(file, contentToSave)
     const fileTarget = `${directory}/${key}${
       !options.status || options.status === 'ready' ? '' : '.' + options.status

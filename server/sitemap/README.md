@@ -104,6 +104,14 @@ yarn start:sgen --reuse-existing false
 yarn start:sgen --output-dir /tmp/sitemap-preview --seed-sitemap server/sitemap/sitemap.xml
 ```
 
+Code tự tạo thư mục cha và file XML hợp lệ khi seed index hoặc sitemap con bị
+thiếu; không cần tạo bằng tay trước khi chạy. File đã có nội dung được giữ nguyên.
+Ví dụ index cũ trỏ tới `pokemon-sitemap.xml` đã bị xóa: crawler tự tạo lại file,
+tiếp tục crawl và writer ghi danh sách URL thật khi hoàn tất. Writer cũng tự tạo
+toàn bộ đường dẫn output và thư mục `sitemaps` nếu chưa có. Việc đọc dùng cùng
+file descriptor cho stat/read để không lỗi ENOENT khi file bị thay thế giữa hai
+bước. Các lỗi quyền ghi/đĩa vẫn được báo để tránh công bố kết quả thiếu dữ liệu.
+
 Các index reference chỉ được đọc từ tên file sitemap hợp lệ trong thư mục nguồn;
 không tải index bên ngoài, không chấp nhận traversal. URL được dedupe lại trước
 khi crawl. HTTP response có giới hạn byte và timeout, hủy cả stream khi quá hạn;

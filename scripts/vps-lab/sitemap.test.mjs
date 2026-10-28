@@ -129,6 +129,8 @@ test('CLI publishes all rendered sections, resolves entities/base URLs and keeps
       host,
       '--output-dir',
       dir,
+      '--seed-sitemap',
+      path.join(dir, 'sitemap.xml'),
       '--browser-engine',
       'chromium',
       '--browser-ws-endpoint',
@@ -140,6 +142,12 @@ test('CLI publishes all rendered sections, resolves entities/base URLs and keeps
       '--timeout-ms',
       '5000',
     ]
+    // Reproduce a deployed index whose referenced group files/directories
+    // were removed. The CLI must create them itself and complete generation.
+    fs.writeFileSync(
+      path.join(dir, 'sitemap.xml'),
+      `<sitemapindex><sitemap><loc>${host}/sitemap.xml?file=pokemon-sitemap.xml</loc></sitemap></sitemapindex>`
+    )
     const first = await run(args)
     assert.equal(first.code, 0, first.output)
     const index = fs.readFileSync(path.join(dir, 'sitemap.xml'), 'utf8')
@@ -167,6 +175,12 @@ test('CLI publishes all rendered sections, resolves entities/base URLs and keeps
     )
     assert.equal(xmls.length, 4)
     assert.match(index, /<sitemapindex /)
+    fs.rmSync(path.join(dir, 'sitemaps'), { recursive: true })
+    const regenerated = await run(args)
+    assert.equal(regenerated.code, 0, regenerated.output)
+    assert.doesNotMatch(regenerated.output, /SITEMAP ERROR|ENOENT/)
+    assert.equal(fs.readFileSync(path.join(dir, 'sitemap.xml'), 'utf8'), index)
+    assert.equal(fs.readdirSync(path.join(dir, 'sitemaps')).length, 4)
     assert.equal(
       (await browser.pages()).length,
       1,

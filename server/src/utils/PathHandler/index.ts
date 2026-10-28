@@ -58,7 +58,7 @@ export const getViewsPath = () => {
             root = ServerConfig.rootCache
           } else {
             try {
-              fs.mkdirSync(ServerConfig.rootCache)
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
               root = ServerConfig.rootCache
             } catch (err) {
               Console.error(err.message)
@@ -103,7 +103,7 @@ export const getDataPath = () => {
             root = ServerConfig.rootCache
           } else {
             try {
-              fs.mkdirSync(ServerConfig.rootCache)
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
               root = ServerConfig.rootCache
             } catch (err) {
               Console.error(err.message)
@@ -127,7 +127,7 @@ export const getStorePath = () => {
             root = ServerConfig.rootCache
           } else {
             try {
-              fs.mkdirSync(ServerConfig.rootCache)
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
               root = ServerConfig.rootCache
             } catch (err) {
               Console.error(err.message)
@@ -173,7 +173,7 @@ export const getResourcePath = () => {
             root = ServerConfig.rootCache
           } else {
             try {
-              fs.mkdirSync(ServerConfig.rootCache)
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
               root = ServerConfig.rootCache
             } catch (err) {
               Console.error(err.message)
