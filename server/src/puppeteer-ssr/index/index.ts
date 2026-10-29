@@ -347,6 +347,8 @@ const puppeteerSSRService = (async () => {
 
     // Hàm middleware xử lý lỗi cuối cùng
     _app.use(function (err, req, res, next) {
+      // Express identifies error middleware by its four declared arguments.
+      void next
       Console.error(err.stack)
       res
         .status(500)

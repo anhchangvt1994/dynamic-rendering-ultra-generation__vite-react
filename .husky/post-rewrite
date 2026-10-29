@@ -1,0 +1,5 @@
+#!/bin/sh
+cat >/dev/null
+if [ "$1" = "rebase" ]; then
+  node config/scripts/auto-deploy.mjs --hook
+fi

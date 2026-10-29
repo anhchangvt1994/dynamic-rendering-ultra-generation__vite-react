@@ -3,7 +3,7 @@ import { HttpRequest, HttpResponse } from 'uWebSockets.js'
 import { brotliCompressSync, brotliDecompressSync, gzipSync } from 'zlib'
 import { COOKIE_EXPIRED, BROTLI_OPTIONS } from '../../constants'
 import Console from '../../utils/ConsoleHandler'
-import { PROCESS_ENV } from '../../utils/InitEnv'
+import '../../utils/InitEnv'
 import { CACHEABLE_STATUS_CODE, ISR_RETRY_AFTER_SECONDS } from '../constants'
 import { ISSRResult } from '../types'
 
@@ -189,21 +189,11 @@ export const handleInvalidUrl = (res: HttpResponse, req: HttpRequest) => {
     return
   }
 
-  const baseUrl = `${
-    req.getHeader('x-forwarded-proto')
-      ? req.getHeader('x-forwarded-proto')
-      : PROCESS_ENV.IS_SERVER
-        ? 'https'
-        : 'http'
-  }://${req.getHeader('host')}`
   const url = req.getUrl()
   const urlLower = url.toLowerCase()
 
   switch (true) {
     case url.startsWith('/api') ||
-      // /^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
-      //   baseUrl
-      // ) ||
       /\/(wordpress|laravel|wp-includes|php|.env|server.config|[A-Za-z0-9-]+\.(yml))/.test(
         urlLower
       ):

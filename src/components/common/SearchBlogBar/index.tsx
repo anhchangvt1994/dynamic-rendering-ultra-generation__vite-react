@@ -48,16 +48,14 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
 
   useEffect(() => {
     setResults(data?.data ?? [])
-  }, [JSON.stringify(data)])
+  }, [data?.data])
 
   useEffect(() => {
-    if (
-      currentPathname.current &&
-      currentPathname.current !== location.pathname
-    ) {
-      onClose()
-    }
-  }, [location.pathname])
+    if (currentPathname.current === location.pathname) return
+
+    currentPathname.current = location.pathname
+    onClose()
+  }, [location.pathname, onClose])
 
   const handleScroll = () => {
     inputRef.current?.blur()
@@ -75,7 +73,7 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
         onScroll={handleScroll}
       />
     )
-  }, [isSearching, JSON.stringify(results)])
+  }, [isSearching, keyword, results])
 
   if (!isOpen) return null
 

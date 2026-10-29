@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pokémon habitat — visual review</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px; background: #101f28; color: #e4eef0; font: 14px/1.5 system-ui,sans-serif; }
+    h1 { margin: 0; font-size: 25px; font-weight: 600; }
+    p { color: #97b4bf; margin: 6px 0 24px; }
+    h2 { font-size: 16px; font-weight: 500; margin-top: 32px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
+    article { border: 1px solid #304853; border-radius: 16px; overflow: hidden; background: #192f3a; }
+    .stage { position: relative; height: 180px; background: radial-gradient(ellipse at 50% 70%,#2b4956,transparent 72%); }
+    .stage img { position: absolute; z-index: 2; left: 50%; top: 12px; transform: translateX(-50%); width: 140px; height: 120px; object-fit: contain; }
+    .stage [data-habitat] { width: 240px; bottom: 10px; }
+    .stage [data-habitat] * { animation: none !important; }
+    footer { padding: 10px 16px; border-top: 1px solid #304853; }
+    small { display: block; color: #90aebc; }
+    @media(max-width:600px) { body { padding: 16px; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Nền Pokémon: hệ đơn và hệ kép</h1>
+  <p>Bản kiểm tra hình ảnh cục bộ. Hoạt ảnh được giữ yên để so sánh họa tiết.</p>
+  <div id="review"></div>
+  <script type="module">
+    import React from 'react'
+    import { createRoot } from 'react-dom/client'
+    import PokemonHabitat from '/src/pages/PokemonPage/PokemonHabitat.tsx'
+    const singles = [
+      ['normal',133,'Thường'], ['fire',4,'Lửa'], ['water',7,'Nước'], ['electric',25,'Điện'],
+      ['grass',152,'Cỏ'], ['ice',471,'Băng'], ['fighting',66,'Giác đấu'], ['poison',23,'Độc'],
+      ['ground',27,'Đất'], ['flying',641,'Bay'], ['psychic',63,'Siêu linh'], ['bug',10,'Bọ'],
+      ['rock',185,'Đá'], ['ghost',200,'Ma'], ['dragon',147,'Rồng'], ['dark',197,'Bóng tối'],
+      ['steel',379,'Thép'], ['fairy',35,'Tiên'],
+    ]
+    const pairs = [
+      ['water','ice',87,'Nước / Băng','frozen-lagoon'],
+      ['water','electric',171,'Nước / Điện','storm-water'],
+      ['grass','poison',1,'Cỏ / Độc','toxic-garden'],
+      ['fire','flying',6,'Lửa / Bay','firestorm'],
+      ['electric','steel',81,'Điện / Thép','magnetic-core'],
+      ['electric','flying',145,'Điện / Bay','thundercloud'],
+      ['grass','fairy',547,'Cỏ / Tiên','enchanted-garden'],
+      ['fire','ghost',609,'Lửa / Ma','soulfire'],
+      ['ghost','dark',302,'Ma / Bóng tối','eclipse'],
+      ['dragon','flying',149,'Rồng / Bay','sky-ruins'],
+      ['ground','rock',74,'Đất / Đá','canyon'],
+      ['water','ground',194,'Nước / Đất','tidal-shore'],
+      ['bug','poison',13,'Bọ / Độc','toxic-undergrowth'],
+      ['ice','flying',144,'Băng / Bay','blizzard'],
+    ]
+    const h = React.createElement
+    const card = (names,id,label,fusion=null) => h('article', {'data-case':names.join('-'),'data-expected-fusion':fusion,key:names.join('-')},
+      h('div',{className:'stage'},
+        h(PokemonHabitat,{types:names.map(name=>({type:{name}})),scanning:false}),
+        h('img',{src:`https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${String(id).padStart(3,'0')}.png`,alt:label}),
+      ),
+      h('footer',null,label,h('small',null,names.join(' + '))),
+    )
+    createRoot(document.getElementById('review')).render(h(React.Fragment,null,
+      h('h2',null,'18 hệ đơn'),h('div',{className:'grid'},...singles.map(([type,id,label])=>card([type],id,label))),
+      h('h2',null,'Các tổ hợp đặc biệt'),h('div',{className:'grid'},...pairs.map(([a,b,id,label,fusion])=>card([a,b],id,label,fusion))),
+    ))
+  </script>
+</body>
+</html>

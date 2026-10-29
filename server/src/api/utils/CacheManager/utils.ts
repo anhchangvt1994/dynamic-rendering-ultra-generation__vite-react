@@ -436,7 +436,7 @@ export const getDataCompression = async (
     try {
       const content = await fsPromises.readFile(file)
       return content
-    } catch (err) {
+    } catch {
       // File might be locked or not fully written yet, wait and retry
       await wait(retryDelay)
     }

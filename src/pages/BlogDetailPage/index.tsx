@@ -53,7 +53,7 @@ const BlogDetailPage = () => {
         robots: 'index, follow',
       })
     }
-  }, [JSON.stringify(blogDetailState), shortDescription])
+  }, [blogDetailState, imagePath, shortDescription])
 
   const handleBack = () => {
     if (!navigateInfo.from)

@@ -4,7 +4,6 @@ import apiService from '../../../api/index.crawler'
 import {
   BANDWIDTH_LEVEL,
   BANDWIDTH_LEVEL_LIST,
-  COOKIE_EXPIRED,
 } from '../../../constants'
 import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
@@ -32,8 +31,6 @@ import {
   styleOptimizeContent,
 } from '../OptimizeHtml.worker/utils'
 import { getInternalHTML, getInternalScript } from './utils/utils'
-
-const COOKIE_EXPIRED_SECOND = COOKIE_EXPIRED / 1000
 
 const pagesPath = getPagesPath()
 
@@ -199,7 +196,7 @@ const _waitForNetworkIdle = (page: Page, getPendingRequests: () => number) =>
   }) // _waitForNetworkIdle
 
 const waitResponse = (() => {
-  return async (page: Page, url: string, duration: number) => {
+  return async (page: Page, url: string) => {
     const pathname = new URL(url).pathname
 
     const crawlSpeedOption = (
@@ -654,7 +651,7 @@ const _ISRHandler = async (params: IISRHandlerParam) => {
         let response
 
         try {
-          response = await waitResponse(page, url, restOfDuration)
+          response = await waitResponse(page, url)
         } catch (err) {
           Console.log('ISRHandler line 341:')
           Console.error('err name: ', err.name)

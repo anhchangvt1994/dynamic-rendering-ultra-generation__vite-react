@@ -3,7 +3,7 @@ import { functionGenerator } from 'utils/EnvHelper'
 import { NameStyle, PokemonCardStyle } from './styles'
 
 const PokemonCard = ({ pokemon }) => {
-  const getSlugUnderScore = useCallback(getCustomSlug('_'), [])
+  const getSlugUnderScore = useMemo(() => getCustomSlug('_'), [])
 
   const getPokemonDetailUrl = functionGenerator(
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION

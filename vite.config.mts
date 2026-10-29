@@ -143,7 +143,8 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
       )
   )
 
-  const { paths, baseUrl } = tsconfig.compilerOptions
+  // Without baseUrl, TypeScript resolves paths relative to the config directory.
+  const { paths, baseUrl = '.' } = tsconfig.compilerOptions
 
   const modules = [path.resolve(__dirname, baseUrl)]
 
@@ -164,7 +165,7 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
 
   return {
     alias: {
-      src: path.resolve(__dirname, baseUrl),
+      src: path.resolve(__dirname, 'src'),
       ...alias,
     },
     modules,

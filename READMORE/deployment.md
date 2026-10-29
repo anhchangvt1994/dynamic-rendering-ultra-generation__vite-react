@@ -2,6 +2,9 @@
 
 ## Deployment guide
 
+Để tự build client/server và reload PM2 sau `git pull`, xem
+[hướng dẫn auto deploy](./auto-deploy.md).
+
 In this guide, you will learn how to deploy and public this project into the Internet. I recommend to use the VPS, and I'll start by using `VPS Ubuntu 22.04`
 
 The minimum hardware

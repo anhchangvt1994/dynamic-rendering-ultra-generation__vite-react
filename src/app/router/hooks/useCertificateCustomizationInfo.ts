@@ -1,13 +1,13 @@
 import { IUserInfo, useUserInfo } from 'store/UserInfoContext'
 
 export interface ICertCustomizationInfo {
-	user: IUserInfo
+  user: IUserInfo
 }
 
 export default function useCertificateCustomizationInfo(): ICertCustomizationInfo {
-	const { userState } = useUserInfo()
+  const { userState } = useUserInfo()
 
-	return {
-		user: userState,
-	}
+  return {
+    user: userState,
+  }
 }

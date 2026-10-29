@@ -28,7 +28,7 @@ const RelatedBlogsSheet = (props) => {
     const timeout = setTimeout(() => setSearchKeyword(keyword), SEARCH_DELAY)
 
     return () => clearTimeout(timeout)
-  }, [keyword])
+  }, [keyword, searchKeyword])
 
   const cacheKey = getSearchArticlesByTitlePath(searchKeyword)
   const { data = getAPIStore(cacheKey) } = useSearchArticlesByTitleQuery(
@@ -48,8 +48,8 @@ const RelatedBlogsSheet = (props) => {
   const blogListBody = useMemo(() => {
     if (!isDataAvailable) return null
 
-    return <BlogList keyword={searchKeyword} searchResults={data.data || []} />
-  }, [JSON.stringify(data)])
+    return <BlogList keyword={searchKeyword} searchResults={data?.data || []} />
+  }, [isDataAvailable, searchKeyword, data?.data])
 
   return (
     isDataAvailable && (

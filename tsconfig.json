@@ -29,20 +29,21 @@
     // https://www.typescriptlang.org/tsconfig#moduleResolution
     // https://www.typescriptlang.org/tsconfig#moduleResolution
     // https://www.codementor.io/@elliotaplant/understanding-javascript-module-resolution-systems-with-dinosaurs-il2oqro6e
-    "moduleResolution": "Node",
-
-    // NOTE - Base path of project setup with this tsconfig
-    "baseUrl": "src",
+    "moduleResolution": "Bundler",
+    "noUncheckedSideEffectImports": true,
 
     // NOTE - Setup resolve alias path for project (use case is for auto complete sugestion)
     "paths": {
-      "@/*": ["../*"],
-      "assets/*": ["assets/*"],
-      "app/*": ["app/*"],
-      "hooks/*": ["hooks/*"],
-      "pages/*": ["pages/*"],
-      "components/*": ["components/*"],
-      "utils/*": ["utils/*"]
+      "@/*": ["./*"],
+      "assets/*": ["./src/assets/*"],
+      "app/*": ["./src/app/*"],
+      "hooks/*": ["./src/hooks/*"],
+      "pages/*": ["./src/pages/*"],
+      "components/*": ["./src/components/*"],
+      "utils/*": ["./src/utils/*"],
+      "store/*": ["./src/store/*"],
+      "Layout": ["./src/Layout.tsx"],
+      "styles": ["./src/styles.tsx"]
     },
 
     // NOTE - Tell typescript compile just only check type

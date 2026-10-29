@@ -55,7 +55,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
         onScroll={handleScroll}
       />
     )
-  }, [isFiltering, JSON.stringify(results)])
+  }, [isFiltering, keyword, results])
 
   useEffect(() => {
     if (!isOpen) return
@@ -78,16 +78,14 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [keyword, JSON.stringify(data), isOpen])
+  }, [keyword, data?.results, isOpen])
 
   useEffect(() => {
-    if (
-      currentPathname.current &&
-      currentPathname.current !== location.pathname
-    ) {
-      onClose()
-    }
-  }, [location.pathname])
+    if (currentPathname.current === location.pathname) return
+
+    currentPathname.current = location.pathname
+    onClose()
+  }, [location.pathname, onClose])
 
   if (!isOpen) return null
 

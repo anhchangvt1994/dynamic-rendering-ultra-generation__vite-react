@@ -46,9 +46,7 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: import.meta.env.ROUTER_POKEMON_ID,
         handle: {
           params: {
-            split(p) {
-              const location = useLocation()
-
+            split(p, location) {
               return {
                 name: p.name,
                 id: location.state?.pokemonId,

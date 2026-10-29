@@ -60,29 +60,6 @@ const _getFreshCachedResult = async (requestInfo) => {
   }
 } // _getFreshCachedResult
 
-// NOTE - Wait for the cache of a request that another request is fetching.
-// It polls until the fetch timeout: a fetch that never stores its result
-// (failed request, cache store down) must not keep the request waiting (each
-// recursive wait used to keep its promise chain alive -> heap out of memory)
-const FETCH_CACHE_POLL_INTERVAL = 50
-const FETCH_CACHE_MAX_WAIT = 10000
-const fetchCache = async (cacheKey) => {
-  const deadline = Date.now() + FETCH_CACHE_MAX_WAIT
-
-  while (Date.now() < deadline) {
-    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
-
-    const apiCache = await getDataCache(cacheKey)
-
-    if (!apiCache) return null
-    if (apiCache.cache &&
-      apiCache.cache.data &&
-      apiCache.cache.data !== '{}') return apiCache.cache
-  }
-
-  return null
-} // fetchCache
-
 const convertData = (
   result: {
     status: number

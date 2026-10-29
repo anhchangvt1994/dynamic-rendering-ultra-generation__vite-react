@@ -122,7 +122,7 @@ export const compressContent = async (html: string): Promise<string> => {
       } else {
         tmpHTML = await minifyHtml.minify(Buffer.from(tmpHTML), {}).toString()
       }
-    } catch (err) {
+    } catch {
       return html
     }
   }
@@ -287,7 +287,7 @@ export const optimizeContent = async (
             }
           )
       })
-    } catch (err) {
+    } catch {
       return html
     }
 
@@ -519,7 +519,7 @@ export const deepOptimizeContent = async (html: string) => {
         }
       )
     )
-  } catch (err) {
+  } catch {
     return html
   }
 

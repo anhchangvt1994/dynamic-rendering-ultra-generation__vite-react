@@ -9,7 +9,10 @@ import {
 Promise.all([handleAutoImport(true), handleImportMetaENV()])
 
 // NOTE - Reset resource
-if (fs.pathExistsSync(path.resolve(__dirname, '../../../dist'))) {
+if (
+  !process.env.DEPLOY_STAGING_DIR &&
+  fs.pathExistsSync(path.resolve(__dirname, '../../../dist'))
+) {
   const distPath = path.resolve(__dirname, '../../../dist')
   const targetPath = path.resolve(__dirname, '../../resources')
 

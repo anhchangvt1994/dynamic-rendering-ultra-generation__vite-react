@@ -2,7 +2,7 @@ import path from 'path'
 import { resourceExtension } from '../../../constants'
 import Console from '../../../utils/ConsoleHandler'
 import WorkerManager from '../../../utils/WorkerManager'
-import { PROCESS_ENV } from '../../../utils/InitEnv'
+import '../../../utils/InitEnv'
 
 const workerManager = WorkerManager.init(
 	path.resolve(__dirname, `./worker.${resourceExtension}`),

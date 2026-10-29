@@ -14,11 +14,17 @@ async function runScript() {
       '--quiet',
     ])
 
-    await runCommand('./node_modules/.bin/vite', ['build'])
+    const staging = process.env.DEPLOY_STAGING_DIR
+    await runCommand(
+      './node_modules/.bin/vite',
+      ['build', ...(staging ? ['--outDir', `${staging}/dist`] : [])],
+      { shell: false }
+    )
 
-    await runCommand('node', [
-      '-r sucrase/register server/src/utils/AfterBuildHandler.ts',
-    ])
+    if (!staging)
+      await runCommand('node', [
+        '-r sucrase/register server/src/utils/AfterBuildHandler.ts',
+      ])
   } catch (err) {
     console.error(err.message)
     process.exit(1)

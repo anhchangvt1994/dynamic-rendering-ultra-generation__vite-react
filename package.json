@@ -26,9 +26,11 @@
     "prepare": "node config/scripts/prepare.mjs",
     "preinstall": "node server/src/utils/GenerateServerInfo.js",
     "server-build": "node config/scripts/server-build.mjs",
+    "server:build": "node config/scripts/server-build.mjs",
     "start:sgen": "node config/scripts/start-sitemap-generator.mjs",
     "install:lightpanda": "node config/scripts/install-lightpanda.mjs",
-    "deploy": "npm i && npm run build && npm run server-build && pm2 reload puppeteer-ssr"
+    "deploy": "node config/scripts/auto-deploy.mjs",
+    "deploy:status": "node config/scripts/auto-deploy.mjs --status"
   },
   "engines": {
     "node": ">=20.x.x"

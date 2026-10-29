@@ -18,7 +18,7 @@ export const setMetaOgSiteNameTag = SeoTags[SeoTagsEnum.og_site_name]
 export const setMetaAuthorTag = SeoTags[SeoTagsEnum.author]
 export const setMetaGoogleBotTag = SeoTags[SeoTagsEnum.googlebot]
 export const setMetaGoogleSiteVerificationTag =
-	SeoTags[SeoTagsEnum.google_site_verification]
+  SeoTags[SeoTagsEnum.google_site_verification]
 export const setLinkAlternateTag = SeoTags[SeoTagsEnum.alternate]
 export const setMetaGeoRegionTag = SeoTags[SeoTagsEnum.geo_region]
 export const setMetaGeoPositionTag = SeoTags[SeoTagsEnum.geo_position]
@@ -29,24 +29,24 @@ export const setLinkAuthorTag = SeoTags[SeoTagsEnum.author_link]
 export const setLinkAmphtmlTag = SeoTags[SeoTagsEnum.amphtml]
 export const setMetaTwitterTitleTag = SeoTags[SeoTagsEnum.twitter_title]
 export const setMetaTwitterDescriptionTag =
-	SeoTags[SeoTagsEnum.twitter_description]
+  SeoTags[SeoTagsEnum.twitter_description]
 export const setMetaTwitterImageTag = SeoTags[SeoTagsEnum.twitter_image]
 export const setMetaTwitterCardTag = SeoTags[SeoTagsEnum.twitter_card]
 
 export const setSeoTag = (options?: ISetSeoTagOptionsParam) => {
-	for (const key in options) {
-		SeoTags[key](options?.[key])
-	}
+  for (const key in options) {
+    SeoTags[key](options?.[key])
+  }
 }
 
 export const resetSeoTag = (duration = 150) => {
-	const curPath = location.pathname
+  const curPath = location.pathname
 
-	if (INFO.resetSeoTagTimeout) clearTimeout(INFO.resetSeoTagTimeout)
-	INFO.resetSeoTagTimeout = setTimeout(() => {
-		if (curPath === INFO.curPath && INFO.curPath === location.pathname) return
-		for (const key in SeoTags) {
-			SeoTags[key]()
-		}
-	}, duration)
+  if (INFO.resetSeoTagTimeout) clearTimeout(INFO.resetSeoTagTimeout)
+  INFO.resetSeoTagTimeout = setTimeout(() => {
+    if (curPath === INFO.curPath && INFO.curPath === location.pathname) return
+    for (const key in SeoTags) {
+      SeoTags[key]()
+    }
+  }, duration)
 }

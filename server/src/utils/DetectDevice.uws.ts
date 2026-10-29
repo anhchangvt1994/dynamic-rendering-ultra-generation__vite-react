@@ -1,4 +1,3 @@
-import { Request } from 'express'
 import { IDeviceInfo } from '../types'
 import { HttpRequest } from 'uWebSockets.js'
 

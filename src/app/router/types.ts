@@ -3,8 +3,10 @@ import { IRouteInfo } from './context/InfoContext'
 import { ICertCustomizationInfo } from './hooks/useCertificateCustomizationInfo'
 import { ICertInfo } from './utils/RouterProtection'
 
-export interface RouteObjectCustomize
-  extends Omit<IndexRouteObject, 'index' | 'children'> {
+export interface RouteObjectCustomize extends Omit<
+  IndexRouteObject,
+  'index' | 'children'
+> {
   index?: boolean
   handle?: {
     params?: {

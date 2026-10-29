@@ -33,6 +33,7 @@ const pokemonApi = createApi({
       any,
       string | number
     >({
+      keepUnusedDataFor: 300,
       query: (key) => {
         const pokemonDetailEndpoint = getPokemonDetailPath(key)
 

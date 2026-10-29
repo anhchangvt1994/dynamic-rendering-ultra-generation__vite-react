@@ -60,7 +60,7 @@ const OutletWrapper = React.memo(() => {
       default:
         return <LoadingPageComponent />
     }
-  }, [route.fullPath])
+  }, [route.id])
 
   return (
     <React.Fragment key={route.id}>
@@ -111,7 +111,7 @@ function Layout() {
   const onShowMenu = () => handleClickMenu(true)
   const onHideMenu = () => handleClickMenu(false)
   const onShowSearch = () => handleClickSearch(true)
-  const onHideSearch = () => handleClickSearch(false)
+  const onHideSearch = useCallback(() => setIsShowSearchBar(false), [])
 
   const searchBarOfPage = (() => {
     switch (true) {

@@ -11,7 +11,7 @@ import {
 
 const SearchResults = (props) => {
   const { keyword = '', searchResults = [], onScroll } = props
-  const getSlugUnderScore = useCallback(getCustomSlug('_'), [])
+  const getSlugUnderScore = useMemo(() => getCustomSlug('_'), [])
   const getPokemonDetailUrl = functionGenerator(
     import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
   )

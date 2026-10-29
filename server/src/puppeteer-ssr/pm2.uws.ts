@@ -69,11 +69,15 @@ pm2.connect(false, (err) => {
           cwd: '.',
           env: {},
         },
-        function (err, apps) {
+        function (err) {
           if (err) {
             Console.error(err)
             return
           }
+
+          // Production deployments reload only after both staged builds succeed.
+          // Keep the source watcher for development only.
+          if (resourceExtension !== 'ts') return
 
           const watcher = chokidar.watch(
             [
@@ -94,7 +98,7 @@ pm2.connect(false, (err) => {
           ) // /$^/ is match nothing
 
           let timeout
-          watcher.on('all', function (files) {
+          watcher.on('all', function () {
             if (timeout) clearTimeout(timeout)
             timeout = setTimeout(() => {
               pm2.reload(PM2_PROCESS_NAME, () => {})

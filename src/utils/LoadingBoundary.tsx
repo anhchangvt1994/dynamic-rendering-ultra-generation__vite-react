@@ -11,7 +11,7 @@ function useWithDelay(delay: number, fallback: ReactNode): ReactNode {
         setIsShow(true)
       }, delay)
     }
-  }, [delay])
+  }, [delay, isShow])
 
   return isShow ? fallback : ''
 }

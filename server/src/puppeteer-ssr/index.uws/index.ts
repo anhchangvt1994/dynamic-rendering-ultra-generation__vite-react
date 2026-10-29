@@ -644,7 +644,7 @@ const puppeteerSSRService = (async () => {
 
               res.end(body)
             })
-          } catch (err) {
+          } catch {
             if (!res.writableEnded) {
               const html =
                 fs.readFileSync(

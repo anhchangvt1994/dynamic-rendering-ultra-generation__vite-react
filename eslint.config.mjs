@@ -1,4 +1,5 @@
 import { parse, parseForESLint } from '@typescript-eslint/parser'
+import typescriptEslint from '@typescript-eslint/eslint-plugin'
 import eslintAirBnb from 'eslint-config-airbnb'
 import eslintAirBnbTs from 'eslint-config-airbnb-typescript'
 import eslintConfigPrettier from 'eslint-config-prettier'
@@ -6,6 +7,7 @@ import eslintPluginPrettier from 'eslint-plugin-prettier'
 import react from 'eslint-plugin-react'
 import airBnbHooks from 'eslint-plugin-react-hooks'
 import fs from 'fs'
+import { fileURLToPath } from 'node:url'
 
 const EslintAutoImportType = JSON.parse(
   fs.readFileSync(
@@ -22,13 +24,17 @@ const EslintAutoImport = JSON.parse(
 
 export default [
   {
-    ignores: ['admin/**', 'server/admin/**'],
+    ignores: ['admin/**', 'server/admin/**', '**/dist/**'],
   },
   airBnbHooks.configs['recommended-latest'],
   eslintConfigPrettier,
   {
-    files: ['src/**/*.{js,ts,jsx,tsx}'],
+    files: [
+      'src/**/*.{js,mjs,cjs,ts,jsx,tsx}',
+      'server/src/**/*.{js,mjs,cjs,ts,jsx,tsx}',
+    ],
     plugins: {
+      '@typescript-eslint': typescriptEslint,
       ...react.configs.flat.recommended.plugins,
       'eslint-config-airbnb': eslintAirBnb,
       'eslint-config-airbnb-typescript': eslintAirBnbTs,
@@ -63,7 +69,6 @@ export default [
         },
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
       },
     },
     rules: {
@@ -100,6 +105,21 @@ export default [
           extensions: ['.js', '.jsx', '.ts', '.tsx'],
         },
       },
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}', 'server/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: fileURLToPath(new URL('./tsconfig.json', import.meta.url)),
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { ignoreRestSiblings: true },
+      ],
     },
   },
 ]

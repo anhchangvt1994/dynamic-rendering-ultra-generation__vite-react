@@ -22,7 +22,7 @@ const sendFile = async (path, res, statusCode?) => {
         resolve(null)
       })
     })
-  } catch (err) {
+  } catch {
     res.statusCode = 404
     res.end('File not found')
   }

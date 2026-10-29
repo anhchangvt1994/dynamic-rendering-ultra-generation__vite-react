@@ -3,12 +3,10 @@
   "editor.suggest.showModules": false,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": [
-    "source.formatDocument",
-    "source.fixAll.tslint",
-    "source.fixAll.eslint",
-    "source.organizeImports"
-  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
   "editor.quickSuggestions": {
     "other": true,
     "comments": false,

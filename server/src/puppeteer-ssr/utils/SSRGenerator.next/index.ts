@@ -103,7 +103,7 @@ const fetchData = async (
 } // fetchData
 
 const SSRGenerator = async ({
-  isSkipWaiting = false,
+  isSkipWaiting,
   onCrawlStart,
   onCrawlFinish,
   ...SSRHandlerParams

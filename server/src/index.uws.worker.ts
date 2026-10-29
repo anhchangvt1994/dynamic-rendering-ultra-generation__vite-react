@@ -141,14 +141,14 @@ const startServer = async () => {
       cert_file_name: 'misc/cert.pem',
     })
 
-    app.any('/*', (res, req) => {
+    app.any('/*', (res) => {
       setupCors(res)
 
       res.end('') // end the request
     })
 
     if (!ServerConfig.isRemoteCrawler) {
-      app.get('/robots.txt', (res, req) => {
+      app.get('/robots.txt', (res) => {
         try {
           const body = fs.readFileSync(path.resolve(__dirname, '../robots.txt'))
           res.end(body)

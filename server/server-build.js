@@ -17,7 +17,7 @@ const child = spawn(
     '--quiet',
     './server/src',
     '-d',
-    './server/dist',
+    process.env.SERVER_BUILD_OUT_DIR || './server/dist',
     '--transforms',
     'typescript,imports',
   ],
