@@ -51,7 +51,7 @@ const RadarStyle = styled.section`
     animation: radar-sweep 1.1s ease-in-out both;
   }
   .radar-label {
-    font-size: 11px;
+    font-size: 12px;
     fill: rgba(235, 247, 241, 0.72);
   }
   .radar-value {
