@@ -644,7 +644,7 @@ const puppeteerSSRService = (async () => {
 
               res.end(body)
             })
-          } catch (err) {
+          } catch (e3) {
             if (!res.writableEnded) {
               const html =
                 _fs2.default.readFileSync(

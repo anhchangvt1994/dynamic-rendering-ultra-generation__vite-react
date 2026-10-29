@@ -14,10 +14,10 @@ const detectStaticExtension = (req: Request) => {
 	const isStatic =
 		(typeof req.headers['sec-fetch-dest'] === 'string' &&
 			/image|script|style/.test(req.headers['sec-fetch-dest'])) ||
-		/[A-Za-z0-9-]+\.(vue|ts|js|css|gif|jpg|jpeg|png|ico|bmp|ogg|webp|mp4|webm|mp3|ttf|woff|json|rss|atom|gz|zip|rar|7z|css|js|gzip|exe|svg|pdf|docx)(\?[^\/]*)?$/g.test(
+		/[A-Za-z0-9-]+\.(vue|ts|js|css|gif|jpg|jpeg|png|ico|bmp|ogg|webp|mp4|webm|mp3|ttf|woff2?|json|rss|atom|gz|zip|rar|7z|css|js|gzip|exe|svg|pdf|docx)(\?[^\/]*)?$/.test(
 			url
 		) ||
-		/\/(image|asset|video|audio|mp3|mp4|movie|font|css|js|lib|util|plugin|page|component)+(|s)+\//g.test(
+		/\/(image|asset|video|audio|mp3|mp4|movie|font|css|js|lib|util|plugin|page|component)+(|s)+\//.test(
 			url
 		)
 

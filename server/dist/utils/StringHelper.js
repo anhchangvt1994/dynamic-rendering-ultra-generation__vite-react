@@ -1,6 +1,5 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true});// DOCS: https://github.com/kvz/locutus/blob/master/src/php/strings/str_replace.js
 function str_replace(search, replace, subject, countObj) {
-  // eslint-disable-line camelcase
   //  discuss at: https://locutus.io/php/str_replace/
   // original by: Kevin van Zonneveld (https://kvz.io)
   // improved by: Gabriel Paderni

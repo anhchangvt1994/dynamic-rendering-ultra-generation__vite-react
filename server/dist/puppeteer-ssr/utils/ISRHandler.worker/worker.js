@@ -4,7 +4,6 @@ var _indexcrawler = require('../../../api/index.crawler'); var _indexcrawler2 = 
 
 
 
-
 var _constants = require('../../../constants');
 var _serverconfig = require('../../../server.config'); var _serverconfig2 = _interopRequireDefault(_serverconfig);
 var _ConsoleHandler = require('../../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
@@ -32,8 +31,6 @@ var _CreateRenderPage = require('../CreateRenderPage');
 
 var _utils3 = require('../OptimizeHtml.worker/utils');
 var _utils5 = require('./utils/utils');
-
-const COOKIE_EXPIRED_SECOND = _constants.COOKIE_EXPIRED / 1000
 
 const pagesPath = _PathHandler.getPagesPath.call(void 0, )
 
@@ -199,7 +196,7 @@ const _waitForNetworkIdle = (page, getPendingRequests) =>
   }) // _waitForNetworkIdle
 
 const waitResponse = (() => {
-  return async (page, url, duration) => {
+  return async (page, url) => {
     const pathname = new URL(url).pathname
 
     const crawlSpeedOption = (
@@ -654,7 +651,7 @@ const _ISRHandler = async (params) => {
         let response
 
         try {
-          response = await waitResponse(page, url, restOfDuration)
+          response = await waitResponse(page, url)
         } catch (err) {
           _ConsoleHandler2.default.log('ISRHandler line 341:')
           _ConsoleHandler2.default.error('err name: ', err.name)

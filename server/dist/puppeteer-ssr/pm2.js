@@ -70,11 +70,15 @@ _pm22.default.connect(false, (err) => {
 					cwd: '.',
 					env: {},
 				},
-				function (err, apps) {
+				function (err) {
 					if (err) {
 						_ConsoleHandler2.default.error(err)
 						return
 					}
+
+					// Production deployments reload only after both staged builds succeed.
+					// Keep the source watcher for development only.
+					if (_constants.resourceExtension !== 'ts') return
 
 					const watcher = _chokidar2.default.watch(
 						[
@@ -94,7 +98,7 @@ _pm22.default.connect(false, (err) => {
 					) // /$^/ is match nothing
 
 					let timeout
-					watcher.on('change', function (files) {
+					watcher.on('change', function () {
 						if (timeout) clearTimeout(timeout)
 						timeout = setTimeout(() => {
 							_pm22.default.reload(_constants3.PM2_PROCESS_NAME, () => {})

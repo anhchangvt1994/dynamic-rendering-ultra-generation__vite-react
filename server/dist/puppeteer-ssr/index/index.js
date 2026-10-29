@@ -284,10 +284,8 @@ const puppeteerSSRService = (async () => {
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
-              const data = await _utils.getDataCompression.call(void 0, 
-                cacheKey,
-                contentEncoding 
-              )
+              // API_STORE is decoded below, independently of the HTML response encoding.
+              const data = await _utils.getDataCompression.call(void 0, cacheKey, 'br')
               const dataToSend = data
                 ? _zlib.brotliDecompressSync.call(void 0, data).toString()
                 : ''
@@ -347,6 +345,8 @@ const puppeteerSSRService = (async () => {
 
     // Hàm middleware xử lý lỗi cuối cùng
     _app.use(function (err, req, res, next) {
+      // Express identifies error middleware by its four declared arguments.
+      void next
       _ConsoleHandler2.default.error(err.stack)
       res
         .status(500)

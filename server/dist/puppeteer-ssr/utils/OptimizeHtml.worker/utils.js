@@ -122,7 +122,7 @@ const safeDecompress = (html) => {
       } else {
         tmpHTML = await _node2.default.minify(Buffer.from(tmpHTML), {}).toString()
       }
-    } catch (err) {
+    } catch (e) {
       return html
     }
   }
@@ -287,7 +287,7 @@ const safeDecompress = (html) => {
             }
           )
       })
-    } catch (err) {
+    } catch (e2) {
       return html
     }
 
@@ -519,7 +519,7 @@ const safeDecompress = (html) => {
         }
       )
     )
-  } catch (err) {
+  } catch (e3) {
     return html
   }
 

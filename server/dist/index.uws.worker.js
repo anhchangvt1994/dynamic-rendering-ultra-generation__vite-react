@@ -37,16 +37,6 @@ const startServer = async () => {
       cert_file_name: 'misc/cert.pem',
     })
 
-    app.listen(Number(port), (token) => {
-      if (token) {
-        console.log(`Server started port ${port}. Press Ctrl+C to quit`)
-        _optionalChain([process, 'access', _ => _.send, 'optionalCall', _2 => _2('ready')])
-        process.title = 'web-scraping'
-      } else {
-        console.log(`Failed to listen to port ${port}`)
-      }
-    })
-
     Promise.resolve().then(() => _interopRequireWildcard(require('./utils/CleanerService'))).catch((err) => {
       _ConsoleHandler2.default.error(err.message)
     })
@@ -58,15 +48,32 @@ const startServer = async () => {
 
     const browserManager = _BrowserManager2.default.call(void 0, )
     const browserList = new Map()
+    const readyWorkers = new Set()
 
     const _createWorkerListener = (worker) => {
       if (!worker) return
 
       worker.on('message', async (payload) => {
-        if (!browserManager || !payload) return
+        if (!payload) return
 
         if (payload.name === 'acceptor') {
+          if (readyWorkers.has(worker.threadId)) return
           app.addChildAppDescriptor(payload.value)
+          readyWorkers.add(worker.threadId)
+          // The acceptor has no application routes of its own. Exposing it
+          // before its HTTP workers are registered returns uWS's default 404.
+          if (readyWorkers.size === budget.requestWorkers) {
+            app.listen(Number(port), (token) => {
+              if (!token) {
+                _ConsoleHandler2.default.error(`Failed to listen to port ${port}`)
+                process.exit(1)
+              }
+              clearTimeout(startupTimeout)
+              console.log(`Server started port ${port}. Press Ctrl+C to quit`)
+              process.title = 'web-scraping'
+              _optionalChain([process, 'access', _ => _.send, 'optionalCall', _2 => _2('ready')])
+            })
+          }
         } else if (payload.name === 'getBrowser') {
           const browser = await _optionalChain([(
             payload.engine
@@ -96,6 +103,12 @@ const startServer = async () => {
 
     const budget = _ResourceBudget.getResourceBudget.call(void 0, _InitEnv.PROCESS_ENV)
     const renderSlots = new SharedArrayBuffer(4)
+    const startupTimeout = setTimeout(() => {
+      _ConsoleHandler2.default.error(
+        `HTTP startup timed out: ${readyWorkers.size}/${budget.requestWorkers} workers ready`
+      )
+      process.exit(1)
+    }, 35000)
     console.log('[resources]', JSON.stringify(budget))
     for (let order = 1; order <= budget.requestWorkers; order++) {
       const worker = new Worker(__filename, {
@@ -141,14 +154,14 @@ const startServer = async () => {
       cert_file_name: 'misc/cert.pem',
     })
 
-    app.any('/*', (res, req) => {
+    app.any('/*', (res) => {
       setupCors(res)
 
       res.end('') // end the request
     })
 
     if (!_serverconfig2.default.isRemoteCrawler) {
-      app.get('/robots.txt', (res, req) => {
+      app.get('/robots.txt', (res) => {
         try {
           const body = _fs2.default.readFileSync(_path2.default.resolve(__dirname, '../robots.txt'))
           res.end(body)
@@ -166,10 +179,10 @@ const startServer = async () => {
     app.listen(Number(port), (token) => {
       if (token) {
         console.log(`Server started port ${port}. Press Ctrl+C to quit`)
-        _optionalChain([process, 'access', _6 => _6.send, 'optionalCall', _7 => _7('ready')])
         process.title = 'web-scraping'
       } else {
-        console.log(`Failed to listen to port ${port}`)
+        _ConsoleHandler2.default.error(`Failed to listen to port ${port}`)
+        process.exit(1)
       }
     })
 

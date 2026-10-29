@@ -116,7 +116,7 @@ const startServer = async () => {
                     'content-type': mimeType,
                   })
                   .end(body)
-              } catch (err) {
+              } catch (e) {
                 res.statusCode = 404
                 res.end('File not found')
               }

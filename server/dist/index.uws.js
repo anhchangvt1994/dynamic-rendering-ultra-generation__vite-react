@@ -45,7 +45,7 @@ const startServer = async () => {
   })
 
   if (!_serverconfig2.default.isRemoteCrawler) {
-    app.get('/robots.txt', (res, req) => {
+    app.get('/robots.txt', (res) => {
       try {
         const body = _fs2.default.readFileSync(_path2.default.resolve(__dirname, '../robots.txt'))
         res.end(body)
@@ -56,7 +56,7 @@ const startServer = async () => {
     })
   }
 
-  app.any('/*', (res, req) => {
+  app.any('/*', (res) => {
     setupCors(res)
 
     res.end('') // end the request
@@ -82,7 +82,6 @@ const startServer = async () => {
 
   if (!_serverconfig2.default.isRemoteCrawler) {
     if (_InitEnv.ENV === 'development') {
-      const serverIndexFilePath = _path2.default.resolve(__dirname, './index.uws.ts')
       // NOTE - restart server onchange
       // const watcher = chokidar.watch([path.resolve(__dirname, './**/*.ts')], {
       // 	ignored: /$^/,

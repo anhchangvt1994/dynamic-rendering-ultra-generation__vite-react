@@ -1,6 +1,8 @@
 import fs from 'fs'
 
-const splitChunkNodeModulesRegex = /node_modules\/([^/]+)/g
+// This regex is used with `.test()` below. Keep it non-global so repeated
+// checks do not alternate based on RegExp.lastIndex during Rollup traversal.
+const splitChunkNodeModulesRegex = /node_modules\/([^/]+)/
 
 let totalVendorFile = 1
 const chunkList: {
@@ -18,6 +20,17 @@ const chunkList: {
 const splitChunkNodeModules = (pathName: string): boolean | string => {
   if (!pathName || !splitChunkNodeModulesRegex.test(pathName)) {
     return false
+  }
+
+  // React DOM depends on Scheduler. Keeping the runtime packages in one
+  // chunk prevents the app/vendor chunks from forming an initialization cycle
+  // where Scheduler's CommonJS exports object is still uninitialized.
+  if (
+    /^.*node_modules\/(react|react-dom|scheduler|react-is|use-sync-external-store)(\/|$)/.test(
+      pathName
+    )
+  ) {
+    return 'react-runtime'
   }
 
   const name = pathName.match(splitChunkNodeModulesRegex)?.[0] ?? pathName

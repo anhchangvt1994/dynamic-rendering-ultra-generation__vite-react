@@ -60,29 +60,6 @@ const _getFreshCachedResult = async (requestInfo) => {
   }
 } // _getFreshCachedResult
 
-// NOTE - Wait for the cache of a request that another request is fetching.
-// It polls until the fetch timeout: a fetch that never stores its result
-// (failed request, cache store down) must not keep the request waiting (each
-// recursive wait used to keep its promise chain alive -> heap out of memory)
-const FETCH_CACHE_POLL_INTERVAL = 50
-const FETCH_CACHE_MAX_WAIT = 10000
-const fetchCache = async (cacheKey) => {
-  const deadline = Date.now() + FETCH_CACHE_MAX_WAIT
-
-  while (Date.now() < deadline) {
-    await new Promise((res) => setTimeout(res, FETCH_CACHE_POLL_INTERVAL))
-
-    const apiCache = await getDataCache(cacheKey)
-
-    if (!apiCache) return null
-    if (apiCache.cache &&
-      apiCache.cache.data &&
-      apiCache.cache.data !== '{}') return apiCache.cache
-  }
-
-  return null
-} // fetchCache
-
 const convertData = (
   result
 
@@ -91,18 +68,22 @@ const convertData = (
 ,
   contentEncoding
 ) => {
-  switch (true) {
-    case result.status === 200:
-      return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, result.data, _constants.BROTLI_OPTIONS)
-        : contentEncoding === 'gzip'
-          ? _zlib.gzipSync.call(void 0, result.data)
-          : result.data
-    default:
-      return typeof result.data === 'string'
+  // NOTE - Every response is sent with the negotiated Content-Encoding header,
+  // so error bodies (404…) must be compressed too: an uncompressed 404 under
+  // "Content-Encoding: br" fails to decode in the browser (ERR_CONTENT_DECODING_FAILED)
+  // and the client sees a network error instead of "not found".
+  const payload =
+    result.status === 200
+      ? result.data
+      : typeof result.data === 'string'
         ? result.data
         : JSON.stringify(result.data || {})
-  }
+
+  return contentEncoding === 'br'
+    ? _zlib.brotliCompressSync.call(void 0, payload, _constants.BROTLI_OPTIONS)
+    : contentEncoding === 'gzip'
+      ? _zlib.gzipSync.call(void 0, payload)
+      : payload
 } // convertData
 
 const apiService = async (req) => {

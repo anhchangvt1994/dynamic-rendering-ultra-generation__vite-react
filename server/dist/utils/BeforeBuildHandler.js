@@ -9,7 +9,10 @@ var _viteprepareconfig = require('../../../config/vite.prepare.config');
 Promise.all([_viteprepareconfig.handleAutoImport.call(void 0, true), _viteprepareconfig.handleImportMetaENV.call(void 0, )])
 
 // NOTE - Reset resource
-if (_fsextra2.default.pathExistsSync(_path2.default.resolve(__dirname, '../../../dist'))) {
+if (
+  !process.env.DEPLOY_STAGING_DIR &&
+  _fsextra2.default.pathExistsSync(_path2.default.resolve(__dirname, '../../../dist'))
+) {
   const distPath = _path2.default.resolve(__dirname, '../../../dist')
   const targetPath = _path2.default.resolve(__dirname, '../../resources')
 

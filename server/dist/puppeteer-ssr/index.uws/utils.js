@@ -3,7 +3,7 @@
 var _zlib = require('zlib');
 var _constants = require('../../constants');
 var _ConsoleHandler = require('../../utils/ConsoleHandler'); var _ConsoleHandler2 = _interopRequireDefault(_ConsoleHandler);
-var _InitEnv = require('../../utils/InitEnv');
+require('../../utils/InitEnv');
 var _constants3 = require('../constants');
 
 
@@ -189,21 +189,11 @@ const _setCookie = (res) => {
     return
   }
 
-  const baseUrl = `${
-    req.getHeader('x-forwarded-proto')
-      ? req.getHeader('x-forwarded-proto')
-      : _InitEnv.PROCESS_ENV.IS_SERVER
-        ? 'https'
-        : 'http'
-  }://${req.getHeader('host')}`
   const url = req.getUrl()
   const urlLower = url.toLowerCase()
 
   switch (true) {
     case url.startsWith('/api') ||
-      // /^https:\/\/([0-9]{1,3}\.){3}[0-9]{1,3}(?:(\:[0-9]{1,4})$|$)/.test(
-      //   baseUrl
-      // ) ||
       /\/(wordpress|laravel|wp-includes|php|.env|server.config|[A-Za-z0-9-]+\.(yml))/.test(
         urlLower
       ):

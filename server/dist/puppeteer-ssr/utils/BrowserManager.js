@@ -301,7 +301,7 @@ function BrowserManager(options
           // let closePageTimeout: NodeJS.Timeout
           let closeBrowserTimeout
 
-          browser.on('closePage', async (url) => {
+          browser.on('closePage', async () => {
             tabsClosed++
 
             if (browser.connected)
@@ -399,7 +399,7 @@ function BrowserManager(options
 
         browser.emit('createNewPage', page)
         return page
-      } catch (err) {
+      } catch (e) {
         __launch()
         return _newPage()
       }

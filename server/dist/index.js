@@ -25,9 +25,8 @@ require('events').EventEmitter.setMaxListeners(200)
 const startServer = async () => {
   // await cleanResourceWithCondition()
   let port =
-    _InitEnv.PROCESS_ENV.PORT || _InitEnv.ENV_MODE === 'production'
-      ? 8080
-      : _PortHandler.getPort.call(void 0, 'PUPPETEER_SSR_PORT')
+    Number(_InitEnv.PROCESS_ENV.PORT) ||
+    (_InitEnv.ENV_MODE === 'production' ? 8080 : Number(_PortHandler.getPort.call(void 0, 'PUPPETEER_SSR_PORT')))
 
   if (!port) {
     port = await _PortHandler.findFreePort.call(void 0, 
@@ -263,11 +262,19 @@ const startServer = async () => {
   ;(await require('./api').default).init(app)
   ;(await require('./puppeteer-ssr').default).init(app)
 
-  server.listen(port, () => {
-    console.log(`Server started port ${port}. Press Ctrl+C to quit`)
-    _optionalChain([process, 'access', _5 => _5.send, 'optionalCall', _6 => _6('ready')])
-    process.title = 'web scraping'
-  })
+  server.listen(
+    port,
+    _InitEnv.PROCESS_ENV.DEV_SERVER_MANAGED ? '127.0.0.1' : undefined,
+    () => {
+      console.log(
+        _InitEnv.PROCESS_ENV.DEV_SERVER_MANAGED
+          ? `[dev] API backend ready at http://127.0.0.1:${port}`
+          : `Server started port ${port}. Press Ctrl+C to quit`
+      )
+      _optionalChain([process, 'access', _5 => _5.send, 'optionalCall', _6 => _6('ready')])
+      process.title = 'web scraping'
+    }
+  )
 
   process.on('SIGINT', async function () {
     await server.close()
@@ -282,7 +289,7 @@ const startServer = async () => {
       // 	persistent: true,
       // })
 
-      if (!_InitEnv.PROCESS_ENV.REFRESH_SERVER) {
+      if (!_InitEnv.PROCESS_ENV.REFRESH_SERVER && !_InitEnv.PROCESS_ENV.DEV_SERVER_MANAGED) {
         if (_InitEnv.PROCESS_ENV.BUILD_TOOL === 'vite')
           _child_process.spawn.call(void 0, 'vite', [], {
             stdio: 'inherit',

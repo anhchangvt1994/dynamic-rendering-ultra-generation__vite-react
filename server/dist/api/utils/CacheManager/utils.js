@@ -415,7 +415,9 @@ if (!_fs2.default.existsSync(storePath)) {
   key,
   compression
 ) => {
-  const file = `${dataPath}/${key}-${compression}.${compression}`
+  const format = compression || 'br'
+  const extension = format === 'gzip' ? 'gz' : 'br'
+  const file = `${dataPath}/${key}-${format}.${extension}`
   const startAt = Date.now()
   const maxWaitTime = 7000
   const retryDelay = 100
@@ -435,8 +437,8 @@ if (!_fs2.default.existsSync(storePath)) {
   while (Date.now() - startAt < maxWaitTime) {
     try {
       const content = await _fs.promises.readFile(file)
-      return content
-    } catch (err) {
+      return compression ? content : _zlib.brotliDecompressSync.call(void 0, content)
+    } catch (e) {
       // File might be locked or not fully written yet, wait and retry
       await wait(retryDelay)
     }
@@ -555,7 +557,7 @@ if (!_fs2.default.existsSync(storePath)) {
 
   try {
     data = typeof data === 'string' ? JSON.parse(data) : data
-  } catch (e) {
+  } catch (e2) {
     _ConsoleHandler2.default.error('Failed to parse data for compression')
   }
 

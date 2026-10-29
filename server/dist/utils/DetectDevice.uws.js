@@ -1,7 +1,6 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true});
 
 
-
 // NOTE - Detect device
 // refer: https://github.com/PoeHaH/devicedetector/blob/master/devicedetector-production.js
 const _getDeviceType = (uaLowerCase) => {

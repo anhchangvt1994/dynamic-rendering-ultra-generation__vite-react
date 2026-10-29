@@ -47,18 +47,22 @@ const convertData = (
 ,
   contentEncoding
 ) => {
-  switch (true) {
-    case result.status === 200:
-      return contentEncoding === 'br'
-        ? _zlib.brotliCompressSync.call(void 0, result.data, _constants.BROTLI_OPTIONS)
-        : contentEncoding === 'gzip'
-          ? _zlib.gzipSync.call(void 0, result.data)
-          : result.data
-    default:
-      return typeof result.data === 'string'
+  // NOTE - Every response is sent with the negotiated Content-Encoding header,
+  // so error bodies (404…) must be compressed too: an uncompressed 404 under
+  // "Content-Encoding: br" fails to decode in the browser (ERR_CONTENT_DECODING_FAILED)
+  // and the client sees a network error instead of "not found".
+  const payload =
+    result.status === 200
+      ? result.data
+      : typeof result.data === 'string'
         ? result.data
         : JSON.stringify(result.data || {})
-  }
+
+  return contentEncoding === 'br'
+    ? _zlib.brotliCompressSync.call(void 0, payload, _constants.BROTLI_OPTIONS)
+    : contentEncoding === 'gzip'
+      ? _zlib.gzipSync.call(void 0, payload)
+      : payload
 } // convertData
 
 const apiService = (async () => {

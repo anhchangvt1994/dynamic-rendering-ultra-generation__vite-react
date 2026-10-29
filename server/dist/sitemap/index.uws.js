@@ -27,11 +27,11 @@ const SitemapRouter = (() => {
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-          return ''
+          return '' 
         })()
 
         // Read original file
-        const filePath = _path3.resolveSitemapFile.call(void 0,
+        const filePath = _path3.resolveSitemapFile.call(void 0, 
           _path2.default.resolve(__dirname, '../../sitemap'),
           url,
           req.getQuery()
@@ -84,11 +84,11 @@ const SitemapRouter = (() => {
           const tmpHeaderAcceptEncoding = req.getHeader('accept-encoding') || ''
           if (tmpHeaderAcceptEncoding.indexOf('br') !== -1) return 'br'
           else if (tmpHeaderAcceptEncoding.indexOf('gzip') !== -1) return 'gzip'
-          return ''
+          return '' 
         })()
 
         // Read original file
-        const filePath = _path3.resolveSitemapFile.call(void 0,
+        const filePath = _path3.resolveSitemapFile.call(void 0, 
           _path2.default.resolve(__dirname, '../../sitemap'),
           url,
           req.getQuery()

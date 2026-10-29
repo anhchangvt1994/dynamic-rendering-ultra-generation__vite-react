@@ -158,7 +158,7 @@ const DetectStaticMiddle = (res, req) => {
 
         res.writeHeader('Content-Type', mimeType ).end(body)
       }
-    } catch (err) {
+    } catch (e) {
       res.writeStatus('404').end('File not found')
     }
 

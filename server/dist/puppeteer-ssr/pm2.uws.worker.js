@@ -77,6 +77,7 @@ _pm22.default.connect(false, (err) => {
                   instances: CLUSTER_INSTANCES,
                   exec_mode: 'cluster',
                   wait_ready: true,
+                  listen_timeout: 45000,
                   kill_timeout: CLUSTER_KILL_TIMEOUT,
                   cwd: '.',
                 },
@@ -115,14 +116,19 @@ _pm22.default.connect(false, (err) => {
           instances: CLUSTER_INSTANCES,
           exec_mode: 'cluster',
           wait_ready: true,
+          listen_timeout: 45000,
           kill_timeout: CLUSTER_KILL_TIMEOUT,
           cwd: '.',
         },
-        function (err, apps) {
+        function (err) {
           if (err) {
             _ConsoleHandler2.default.error(err)
             return
           }
+
+          // Production deployments reload only after both staged builds succeed.
+          // Keep the source watcher for development only.
+          if (_constants.resourceExtension !== 'ts') return
 
           const watcher = _chokidar2.default.watch(
             [
@@ -143,7 +149,7 @@ _pm22.default.connect(false, (err) => {
           ) // /$^/ is match nothing
 
           let timeout
-          watcher.on('all', function (files) {
+          watcher.on('all', function () {
             if (timeout) clearTimeout(timeout)
             timeout = setTimeout(() => {
               _pm22.default.reload(_constants3.PM2_PROCESS_NAME, () => {})

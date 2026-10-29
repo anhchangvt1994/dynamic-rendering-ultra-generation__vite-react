@@ -286,10 +286,8 @@ const puppeteerSSRService = (async () => {
                 )
                   continue
 
-                const data = await _utils.getDataCompression.call(void 0, 
-                  cacheKey,
-                  contentEncoding 
-                )
+                // Decode the canonical API cache before encoding the HTML response.
+                const data = await _utils.getDataCompression.call(void 0, cacheKey, 'br')
 
                 const dataToSend = data
                   ? _zlib.brotliDecompressSync.call(void 0, data).toString()
