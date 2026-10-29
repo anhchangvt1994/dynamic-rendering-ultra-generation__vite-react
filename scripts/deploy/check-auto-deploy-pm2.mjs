@@ -208,6 +208,12 @@ try {
   )
   assert.deepEqual(calls, ['install', 'build', 'server-build', 'after-build'])
   const after = await online(root, 'new', before.pid)
+  assert.equal(after.pm2_env.wait_ready, true)
+  assert.equal(
+    after.pm2_env.listen_timeout,
+    45000,
+    'Existing PM2 processes must receive the longer startup deadline'
+  )
   assert.equal(after.pm_id, before.pm_id)
   const otherAfter = await online(otherRoot, 'old')
   assert.equal(

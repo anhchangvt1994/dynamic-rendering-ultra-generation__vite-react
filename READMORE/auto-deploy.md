@@ -21,6 +21,10 @@ dependency trước, rồi thử reload lại. Nếu phục hồi cũng lỗi,
 log chỉ rõ thư mục backup được giữ lại để xử lý.
 Kiểm tra online phát hiện lỗi khởi động/crash sớm; không thay thế kiểm tra
 HTTP hoặc giám sát sức khỏe ứng dụng sau deployment.
+Với uWebSockets worker, cổng public chỉ mở và gửi `ready` sau khi mọi HTTP
+worker đăng ký route. HTTP vẫn hoạt động khi browser renderer bị tắt. Nếu worker
+không sẵn sàng trong 35 giây, process thoát lỗi; PM2 được cấu hình chờ tối đa
+45 giây thay vì cắt process cũ theo timeout mặc định ngắn.
 Máy cần đủ dung lượng trống cho bản build staging và bản sao `node_modules`
 khi dependency thay đổi. Pipeline từ chối cài qua thư mục `node_modules` là
 symlink để tránh sửa dependency bên ngoài checkout mà không thể khôi phục.
@@ -89,4 +93,5 @@ Kiểm thử pipeline (Git repo và process PM2 tạm, không dùng daemon thậ
 ```sh
 node --test scripts/deploy/auto-deploy.test.mjs
 node scripts/deploy/check-auto-deploy-pm2.mjs
+node --test scripts/deploy/uws-readiness.test.mjs
 ```

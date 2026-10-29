@@ -550,7 +550,9 @@ export async function existingPm2(root) {
     list: () => call(api, 'list'),
     reload: async (id) => {
       const previous = (await call(api, 'list')).find((app) => app.pm_id === id)
-      await call(api, 'reload', id)
+      // Apply to existing workers too: their original PM2 configuration may
+      // still use the short default timeout and retire the old app too soon.
+      await call(api, 'reload', id, { wait_ready: true, listen_timeout: 45000 })
       await waitForHealthyReplacement(
         () => call(api, 'list'),
         id,
