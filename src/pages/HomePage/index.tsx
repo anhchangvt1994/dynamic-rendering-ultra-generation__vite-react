@@ -6,6 +6,10 @@ import useScrollInfinity from 'hooks/useScrollInfinity'
 import { getPokemonListPath } from 'utils/ApiHelper'
 import { BottomLineStyle, HomePageStyle, PokemonListStyle } from './styles'
 
+// Pages already loaded survive leaving the list, so Back returns to the
+// same spot instead of a list cut back to the first 20.
+const loaded = { offset: 0, list: [] as { name: string; url: string }[] }
+
 function HomePage() {
   setSeoTag({
     title: 'Pokemon',
@@ -21,7 +25,7 @@ function HomePage() {
   })
 
   const limit = 20
-  const [offset, setOffset] = useState(0)
+  const [offset, setOffset] = useState(loaded.offset)
   const cacheKey = getPokemonListPath(limit, offset)
   const observer = React.useRef<any>(null)
   const bottomLineRef = useRef<HTMLDivElement>(null)
@@ -30,11 +34,14 @@ function HomePage() {
     limit,
     offset,
   })
-  const [pokemonListState, setPokemonListState] = useState(data?.results ?? [])
+  const [pokemonListState, setPokemonListState] = useState(() =>
+    loaded.list.length ? loaded.list : (data?.results ?? [])
+  )
   const total = pokemonListState?.length ?? 0
 
   const hasBottomRef = !!bottomLineRef.current
-  const isShowLoading = RenderingInfo.loader || (isFetching && !data)
+  const isShowLoading =
+    RenderingInfo.loader || (isFetching && !data && !pokemonListState.length)
 
   const enablePagination = data?.count ? offset < data.count : false
   const enableToShowBottomLine =
@@ -67,6 +74,11 @@ function HomePage() {
 
     setPokemonListState(tmpPokemonList)
   }, [JSON.stringify(data)])
+
+  useEffect(() => {
+    loaded.offset = offset
+    loaded.list = pokemonListState
+  }, [offset, pokemonListState])
 
   useScrollInfinity(
     (initObserver, getOnIntersection) => {
