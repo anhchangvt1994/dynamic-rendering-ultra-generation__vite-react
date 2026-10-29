@@ -116,8 +116,7 @@ const HabitatStyle = styled.div`
     animation: hb-sway 2.6s ease-in-out var(--d, 0s) infinite alternate;
   }
   .hb-glint {
-    animation: hb-glint var(--t, 2s) ease-in-out var(--d, 0s) infinite
-      alternate;
+    animation: hb-glint var(--t, 2s) ease-in-out var(--d, 0s) infinite alternate;
   }
   .hb-shock {
     animation: hb-shock 1.8s cubic-bezier(0.1, 0.7, 0.3, 1) var(--d, 0s)
@@ -600,11 +599,13 @@ const HabitatStyle = styled.div`
       opacity: 1;
     }
     50% {
-      transform: translate(calc(var(--x) * 0.6), -60px) scale(0.4) rotate(180deg);
+      transform: translate(calc(var(--x) * 0.6), -60px) scale(0.4)
+        rotate(180deg);
       opacity: 0.5;
     }
     75% {
-      transform: translate(calc(var(--x) * 0.8), -85px) scale(1.1) rotate(270deg);
+      transform: translate(calc(var(--x) * 0.8), -85px) scale(1.1)
+        rotate(270deg);
       opacity: 1;
     }
     100% {
@@ -710,19 +711,27 @@ const PokemonHabitat = memo(
 
           <g key={theme.signature} className="hb-stage">
             <g opacity={0.3 + 0.7 * energy}>
-            <ellipse
-              className="hb-bloom"
-              cx={CX}
-              cy={CY}
-              rx="160"
-              ry="48"
-              fill={`url(#${uid}-bloom)`}
-            />
-            <g className="hb-beam" fill={`url(#${uid}-beam)`}>
-              <path d={`M${CX - 92} ${CY}L${CX - 52} 0H${CX + 52}L${CX + 92} ${CY}Z`} opacity="0.45" />
-              <path d={`M${CX - 62} ${CY}L${CX - 30} 0H${CX + 30}L${CX + 62} ${CY}Z`} opacity="0.7" />
-              <path d={`M${CX - 30} ${CY}L${CX - 12} 0H${CX + 12}L${CX + 30} ${CY}Z`} />
-            </g>
+              <ellipse
+                className="hb-bloom"
+                cx={CX}
+                cy={CY}
+                rx="160"
+                ry="48"
+                fill={`url(#${uid}-bloom)`}
+              />
+              <g className="hb-beam" fill={`url(#${uid}-beam)`}>
+                <path
+                  d={`M${CX - 92} ${CY}L${CX - 52} 0H${CX + 52}L${CX + 92} ${CY}Z`}
+                  opacity="0.45"
+                />
+                <path
+                  d={`M${CX - 62} ${CY}L${CX - 30} 0H${CX + 30}L${CX + 62} ${CY}Z`}
+                  opacity="0.7"
+                />
+                <path
+                  d={`M${CX - 30} ${CY}L${CX - 12} 0H${CX + 12}L${CX + 30} ${CY}Z`}
+                />
+              </g>
             </g>
             <g fill={light}>
               {STREAKS.map(([x, d, t], i) => (
@@ -774,7 +783,12 @@ const PokemonHabitat = memo(
               fill="none"
               style={{ '--t': `${26 - 14 * energy}s` } as CSSProperties}
             >
-              <RuneRing type={theme.primary} colors={theme} radius={96} count={12} />
+              <RuneRing
+                type={theme.primary}
+                colors={theme}
+                radius={96}
+                count={12}
+              />
               <RuneRing
                 type={theme.secondary || theme.primary}
                 colors={second || theme}
@@ -785,7 +799,13 @@ const PokemonHabitat = memo(
               <circle className="hb-core" r="40" fill={`url(#${uid}-core)`} />
             </g>
 
-            <path d={front} fill="none" stroke={glow} strokeWidth="6" opacity="0.35" />
+            <path
+              d={front}
+              fill="none"
+              stroke={glow}
+              strokeWidth="6"
+              opacity="0.35"
+            />
             <path d={front} fill="none" stroke={light} strokeWidth="1.4" />
             <ellipse
               cx={CX}

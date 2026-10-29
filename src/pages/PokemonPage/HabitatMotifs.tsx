@@ -38,7 +38,8 @@ const around = (count: number, offset = 0, scale = 1) =>
 
 // Rune painted on the spinning floor rings, one per type (stroke only).
 export const GLYPHS: Record<string, string> = {
-  normal: 'M5 0A5 5 0 1 1-5 0A5 5 0 1 1 5 0M1.2 0A1.2 1.2 0 1 1-1.2 0A1.2 1.2 0 1 1 1.2 0',
+  normal:
+    'M5 0A5 5 0 1 1-5 0A5 5 0 1 1 5 0M1.2 0A1.2 1.2 0 1 1-1.2 0A1.2 1.2 0 1 1 1.2 0',
   fire: 'M0 7C-6 4-5-2 0-8C1-3 5-2 4 3C3 6 1 7 0 7Z',
   water: 'M0-8C3-3 6 0 6 3A6 6 0 0 1-6 3C-6 0-3-3 0-8Z',
   electric: 'M2-9L-5 1H0L-2 9L5-1H0Z',
@@ -54,7 +55,8 @@ export const GLYPHS: Record<string, string> = {
   ghost: 'M-5 7V-1A5 5 0 0 1 5-1V7L2.5 5L0 7L-2.5 5Z',
   dragon: 'M-6-6L0 8L6-6L0-2Z',
   dark: 'M3-7A7 7 0 1 0 3 7A5.5 5.5 0 1 1 3-7Z',
-  steel: 'M-7 0L-3.5-6H3.5L7 0L3.5 6H-3.5ZM2.5 0A2.5 2.5 0 1 1-2.5 0A2.5 2.5 0 1 1 2.5 0',
+  steel:
+    'M-7 0L-3.5-6H3.5L7 0L3.5 6H-3.5ZM2.5 0A2.5 2.5 0 1 1-2.5 0A2.5 2.5 0 1 1 2.5 0',
   fairy: 'M0-8L2-2L8 0L2 2L0 8L-2 2L-8 0L-2-2Z',
 }
 
@@ -118,7 +120,13 @@ const PARTICLES: Record<string, Particle> = {
     motion: 'sway',
     shape: (c) => (
       <>
-        <circle r="2.8" fill={c.glow} fillOpacity="0.25" stroke={c.light} strokeWidth="0.8" />
+        <circle
+          r="2.8"
+          fill={c.glow}
+          fillOpacity="0.25"
+          stroke={c.light}
+          strokeWidth="0.8"
+        />
         <circle cx="-0.9" cy="-1" r="0.7" fill={c.light} />
       </>
     ),
@@ -126,17 +134,35 @@ const PARTICLES: Record<string, Particle> = {
   electric: {
     motion: 'spark',
     shape: (c) => (
-      <path d="M1-4.5L-2.5 0.5H0L-1 4.5L2.5-0.5H0Z" fill={c.light} stroke={c.glow} strokeWidth="0.6" />
+      <path
+        d="M1-4.5L-2.5 0.5H0L-1 4.5L2.5-0.5H0Z"
+        fill={c.light}
+        stroke={c.glow}
+        strokeWidth="0.6"
+      />
     ),
   },
   grass: {
     motion: 'swirl',
-    shape: (c) => <path d="M0-4C3-2 3 2 0 4C-3 2-3-2 0-4Z" fill={c.glow} stroke={c.light} strokeWidth="0.4" />,
+    shape: (c) => (
+      <path
+        d="M0-4C3-2 3 2 0 4C-3 2-3-2 0-4Z"
+        fill={c.glow}
+        stroke={c.light}
+        strokeWidth="0.4"
+      />
+    ),
   },
   ice: {
     motion: 'fall',
     shape: (c) => (
-      <path d={GLYPHS.ice} transform="scale(0.45)" stroke={c.light} strokeWidth="2" fill="none" />
+      <path
+        d={GLYPHS.ice}
+        transform="scale(0.45)"
+        stroke={c.light}
+        strokeWidth="2"
+        fill="none"
+      />
     ),
   },
   fighting: {
@@ -164,32 +190,61 @@ const PARTICLES: Record<string, Particle> = {
   bug: { motion: 'wander', shape: orb(1.3) },
   rock: {
     motion: 'rise',
-    shape: (c) => <path d={GLYPHS.rock} transform="scale(0.4)" fill={c.glow} stroke={c.dark} />,
+    shape: (c) => (
+      <path
+        d={GLYPHS.rock}
+        transform="scale(0.4)"
+        fill={c.glow}
+        stroke={c.dark}
+      />
+    ),
   },
   ghost: {
     motion: 'sway',
     shape: (c) => (
       <>
         <circle r="5" fill={c.glow} opacity="0.3" />
-        <path d="M0-5C3-2 3 2 0 4C-2 3-2 0 0-5Z" fill={c.light} opacity="0.85" />
+        <path
+          d="M0-5C3-2 3 2 0 4C-2 3-2 0 0-5Z"
+          fill={c.light}
+          opacity="0.85"
+        />
       </>
     ),
   },
   dragon: {
     motion: 'rise',
-    shape: (c) => <path d="M0-3.5L2.5 0L0 3.5L-2.5 0Z" fill={c.glow} stroke={c.light} strokeWidth="0.6" />,
+    shape: (c) => (
+      <path
+        d="M0-3.5L2.5 0L0 3.5L-2.5 0Z"
+        fill={c.glow}
+        stroke={c.light}
+        strokeWidth="0.6"
+      />
+    ),
   },
   dark: {
     motion: 'smoke',
-    shape: (c) => <circle r="4" fill={c.dark} stroke={c.glow} strokeOpacity="0.5" />,
+    shape: (c) => (
+      <circle r="4" fill={c.dark} stroke={c.glow} strokeOpacity="0.5" />
+    ),
   },
   steel: {
     motion: 'twinkle',
-    shape: (c) => <path d="M0-4L.8-.8L4 0L.8.8L0 4L-.8.8L-4 0L-.8-.8Z" fill={c.light} />,
+    shape: (c) => (
+      <path d="M0-4L.8-.8L4 0L.8.8L0 4L-.8.8L-4 0L-.8-.8Z" fill={c.light} />
+    ),
   },
   fairy: {
     motion: 'twinkle',
-    shape: (c) => <path d={GLYPHS.fairy} transform="scale(0.5)" fill={c.light} stroke={c.petal} />,
+    shape: (c) => (
+      <path
+        d={GLYPHS.fairy}
+        transform="scale(0.5)"
+        fill={c.light}
+        stroke={c.petal}
+      />
+    ),
   },
 }
 
@@ -225,7 +280,10 @@ export function TypeParticles({
         const { type, colors } = types[i % types.length]
         const particle = PARTICLES[type] || PARTICLES.normal
         return (
-          <g key={i} transform={`translate(${slot.x} ${slot.y}) scale(${slot.s})`}>
+          <g
+            key={i}
+            transform={`translate(${slot.x} ${slot.y}) scale(${slot.s})`}
+          >
             <g
               className={`hb-p hb-p-${particle.motion}`}
               style={timing(slot.d, slot.t, slot.drift)}
@@ -262,7 +320,10 @@ export function TypeAura({
             </linearGradient>
           </defs>
           {around(12, 8, 1.01).map(({ i, x, y, near }) => (
-            <g key={i} transform={`translate(${x} ${y}) scale(${0.8 + 0.15 * near})`}>
+            <g
+              key={i}
+              transform={`translate(${x} ${y}) scale(${0.8 + 0.15 * near})`}
+            >
               <path
                 className="hb-flame"
                 style={timing(-i * 0.37)}
@@ -315,7 +376,11 @@ export function TypeAura({
               'M112 178L102 152L118 140L108 122',
               'M208 180L218 154L202 140L214 120',
             ].map((d, i) => (
-              <g key={i} className="hb-zap" style={timing(-i * 0.9, 2.4 + i * 0.5)}>
+              <g
+                key={i}
+                className="hb-zap"
+                style={timing(-i * 0.9, 2.4 + i * 0.5)}
+              >
                 <path d={d} stroke={c.glow} strokeWidth="7" opacity="0.35" />
                 <path d={d} stroke={c.light} strokeWidth="1.8" />
               </g>
@@ -340,14 +405,27 @@ export function TypeAura({
       return (
         <>
           {around(10, 12, 1.02).map(({ i, x, y, near }) => (
-            <g key={i} transform={`translate(${x} ${y}) scale(${0.85 + 0.2 * near})`}>
+            <g
+              key={i}
+              transform={`translate(${x} ${y}) scale(${0.85 + 0.2 * near})`}
+            >
               <g className="hb-sway" style={timing(-i * 0.6)}>
                 <path d="M0 0Q-10-6-9-18Q-1-12 0 0Z" fill={c.glow} />
-                <path d="M0 0Q7-9 15-9Q11 0 0 0Z" fill={c.light} opacity="0.85" />
+                <path
+                  d="M0 0Q7-9 15-9Q11 0 0 0Z"
+                  fill={c.light}
+                  opacity="0.85"
+                />
                 {i % 3 === 0 && (
                   <g transform="translate(-6 -18)" fill={c.petal}>
                     {[0, 72, 144, 216, 288].map((angle) => (
-                      <ellipse key={angle} cy="-3" rx="2.2" ry="3.2" transform={`rotate(${angle})`} />
+                      <ellipse
+                        key={angle}
+                        cy="-3"
+                        rx="2.2"
+                        ry="3.2"
+                        transform={`rotate(${angle})`}
+                      />
                     ))}
                     <circle r="1.8" fill={c.light} />
                   </g>
@@ -515,7 +593,15 @@ export function TypeAura({
             [82, 50, 9],
           ].map(([cy, rx, ry], i) => (
             <g key={cy} className="hb-bob" style={timing(-i * 1.2)}>
-              <ellipse cx={CX} cy={cy} rx={rx} ry={ry} stroke={c.glow} strokeWidth="6" opacity="0.25" />
+              <ellipse
+                cx={CX}
+                cy={cy}
+                rx={rx}
+                ry={ry}
+                stroke={c.glow}
+                strokeWidth="6"
+                opacity="0.25"
+              />
               <ellipse
                 className="hb-dash"
                 style={timing(0, 5 + i * 2)}
@@ -534,14 +620,28 @@ export function TypeAura({
       )
     case 'bug':
       return (
-        <g transform={`translate(${CX} ${CY}) scale(1 ${RY / RX})`} fill="none" stroke={c.glow} strokeWidth="1.4">
+        <g
+          transform={`translate(${CX} ${CY}) scale(1 ${RY / RX})`}
+          fill="none"
+          stroke={c.glow}
+          strokeWidth="1.4"
+        >
           {[-3, -2, -1, 0, 1, 2, 3].map((row) => (
-            <g key={row} className="hb-glint" style={timing(-Math.abs(row) * 0.35, 2.4)}>
+            <g
+              key={row}
+              className="hb-glint"
+              style={timing(-Math.abs(row) * 0.35, 2.4)}
+            >
               {[-4, -3, -2, -1, 0, 1, 2, 3, 4].map((col) => {
                 const x = col * 24 + (row % 2 ? 12 : 0)
                 const y = row * 21
                 if (Math.hypot(x, y) > 92) return null
-                return <path key={col} d={`M${x} ${y - 12}l10 6v12l-10 6l-10-6v-12Z`} />
+                return (
+                  <path
+                    key={col}
+                    d={`M${x} ${y - 12}l10 6v12l-10 6l-10-6v-12Z`}
+                  />
+                )
               })}
             </g>
           ))}
@@ -557,7 +657,10 @@ export function TypeAura({
             </linearGradient>
           </defs>
           {around(6, 25, 1.2).map(({ i, x, y, near }) => (
-            <g key={i} transform={`translate(${x} ${y - 14}) scale(${1.1 + 0.35 * near})`}>
+            <g
+              key={i}
+              transform={`translate(${x} ${y - 14}) scale(${1.1 + 0.35 * near})`}
+            >
               <path
                 className="hb-hover"
                 style={timing(-i * 0.7)}
@@ -587,7 +690,11 @@ export function TypeAura({
           {around(7, 10, 0.98).map(({ i, x, y }) => (
             <g key={i} transform={`translate(${x} ${y})`}>
               <g className="hb-wisp" style={timing(-i * 0.65)}>
-                <path d="M0 0C-7-4-7-13 0-20C-2-13 5-11 4-4C4-2 2 0 0 0Z" fill={c.glow} opacity="0.75" />
+                <path
+                  d="M0 0C-7-4-7-13 0-20C-2-13 5-11 4-4C4-2 2 0 0 0Z"
+                  fill={c.glow}
+                  opacity="0.75"
+                />
                 <path d="M0-2C-3-4-3-8 0-11C0-7 2-6 2-3Z" fill={c.light} />
               </g>
             </g>
@@ -604,11 +711,33 @@ export function TypeAura({
               <stop offset="1" stopColor="#05030a" stopOpacity="0" />
             </radialGradient>
           </defs>
-          <ellipse cx={CX} cy={CY} rx={RX * 0.9} ry={RY * 0.9} fill={`url(#${id})`} />
+          <ellipse
+            cx={CX}
+            cy={CY}
+            rx={RX * 0.9}
+            ry={RY * 0.9}
+            fill={`url(#${id})`}
+          />
           <g className="hb-corona">
             <circle cx={CX} cy="74" r="48" fill="#05030a" opacity="0.35" />
-            <circle cx={CX} cy="74" r="48" fill="none" stroke={c.glow} strokeWidth="9" opacity="0.25" />
-            <circle cx={CX} cy="74" r="48" fill="none" stroke={c.light} strokeWidth="1.4" opacity="0.8" />
+            <circle
+              cx={CX}
+              cy="74"
+              r="48"
+              fill="none"
+              stroke={c.glow}
+              strokeWidth="9"
+              opacity="0.25"
+            />
+            <circle
+              cx={CX}
+              cy="74"
+              r="48"
+              fill="none"
+              stroke={c.light}
+              strokeWidth="1.4"
+              opacity="0.8"
+            />
           </g>
           <ellipse
             className="hb-corona"
@@ -657,7 +786,6 @@ export function TypeAura({
               width="28"
               height={RY * 2}
               fill={`url(#${id})`}
-             
             />
           </g>
         </>
@@ -792,8 +920,22 @@ export function HabitatFusion({
     case 'eclipse':
       shapes = (
         <g className="hb-corona">
-          <circle cx={CX} cy="74" r="58" stroke={s.glow} strokeWidth="2" strokeDasharray="2 6" />
-          <circle cx={CX} cy="74" r="66" stroke={c.glow} strokeWidth="1" opacity="0.6" />
+          <circle
+            cx={CX}
+            cy="74"
+            r="58"
+            stroke={s.glow}
+            strokeWidth="2"
+            strokeDasharray="2 6"
+          />
+          <circle
+            cx={CX}
+            cy="74"
+            r="66"
+            stroke={c.glow}
+            strokeWidth="1"
+            opacity="0.6"
+          />
         </g>
       )
       break
@@ -818,8 +960,16 @@ export function HabitatFusion({
     case 'canyon':
       shapes = (
         <g className="hb-pulse">
-          <path d="M70 162L104 154L128 166L162 156L190 170L236 160" stroke={c.dark} strokeWidth="5" />
-          <path d="M70 162L104 154L128 166L162 156L190 170L236 160" stroke={s.glow} strokeWidth="1.6" />
+          <path
+            d="M70 162L104 154L128 166L162 156L190 170L236 160"
+            stroke={c.dark}
+            strokeWidth="5"
+          />
+          <path
+            d="M70 162L104 154L128 166L162 156L190 170L236 160"
+            stroke={s.glow}
+            strokeWidth="1.6"
+          />
         </g>
       )
       break
@@ -857,7 +1007,12 @@ export function HabitatFusion({
       return null
   }
   return (
-    <g data-fusion={fusion} fill="none" strokeLinecap="round" strokeLinejoin="round">
+    <g
+      data-fusion={fusion}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       {shapes}
     </g>
   )
