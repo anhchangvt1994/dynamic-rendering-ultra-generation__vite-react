@@ -43,6 +43,12 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       path: '/ai-day',
     },
     {
+      title: 'So sánh Pokémon',
+      id: 'ComparePage',
+      icon: 'compare',
+      path: '/so-sanh',
+    },
+    {
       title: 'Bài viết',
       id: import.meta.env.ROUTER_BLOGS_ID,
       icon: import.meta.env.ROUTER_BLOGS_ICON,

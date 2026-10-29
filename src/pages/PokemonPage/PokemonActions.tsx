@@ -32,6 +32,18 @@ const ActionsStyle = styled.div`
       background 140ms ease-out,
       transform 120ms ease-out;
   }
+  button {
+    white-space: nowrap;
+  }
+  /* four actions on a phone: a toolbar, icon over label */
+  @media (max-width: 480px) {
+    button {
+      flex-direction: column;
+      gap: 2px;
+      min-height: 56px;
+      padding: 6px 4px;
+    }
+  }
   button:hover {
     background: rgba(255, 255, 255, 0.2);
   }
@@ -129,6 +141,12 @@ const Ball = () => (
   </svg>
 )
 
+const CompareIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <path d="M9 3 4 8l5 5V9.5h7v-3H9Zm6 8v3.5H8v3h7V21l5-5Z" />
+  </svg>
+)
+
 const ShareIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
     <path d="M18 22q-1.25 0-2.125-.875T15 19q0-.175.025-.363.025-.187.075-.337l-7.05-4.1q-.425.375-.95.588Q6.575 15 6 15q-1.25 0-2.125-.875T3 12q0-1.25.875-2.125T6 9q.575 0 1.1.212.525.213.95.588l7.05-4.1q-.05-.15-.075-.337Q15 5.175 15 5q0-1.25.875-2.125T18 2q1.25 0 2.125.875T21 5q0 1.25-.875 2.125T18 8q-.575 0-1.1-.213-.525-.212-.95-.587L8.9 11.3q.05.15.075.337Q9 11.825 9 12t-.025.363q-.025.187-.075.337l7.05 4.1q.425-.375.95-.588Q17.425 16 18 16q1.25 0 2.125.875T21 19q0 1.25-.875 2.125T18 22Z" />
@@ -143,6 +161,7 @@ const PokemonActions = memo(
   ({
     id,
     name,
+    slug,
     shiny,
     hasShiny,
     onShinyChange,
@@ -150,6 +169,8 @@ const PokemonActions = memo(
   }: {
     id: number
     name: string
+    /** URL name, for the compare link */
+    slug?: string
     shiny: boolean
     hasShiny: boolean
     onShinyChange: (shiny: boolean) => void
@@ -161,6 +182,7 @@ const PokemonActions = memo(
       () => isCaught(id),
       () => false
     )
+    const navigate = useNavigate()
     const [toast, setToast] = useState('')
     useEffect(() => {
       if (!toast) return
@@ -211,6 +233,16 @@ const PokemonActions = memo(
           <Ball />
           {caught ? 'Đã bắt' : 'Bắt'}
         </button>
+        {slug && (
+          <button
+            type="button"
+            data-kind="compare"
+            onClick={() => navigate(`/so-sanh?a=${slug}`)}
+          >
+            <CompareIcon />
+            So sánh
+          </button>
+        )}
         <button type="button" data-kind="share" onClick={share}>
           <ShareIcon />
           Chia sẻ

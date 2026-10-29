@@ -72,6 +72,11 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'QuizPage',
       }, // Quiz Page
       {
+        path: 'so-sanh',
+        element: withLazy(() => import('pages/ComparePage')),
+        id: 'ComparePage',
+      }, // Compare Page
+      {
         path: import.meta.env.ROUTER_NOT_FOUND_PATH,
         element: <NotFoundPage />,
       },

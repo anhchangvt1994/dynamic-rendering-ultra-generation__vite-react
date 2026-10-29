@@ -549,6 +549,7 @@ const PokemonPage = () => {
           <PokemonActions
             id={idFromUrl(pokemonState?.species?.url) || pokemonState?.id || 0}
             name={displayName}
+            slug={pokemonState?.name}
             shiny={shiny}
             hasShiny={!!shinyArt}
             onShinyChange={setShiny}
