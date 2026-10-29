@@ -110,10 +110,12 @@ export const ServerStore = (() => {
         deleteCookie('RenderingInfo')
       }
 
+      // lang describes the CONTENT (Vietnamese), not the visitor's browser:
+      // only an explicitly selected locale may change it.
       if (html) {
         html.setAttribute(
           'lang',
-          LocaleInfo.langSelected || LocaleInfo.clientLang
+          LocaleInfo.langSelected || html.getAttribute('lang') || 'vi'
         )
       }
     },
