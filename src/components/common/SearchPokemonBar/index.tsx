@@ -96,12 +96,18 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     <OverlayStyle onClick={onClose}>
       <ContainerStyle onClick={(e) => e.stopPropagation()}>
         <SearchBarStyle>
-          <span className="material-symbols-outlined">search</span>
+          <span className="material-symbols-outlined" aria-hidden="true">
+            search
+          </span>
           <input
             ref={inputRef}
             autoFocus
-            type="text"
-            placeholder="Search..."
+            type="search"
+            aria-label="Tìm Pokémon theo tên"
+            placeholder="Tìm Pokémon theo tên…"
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
             onChange={search}
           />
         </SearchBarStyle>
