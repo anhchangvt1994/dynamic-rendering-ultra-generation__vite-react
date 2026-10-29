@@ -229,11 +229,11 @@ const PowerCardStyle = styled.section`
     letter-spacing: -0.02em;
   }
   .power-bst small {
-    margin-left: 4px;
-    font-size: 10px;
+    margin-left: 5px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    opacity: 0.55;
+    letter-spacing: 0;
+    opacity: 0.75;
   }
 
   /*
