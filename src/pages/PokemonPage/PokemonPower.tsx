@@ -6,7 +6,7 @@ import { POWER_TIERS, getPokemonPower } from './power.mjs'
 const PowerCardStyle = styled.section`
   position: relative;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr) auto;
   column-gap: 14px;
   align-items: center;
   margin-bottom: 16px;
@@ -193,15 +193,20 @@ const PowerCardStyle = styled.section`
     animation: power-twinkle 1.6s ease-in-out calc(var(--i) * -0.27s) infinite;
   }
 
-  /* ── reading: total + strength icon, then the ladder ── */
-  .power-head {
+  /* ── one row: badge | rising ladder | total with strength icon ── */
+  .power-total {
+    display: grid;
+    justify-items: end;
+    row-gap: 4px;
+  }
+  .power-unit {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 4px;
   }
   .power-icon {
-    width: 26px;
-    height: 26px;
+    width: 18px;
+    height: 18px;
     color: var(--tier-a);
     fill: currentColor;
   }
@@ -222,17 +227,15 @@ const PowerCardStyle = styled.section`
     animation: power-crown 2.2s ease-in-out infinite alternate;
   }
   .power-bst {
-    flex: none;
-    font-size: 22px;
+    font-size: 26px;
+    line-height: 1;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
-  .power-bst small {
-    margin-left: 5px;
+  .power-unit small {
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0;
     opacity: 0.75;
   }
 
@@ -246,12 +249,11 @@ const PowerCardStyle = styled.section`
     grid-template-columns: repeat(10, 1fr);
     gap: 3px;
     align-items: end;
-    height: 20px;
-    margin-top: 8px;
+    height: 32px;
   }
   .power-seg {
     position: relative;
-    height: calc(6px + var(--i) * 1.55px);
+    height: calc(8px + var(--i) * 2.6px);
     overflow: hidden;
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.09);
@@ -537,38 +539,35 @@ const PokemonPower = memo(({ stats }: { stats: any[] }) => {
         )}
       </div>
 
-      <div aria-hidden="true">
-        <div className="power-head">
-          <span className="power-bst">
-            {bst}
-            <small>BST</small>
+      <div key={power.bst} className="power-ladder" aria-hidden="true">
+        {POWER_TIERS.map((step, i) => (
+          <span
+            key={step.rank}
+            className="power-seg"
+            data-state={i < level ? 'full' : i === level ? 'current' : 'empty'}
+            style={
+              {
+                '--i': i,
+                '--fill':
+                  i < level
+                    ? '100%'
+                    : i === level
+                      ? `${Math.max(14, progress * 100)}%`
+                      : '0%',
+              } as CSSProperties
+            }
+          >
+            <i />
           </span>
+        ))}
+      </div>
+
+      <div className="power-total" aria-hidden="true">
+        <span className="power-bst">{bst}</span>
+        <span className="power-unit">
           <PowerIcon level={level} />
-        </div>
-        <div key={power.bst} className="power-ladder">
-          {POWER_TIERS.map((step, i) => (
-            <span
-              key={step.rank}
-              className="power-seg"
-              data-state={
-                i < level ? 'full' : i === level ? 'current' : 'empty'
-              }
-              style={
-                {
-                  '--i': i,
-                  '--fill':
-                    i < level
-                      ? '100%'
-                      : i === level
-                        ? `${Math.max(14, progress * 100)}%`
-                        : '0%',
-                } as CSSProperties
-              }
-            >
-              <i />
-            </span>
-          ))}
-        </div>
+          <small>BST</small>
+        </span>
       </div>
     </PowerCardStyle>
   )
