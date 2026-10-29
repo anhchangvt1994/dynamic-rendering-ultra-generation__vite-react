@@ -89,13 +89,9 @@ const ContentMemo = React.memo(ContentWithOutlet)
 function Layout() {
   const route = useRoute()
 
-  if (BotInfo.isBot) {
-    setMetaViewportTag('width=device-width, initial-scale=1')
-  } else {
-    setMetaViewportTag(
-      'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
-    )
-  }
+  // Pinch-zoom stays available to everyone (WCAG 1.4.4); the carousel keeps
+  // its own gestures through touch-action: pan-y.
+  setMetaViewportTag('width=device-width, initial-scale=1')
 
   const [isShowMenuBar, setIsShowMenuBar] = useState(false)
   const [isShowSearchBar, setIsShowSearchBar] = useState(false)
