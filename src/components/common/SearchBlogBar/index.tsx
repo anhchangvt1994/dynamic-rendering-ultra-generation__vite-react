@@ -24,7 +24,10 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
   const location = useLocation()
   const currentPathname = useRef(location.pathname)
 
-  const { data, isFetching } = useSearchArticlesByTitleQuery(keyword)
+  // An empty keyword has no request to make (the endpoint returns nothing).
+  const { data, isFetching } = useSearchArticlesByTitleQuery(keyword, {
+    skip: !keyword,
+  })
 
   const search = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
