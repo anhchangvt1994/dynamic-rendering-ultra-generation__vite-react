@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/virtual'
-import { FreeMode, Keyboard, Virtual } from 'swiper/modules'
+import { FreeMode, Virtual } from 'swiper/modules'
 import type { Swiper as SwiperInstance } from 'swiper'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
@@ -97,6 +97,36 @@ const PokemonPage = () => {
   const carousel = usePokemonCarousel(curId, setCurId, Boolean(pokemonState))
   // for the visible prev/next buttons (they live outside the gesture area)
   const swiperRef = useRef<SwiperInstance | null>(null)
+
+  // ← / → step through the Pokédex like a swipe, but never while a dialog
+  // (menu, search) is open, while typing, or when the stage is off-screen.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      if (event.defaultPrevented || event.altKey || event.ctrlKey) return
+      if (event.metaKey || event.shiftKey) return
+      const target = event.target as HTMLElement | null
+      if (
+        target?.closest(
+          'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="listbox"], [role="tablist"], [role="slider"]'
+        )
+      )
+        return
+      const dialogOpen = [
+        ...document.querySelectorAll('[aria-modal="true"]'),
+      ].some(
+        (dialog) => !dialog.closest('[inert]') && dialog.getClientRects().length
+      )
+      if (dialogOpen) return
+      const stage = stageRef.current?.getBoundingClientRect()
+      if (!stage || stage.bottom < 0 || stage.top > innerHeight) return
+      event.preventDefault()
+      if (event.key === 'ArrowLeft') swiperRef.current?.slidePrev()
+      else swiperRef.current?.slideNext()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // Shiny: swap the centred artwork's src; every new Pokémon starts normal,
   // and the slide it leaves gets its normal artwork back.
@@ -371,9 +401,7 @@ const PokemonPage = () => {
                   }}
                   onResize={carousel.onResize}
                   onUpdate={carousel.onUpdate}
-                  modules={[Virtual, FreeMode, Keyboard, WaveEffect]}
-                  // ← / → step through the Pokédex like a swipe
-                  keyboard={{ enabled: true, onlyInViewport: true }}
+                  modules={[Virtual, FreeMode, WaveEffect]}
                   onSlideChange={carousel.onSlideChange}
                   onTouchStart={carousel.onTouchStart}
                   onSliderMove={carousel.onSliderMove}
