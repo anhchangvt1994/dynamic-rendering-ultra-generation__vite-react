@@ -106,9 +106,12 @@ export const NameStyle = styled.div`
   text-transform: capitalize;
   font-size: 20px;
 
-  span {
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    border-radius: 2px;
+  mark {
+    background: none;
+    color: #ffcb05;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
   }
 `
 
