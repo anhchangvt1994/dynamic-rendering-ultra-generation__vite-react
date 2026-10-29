@@ -1,3 +1,5 @@
+import BattleMessage from 'components/common/BattleMessage'
+import { titleCase } from 'components/pokemon-page/format.mjs'
 import type { CSSProperties } from 'react'
 import pokemonApi, { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import store from 'app/store'
@@ -29,6 +31,7 @@ import {
   DetailsContentStyle,
   DetailsRegionStyle,
   HeaderStyle,
+  InlineAlertStyle,
   NameLoadingStyle,
   NameStyle,
   PokemonPageStyle,
@@ -59,7 +62,7 @@ const PokemonPage = () => {
     initialPokemon?.name === name ? Number(initialPokemon.id) || 0 : 0
   )
   const firstQuery = useRef({ key: name, id: curId, resolved: false })
-  const { currentData, isError, refetch } = useGetPokemonDetailQuery(
+  const { currentData, isError, error, refetch } = useGetPokemonDetailQuery(
     !curId || curId === firstQuery.current.id ? firstQuery.current.key : curId
   )
   // currentData belongs to the selected query; never show a late response from
@@ -92,8 +95,9 @@ const PokemonPage = () => {
   const inCarousel = curId >= 1 && curId <= POKEMON_COUNT
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
-  const seoTitle = `Pokemon ${pokemonState?.name} Pokédex: Chỉ số, Chiêu thức & Cách tiến hóa (Gen 9) | Anhchangvt1994`
-  const seoDescription = `Tìm hiểu mọi thứ về ${pokemonState?.name} (#${pokemonNumber}): Chỉ số cơ bản (stats), bộ chiêu thức mạnh nhất, cách tiến hóa từ Drowzee và vị trí bắt trong các phiên bản game mới nhất.`
+  const displayName = titleCase(pokemonState?.name ?? '')
+  const seoTitle = `${displayName} #${pokemonNumber} – Hệ, chỉ số, tiến hóa & chiêu thức | Pokédex`
+  const seoDescription = `${displayName} (#${pokemonNumber}): hệ, hạng sức mạnh theo tổng chỉ số cơ bản, chuỗi tiến hóa, mục Pokédex, khả năng đặc biệt và bộ chiêu thức.`
 
   const handleBack = () => {
     if (!navigateInfo.from) return navigate(import.meta.env.ROUTER_HOME_PATH)
@@ -211,6 +215,40 @@ const PokemonPage = () => {
     []
   )
 
+  // The very first lookup failed: the name does not exist, or we are offline.
+  if (isError && !pokemonState && !curId) {
+    const notFound = (error as { status?: number })?.status === 404
+    setSeoTag({
+      title: notFound
+        ? 'Không tìm thấy Pokémon | Pokédex'
+        : 'Mất kết nối | Pokédex',
+      robots: 'noindex, follow',
+    })
+    return (
+      <PokemonPageStyle>
+        {notFound ? (
+          <BattleMessage
+            title="Pokémon này chưa có trong Pokédex!"
+            action={{
+              label: 'Về Pokédex',
+              to: import.meta.env.ROUTER_HOME_PATH,
+            }}
+          >
+            Không có Pokémon nào tên “{name}”. Kiểm tra lại chính tả, hoặc tìm
+            bằng ô tìm kiếm phía trên.
+          </BattleMessage>
+        ) : (
+          <BattleMessage
+            title="Mất kết nối với Pokédex!"
+            action={{ label: 'Thử lại', onClick: () => refetch() }}
+          >
+            Không tải được dữ liệu. Kiểm tra kết nối mạng rồi thử lại.
+          </BattleMessage>
+        )}
+      </PokemonPageStyle>
+    )
+  }
+
   return (
     <PokemonPageStyle>
       {createPortal(
@@ -218,7 +256,7 @@ const PokemonPage = () => {
         document.getElementById('related-blogs-sheet')!
       )}
       <HeaderStyle>
-        <BackButtonStyle onClick={handleBack}>
+        <BackButtonStyle aria-label="Quay lại" onClick={handleBack}>
           <BackIconStyle />
         </BackButtonStyle>
       </HeaderStyle>
@@ -344,10 +382,12 @@ const PokemonPage = () => {
         />
 
         {isError && !carousel.isNavigating && (
-          <div role="alert" style={{ textAlign: 'center' }}>
-            Không tải được dữ liệu Pokémon.{' '}
-            <button onClick={() => refetch()}>Thử lại</button>
-          </div>
+          <InlineAlertStyle role="alert">
+            Không tải được dữ liệu Pokémon này.
+            <button type="button" onClick={() => refetch()}>
+              Thử lại
+            </button>
+          </InlineAlertStyle>
         )}
         <DetailsRegionStyle aria-busy={isShowLoading}>
           <DetailsContentStyle

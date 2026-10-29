@@ -119,8 +119,8 @@ export const BackButtonStyle = styled.button`
   align-items: center;
   justify-content: center;
   border: none;
-  height: 40px;
-  width: 40px;
+  height: 44px;
+  width: 44px;
   border-radius: 50%;
   /* floats over the content while scrolling, so it gets its own surface */
   background: rgba(8, 28, 26, 0.45);
@@ -752,5 +752,37 @@ export const DetailsSkeletonStyle = styled.div`
     .skeleton-shape::after {
       animation: none;
     }
+  }
+`
+
+// A failed Pokémon load inside the page: one line and a retry pill.
+export const InlineAlertStyle = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(227, 53, 13, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 120, 0.45);
+  color: #ffe2db;
+  font-size: 14px;
+
+  button {
+    min-height: 44px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 999px;
+    background: #e3350d;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:focus-visible {
+    outline: 2px solid #ffcb05;
+    outline-offset: 2px;
   }
 `
