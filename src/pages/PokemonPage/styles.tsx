@@ -126,6 +126,11 @@ export const BackButtonStyle = styled.button`
   user-select: none;
   margin-left: -8px;
   z-index: 10;
+
+  &:focus-visible {
+    outline: 2px solid #ffcb05;
+    outline-offset: 2px;
+  }
 `
 
 export const BackIconStyle = styled.span`
