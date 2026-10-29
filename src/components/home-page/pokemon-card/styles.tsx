@@ -64,18 +64,53 @@ export const PokemonCardStyle = styled(LinkCustom)`
     height: 30px;
     opacity: 0.5;
   }
+  /* halo in the Pokémon's type colours, split diagonally for dual types */
   .card-orbit {
     position: absolute;
     width: 104px;
     height: 104px;
-    background: #f2f6f5;
     border-radius: 50%;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--t1, #9fa19f) 22%, #fff) 50%,
+      color-mix(in srgb, var(--t2, #9fa19f) 22%, #fff) 50%
+    );
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--t1, #9fa19f) 18%, transparent);
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  &:nth-child(3n + 2) .card-orbit {
-    background: #fcf1e9;
+  &:hover .card-orbit,
+  &:focus-visible .card-orbit {
+    transform: scale(1.08);
   }
-  &:nth-child(3n) .card-orbit {
-    background: #eef1fb;
+  /* type colour runs along the card's top edge */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, var(--t1) 50%, var(--t2) 50%);
+    opacity: 0.85;
+  }
+  .card-types {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .type-pill {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--type) 14%, #fff);
+    /* ≥5:1 for every type (Điện is the worst case) */
+    color: color-mix(in srgb, var(--type) 55%, #111);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.6 !important;
+  }
+  .card-types .card-region {
+    margin: 0 0 0 auto;
   }
   &:hover img,
   &:focus-visible img {
