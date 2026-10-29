@@ -89,3 +89,42 @@ export function sortMoves(moves = []) {
         a.entry.move.name.localeCompare(b.entry.move.name)
     )
 }
+
+// Official names that title-casing a slug cannot rebuild.
+const OFFICIAL = {
+  'mr-mime': 'Mr. Mime',
+  'mime-jr': 'Mime Jr.',
+  'mr-rime': 'Mr. Rime',
+  farfetchd: 'Farfetch’d',
+  sirfetchd: 'Sirfetch’d',
+  'type-null': 'Type: Null',
+  'nidoran-f': 'Nidoran♀',
+  'nidoran-m': 'Nidoran♂',
+  flabebe: 'Flabébé',
+  'ho-oh': 'Ho-Oh',
+  'porygon-z': 'Porygon-Z',
+  'jangmo-o': 'Jangmo-o',
+  'hakamo-o': 'Hakamo-o',
+  'kommo-o': 'Kommo-o',
+  'wo-chien': 'Wo-Chien',
+  'chien-pao': 'Chien-Pao',
+  'ting-lu': 'Ting-Lu',
+  'chi-yu': 'Chi-Yu',
+}
+
+/**
+ * Display name from a PokéAPI slug: official spellings (Mr. Mime, Ho-Oh,
+ * Nidoran♀) and default-form suffixes dropped ("deoxys-normal" → "Deoxys").
+ */
+export function pokemonLabel(name = '') {
+  if (OFFICIAL[name]) return OFFICIAL[name]
+  const FORM_SUFFIX =
+    /-(normal|altered|land|incarnate|ordinary|aria|average|50|plant|standard|shield|midday|solo|disguised|amped|full-belly|single-strike|red-striped|green-plumage|male|family-of-four|zero|curly|two-segment|baile|red-meteor|female)$/
+  const species = name.replace(FORM_SUFFIX, '')
+  if (OFFICIAL[species]) return OFFICIAL[species]
+  return species
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(' ')
+}

@@ -3,7 +3,7 @@ import {
   useGetPokemonListQuery,
 } from 'app/apis/pokemon'
 import { searchPokemon } from 'components/common/SearchPokemonBar/search.mjs'
-import { statLabel, titleCase } from 'components/pokemon-page/format.mjs'
+import { pokemonLabel, statLabel } from 'components/pokemon-page/format.mjs'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import { getPokemonPower } from 'pages/PokemonPage/power.mjs'
@@ -55,7 +55,7 @@ function Picker({
         id={id}
         type="search"
         value={query}
-        placeholder={value ? titleCase(value) : 'Tên hoặc số…'}
+        placeholder={value ? pokemonLabel(value) : 'Tên hoặc số…'}
         autoComplete="off"
         spellCheck={false}
         onChange={(event) => setQuery(event.target.value)}
@@ -78,7 +78,7 @@ function Picker({
                   setQuery('')
                 }}
               >
-                {titleCase(result.name)}
+                {pokemonLabel(result.name)}
                 <small>#{String(result.id).padStart(4, '0')}</small>
               </button>
             </li>
@@ -117,7 +117,7 @@ function Fighter({ pokemon, side }: { pokemon: any; side: 'a' | 'b' }) {
       />
       <h2>
         <LinkCustom to={`/pokemon/${pokemon.name}`}>
-          {titleCase(pokemon.name)}
+          {pokemonLabel(pokemon.name)}
         </LinkCustom>
       </h2>
       <p className="tier">
@@ -161,7 +161,7 @@ export default function ComparePage() {
 
   setSeoTag({
     title: both
-      ? `${titleCase(a.name)} vs ${titleCase(b.name)} – So sánh | Pokédex`
+      ? `${pokemonLabel(a.name)} vs ${pokemonLabel(b.name)} – So sánh | Pokédex`
       : 'So sánh Pokémon | Pokédex',
     description:
       'Đặt hai Pokémon cạnh nhau: hạng sức mạnh, hệ và từng chỉ số cơ bản.',
@@ -179,8 +179,8 @@ export default function ComparePage() {
 
   const verdict = (() => {
     if (!result || !both) return ''
-    const nameA = titleCase(a.name)
-    const nameB = titleCase(b.name)
+    const nameA = pokemonLabel(a.name)
+    const nameB = pokemonLabel(b.name)
     if (result.totalA === result.totalB && result.winsA === result.winsB)
       return 'Ngang tài ngang sức.'
     const leader =
@@ -273,13 +273,13 @@ export default function ComparePage() {
 
           <table className="stats">
             <caption className="sr-only">
-              Chỉ số cơ bản của {titleCase(a.name)} và {titleCase(b.name)}
+              Chỉ số cơ bản của {pokemonLabel(a.name)} và {pokemonLabel(b.name)}
             </caption>
             <thead>
               <tr>
-                <th scope="col">{titleCase(a.name)}</th>
+                <th scope="col">{pokemonLabel(a.name)}</th>
                 <th scope="col">Chỉ số</th>
-                <th scope="col">{titleCase(b.name)}</th>
+                <th scope="col">{pokemonLabel(b.name)}</th>
               </tr>
             </thead>
             <tbody>

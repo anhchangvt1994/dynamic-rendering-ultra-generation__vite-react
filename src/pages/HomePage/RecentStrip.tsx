@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import styled from 'styled-components'
-import { titleCase } from 'components/pokemon-page/format.mjs'
+import { pokemonLabel } from 'components/pokemon-page/format.mjs'
 import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
 import { getRecent, subscribeRecent } from 'utils/recent.mjs'
 
@@ -78,7 +78,7 @@ export default function RecentStrip() {
                 loading="lazy"
                 decoding="async"
               />
-              {titleCase(mon.name)}
+              {pokemonLabel(mon.name)}
             </LinkCustom>
           </li>
         ))}

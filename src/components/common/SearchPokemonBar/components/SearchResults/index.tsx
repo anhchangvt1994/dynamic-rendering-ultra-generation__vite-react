@@ -1,5 +1,6 @@
 import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
 import { functionGenerator } from 'utils/EnvHelper'
+import { pokemonLabel } from 'components/pokemon-page/format.mjs'
 import { matchRange } from '../../search.mjs'
 import {
   DexStyle,
@@ -73,7 +74,9 @@ const SearchResults = ({
             />
           </ImageColStyle>
           <InfoColStyle>
-            <NameStyle>{highlight(result.name, keyword)}</NameStyle>
+            <NameStyle>
+              {highlight(pokemonLabel(result.name), keyword)}
+            </NameStyle>
             {result.id <= 1025 && (
               <DexStyle>#{String(result.id).padStart(4, '0')}</DexStyle>
             )}

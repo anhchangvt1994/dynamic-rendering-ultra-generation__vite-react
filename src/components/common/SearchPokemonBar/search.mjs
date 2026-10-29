@@ -45,6 +45,10 @@ export function searchPokemon(list = [], query = '', limit = 30) {
 export function matchRange(name = '', query = '') {
   const q = normalize(query.replace(/^#/, ''))
   if (!q || /^\d+$/.test(q)) return null
-  const at = normalize(name).indexOf(q)
+  const folded = normalize(name)
+  // punctuation folding changed the length ("Mr. Mime"): offsets would
+  // drift, so skip the highlight rather than mark the wrong letters
+  if (folded.length !== name.length) return null
+  const at = folded.indexOf(q)
   return at < 0 ? null : [at, at + q.length]
 }

@@ -3,7 +3,7 @@ import {
   getPokemonFallbackImage,
   getPokemonSprite,
 } from 'pages/PokemonPage/navigation.mjs'
-import { titleCase } from 'components/pokemon-page/format.mjs'
+import { pokemonLabel } from 'components/pokemon-page/format.mjs'
 import { useState, useSyncExternalStore } from 'react'
 import { isCaught, subscribeCaught } from 'utils/caught.mjs'
 import { pokemonId, GENERATIONS } from 'pages/HomePage/catalog.mjs'
@@ -31,7 +31,7 @@ const PokemonCard = ({ pokemon }) => {
       to={`/pokemon/${getSlug(pokemon.name)}`}
       data-caught={caught}
       style={{ '--t1': first, '--t2': second } as CSSProperties}
-      aria-label={`${titleCase(pokemon.name)}, số ${id}${caught ? ', đã bắt' : ''}`}
+      aria-label={`${pokemonLabel(pokemon.name)}, số ${id}${caught ? ', đã bắt' : ''}`}
     >
       <div className="card-top">
         <DexStyle>#{String(id).padStart(4, '0')}</DexStyle>
@@ -63,7 +63,7 @@ const PokemonCard = ({ pokemon }) => {
         )}
       </div>
       <div className="card-bottom">
-        <NameStyle>{titleCase(pokemon.name)}</NameStyle>
+        <NameStyle>{pokemonLabel(pokemon.name)}</NameStyle>
         <span className="card-types">
           {types.map((type) => (
             <span
