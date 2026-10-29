@@ -19,13 +19,13 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
 
   const menuList = [
     {
-      title: import.meta.env.ROUTER_HOME_TITLE,
+      title: 'Pokédex',
       id: import.meta.env.ROUTER_HOME_ID,
       icon: import.meta.env.ROUTER_HOME_ICON,
       path: import.meta.env.ROUTER_HOME_PATH,
     },
     {
-      title: import.meta.env.ROUTER_BLOGS_TITLE,
+      title: 'Bài viết',
       id: import.meta.env.ROUTER_BLOGS_ID,
       icon: import.meta.env.ROUTER_BLOGS_ICON,
       path: import.meta.env.ROUTER_BLOGS_PATH,
@@ -34,10 +34,13 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
     <MenuItemStyle
       key={menu.id}
       className={`${menu.id === route.id ? 'is-active' : ''}`}
+      aria-current={menu.id === route.id ? 'page' : undefined}
       to={menu.path}
       onClick={onClose}
     >
-      <span className="material-symbols-outlined">{menu.icon}</span>
+      <span className="material-symbols-outlined" aria-hidden="true">
+        {menu.icon}
+      </span>
       <span>{menu.title}</span>
     </MenuItemStyle>
   ))
@@ -46,7 +49,12 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
     <OverlayStyle $isOpen={isOpen} onClick={onClose}>
       <ContainerStyle $isOpen={isOpen} onClick={(e) => e.stopPropagation()}>
         <HeaderStyle>
-          <span className="material-symbols-outlined menu-icon">menu</span>
+          <span
+            className="material-symbols-outlined menu-icon"
+            aria-hidden="true"
+          >
+            menu
+          </span>
           <h2>Menu</h2>
         </HeaderStyle>
         <BodyStyle>{menuList}</BodyStyle>
