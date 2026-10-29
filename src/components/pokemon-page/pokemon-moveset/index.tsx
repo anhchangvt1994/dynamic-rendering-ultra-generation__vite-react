@@ -1,3 +1,4 @@
+import { sortMoves, titleCase } from '../format.mjs'
 import {
   PokemonMovesetCellStyle,
   PokemonMovesetStyle,
@@ -7,18 +8,17 @@ import {
 const PokemonMoveset = (props) => {
   const { moveset = [] } = props
 
-  const movesetList = moveset.map((item, idx) => {
-    if (!item.move || !item.move.name) return null
-
-    const className = idx !== moveset.length - 1 ? 'border-bottom' : ''
+  const sorted = sortMoves(moveset)
+  const movesetList = sorted.map(({ entry, learning }, idx) => {
+    const className = idx !== sorted.length - 1 ? 'border-bottom' : ''
 
     return (
-      <PokemonMovesetStyle key={item.move.name} $columns={2}>
+      <PokemonMovesetStyle key={entry.move.name} $columns={2}>
         <PokemonMovesetCellStyle className={`${className} border-right`}>
-          {item.move.name}
+          {titleCase(entry.move.name)}
         </PokemonMovesetCellStyle>
         <PokemonMovesetCellStyle className={className}>
-          {item.version_group_details?.[0]?.level_learned_at}
+          {learning.label}
         </PokemonMovesetCellStyle>
       </PokemonMovesetStyle>
     )
@@ -34,7 +34,7 @@ const PokemonMoveset = (props) => {
           <TitleStyle>Tên</TitleStyle>
         </PokemonMovesetCellStyle>
         <PokemonMovesetCellStyle className="border-bottom">
-          <TitleStyle>Level</TitleStyle>
+          <TitleStyle>Cách học</TitleStyle>
         </PokemonMovesetCellStyle>
       </PokemonMovesetStyle>
       {movesetList}

@@ -1,3 +1,4 @@
+import { formatHeight, formatWeight, titleCase } from '../format.mjs'
 import { PokemonInfoCellStyle, PokemonInfoStyle, TitleStyle } from './styles'
 
 const PokemonInfo = (props) => {
@@ -10,7 +11,7 @@ const PokemonInfo = (props) => {
 
     return (
       <PokemonInfoCellStyle key={item.ability.name} className={className}>
-        {item.ability.name}
+        {titleCase(item.ability.name)}
       </PokemonInfoCellStyle>
     )
   })
@@ -25,9 +26,9 @@ const PokemonInfo = (props) => {
           <TitleStyle>Cân nặng</TitleStyle>
         </PokemonInfoCellStyle>
         <PokemonInfoCellStyle className="border-right">
-          {height}
+          {formatHeight(height)}
         </PokemonInfoCellStyle>
-        <PokemonInfoCellStyle>{weight}</PokemonInfoCellStyle>
+        <PokemonInfoCellStyle>{formatWeight(weight)}</PokemonInfoCellStyle>
       </PokemonInfoStyle>
 
       <PokemonInfoStyle $columns={1} className="is-table">

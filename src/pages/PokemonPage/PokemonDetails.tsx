@@ -3,6 +3,7 @@ import { memo } from 'react'
 import PokemonInfo from 'components/pokemon-page/pokemon-info'
 import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
+import { statLabel } from 'components/pokemon-page/format.mjs'
 import PokemonPower from './PokemonPower'
 import { DetailsSkeletonStyle } from './styles'
 
@@ -57,7 +58,7 @@ export const PokemonDetailsSkeleton = () => (
       {import.meta.env.INFO_POKEMON_STATS_DEFAULT.map((item, index) => (
         <div className="skeleton-stat" key={item.stat.name}>
           <div className="skeleton-stat-label">
-            <span>{item.stat.name}</span>
+            <span>{statLabel(item.stat.name)}</span>
             <span className="skeleton-shape skeleton-value" />
           </div>
           <div className="skeleton-track">

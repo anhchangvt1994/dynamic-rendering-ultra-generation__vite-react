@@ -1,3 +1,4 @@
+import { statLabel } from '../format.mjs'
 import {
   PokemonStatsProgressBarInnerStyle,
   PokemonStatsProgressBarStyle,
@@ -26,7 +27,7 @@ const PokemonStats = (props) => {
     return (
       <PokemonStatsRowStyle key={item.stat.name}>
         <PokemonStatsTitleColStyle>
-          <span>{item.stat.name}</span>
+          <span>{statLabel(item.stat.name)}</span>
           <span>{baseStat}</span>
         </PokemonStatsTitleColStyle>
         <PokemonStatsValueColStyle>
