@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import FieldIcon from 'components/common/FieldIcon'
 import { getPokemonFallbackImage } from 'pages/PokemonPage/navigation.mjs'
@@ -44,7 +44,16 @@ export default function FeaturedEncounter({
   onExplore: () => void
   onRandom: () => void
 }) {
+  // "today's encounter" rotates daily (visitor's local date) through the
+  // curated three; picked after mount so server and client markup agree
   const [selected, setSelected] = useState(0)
+  useEffect(() => {
+    const now = new Date()
+    const day = Math.floor(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000
+    )
+    setSelected(day % encounters.length)
+  }, [])
   const pokemon = encounters[selected]
   return (
     <HeroStyle style={{ '--encounter': pokemon.color } as CSSProperties}>

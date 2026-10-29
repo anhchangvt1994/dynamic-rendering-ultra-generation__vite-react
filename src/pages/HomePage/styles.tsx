@@ -910,6 +910,7 @@ export const HeroStyle = styled.section`
     flex: none;
   }
   .encounter-picker button {
+    position: relative;
     width: 35px;
     height: 35px;
     display: grid;
@@ -929,6 +930,12 @@ export const HeroStyle = styled.section`
   .encounter-picker button:hover {
     transform: translateY(-2px);
     background: white;
+  }
+  /* 35px coin, 45px touch target */
+  .encounter-picker button::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
   }
   .encounter-picker img {
     width: 27px;
