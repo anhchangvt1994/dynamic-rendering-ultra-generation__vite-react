@@ -1,6 +1,8 @@
-import Image from 'components/common/Image'
+import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
 import { functionGenerator } from 'utils/EnvHelper'
+import { matchRange } from '../../search.mjs'
 import {
+  DexStyle,
   ImageColStyle,
   InfoColStyle,
   NameStyle,
@@ -9,45 +11,77 @@ import {
   SearchListStyle,
 } from './styles'
 
-// Marks the first match of the typed keyword; rendered as React text, not
-// injected HTML.
+const toPath = functionGenerator(
+  import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
+)
+
+// Marks the typed part of the name; rendered as text, never as HTML.
 const highlight = (name: string, keyword: string) => {
-  const at = keyword ? name.indexOf(keyword) : -1
-  if (at < 0) return name
+  const range = matchRange(name, keyword)
+  if (!range) return name
+  const [from, to] = range
   return (
     <>
-      {name.slice(0, at)}
-      <mark>{name.slice(at, at + keyword.length)}</mark>
-      {name.slice(at + keyword.length)}
+      {name.slice(0, from)}
+      <mark>{name.slice(from, to)}</mark>
+      {name.slice(to)}
     </>
   )
 }
 
-const SearchResults = (props) => {
-  const { keyword = '', searchResults = [], onScroll } = props
-  const getSlugUnderScore = useMemo(() => getCustomSlug('_'), [])
-  const getPokemonDetailUrl = functionGenerator(
-    import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
-  )
+type Result = { name: string; id: number }
 
-  const loadingList = searchResults.map((result) => {
-    return (
-      <SearchItemStyle key={result.name}>
-        <SearchItemInnerStyle to={getPokemonDetailUrl(getSlug(result.name))}>
+export const optionId = (name: string) => `search-option-${name}`
+
+const SearchResults = ({
+  keyword,
+  results,
+  activeIndex,
+  listId,
+  onHover,
+}: {
+  keyword: string
+  results: Result[]
+  activeIndex: number
+  listId: string
+  onHover: (index: number) => void
+}) => (
+  // focus stays in the combobox input; arrows drive the selection
+  <SearchListStyle
+    id={listId}
+    role="listbox"
+    aria-label="Kết quả tìm Pokémon"
+    tabIndex={-1}
+  >
+    {results.map((result, index) => (
+      <SearchItemStyle
+        key={result.name}
+        id={optionId(result.name)}
+        role="option"
+        aria-selected={index === activeIndex}
+        onMouseEnter={() => onHover(index)}
+      >
+        <SearchItemInnerStyle to={toPath(getSlug(result.name))} tabIndex={-1}>
           <ImageColStyle>
-            <Image
-              src={`https://projectpokemon.org/images/normal-sprite/${getSlugUnderScore(result.name)}.gif`}
+            <img
+              src={getPokemonSprite(result.id)}
+              alt=""
+              width={56}
+              height={56}
+              loading="lazy"
+              decoding="async"
             />
           </ImageColStyle>
           <InfoColStyle>
             <NameStyle>{highlight(result.name, keyword)}</NameStyle>
+            {result.id <= 1025 && (
+              <DexStyle>#{String(result.id).padStart(4, '0')}</DexStyle>
+            )}
           </InfoColStyle>
         </SearchItemInnerStyle>
       </SearchItemStyle>
-    )
-  })
-
-  return <SearchListStyle onScroll={onScroll}>{loadingList}</SearchListStyle>
-}
+    ))}
+  </SearchListStyle>
+)
 
 export default SearchResults

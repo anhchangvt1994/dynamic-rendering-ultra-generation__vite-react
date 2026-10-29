@@ -8,9 +8,11 @@ export const OverlayStyle = styled.div<{ $isOpen: boolean }>`
   backdrop-filter: blur(4px);
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
+  /* visible at once when opening (so focus can move in), hidden only
+     after the fade when closing */
   transition:
     opacity 0.3s ease,
-    visibility 0.3s ease;
+    visibility 0s linear ${({ $isOpen }) => ($isOpen ? '0s' : '0.3s')};
 `
 
 export const ContainerStyle = styled.div<{ $isOpen: boolean }>`

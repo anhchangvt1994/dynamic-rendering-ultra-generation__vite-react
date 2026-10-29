@@ -3,6 +3,10 @@ export const POKEMON_COUNT = 1025
 export const getPokemonImage = (id) =>
   `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${String(id).padStart(3, '0')}.png`
 
+// 96px pixel sprite (~1–3 KB) for lists; exists for every species and form.
+export const getPokemonSprite = (id) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+
 export const getPokemonFallbackImage = (id) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
 

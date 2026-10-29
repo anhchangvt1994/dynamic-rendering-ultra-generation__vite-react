@@ -83,4 +83,10 @@ export const ResultsListStyle = styled.ul`
   }
 `
 
-export const SearchBodyStyle = styled.div``
+export const SearchBodyStyle = styled.div`
+  .hint {
+    margin: 16px 0 0;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: center;
+  }
+`

@@ -111,7 +111,7 @@ function Layout() {
   }
 
   const onShowMenu = () => handleClickMenu(true)
-  const onHideMenu = () => handleClickMenu(false)
+  const onHideMenu = useCallback(() => setIsShowMenuBar(false), [])
   const onShowSearch = () => handleClickSearch(true)
   const onHideSearch = useCallback(() => setIsShowSearchBar(false), [])
 

@@ -1,4 +1,4 @@
-import useEscapeToClose from 'hooks/useEscapeToClose'
+import useDialog from 'hooks/useDialog'
 import {
   BodyStyle,
   ContainerStyle,
@@ -15,7 +15,7 @@ interface MenuBarProps {
 const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
   const route = useRoute()
 
-  useEscapeToClose(isOpen, onClose)
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose)
 
   const menuList = [
     {
@@ -46,8 +46,16 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
   ))
 
   return (
-    <OverlayStyle $isOpen={isOpen} onClick={onClose}>
-      <ContainerStyle $isOpen={isOpen} onClick={(e) => e.stopPropagation()}>
+    // closed, it only slides off-screen: inert keeps its links out of Tab
+    <OverlayStyle $isOpen={isOpen} onClick={onClose} inert={!isOpen}>
+      <ContainerStyle
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        $isOpen={isOpen}
+        onClick={(e) => e.stopPropagation()}
+      >
         <HeaderStyle>
           <span
             className="material-symbols-outlined menu-icon"

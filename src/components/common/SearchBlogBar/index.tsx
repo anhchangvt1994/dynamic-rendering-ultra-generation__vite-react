@@ -1,4 +1,4 @@
-import useEscapeToClose from 'hooks/useEscapeToClose'
+import useDialog from 'hooks/useDialog'
 import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
@@ -79,13 +79,19 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
     )
   }, [isSearching, keyword, results])
 
-  useEscapeToClose(isOpen, onClose)
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose)
 
   if (!isOpen) return null
 
   return (
     <OverlayStyle onClick={onClose}>
-      <ContainerStyle onClick={(e) => e.stopPropagation()}>
+      <ContainerStyle
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tìm bài viết"
+        onClick={(e) => e.stopPropagation()}
+      >
         <SearchBarStyle>
           <span className="material-symbols-outlined" aria-hidden="true">
             search
