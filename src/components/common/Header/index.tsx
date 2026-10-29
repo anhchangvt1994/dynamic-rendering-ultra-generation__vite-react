@@ -6,12 +6,26 @@ const Header = (props) => {
   return (
     <HeaderStyle>
       <HeaderBackgroundStyle>
-        <div className="left" onClick={onClickMenu}>
-          <span className="material-symbols-outlined">menu</span>
-        </div>
-        <div className="right" onClick={onClickSearch}>
-          <span className="material-symbols-outlined">search</span>
-        </div>
+        <button
+          type="button"
+          className="left"
+          aria-label="Mở menu"
+          onClick={onClickMenu}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            menu
+          </span>
+        </button>
+        <button
+          type="button"
+          className="right"
+          aria-label="Tìm kiếm"
+          onClick={onClickSearch}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            search
+          </span>
+        </button>
       </HeaderBackgroundStyle>
       <AvatarStyle
         className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}

@@ -35,9 +35,21 @@ export const HeaderBackgroundStyle = styled.div`
     border-radius: 0;
     color: #ffffff;
     font-size: 24px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: filter 120ms ease-out;
 
     & .material-symbols-outlined {
       font-size: 32px;
+    }
+
+    &:active {
+      filter: brightness(0.85);
+    }
+    &:focus-visible {
+      outline: 2px solid #ffcb05;
+      outline-offset: -4px;
     }
   }
 
