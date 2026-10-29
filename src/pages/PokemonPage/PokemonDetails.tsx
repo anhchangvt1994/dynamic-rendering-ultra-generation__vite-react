@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { memo } from 'react'
 import PokemonInfo from 'components/pokemon-page/pokemon-info'
 import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
@@ -41,10 +42,16 @@ export const PokemonDetailsSkeleton = () => (
   <DetailsSkeletonStyle aria-hidden="true">
     <div className="skeleton-card skeleton-power">
       <i className="skeleton-shape" />
-      <div>
-        <i className="skeleton-shape" />
-        <i className="skeleton-shape" />
+      <div className="skeleton-ladder">
+        {Array.from({ length: 10 }, (_, i) => (
+          <i
+            key={i}
+            className="skeleton-shape"
+            style={{ '--i': i } as CSSProperties}
+          />
+        ))}
       </div>
+      <i className="skeleton-shape" />
     </div>
     <div className="skeleton-stats">
       {import.meta.env.INFO_POKEMON_STATS_DEFAULT.map((item, index) => (

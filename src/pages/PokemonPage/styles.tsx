@@ -212,21 +212,81 @@ export const CarouselStageStyle = styled.div`
     );
   }
 
+  /*
+   * B and up: an energy aura behind the Pokémon in its own shape. The box
+   * is grown by --grow on every side, so the "contain" mask draws the same
+   * silhouette a little larger; streaks inside rise like ki. Higher tiers
+   * grow it further and run it faster.
+   */
+  &[data-aura='4'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='5'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='6'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='7'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='8'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+    --grow: 7px;
+    --flow: 0.9s;
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: calc(20px - var(--grow)) calc(var(--grow) * -1);
+    pointer-events: none;
+    -webkit-mask: var(--art) center / contain no-repeat;
+    mask: var(--art) center / contain no-repeat;
+    background:
+      repeating-linear-gradient(
+          to top,
+          transparent 0 9px,
+          rgba(255, 255, 255, 0.75) 9px 12px
+        )
+        0 0 / 100% 48px,
+      linear-gradient(to top, var(--aura-a), var(--aura-b) 70%, transparent);
+    filter: blur(2.5px);
+    animation:
+      aura-awaken 900ms ease-out both,
+      aura-flow var(--flow) linear 900ms infinite,
+      aura-surge 1.2s ease-in-out 900ms infinite alternate;
+  }
+  &[data-aura='6'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='7'] .swiper-slide-active .pokemon-visual::before {
+    --grow: 10px;
+    --flow: 0.6s;
+  }
+  &[data-aura='8'] .swiper-slide-active .pokemon-visual::before,
+  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+    --grow: 13px;
+    --flow: 0.42s;
+  }
+  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+    background:
+      repeating-linear-gradient(
+          to top,
+          transparent 0 9px,
+          rgba(255, 255, 255, 0.85) 9px 12px
+        )
+        0 0 / 100% 48px,
+      linear-gradient(to top, #ff5f6d, #ffd86f, #6bf2ff, #c77dff);
+  }
+
   /* rim light that the scan leaves behind */
   &[data-aura] .swiper-slide-active img {
-    animation: aura-rim-in 600ms ease-out 900ms both;
+    animation:
+      aura-rim-in 600ms ease-out 900ms both,
+      aura-flash 700ms ease-out;
   }
   &[data-aura='6'] .swiper-slide-active img,
   &[data-aura='7'] .swiper-slide-active img,
   &[data-aura='8'] .swiper-slide-active img {
     animation:
       aura-rim-in 600ms ease-out 900ms both,
-      aura-rim-breathe 2.4s ease-in-out 1.5s infinite alternate;
+      aura-rim-breathe 2.4s ease-in-out 1.5s infinite alternate,
+      aura-flash 700ms ease-out;
   }
   &[data-aura='9'] .swiper-slide-active img {
     animation:
       aura-rim-in 600ms ease-out 900ms both,
-      aura-rim-prism 4s linear 1.5s infinite;
+      aura-rim-prism 4s linear 1.5s infinite,
+      aura-flash 700ms ease-out;
   }
   &[data-aura='0'] .swiper-slide-active img,
   &[data-aura='1'] .swiper-slide-active img {
@@ -249,6 +309,45 @@ export const CarouselStageStyle = styled.div`
       drop-shadow(0 0 12px var(--aura-b));
   }
 
+  @keyframes aura-flash {
+    0% {
+      filter: brightness(4) saturate(0);
+    }
+    100% {
+      filter: brightness(1) saturate(1);
+    }
+  }
+  @keyframes aura-awaken {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.12);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+  }
+  @keyframes aura-flow {
+    to {
+      background-position:
+        0 -48px,
+        0 0;
+    }
+  }
+  @keyframes aura-surge {
+    from {
+      transform: scale(0.98);
+      opacity: 0.7;
+    }
+    to {
+      transform: scale(1.04);
+      opacity: 1;
+    }
+  }
   @keyframes aura-scan {
     0% {
       background-position: 0 0;
@@ -292,6 +391,10 @@ export const CarouselStageStyle = styled.div`
   }
 
   @media (prefers-reduced-motion: reduce) {
+    &[data-aura] .swiper-slide-active .pokemon-visual::before {
+      animation: none;
+      opacity: 0.8;
+    }
     &[data-aura] .swiper-slide-active .pokemon-visual::after {
       display: none;
     }
@@ -359,10 +462,6 @@ export const NameLoadingStyle = styled.div`
     gap: 3px;
     height: 20px;
     color: #c9f9df;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: calc(100% - 5px);
   }
 
   .tuning-signal i {
@@ -496,27 +595,32 @@ export const DetailsSkeletonStyle = styled.div`
     display: grid;
     gap: 16px;
   }
+  /* mirrors PokemonPower: badge | rising ladder | total */
   .skeleton-power {
     margin: 0 0 16px;
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 52px 1fr 48px;
+    column-gap: 14px;
     align-items: center;
     height: 88px;
-    text-align: left;
   }
-  .skeleton-power > i {
+  .skeleton-power > i:first-child {
     width: 52px;
     height: 58px;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
-  .skeleton-power div {
+  .skeleton-ladder {
     display: grid;
-    gap: 12px;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 3px;
+    align-items: end;
+    height: 32px;
   }
-  .skeleton-power div i:first-child {
-    width: 46%;
+  .skeleton-ladder i {
+    height: calc(8px + var(--i) * 2.6px);
+    transform: skewX(-16deg);
   }
-  .skeleton-power div i:last-child {
-    height: 16px;
+  .skeleton-power > i:last-child {
+    height: 40px;
   }
   .skeleton-measurements {
     grid-template-columns: repeat(2, 1fr);
