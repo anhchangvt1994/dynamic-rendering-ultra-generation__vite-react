@@ -102,6 +102,10 @@ export const PokemonPageStyle = styled.div`
 `
 
 export const HeaderStyle = styled.div`
+  /* aligned with BodyStyle's 640px column on wide screens */
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
   position: sticky;
   height: 24px;
   margin-top: -16px;
@@ -146,6 +150,9 @@ export const BackIconStyle = styled.span`
 export const BodyStyle = styled.div`
   position: relative;
   padding: 16px 0;
+  /* one readable column on wide screens instead of a 1200px stretch */
+  max-width: 640px;
+  margin: 0 auto;
 
   .swiper-wrapper {
     transition-timing-function: cubic-bezier(0.22, 0.68, 0.25, 1);
