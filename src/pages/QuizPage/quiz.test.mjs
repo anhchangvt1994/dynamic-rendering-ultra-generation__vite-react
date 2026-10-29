@@ -77,3 +77,24 @@ test('best streak storage never throws', () => {
   assert.equal(readBest(broken), 0)
   saveBest(3, broken)
 })
+
+test('generation filter keeps its id range', async () => {
+  const { inGeneration } = await import('./quiz.mjs')
+  const species = [1, 151, 152, 251, 1025].map((id) => ({ id, name: `p${id}` }))
+  assert.deepEqual(
+    inGeneration(species, { start: 1, end: 151 }).map((s) => s.id),
+    [1, 151]
+  )
+  assert.equal(inGeneration(species, null).length, 5)
+})
+
+test('typed guesses forgive case, accents and punctuation', async () => {
+  const { matchesGuess } = await import('./quiz.mjs')
+  assert.ok(matchesGuess('mr mime', 'mr-mime'))
+  assert.ok(matchesGuess('Mr. Mime', 'mr-mime'))
+  assert.ok(matchesGuess('flabébé', 'flabebe'))
+  assert.ok(matchesGuess('deoxys', 'deoxys-normal'))
+  assert.ok(matchesGuess('nidoran♀', 'nidoran-f'))
+  assert.ok(!matchesGuess('mime', 'mr-mime'))
+  assert.ok(!matchesGuess('  ', 'pikachu'))
+})

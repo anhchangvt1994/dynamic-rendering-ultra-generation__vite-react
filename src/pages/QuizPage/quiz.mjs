@@ -110,3 +110,31 @@ export function saveBest(value, storage = globalThis.localStorage) {
     // private mode / quota: the streak still counts for this visit
   }
 }
+
+/** Species of one generation ({ start, end }); everything when none. */
+export function inGeneration(species, generation) {
+  if (!generation) return species
+  return species.filter(
+    (entry) => entry.id >= generation.start && entry.id <= generation.end
+  )
+}
+
+const fold = (text = '') =>
+  text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/♀/g, 'f')
+    .replace(/♂/g, 'm')
+    .replace(/[^a-z0-9]/g, '')
+
+/**
+ * Hard mode: does a typed guess name this species? Ignores case, accents,
+ * spaces and punctuation ("mr mime" = "Mr. Mime", "flabebe" = "Flabébé"),
+ * and accepts the bare species for default forms ("deoxys").
+ */
+export function matchesGuess(guess, name) {
+  const typed = fold(guess)
+  if (!typed) return false
+  return typed === fold(name) || typed === fold(quizLabel(name))
+}

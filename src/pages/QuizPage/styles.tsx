@@ -58,6 +58,119 @@ export const QuizStyle = styled.section`
     animation: quiz-pop 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
   }
 
+  /* ── settings: generation + difficulty ── */
+  .settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+    margin-bottom: 14px;
+  }
+  .settings > :first-child {
+    flex: 1 1 200px;
+  }
+  .mode {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 14px;
+    background: var(--surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--line, #dfe6ed);
+  }
+  .mode button {
+    min-height: 44px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 11px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .mode button[aria-pressed='true'] {
+    background: var(--ink, #172d45);
+    color: #fff;
+  }
+  .mode button:focus-visible {
+    outline: 3px solid var(--focus, #2666b1);
+    outline-offset: 1px;
+  }
+
+  /* ── hard mode: type the name ── */
+  .guess {
+    margin-top: 14px;
+  }
+  .guess label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .guess-row {
+    display: flex;
+    gap: 8px;
+  }
+  .guess input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 52px;
+    padding: 0 16px;
+    border: 2px solid var(--line, #dfe6ed);
+    border-radius: 14px;
+    background: var(--surface, #fff);
+    color: var(--ink, #172d45);
+    font: inherit;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .guess input:focus-visible {
+    outline: none;
+    border-color: var(--focus, #2666b1);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--focus, #2666b1) 25%, transparent);
+  }
+  &[data-state='right'] .guess input {
+    border-color: #2f9e58;
+  }
+  &[data-state='wrong'] .guess input {
+    border-color: var(--red, #d94136);
+    animation: quiz-shake 360ms ease-in-out;
+  }
+  .guess button {
+    flex: none;
+    min-height: 52px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 14px;
+    background: var(--ink, #172d45);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .guess button.skip {
+    background: none;
+    color: var(--muted);
+    box-shadow: inset 0 0 0 2px var(--line, #dfe6ed);
+  }
+  .guess button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .guess button:focus-visible {
+    outline: 3px solid var(--focus, #2666b1);
+    outline-offset: 2px;
+  }
+  .shared {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .profile {
+    background: none;
+  }
+
   /* ── the stage: sunburst + silhouette ── */
   .stage {
     position: relative;

@@ -1,11 +1,15 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
 import { functionGenerator } from 'utils/EnvHelper'
 import { isCaught, toggleCaught } from 'utils/caught.mjs'
+import AppSelect from 'components/common/Select'
+import { GENERATIONS } from 'pages/HomePage/catalog.mjs'
 import {
+  inGeneration,
   makeRound,
+  matchesGuess,
   quizLabel,
   readBest,
   saveBest,
@@ -39,7 +43,23 @@ export default function QuizPage() {
     limit: 1500,
     offset: 0,
   })
-  const species = useMemo(() => speciesFromList(data?.results), [data])
+  // settings live in the URL so a challenge can be shared: ?gen=1&mode=hard
+  const location = useLocation()
+  const navigate = useNavigate()
+  const params = new URLSearchParams(location.search)
+  const generation = GENERATIONS.find((gen) => gen.id === params.get('gen'))
+  const hard = params.get('mode') === 'hard'
+  const setSetting = (key: string, value: string) => {
+    const next = new URLSearchParams(location.search)
+    if (value) next.set(key, value)
+    else next.delete(key)
+    const query = next.toString()
+    navigate(query ? `?${query}` : '.', { replace: true })
+  }
+  const species = useMemo(
+    () => inGeneration(speciesFromList(data?.results), generation),
+    [data, generation]
+  )
 
   const [round, setRound] = useState<Round | null>(null)
   const [chosen, setChosen] = useState<number | null>(null)
@@ -47,7 +67,9 @@ export default function QuizPage() {
   const [best, setBest] = useState(() => readBest())
   const [newlyCaught, setNewlyCaught] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [guess, setGuess] = useState('')
   const recent = useRef<number[]>([])
+  const guessRef = useRef<HTMLInputElement>(null)
   const nextRef = useRef<HTMLButtonElement>(null)
   const audio = useRef<HTMLAudioElement | null>(null)
 
@@ -60,7 +82,20 @@ export default function QuizPage() {
     setChosen(null)
     setNewlyCaught(false)
     setLoaded(false)
+    setGuess('')
   }, [species])
+
+  // a new generation or mode starts a fresh run
+  useEffect(() => {
+    recent.current = []
+    setStreak(0)
+    setRound(null)
+  }, [generation?.id, hard])
+
+  // hard mode: the typing field is the place to be on every new round
+  useEffect(() => {
+    if (hard && round && chosen === null) guessRef.current?.focus()
+  }, [hard, round, chosen])
 
   useEffect(() => {
     if (species.length && !round) next()
@@ -107,16 +142,42 @@ export default function QuizPage() {
       const target = event.target as HTMLElement
       if (target.closest('input, textarea, [role="dialog"]')) return
       const n = Number(event.key)
-      if (!revealed && n >= 1 && n <= round.options.length) {
+      if (!hard && !revealed && n >= 1 && n <= round.options.length) {
         event.preventDefault()
         choose(round.options[n - 1].id)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [round, revealed, choose])
+  }, [round, revealed, choose, hard])
 
   useEffect(() => () => audio.current?.pause(), [])
+
+  const submitGuess = (event: FormEvent) => {
+    event.preventDefault()
+    if (!round || chosen !== null || !guess.trim()) return
+    choose(matchesGuess(guess, round.answer.name) ? round.answer.id : -1)
+  }
+
+  const [shared, setShared] = useState('')
+  const shareStreak = async () => {
+    const where = generation ? ` (${generation.name})` : ''
+    const text = `Mình đoán đúng ${best} Pokémon liên tiếp trong “Ai đây?”${where}${hard ? ' ở chế độ Khó' : ''}. Thử xem bạn được mấy?`
+    const url = location.pathname + location.search
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Ai đây? – Pokédex', text, url })
+        return
+      }
+      await navigator.clipboard.writeText(
+        `${text} ${window.location.origin}${url}`
+      )
+      setShared('Đã sao chép lời thách đấu')
+    } catch (error) {
+      if ((error as Error)?.name !== 'AbortError')
+        setShared('Không chia sẻ được')
+    }
+  }
 
   if (isError) {
     return (
@@ -152,6 +213,37 @@ export default function QuizPage() {
           </div>
         </dl>
       </header>
+
+      <div className="settings">
+        <AppSelect
+          label="Thế hệ"
+          value={generation?.id ?? ''}
+          options={[
+            { value: '', label: 'Mọi thế hệ' },
+            ...GENERATIONS.map((gen) => ({
+              value: gen.id,
+              label: `${gen.name} (#${gen.start}–${gen.end})`,
+            })),
+          ]}
+          onValueChange={(value) => setSetting('gen', value)}
+        />
+        <div className="mode" role="group" aria-label="Độ khó">
+          <button
+            type="button"
+            aria-pressed={!hard}
+            onClick={() => setSetting('mode', '')}
+          >
+            Dễ · 4 lựa chọn
+          </button>
+          <button
+            type="button"
+            aria-pressed={hard}
+            onClick={() => setSetting('mode', 'hard')}
+          >
+            Khó · tự gõ tên
+          </button>
+        </div>
+      </div>
 
       <div className="stage" aria-busy={!round || !loaded}>
         <span className="burst" aria-hidden="true" />
@@ -192,34 +284,68 @@ export default function QuizPage() {
         </button>
       </div>
 
-      <ol className="options" aria-label="Chọn tên Pokémon">
-        {(round?.options ?? Array.from({ length: 4 }, () => null)).map(
-          (option, index) => {
-            const state =
-              !revealed || !option
-                ? undefined
-                : option.id === round?.answer.id
-                  ? 'answer'
-                  : option.id === chosen
-                    ? 'miss'
-                    : 'dim'
-            return (
-              <li key={option?.id ?? index}>
-                <button
-                  type="button"
-                  disabled={!option || revealed}
-                  data-state={state}
-                  onClick={() => option && choose(option.id)}
-                  style={{ '--i': index } as CSSProperties}
-                >
-                  <kbd aria-hidden="true">{index + 1}</kbd>
-                  {option ? quizLabel(option.name) : '…'}
-                </button>
-              </li>
-            )
-          }
-        )}
-      </ol>
+      {hard ? (
+        <form className="guess" onSubmit={submitGuess}>
+          <label htmlFor="quiz-guess">Tên Pokémon này là…</label>
+          <div className="guess-row">
+            <input
+              id="quiz-guess"
+              ref={guessRef}
+              value={guess}
+              onChange={(event) => setGuess(event.target.value)}
+              disabled={!round || revealed}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              enterKeyHint="done"
+              placeholder="Ví dụ: Pikachu"
+            />
+            <button
+              type="submit"
+              disabled={!round || revealed || !guess.trim()}
+            >
+              Đoán
+            </button>
+            <button
+              type="button"
+              className="skip"
+              disabled={!round || revealed}
+              onClick={() => choose(-1)}
+            >
+              Bỏ qua
+            </button>
+          </div>
+        </form>
+      ) : (
+        <ol className="options" aria-label="Chọn tên Pokémon">
+          {(round?.options ?? Array.from({ length: 4 }, () => null)).map(
+            (option, index) => {
+              const state =
+                !revealed || !option
+                  ? undefined
+                  : option.id === round?.answer.id
+                    ? 'answer'
+                    : option.id === chosen
+                      ? 'miss'
+                      : 'dim'
+              return (
+                <li key={option?.id ?? index}>
+                  <button
+                    type="button"
+                    disabled={!option || revealed}
+                    data-state={state}
+                    onClick={() => option && choose(option.id)}
+                    style={{ '--i': index } as CSSProperties}
+                  >
+                    <kbd aria-hidden="true">{index + 1}</kbd>
+                    {option ? quizLabel(option.name) : '…'}
+                  </button>
+                </li>
+              )
+            }
+          )}
+        </ol>
+      )}
 
       <div className="result" role="status" aria-live="polite">
         {revealed && round && (
@@ -232,7 +358,9 @@ export default function QuizPage() {
                 </>
               ) : (
                 <>
-                  <strong>Chưa đúng.</strong> Đó là {answerName}
+                  <strong>Chưa đúng.</strong>{' '}
+                  {hard && guess.trim() ? `Bạn đoán “${guess.trim()}”. ` : ''}
+                  Đó là {answerName}
                   {streak === 0 && ' — chuỗi về 0.'}
                 </>
               )}
@@ -249,7 +377,13 @@ export default function QuizPage() {
               >
                 Pokémon tiếp theo
               </button>
+              {best > 0 && (
+                <button type="button" className="profile" onClick={shareStreak}>
+                  Thách bạn bè · kỷ lục {best}
+                </button>
+              )}
             </div>
+            {shared && <p className="shared">{shared}</p>}
           </>
         )}
       </div>
