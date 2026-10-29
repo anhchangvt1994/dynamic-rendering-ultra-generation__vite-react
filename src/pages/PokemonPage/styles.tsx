@@ -234,8 +234,10 @@ export const CarouselStageStyle = styled.div`
     }
   }
 
-  /* "Who's that Pokémon?": the centred Pokémon is a silhouette until its
-     data arrives; the arrival flash then reveals it in colour */
+  /* "Who's that Pokémon?": every Pokémon that has not been revealed is a
+     silhouette: all the neighbours, and the centred one until its data
+     arrives. Only the revealed one shows its colours (arrival flash). */
+  .swiper-slide:not(.swiper-slide-active) img,
   &[data-loading='true'] ${SELECTED} img {
     filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
       drop-shadow(0 0 14px rgba(120, 200, 255, 0.45)) !important;
