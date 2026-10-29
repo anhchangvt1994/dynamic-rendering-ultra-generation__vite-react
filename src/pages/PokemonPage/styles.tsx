@@ -131,20 +131,20 @@ export const BackButtonStyle = styled.button`
   margin-left: -8px;
   z-index: 10;
 
+  .back-arrow {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   &:focus-visible {
     outline: 2px solid #ffcb05;
     outline-offset: 2px;
   }
-`
-
-export const BackIconStyle = styled.span`
-  border: solid #ffffff;
-  border-width: 0 3px 3px 0;
-  display: inline-block;
-  padding: 4px;
-  margin-left: 3px;
-  transform: rotate(135deg);
-  -webkit-transform: rotate(135deg);
 `
 
 export const BodyStyle = styled.div`
@@ -782,6 +782,64 @@ export const InlineAlertStyle = styled.div`
     cursor: pointer;
   }
   button:focus-visible {
+    outline: 2px solid #ffcb05;
+    outline-offset: 2px;
+  }
+`
+
+// Stage plus the visible prev/next steppers, which sit outside the
+// carousel's gesture-capturing area.
+export const StageWrapStyle = styled.div`
+  position: relative;
+`
+
+export const StepButtonStyle = styled.button`
+  position: absolute;
+  z-index: 3;
+  top: 96px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(8, 28, 26, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out;
+
+  &[data-dir='prev'] {
+    left: -6px;
+  }
+  &[data-dir='next'] {
+    right: -6px;
+  }
+  svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  &:hover:not(:disabled) {
+    background: rgba(8, 28, 26, 0.7);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  &:focus-visible {
     outline: 2px solid #ffcb05;
     outline-offset: 2px;
   }

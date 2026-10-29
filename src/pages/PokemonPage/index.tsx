@@ -12,6 +12,7 @@ import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/virtual'
 import { FreeMode, Keyboard, Virtual } from 'swiper/modules'
+import type { Swiper as SwiperInstance } from 'swiper'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
@@ -25,13 +26,14 @@ import {
 } from './navigation.mjs'
 import {
   BackButtonStyle,
-  BackIconStyle,
   BodyStyle,
   CarouselStageStyle,
   DetailsContentStyle,
   DetailsRegionStyle,
   HeaderStyle,
   InlineAlertStyle,
+  StageWrapStyle,
+  StepButtonStyle,
   NameLoadingStyle,
   NameStyle,
   PokemonPageStyle,
@@ -72,6 +74,8 @@ const PokemonPage = () => {
     (!curId || initialPokemon?.id === curId ? initialPokemon : undefined)
   const isFirstLoading = !curId
   const carousel = usePokemonCarousel(curId, setCurId, Boolean(pokemonState))
+  // for the visible prev/next buttons (they live outside the gesture area)
+  const swiperRef = useRef<SwiperInstance | null>(null)
 
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
@@ -257,7 +261,10 @@ const PokemonPage = () => {
       )}
       <HeaderStyle>
         <BackButtonStyle aria-label="Quay lại" onClick={handleBack}>
-          <BackIconStyle />
+          {/* an arrow with a stem: distinct from the ‹ › Pokémon steppers */}
+          <svg className="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 12H5M11 5l-7 7 7 7" />
+          </svg>
         </BackButtonStyle>
       </HeaderStyle>
       <BodyStyle>
@@ -269,94 +276,125 @@ const PokemonPage = () => {
             height={150}
           />
         ) : (
-          <CarouselStageStyle
-            data-scanning={carousel.isNavigating}
-            data-loading={isShowLoading}
-            data-aura={showAura ? power.level : undefined}
-            style={
-              {
-                '--aura-a': power.color.a,
-                '--aura-b': power.color.b,
-                // PokeAPI's copy of the same artwork serves CORS, which
-                // CSS masks need (pokemon.com does not).
-                '--art': detailSnapshot?.id
-                  ? `url(${getPokemonFallbackImage(detailSnapshot.id)})`
-                  : undefined,
-              } as CSSProperties
-            }
-            onPointerDownCapture={carousel.onPointerDownCapture}
-            onPointerMoveCapture={carousel.onPointerMoveCapture}
-            onPointerUpCapture={carousel.onPointerUpCapture}
-            onPointerCancelCapture={carousel.onPointerCancelCapture}
-          >
-            {dexNumber && (
-              <span key={dexNumber} className="dex-number" aria-hidden="true">
-                {dexNumber}
-              </span>
-            )}
-            <PokemonHabitat
-              types={detailSnapshot?.types ?? []}
-              scanning={isShowLoading}
-              power={power.level}
-            />
+          <StageWrapStyle>
+            <CarouselStageStyle
+              data-scanning={carousel.isNavigating}
+              data-loading={isShowLoading}
+              data-aura={showAura ? power.level : undefined}
+              style={
+                {
+                  '--aura-a': power.color.a,
+                  '--aura-b': power.color.b,
+                  // PokeAPI's copy of the same artwork serves CORS, which
+                  // CSS masks need (pokemon.com does not).
+                  '--art': detailSnapshot?.id
+                    ? `url(${getPokemonFallbackImage(detailSnapshot.id)})`
+                    : undefined,
+                } as CSSProperties
+              }
+              onPointerDownCapture={carousel.onPointerDownCapture}
+              onPointerMoveCapture={carousel.onPointerMoveCapture}
+              onPointerUpCapture={carousel.onPointerUpCapture}
+              onPointerCancelCapture={carousel.onPointerCancelCapture}
+            >
+              {dexNumber && (
+                <span key={dexNumber} className="dex-number" aria-hidden="true">
+                  {dexNumber}
+                </span>
+              )}
+              <PokemonHabitat
+                types={detailSnapshot?.types ?? []}
+                scanning={isShowLoading}
+                power={power.level}
+              />
 
-            {inCarousel ? (
-              <Swiper
-                onSwiper={carousel.onSwiper}
-                onResize={carousel.onResize}
-                onUpdate={carousel.onUpdate}
-                modules={[Virtual, FreeMode, Keyboard, WaveEffect]}
-                // ← / → step through the Pokédex like a swipe
-                keyboard={{ enabled: true, onlyInViewport: true }}
-                onSlideChange={carousel.onSlideChange}
-                onTouchStart={carousel.onTouchStart}
-                onSliderMove={carousel.onSliderMove}
-                onTouchEnd={carousel.onTouchEnd}
-                onTransitionEnd={carousel.onTransitionEnd}
-                virtual={{
-                  addSlidesBefore: carousel.renderAhead,
-                  addSlidesAfter: carousel.renderAhead,
-                }}
-                centeredSlides
-                slidesPerView={3}
-                initialSlide={Math.max(0, curId - 1)}
-                grabCursor
-                threshold={0}
-                preventInteractionOnTransition={false}
-                speed={carousel.reducedMotion ? 0 : 560}
-                freeMode={{
-                  enabled: true,
-                  sticky: true,
-                  momentum: !carousel.reducedMotion,
-                  momentumBounce: false,
-                }}
-              >
-                {pokemonSwiperSlides}
-              </Swiper>
-            ) : (
-              <div className="pokemon-solo">
-                <div className="pokemon-visual">
-                  <img
-                    key={curId}
-                    src={getPokemonFallbackImage(curId)}
-                    alt={`Pokémon ${pokemonState?.name || ''}`}
-                    width="100%"
-                    height={150}
-                    decoding="async"
-                    draggable={false}
-                    ref={markArtworkLoaded}
-                    onLoad={(event) => markArtworkLoaded(event.currentTarget)}
-                    onError={(event) => {
-                      const image = event.currentTarget
-                      if (image.dataset.fallback) return
-                      image.dataset.fallback = 'placeholder'
-                      image.src = '/images/pokemon-02.webp'
-                    }}
-                  />
+              {inCarousel ? (
+                <Swiper
+                  onSwiper={(instance) => {
+                    swiperRef.current = instance
+                    carousel.onSwiper(instance)
+                  }}
+                  onResize={carousel.onResize}
+                  onUpdate={carousel.onUpdate}
+                  modules={[Virtual, FreeMode, Keyboard, WaveEffect]}
+                  // ← / → step through the Pokédex like a swipe
+                  keyboard={{ enabled: true, onlyInViewport: true }}
+                  onSlideChange={carousel.onSlideChange}
+                  onTouchStart={carousel.onTouchStart}
+                  onSliderMove={carousel.onSliderMove}
+                  onTouchEnd={carousel.onTouchEnd}
+                  onTransitionEnd={carousel.onTransitionEnd}
+                  virtual={{
+                    addSlidesBefore: carousel.renderAhead,
+                    addSlidesAfter: carousel.renderAhead,
+                  }}
+                  centeredSlides
+                  slidesPerView={3}
+                  initialSlide={Math.max(0, curId - 1)}
+                  grabCursor
+                  threshold={0}
+                  preventInteractionOnTransition={false}
+                  speed={carousel.reducedMotion ? 0 : 560}
+                  freeMode={{
+                    enabled: true,
+                    sticky: true,
+                    momentum: !carousel.reducedMotion,
+                    momentumBounce: false,
+                  }}
+                >
+                  {pokemonSwiperSlides}
+                </Swiper>
+              ) : (
+                <div className="pokemon-solo">
+                  <div className="pokemon-visual">
+                    <img
+                      key={curId}
+                      src={getPokemonFallbackImage(curId)}
+                      alt={`Pokémon ${pokemonState?.name || ''}`}
+                      width="100%"
+                      height={150}
+                      decoding="async"
+                      draggable={false}
+                      ref={markArtworkLoaded}
+                      onLoad={(event) => markArtworkLoaded(event.currentTarget)}
+                      onError={(event) => {
+                        const image = event.currentTarget
+                        if (image.dataset.fallback) return
+                        image.dataset.fallback = 'placeholder'
+                        image.src = '/images/pokemon-02.webp'
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+            </CarouselStageStyle>
+            {inCarousel && (
+              <>
+                <StepButtonStyle
+                  type="button"
+                  data-dir="prev"
+                  aria-label="Pokémon trước"
+                  disabled={curId <= 1}
+                  onClick={() => swiperRef.current?.slidePrev()}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" />
+                  </svg>
+                </StepButtonStyle>
+                <StepButtonStyle
+                  type="button"
+                  data-dir="next"
+                  aria-label="Pokémon tiếp theo"
+                  disabled={curId >= POKEMON_COUNT}
+                  onClick={() => swiperRef.current?.slideNext()}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </StepButtonStyle>
+              </>
             )}
-          </CarouselStageStyle>
+          </StageWrapStyle>
         )}
         {isShowLoading ? (
           <NameLoadingStyle role="status" aria-live="polite">
