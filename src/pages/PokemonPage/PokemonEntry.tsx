@@ -65,33 +65,28 @@ const EntryStyle = styled.section`
   &[data-playing='true'] .lens {
     animation: entry-lens 0.5s ease-in-out infinite alternate;
   }
+  /* sound bars: still at rest, they dance while the cry plays */
   .leds {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 3px;
+    height: 22px;
   }
   .leds i {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(0, 0, 0, 0.35);
-  }
-  .leds i:nth-child(1) {
-    background: #ff6b6b;
-  }
-  .leds i:nth-child(2) {
-    background: #ffd84d;
-  }
-  .leds i:nth-child(3) {
-    background: #5be37d;
+    width: 3px;
+    height: 6px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.75);
+    transform-origin: center;
   }
   &[data-playing='true'] .leds i {
-    animation: entry-led 0.36s steps(1, end) infinite;
+    animation: entry-led 0.42s ease-in-out infinite alternate;
   }
-  &[data-playing='true'] .leds i:nth-child(2) {
-    animation-delay: 0.12s;
+  &[data-playing='true'] .leds i:nth-child(2n) {
+    animation-delay: -0.21s;
   }
-  &[data-playing='true'] .leds i:nth-child(3) {
-    animation-delay: 0.24s;
+  &[data-playing='true'] .leds i:nth-child(3n) {
+    animation-delay: -0.12s;
   }
   .cry-hint {
     margin-left: auto;
@@ -173,8 +168,11 @@ const EntryStyle = styled.section`
     }
   }
   @keyframes entry-led {
-    50% {
-      filter: brightness(2.2);
+    from {
+      transform: scaleY(1);
+    }
+    to {
+      transform: scaleY(3.2);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -244,9 +242,9 @@ const PokemonEntry = memo(({ pokemon }: { pokemon: any }) => {
           </svg>
         </button>
         <span className="leds" aria-hidden="true">
-          <i />
-          <i />
-          <i />
+          {[0, 1, 2, 3, 4].map((bar) => (
+            <i key={bar} />
+          ))}
         </span>
         {cry && <span className="cry-hint">Chạm ống kính để nghe</span>}
       </div>
