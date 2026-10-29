@@ -224,7 +224,8 @@ test('a synchronous prefetch failure releases its slot and remains retryable', a
 })
 
 test('faster input expands the horizon, with a bounded maximum', () => {
-  assert.equal(getLookAhead(0), 10)
+  // at rest only a small neighbourhood is prefetched
+  assert.equal(getLookAhead(0), 4)
   assert.ok(getLookAhead(12) > getLookAhead(2))
   assert.equal(getLookAhead(10000), 40)
 })

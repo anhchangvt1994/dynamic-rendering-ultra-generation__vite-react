@@ -1,6 +1,12 @@
 // National Pokédex supported by this Gen 9 page; exclude alternate-form IDs.
 export const POKEMON_COUNT = 1025
+// Stage artwork comes from PokéAPI: it serves CORS, so the same file also
+// feeds the CSS-mask power effects (one download instead of two).
 export const getPokemonImage = (id) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
+
+// Second source when the PokéAPI image fails (same art, other host).
+export const getPokemonAltImage = (id) =>
   `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${String(id).padStart(3, '0')}.png`
 
 // 96px pixel sprite (~1–3 KB) for lists; exists for every species and form.
@@ -10,8 +16,10 @@ export const getPokemonSprite = (id) =>
 export const getPokemonFallbackImage = (id) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
 
+// At rest only the next few neighbours are prefetched (they are mostly seen
+// as silhouettes); fast swipes widen the window up to 40.
 export const getLookAhead = (slidesPerSecond) =>
-  Math.min(40, 10 + Math.ceil(Math.max(0, slidesPerSecond) * 1.5))
+  Math.min(40, 4 + Math.ceil(Math.max(0, slidesPerSecond) * 1.5))
 
 // Neighbor payloads include the full moveset. Their speculative window stays
 // small and waits until settling; the selected target loads during animation.
@@ -176,7 +184,8 @@ export function getPrefetchIds(id, direction, ahead, max = POKEMON_COUNT) {
   for (let distance = 1; distance <= ahead; distance++) {
     ids.push(id + distance * (direction || 1))
   }
-  for (let distance = 1; distance <= 10; distance++) {
+  // behind the reader: as far as the look-ahead, never more than 10
+  for (let distance = 1; distance <= Math.min(10, ahead); distance++) {
     ids.push(id - distance * (direction || 1))
   }
   return [...new Set(ids)].filter(

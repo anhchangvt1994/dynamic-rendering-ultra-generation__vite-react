@@ -17,7 +17,7 @@ import {
   getClickMotion,
   getLookAhead,
   getPokemonImage,
-  getPokemonFallbackImage,
+  getPokemonAltImage,
   getPrefetchIds,
   getDetailPrefetchIds,
   getSwipeMotion,
@@ -67,7 +67,8 @@ export default function usePokemonCarousel(
     prefetchTime: 0,
   })
   const [reducedMotion, setReducedMotion] = useState(false)
-  const [renderAhead, setRenderAhead] = useState(10)
+  // mounted slides each load artwork: start with the resting look-ahead
+  const [renderAhead, setRenderAhead] = useState(() => getLookAhead(0))
   const [isNavigating, setIsNavigating] = useState(false)
   const activity = useRef<ReturnType<typeof createCarouselActivity> | null>(
     null
@@ -251,7 +252,7 @@ export default function usePokemonCarousel(
           image.onerror = () => {
             if (triedFallback) return finish(false)
             triedFallback = true
-            image.src = getPokemonFallbackImage(pokemonId)
+            image.src = getPokemonAltImage(pokemonId)
           }
           image.src = getPokemonImage(pokemonId)
         })

@@ -24,6 +24,7 @@ import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
 import {
+  getPokemonAltImage,
   getPokemonFallbackImage,
   getPokemonImage,
   POKEMON_COUNT,
@@ -166,7 +167,7 @@ const PokemonPage = () => {
   // Alternate forms (id > POKEMON_COUNT, e.g. Eternamax #10190) have no
   // carousel slide, so they get a single stage instead.
   const inCarousel = curId >= 1 && curId <= POKEMON_COUNT
-  const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
+  const ImagePath = pokemonState?.id ? getPokemonImage(pokemonState.id) : ''
 
   const { data: species } = useGetPokemonSpeciesQuery(speciesId, {
     skip: !speciesId,
@@ -282,7 +283,7 @@ const PokemonPage = () => {
                   delete image.dataset.loaded
                   image.src = image.dataset.fallback
                     ? '/images/pokemon-02.webp'
-                    : getPokemonFallbackImage(pokemonId)
+                    : getPokemonAltImage(pokemonId)
                   image.dataset.fallback = image.dataset.fallback
                     ? 'placeholder'
                     : 'true'
