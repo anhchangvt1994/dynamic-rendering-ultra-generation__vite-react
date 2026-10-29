@@ -254,6 +254,10 @@ export const CarouselStageStyle = styled.div`
   }
 
   /*
+   * Effects below use the artwork as a mask, so they only draw once the
+   * <img> itself has loaded (:has(img[data-loaded])); otherwise a slow
+   * image would leave a glowing ghost around the Poké Ball placeholder.
+   *
    * Power reveal on the selected Pokémon, by BST tier (data-aura = 0..9,
    * see power.mjs). A band of light scans the Pokémon itself from feet to
    * head (clipped to its silhouette via --art), then leaves a rim light.
@@ -262,7 +266,7 @@ export const CarouselStageStyle = styled.div`
   .pokemon-visual {
     position: relative;
   }
-  &[data-aura] ${SELECTED} .pokemon-visual::after {
+  &[data-aura] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     content: '';
     mix-blend-mode: screen;
     position: absolute;
@@ -281,26 +285,26 @@ export const CarouselStageStyle = styled.div`
       0 0 / 100% 300% no-repeat;
     animation: aura-scan 2.6s ease-in-out both;
   }
-  &[data-aura='0'] ${SELECTED} .pokemon-visual::after,
-  &[data-aura='1'] ${SELECTED} .pokemon-visual::after {
+  &[data-aura='0'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after,
+  &[data-aura='1'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     opacity: 0.45;
   }
-  &[data-aura='4'] ${SELECTED} .pokemon-visual::after,
-  &[data-aura='5'] ${SELECTED} .pokemon-visual::after {
+  &[data-aura='4'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after,
+  &[data-aura='5'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     animation-duration: 6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='6'] ${SELECTED} .pokemon-visual::after,
-  &[data-aura='7'] ${SELECTED} .pokemon-visual::after {
+  &[data-aura='6'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     animation-duration: 3.6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='8'] ${SELECTED} .pokemon-visual::after,
-  &[data-aura='9'] ${SELECTED} .pokemon-visual::after {
+  &[data-aura='8'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     animation-duration: 2.6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='9'] ${SELECTED} .pokemon-visual::after {
+  &[data-aura='9'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
     background-image: linear-gradient(
       to top,
       transparent 43%,
@@ -319,12 +323,12 @@ export const CarouselStageStyle = styled.div`
    * silhouette a little larger; streaks inside rise like ki. Higher tiers
    * grow it further and run it faster.
    */
-  &[data-aura='4'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='5'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='6'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='7'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='8'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
+  &[data-aura='4'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='5'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='6'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='8'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before {
     --grow: 7px;
     --flow: 0.9s;
     content: '';
@@ -348,17 +352,17 @@ export const CarouselStageStyle = styled.div`
       aura-flow var(--flow) linear 900ms infinite,
       aura-surge 1.2s ease-in-out 900ms infinite alternate;
   }
-  &[data-aura='6'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='7'] ${SELECTED} .pokemon-visual::before {
+  &[data-aura='6'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before {
     --grow: 10px;
     --flow: 0.6s;
   }
-  &[data-aura='8'] ${SELECTED} .pokemon-visual::before,
-  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
+  &[data-aura='8'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before {
     --grow: 13px;
     --flow: 0.42s;
   }
-  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
+  &[data-aura='9'] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before {
     background:
       repeating-linear-gradient(
           to top,
@@ -492,11 +496,11 @@ export const CarouselStageStyle = styled.div`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &[data-aura] ${SELECTED} .pokemon-visual::before {
+    &[data-aura] ${SELECTED} .pokemon-visual:has(img[data-loaded])::before {
       animation: none;
       opacity: 0.8;
     }
-    &[data-aura] ${SELECTED} .pokemon-visual::after {
+    &[data-aura] ${SELECTED} .pokemon-visual:has(img[data-loaded])::after {
       display: none;
     }
     &[data-aura] ${SELECTED} img {
