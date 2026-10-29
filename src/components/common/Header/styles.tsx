@@ -97,6 +97,35 @@ export const HeaderStyle = styled.header`
   .menu-trigger {
     display: none;
   }
+
+  /* On a Pokémon's page the dark field world runs up under the header:
+     ink bar, light type, translucent controls. */
+  body:has(.pokemon-page) & {
+    background: var(--ink);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+  /* the ball's outline is currentColor: keep it ink so it reads on the bar */
+  body:has(.pokemon-page) & .brand > svg {
+    color: var(--ink);
+    filter: drop-shadow(0 0 0 1.5px #fff) drop-shadow(0 0 1px #fff);
+  }
+  body:has(.pokemon-page) & .brand,
+  body:has(.pokemon-page) & nav a:hover,
+  body:has(.pokemon-page) & nav a[aria-current='page'] {
+    color: #fff;
+  }
+  body:has(.pokemon-page) & nav a {
+    color: rgba(255, 255, 255, 0.72);
+  }
+  body:has(.pokemon-page) & button {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #fff;
+  }
+  body:has(.pokemon-page) & button:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
   @media (max-width: 680px) {
     .header-inner {
       height: 64px;
