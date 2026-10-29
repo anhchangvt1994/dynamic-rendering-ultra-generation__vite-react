@@ -6,7 +6,7 @@
   --ink-soft: #29445c;
   --canvas: #f3f6fa;
   --surface: #ffffff;
-  --muted: #637387;
+  --muted: #566679; /* AA: ≥5.1:1 on canvas/surface, 4.8:1 on mint (was 4.4:1) */
   --line: #dfe6ed;
   --red: #d94136;
   --yellow: #ffda55;
