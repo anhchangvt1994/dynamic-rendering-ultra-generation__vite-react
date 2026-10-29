@@ -43,6 +43,18 @@ function HomePage() {
   })
   const [params, setParams] = useSearchParams()
   const filters = readCatalogParams(params.toString())
+  // on phones the chips scroll sideways: bring the chosen type into view
+  const typeFilterRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    // horizontal only: never move the page itself
+    const row = typeFilterRef.current
+    const chip = row?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return
+    row.scrollLeft =
+      chip.offsetLeft -
+      row.offsetLeft -
+      (row.clientWidth - chip.offsetWidth) / 2
+  }, [filters.type])
   const [query, setQuery] = useState(filters.query)
   const [composing, setComposing] = useState(false)
   useEffect(() => setQuery(filters.query), [filters.query])
@@ -285,7 +297,12 @@ function HomePage() {
             />
           </div>
         </div>
-        <div className="type-filter" aria-label="Lọc theo hệ Pokémon">
+        <div
+          ref={typeFilterRef}
+          className="type-filter"
+          role="group"
+          aria-label="Lọc theo hệ Pokémon"
+        >
           <button
             type="button"
             aria-pressed={!filters.type}

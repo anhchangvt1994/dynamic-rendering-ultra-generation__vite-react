@@ -233,6 +233,13 @@ export const HomePageStyle = styled.div`
   .type-filter::-webkit-scrollbar {
     display: none;
   }
+  /* wide screens have the room: every type stays reachable by mouse */
+  @media (min-width: 681px) {
+    .type-filter {
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+  }
   .type-filter button {
     flex: none;
     display: flex;
