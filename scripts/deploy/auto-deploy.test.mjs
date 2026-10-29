@@ -7,12 +7,53 @@ import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import {
   dependenciesChanged,
+  deploymentDiagnostics,
   deploy,
   managedApps,
   waitForHealthyReplacement,
 } from '../../config/utils/AutoDeploy.mjs'
 
 const project = fileURLToPath(new URL('../../', import.meta.url))
+
+test('PM2 diagnostics explain excluded apps without exposing environment secrets', (t) => {
+  const f = fixture(t)
+  const source = {
+    ...f.app,
+    pm_id: 8,
+    pm2_env: {
+      ...f.app.pm2_env,
+      pm_exec_path: path.join(f.root, 'server/src/index.uws.worker.ts'),
+      env: { SECRET: 'do-not-print-this' },
+    },
+  }
+  const other = {
+    ...f.app,
+    pm_id: 9,
+    pm2_env: { ...f.app.pm2_env, pm_cwd: '/different-checkout' },
+  }
+  const diagnostics = deploymentDiagnostics(
+    f.root,
+    [f.app, source, other],
+    true
+  )
+  assert.equal(diagnostics.daemonReachable, true)
+  assert.ok(diagnostics.user)
+  assert.ok(diagnostics.pm2Home)
+  assert.deepEqual(
+    diagnostics.processes.map((app) => app.id),
+    [7]
+  )
+  assert.match(
+    diagnostics.excludedProcesses.find((app) => app.id === 8).reason,
+    /TypeScript/
+  )
+  assert.match(
+    diagnostics.excludedProcesses.find((app) => app.id === 9).reason,
+    /checkout/
+  )
+  assert.equal(JSON.stringify(diagnostics).includes('do-not-print-this'), false)
+  assert.equal(deploymentDiagnostics(f.root, [], false).daemonReachable, false)
+})
 
 test('PM2 health verification rejects callback success without a live replacement', async () => {
   await assert.rejects(

@@ -27,26 +27,55 @@ const canonical = (file) => {
   }
 }
 
-export function managedApps(apps, root) {
-  return apps.filter((app) => {
-    const env = app.pm2_env || {}
-    if (!['puppeteer-ssr', 'start-puppeteer-ssr'].includes(app.name))
-      return false
-    if (['stopped', 'stopping'].includes(env.status)) return false
-    if (app.pm_id === undefined || !env.pm_cwd || !env.pm_exec_path)
-      return false
-    if (canonical(env.pm_cwd) !== canonical(root)) return false
-    const script = path
-      .relative(
-        canonical(root),
-        canonical(path.resolve(env.pm_cwd, env.pm_exec_path))
-      )
-      .split(path.sep)
-      .join('/')
-    return /^server\/dist\/index(?:\.uws(?:\.worker)?|\.fastify)?\.js$/.test(
-      script
+function rejectionReason(app, root) {
+  const env = app.pm2_env || {}
+  if (!['puppeteer-ssr', 'start-puppeteer-ssr'].includes(app.name))
+    return 'Unsupported process name; expected puppeteer-ssr or start-puppeteer-ssr'
+  if (['stopped', 'stopping'].includes(env.status))
+    return 'Process was explicitly stopped'
+  if (app.pm_id === undefined || !env.pm_cwd || !env.pm_exec_path)
+    return 'PM2 metadata is missing id, cwd or script'
+  if (canonical(env.pm_cwd) !== canonical(root))
+    return 'Process belongs to a different checkout/cwd'
+  const script = path
+    .relative(
+      canonical(root),
+      canonical(path.resolve(env.pm_cwd, env.pm_exec_path))
     )
+    .split(path.sep)
+    .join('/')
+  if (/^server\/src\/.*\.ts$/.test(script))
+    return 'Process runs TypeScript source; deployment requires a compiled server/dist entry'
+  return /^server\/dist\/index(?:\.uws(?:\.worker)?|\.fastify)?\.js$/.test(
+    script
+  )
+    ? null
+    : 'Script is not a supported compiled server entry in this checkout'
+}
+
+export function managedApps(apps, root) {
+  return apps.filter((app) => rejectionReason(app, root) === null)
+}
+
+export function deploymentDiagnostics(root, apps, daemonReachable) {
+  const describe = (app) => ({
+    id: app.pm_id,
+    name: app.name,
+    status: app.pm2_env?.status,
+    cwd: app.pm2_env?.pm_cwd,
+    script: app.pm2_env?.pm_exec_path,
   })
+  return {
+    user: os.userInfo().username,
+    pm2Home: process.env.PM2_HOME || path.join(os.homedir(), '.pm2'),
+    checkout: canonical(root),
+    daemonReachable,
+    processes: managedApps(apps, root).map(describe),
+    excludedProcesses: apps.flatMap((app) => {
+      const reason = rejectionReason(app, root)
+      return reason ? [{ ...describe(app), reason }] : []
+    }),
+  }
 }
 
 export const dependenciesChanged = (files) =>

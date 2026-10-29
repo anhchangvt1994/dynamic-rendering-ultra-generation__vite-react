@@ -82,6 +82,34 @@ git config app.autoDeploy true   # bật lại
 `postMergeHook: false` nghĩa là cần cài lại Husky. `processes: []` nghĩa là không
 tìm thấy app compiled thuộc repo này trong PM2 daemon của user hiện tại.
 
+Nếu `yarn deploy` báo không tìm thấy process, chạy `yarn deploy:status` và
+`pm2 ls` ngay trong terminal đó. Status hiển thị user, `pm2Home`, `checkout`,
+`daemonReachable`, và `excludedProcesses` kèm lý do bỏ qua; không in biến môi
+trường của ứng dụng. `daemonReachable: false` có nghĩa daemon hiện tại không
+truy cập được, chưa đủ để kết luận website chưa được khởi động bởi user khác.
+
+Nếu đã dùng service của VPS setup, kiểm tra user và thư mục thực tế trước:
+
+```sh
+systemctl show vps-app -p User -p WorkingDirectory
+```
+
+Chạy Git/deploy bằng user và `PM2_HOME` của service đó. Đổi tên `vps-app` nếu
+đã dùng tên service khác. Không start thêm app dưới user khác khi website đã
+có process chạy. Process `.ts` sẽ bị bỏ qua: production cần
+`IS_SERVER=true` trong `server/.env.production` để launcher dùng `server/dist`.
+
+Nếu đây là lần khởi tạo đầu tiên, thực hiện bằng user quản lý website:
+
+```sh
+yarn build
+yarn start:redis-api:pm2:worker # hoặc yarn start:pm2:worker nếu không dùng Redis
+```
+
+Chạy launcher trong terminal/service riêng; sau khi website khởi động, dùng
+terminal khác cùng user để chạy `yarn deploy:status` và `yarn deploy`. Pipeline
+deploy cập nhật app đã tồn tại, không tự tạo daemon/app thay cho launcher.
+
 Git đã merge xong trước khi chạy hook; lỗi build không hoàn tác commit vừa pull.
 Hãy đọc thông báo `FAILED`, sửa lỗi rồi chạy `yarn deploy`. Hai deployment đồng
 thời sẽ đợi nhau; nếu HEAD đổi giữa lúc build, output đang build sẽ bị bỏ đi và
