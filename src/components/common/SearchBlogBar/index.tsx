@@ -1,3 +1,4 @@
+import useEscapeToClose from 'hooks/useEscapeToClose'
 import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
@@ -77,6 +78,8 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
       />
     )
   }, [isSearching, keyword, results])
+
+  useEscapeToClose(isOpen, onClose)
 
   if (!isOpen) return null
 

@@ -1,3 +1,4 @@
+import useEscapeToClose from 'hooks/useEscapeToClose'
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import SearchResults from './components/SearchResults'
@@ -86,6 +87,8 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
     currentPathname.current = location.pathname
     onClose()
   }, [location.pathname, onClose])
+
+  useEscapeToClose(isOpen, onClose)
 
   if (!isOpen) return null
 

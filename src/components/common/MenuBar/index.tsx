@@ -1,3 +1,4 @@
+import useEscapeToClose from 'hooks/useEscapeToClose'
 import {
   BodyStyle,
   ContainerStyle,
@@ -13,6 +14,8 @@ interface MenuBarProps {
 
 const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
   const route = useRoute()
+
+  useEscapeToClose(isOpen, onClose)
 
   const menuList = [
     {
