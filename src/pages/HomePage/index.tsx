@@ -12,10 +12,13 @@ const loaded = { offset: 0, list: [] as { name: string; url: string }[] }
 
 function HomePage() {
   setSeoTag({
-    title: 'Pokemon',
+    title: 'Pokédex – Tra cứu Pokémon: hệ, chỉ số, sức mạnh & tiến hóa',
+    description:
+      'Tra cứu đủ 1025 Pokémon: hệ, chỉ số cơ bản, hạng sức mạnh, chuỗi tiến hóa, tiếng kêu và bộ chiêu thức.',
     'og:type': 'website',
-    'og:title': 'Pokemon',
-    'og:description': 'Pokemon home page',
+    'og:title': 'Pokédex – Tra cứu Pokémon',
+    'og:description':
+      'Tra cứu đủ 1025 Pokémon: hệ, chỉ số, hạng sức mạnh, tiến hóa và chiêu thức.',
     'og:url': window.location.pathname,
     'og:site_name': 'Pokemon',
     'og:image': '/images/pikachu-01.webp',

@@ -1,6 +1,11 @@
 import BattleMessage from 'components/common/BattleMessage'
 
 export default function NotFoundPage() {
+  setSeoTag({
+    title: 'Không tìm thấy trang | Pokédex',
+    robots: 'noindex, follow',
+  })
+
   return (
     <BattleMessage
       title="Một 404 hoang dã xuất hiện!"

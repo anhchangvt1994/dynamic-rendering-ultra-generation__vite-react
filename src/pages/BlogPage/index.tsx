@@ -5,6 +5,13 @@ import BlogCardLoading from 'components/common/BlogCard/loading'
 import { BlogPageStyled } from './styles'
 
 const BlogPage = () => {
+  setSeoTag({
+    title: 'Bài viết về Pokémon | Pokédex',
+    description: 'Hướng dẫn, phân tích và câu chuyện về thế giới Pokémon.',
+    'og:title': 'Bài viết về Pokémon',
+    robots: 'index, follow',
+  })
+
   const {
     data = getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_BLOGS),
     isFetching,
