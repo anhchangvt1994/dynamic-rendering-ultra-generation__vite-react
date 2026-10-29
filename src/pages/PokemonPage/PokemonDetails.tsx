@@ -2,9 +2,8 @@ import type { CSSProperties } from 'react'
 import { memo } from 'react'
 import PokemonInfo from 'components/pokemon-page/pokemon-info'
 import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
-import PokemonStats from 'components/pokemon-page/pokemon-stats'
-import { statLabel } from 'components/pokemon-page/format.mjs'
 import PokemonPower from './PokemonPower'
+import PokemonStatRadar from './PokemonStatRadar'
 import { DetailsSkeletonStyle } from './styles'
 
 // Keep the long moveset tree mounted and memoized while the carousel is moving.
@@ -20,7 +19,7 @@ const PokemonDetails = memo(({ pokemon }: { pokemon: any }) => {
         Chỉ số cơ bản (Base Stats) của {pokemon.name}
       </h2>
       <PokemonPower stats={pokemon.stats ?? []} />
-      <PokemonStats stats={pokemon.stats ?? []} />
+      <PokemonStatRadar stats={pokemon.stats ?? []} />
       <h3 style={headingStyle}>
         Chiều cao, cân nặng và khả năng đặc biệt (Abilities) của {pokemon.name}
       </h3>
@@ -54,21 +53,8 @@ export const PokemonDetailsSkeleton = () => (
       </div>
       <i className="skeleton-shape" />
     </div>
-    <div className="skeleton-stats">
-      {import.meta.env.INFO_POKEMON_STATS_DEFAULT.map((item, index) => (
-        <div className="skeleton-stat" key={item.stat.name}>
-          <div className="skeleton-stat-label">
-            <span>{statLabel(item.stat.name)}</span>
-            <span className="skeleton-shape skeleton-value" />
-          </div>
-          <div className="skeleton-track">
-            <span
-              className="skeleton-shape"
-              style={{ width: `${[54, 72, 43, 64, 48, 80][index]}%` }}
-            />
-          </div>
-        </div>
-      ))}
+    <div className="skeleton-card skeleton-radar">
+      <i className="skeleton-shape" />
     </div>
     <div className="skeleton-card skeleton-measurements">
       <span>Chiều cao</span>

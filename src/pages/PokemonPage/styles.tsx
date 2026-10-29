@@ -19,26 +19,38 @@ export const PokemonPageStyle = styled.div`
     filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
   }
 
-  /* placeholder silhouette while the artwork loads (or after it fails) */
+  /* while artwork loads (or after it fails): a Poké Ball doing the
+     in-game catch shake, drawn inline so it costs no request */
   .swiper img:not([data-loaded]),
   .pokemon-solo img:not([data-loaded]) {
-    background: url('/images/pikachu-02.webp') center / 56% no-repeat;
-    animation: artwork-pending 1.1s ease-in-out infinite alternate;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23f4f4f4' stroke='%23222' stroke-width='6'/%3E%3Cpath d='M4 50a46 46 0 0 1 92 0z' fill='%23e3350d' stroke='%23222' stroke-width='6'/%3E%3Cpath d='M4 50h92' stroke='%23222' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='13' fill='%23f4f4f4' stroke='%23222' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='5' fill='%23fff' stroke='%23222' stroke-width='3'/%3E%3C/svg%3E") center / 44px no-repeat;
+    animation: artwork-catch 1.6s ease-in-out infinite;
   }
-  @keyframes artwork-pending {
-    from {
-      opacity: 0.25;
+  @keyframes artwork-catch {
+    0%,
+    45%,
+    100% {
+      rotate: 0deg;
     }
-    to {
-      opacity: 0.6;
+    55% {
+      rotate: -16deg;
+    }
+    65% {
+      rotate: 12deg;
+    }
+    75% {
+      rotate: -6deg;
+    }
+    85% {
+      rotate: 0deg;
     }
   }
   @media (prefers-reduced-motion: reduce) {
     .swiper img:not([data-loaded]),
     .pokemon-solo img:not([data-loaded]) {
       animation: none;
-      opacity: 0.4;
     }
+  }
   }
 
   .image-wrapper {
@@ -183,6 +195,45 @@ export const CarouselStageStyle = styled.div`
 
   .swiper {
     z-index: 1;
+  }
+
+  /* giant outlined Pokédex number behind the stage */
+  .dex-number {
+    position: absolute;
+    z-index: 0;
+    top: 8px;
+    left: 50%;
+    translate: -50% 0;
+    font-family: 'Dela Gothic One', sans-serif;
+    /* sized so "#0445" stays inside the stage */
+    font-size: clamp(48px, 17vw, 84px);
+    line-height: 1 !important;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px
+      color-mix(in srgb, var(--aura-a) 55%, transparent);
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    animation: dex-in 700ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  @keyframes dex-in {
+    from {
+      opacity: 0;
+      letter-spacing: 0.2em;
+    }
+    to {
+      opacity: 0.45;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  /* "Who's that Pokémon?": the centred Pokémon is a silhouette until its
+     data arrives; the arrival flash then reveals it in colour */
+  &[data-loading='true'] ${SELECTED} img {
+    filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
+      drop-shadow(0 0 14px rgba(120, 200, 255, 0.45)) !important;
   }
 
   /* forms outside the National Dex carousel get a single, still stage */
@@ -450,53 +501,36 @@ export const CarouselStageStyle = styled.div`
   }
 `
 
+// Holds PokemonName; same height as the loading line so nothing jumps.
 export const NameStyle = styled.div`
   display: flex;
-  column-gap: 8px;
-  width: 100%;
-  height: 48px;
-  line-height: 48px;
-  text-align: center;
-  margin: 0;
-  text-transform: capitalize;
-  color: #fff;
-  font-size: clamp(24px, 3vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  animation: pokemon-name-reveal 320ms ease-out both;
-  justify-content: center;
   align-items: center;
-
-  @keyframes pokemon-name-reveal {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
 `
 
+// "Who's that Pokémon?" in the anime's title colours: yellow on blue.
 export const NameLoadingStyle = styled.div`
   position: relative;
   display: flex;
-  column-gap: 8px;
+  column-gap: 10px;
   width: 100%;
-  height: 48px;
-  line-height: 48px;
+  min-height: 52px;
   text-align: center;
   margin: 0;
-  text-transform: capitalize;
-  color: #fff;
-  font-size: clamp(24px, 3vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
+  /* one line at 320px+: 19 letters of Dela at ~0.85em each */
+  font-size: clamp(14px, 4.6vw, 20px);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: #ffcb05;
+  text-shadow:
+    0 1px 0 #3c5aa6,
+    0 2px 0 #3c5aa6,
+    0 3px 0 #2a4580,
+    0 6px 10px rgba(0, 0, 0, 0.4);
   animation: pokemon-name-reveal 320ms ease-out both;
   justify-content: center;
   align-items: center;
@@ -606,29 +640,16 @@ export const DetailsSkeletonStyle = styled.div`
     animation: signal-sweep 1.4s ease-in-out infinite;
   }
 
-  .skeleton-stats {
-    display: grid;
-    gap: 8px;
+  /* mirrors PokemonStatRadar: a glass panel with the hexagon */
+  .skeleton-radar {
+    margin: 0 0 16px;
+    height: 260px;
+    place-items: center;
   }
-  .skeleton-stat-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 18px;
-    text-transform: capitalize;
-  }
-  .skeleton-value {
-    width: 26px;
-    height: 9px;
-  }
-  .skeleton-track {
-    height: 16px;
-    margin-top: 4px;
-    border-radius: 5px;
-    background: rgba(225, 240, 232, 0.055);
-  }
-  .skeleton-track > span {
-    height: 100%;
+  .skeleton-radar > i {
+    width: 150px;
+    height: 172px;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
   .skeleton-card {
     margin-top: 16px;

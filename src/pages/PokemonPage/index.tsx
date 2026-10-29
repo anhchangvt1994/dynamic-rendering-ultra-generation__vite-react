@@ -14,6 +14,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
 import PokemonHabitat from './PokemonHabitat'
+import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
 import {
   getPokemonFallbackImage,
@@ -77,6 +78,13 @@ const PokemonPage = () => {
   const lastPokemon = useRef(pokemonState)
   const detailSnapshot = pokemonState || lastPokemon.current
   const power = getPokemonPower(detailSnapshot?.stats ?? [])
+  // National Dex number of the species (forms share their species' number)
+  const speciesId = Number(
+    detailSnapshot?.species?.url?.match(/\/(\d+)\/?$/)?.[1] ??
+      detailSnapshot?.id
+  )
+  const dexNumber =
+    !isShowLoading && speciesId ? `#${String(speciesId).padStart(4, '0')}` : ''
   // The aura only lights up once the selected Pokémon's data is on screen.
   const showAura = !isShowLoading && Boolean(detailSnapshot?.stats?.length)
   // Alternate forms (id > POKEMON_COUNT, e.g. Eternamax #10190) have no
@@ -228,6 +236,7 @@ const PokemonPage = () => {
         ) : (
           <CarouselStageStyle
             data-scanning={carousel.isNavigating}
+            data-loading={isShowLoading}
             data-aura={showAura ? power.level : undefined}
             style={
               {
@@ -245,6 +254,11 @@ const PokemonPage = () => {
             onPointerUpCapture={carousel.onPointerUpCapture}
             onPointerCancelCapture={carousel.onPointerCancelCapture}
           >
+            {dexNumber && (
+              <span key={dexNumber} className="dex-number" aria-hidden="true">
+                {dexNumber}
+              </span>
+            )}
             <PokemonHabitat
               types={detailSnapshot?.types ?? []}
               scanning={isShowLoading}
@@ -317,7 +331,13 @@ const PokemonPage = () => {
             Who&apos;s that Pokémon?
           </NameLoadingStyle>
         ) : (
-          <NameStyle>{pokemonState?.name}</NameStyle>
+          <NameStyle>
+            <PokemonName
+              name={pokemonState?.name || ''}
+              level={power.level}
+              color={power.color}
+            />
+          </NameStyle>
         )}
 
         {isError && !carousel.isNavigating && (
