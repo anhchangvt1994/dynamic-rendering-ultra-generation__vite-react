@@ -14,6 +14,7 @@ import {
 } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { getCaught, subscribeCaught } from 'utils/caught.mjs'
+import RegionBadges from './RegionBadges'
 import { POKEMON_COUNT } from 'pages/PokemonPage/navigation.mjs'
 import {
   filterCatalog,
@@ -217,6 +218,17 @@ function HomePage() {
           <FieldIcon name="arrow" />
         </button>
       </section>
+      <RegionBadges
+        caught={caughtIds}
+        active={filters.generation}
+        onSelect={(generation) => {
+          update('gen', generation)
+          catalogRef.current?.scrollIntoView({
+            block: 'start',
+            behavior: 'smooth',
+          })
+        }}
+      />
       <section
         className="catalog"
         ref={catalogRef}
