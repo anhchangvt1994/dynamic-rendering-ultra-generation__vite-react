@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/virtual'
-import { FreeMode, Virtual } from 'swiper/modules'
+import { FreeMode, Keyboard, Virtual } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
@@ -270,7 +270,9 @@ const PokemonPage = () => {
                 onSwiper={carousel.onSwiper}
                 onResize={carousel.onResize}
                 onUpdate={carousel.onUpdate}
-                modules={[Virtual, FreeMode, WaveEffect]}
+                modules={[Virtual, FreeMode, Keyboard, WaveEffect]}
+                // ← / → step through the Pokédex like a swipe
+                keyboard={{ enabled: true, onlyInViewport: true }}
                 onSlideChange={carousel.onSlideChange}
                 onTouchStart={carousel.onTouchStart}
                 onSliderMove={carousel.onSliderMove}
