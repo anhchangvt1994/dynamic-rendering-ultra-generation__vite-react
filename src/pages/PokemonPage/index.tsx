@@ -223,9 +223,6 @@ const PokemonPage = () => {
         </BackButtonStyle>
       </HeaderStyle>
       <BodyStyle>
-        <div style={{ visibility: isShowLoading ? 'hidden' : 'visible' }}>
-          <PokemonTypes types={detailSnapshot?.types ?? []} />
-        </div>
         {RenderingInfo.loader || isFirstLoading ? (
           <Image
             src={ImagePath}
@@ -341,6 +338,10 @@ const PokemonPage = () => {
             />
           </NameStyle>
         )}
+        <PokemonTypes
+          key={pokemonState?.name}
+          types={isShowLoading ? [] : (pokemonState?.types ?? [])}
+        />
 
         {isError && !carousel.isNavigating && (
           <div role="alert" style={{ textAlign: 'center' }}>
