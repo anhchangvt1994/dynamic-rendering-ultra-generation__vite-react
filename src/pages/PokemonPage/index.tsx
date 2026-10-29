@@ -18,6 +18,7 @@ import type { Swiper as SwiperInstance } from 'swiper'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
+import CatchRitual, { prefersReducedMotion } from './CatchRitual'
 import PokemonActions from './PokemonActions'
 import { displayNameOf, idFromUrl } from './species.mjs'
 import PokemonHabitat from './PokemonHabitat'
@@ -131,6 +132,14 @@ const PokemonPage = () => {
   // Shiny: swap the centred artwork's src; every new Pokémon starts normal,
   // and the slide it leaves gets its normal artwork back.
   const stageRef = useRef<HTMLDivElement>(null)
+  // the catch ritual: a key per throw, cleared when the ritual ends or the
+  // Pokémon changes
+  const [catching, setCatching] = useState(0)
+  const startCatch = useCallback(() => {
+    if (!prefersReducedMotion()) setCatching(Date.now())
+  }, [])
+  const endCatch = useCallback(() => setCatching(0), [])
+  useEffect(() => setCatching(0), [curId])
   const [shiny, setShiny] = useState(false)
   useEffect(() => setShiny(false), [curId])
   const shinyArt =
@@ -365,6 +374,7 @@ const PokemonPage = () => {
         ) : (
           <StageWrapStyle
             ref={stageRef}
+            data-catching={catching > 0}
             role="region"
             aria-label="Vuốt hoặc dùng phím mũi tên để đổi Pokémon"
             tabIndex={0}
@@ -458,6 +468,7 @@ const PokemonPage = () => {
                 </div>
               )}
             </CarouselStageStyle>
+            {catching > 0 && <CatchRitual key={catching} onDone={endCatch} />}
           </StageWrapStyle>
         )}
         {isShowLoading ? (
@@ -494,6 +505,7 @@ const PokemonPage = () => {
             shiny={shiny}
             hasShiny={!!shinyArt}
             onShinyChange={setShiny}
+            onCaught={startCatch}
           />
         </div>
 

@@ -146,12 +146,15 @@ const PokemonActions = memo(
     shiny,
     hasShiny,
     onShinyChange,
+    onCaught,
   }: {
     id: number
     name: string
     shiny: boolean
     hasShiny: boolean
     onShinyChange: (shiny: boolean) => void
+    /** called when the Pokémon becomes caught (not when released) */
+    onCaught?: () => void
   }) => {
     const caught = useSyncExternalStore(
       subscribeCaught,
@@ -202,6 +205,7 @@ const PokemonActions = memo(
           onClick={() => {
             const now = toggleCaught(id)
             setToast(now ? `Đã bắt ${name}!` : `Đã thả ${name}`)
+            if (now) onCaught?.()
           }}
         >
           <Ball />

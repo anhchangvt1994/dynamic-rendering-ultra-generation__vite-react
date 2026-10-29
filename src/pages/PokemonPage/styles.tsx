@@ -786,6 +786,38 @@ export const InlineAlertStyle = styled.div`
 // Swiping, tapping neighbours and keyboard arrows navigate the stage.
 export const StageWrapStyle = styled.div`
   position: relative;
+
+  /* the catch: flash white, get drawn down into the ball, come back out */
+  &[data-catching='true'] :is(.swiper-slide-active, .pokemon-solo) img {
+    animation: stage-absorb 2400ms cubic-bezier(0.5, 0, 0.3, 1) both !important;
+  }
+  @keyframes stage-absorb {
+    0%,
+    22% {
+      transform: none;
+      filter: none;
+      opacity: 1;
+    }
+    30% {
+      transform: scale(1.04);
+      filter: brightness(3) saturate(0);
+    }
+    44% {
+      transform: translateY(18px) scale(0.08);
+      filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(6);
+      opacity: 0.9;
+    }
+    46%,
+    86% {
+      transform: translateY(18px) scale(0);
+      opacity: 0;
+    }
+    100% {
+      transform: none;
+      filter: none;
+      opacity: 1;
+    }
+  }
   &:focus-visible {
     outline: 2px solid #ffda55;
     outline-offset: 4px;
