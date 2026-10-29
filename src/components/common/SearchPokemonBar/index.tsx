@@ -1,6 +1,7 @@
 import useEscapeToClose from 'hooks/useEscapeToClose'
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import SearchNoData from './components/SearchNoData'
 import SearchResults from './components/SearchResults'
 import SearchLoading from './components/SearchResults/loading'
 import {
@@ -44,10 +45,8 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
   const searchResultBody = useMemo(() => {
     if (!keyword) return null
 
-    // if (isError || !results) return <SearchError />
-
-    // if (!results.length) return <SearchNoData />
     if (isFiltering) return <SearchLoading />
+    if (!results.length) return <SearchNoData keyword={keyword} />
 
     return (
       <SearchResults
