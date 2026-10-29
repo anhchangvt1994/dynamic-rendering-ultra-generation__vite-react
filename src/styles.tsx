@@ -54,6 +54,8 @@ export const BodyStyle = styled.div`
   -ms-overflow-style: none;
   height: 100%;
   padding: 16px;
+  /* room under the last row for the floating back-to-top Poké Ball */
+  padding-bottom: 84px;
   z-index: 10;
 
   &::-webkit-scrollbar {

@@ -1,3 +1,4 @@
+import BackToTop from 'components/common/BackToTop'
 import BlogCardLoading from 'components/common/BlogCard/loading'
 import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
@@ -17,6 +18,7 @@ import {
   MainContainerStyle,
 } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
+import useScrollRestoration from 'hooks/useScrollRestoration'
 
 // Memoized Outlet wrapper that only re-renders when route location changes
 const OutletWrapper = React.memo(() => {
@@ -93,6 +95,10 @@ function Layout() {
   // its own gestures through touch-action: pan-y.
   setMetaViewportTag('width=device-width, initial-scale=1')
 
+  // the page scrolls inside BodyStyle, not the window
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  useScrollRestoration(scrollerRef)
+
   const [isShowMenuBar, setIsShowMenuBar] = useState(false)
   const [isShowSearchBar, setIsShowSearchBar] = useState(false)
 
@@ -138,9 +144,10 @@ function Layout() {
         <Header onClickMenu={onShowMenu} onClickSearch={onShowSearch} />
 
         <BodyWrapperStyle>
-          <BodyStyle>
+          <BodyStyle ref={scrollerRef}>
             <ContentMemo />
           </BodyStyle>
+          <BackToTop scrollerRef={scrollerRef} />
         </BodyWrapperStyle>
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
