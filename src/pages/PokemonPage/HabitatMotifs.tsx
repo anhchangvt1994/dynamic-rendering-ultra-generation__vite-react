@@ -1,583 +1,855 @@
-type Colors = { light: string; accent: string; dark: string; petal: string }
+import type { CSSProperties, ReactNode } from 'react'
 
-function artwork(type: string, { light, accent, dark, petal }: Colors) {
-  switch (type) {
-    case 'electric':
-      return (
-        <>
-          <ellipse
-            cx="160"
-            cy="70"
-            rx="123"
-            ry="25"
-            stroke={accent}
-            strokeWidth="2"
-          />
-          <ellipse
-            cx="160"
-            cy="70"
-            rx="109"
-            ry="18"
-            strokeDasharray="18 7 3 7"
-            opacity="0.7"
-          />
+export type HabitatColors = {
+  light: string
+  accent: string
+  dark: string
+  petal: string
+  glow: string
+}
+
+// Platform geometry (viewBox 0 0 320 200): the top face is this ellipse.
+export const CX = 160
+export const CY = 160
+export const RX = 118
+export const RY = 26
+
+export const rim = (deg: number, scale = 1) => {
+  const a = (deg * Math.PI) / 180
+  return [CX + RX * scale * Math.cos(a), CY + RY * scale * Math.sin(a)]
+}
+
+// Per-element animation offsets, consumed by the CSS in PokemonHabitat.
+export const timing = (delay: number, duration?: number, drift?: number) =>
+  ({
+    '--d': `${delay}s`,
+    ...(duration !== undefined && { '--t': `${duration}s` }),
+    ...(drift !== undefined && { '--x': `${drift}px` }),
+  }) as CSSProperties
+
+// Points on the rim, sorted back-to-front so nearer pieces overlap farther
+// ones. `near` runs from -1 (back edge) to 1 (front edge) for perspective.
+const around = (count: number, offset = 0, scale = 1) =>
+  Array.from({ length: count }, (_, i) => {
+    const deg = offset + (360 / count) * i
+    const [x, y] = rim(deg, scale)
+    return { i, deg, x, y, near: Math.sin((deg * Math.PI) / 180) }
+  }).sort((a, b) => a.y - b.y)
+
+// Rune painted on the spinning floor rings, one per type (stroke only).
+export const GLYPHS: Record<string, string> = {
+  normal: 'M5 0A5 5 0 1 1-5 0A5 5 0 1 1 5 0M1.2 0A1.2 1.2 0 1 1-1.2 0A1.2 1.2 0 1 1 1.2 0',
+  fire: 'M0 7C-6 4-5-2 0-8C1-3 5-2 4 3C3 6 1 7 0 7Z',
+  water: 'M0-8C3-3 6 0 6 3A6 6 0 0 1-6 3C-6 0-3-3 0-8Z',
+  electric: 'M2-9L-5 1H0L-2 9L5-1H0Z',
+  grass: 'M-6 7C-6-2 0-7 7-8C7 0 2 6-6 7ZM-6 7L3-3',
+  ice: 'M0-8V8M-7-4L7 4M-7 4L7-4M-2-6L0-4L2-6M-2 6L0 4L2 6',
+  fighting: 'M-7 0L0-8L7 0L0 8ZM-3 0H3M0-3V3',
+  poison: 'M5 1A5 5 0 1 1-5 1A5 5 0 1 1 5 1ZM6-6A2 2 0 1 1 2-6A2 2 0 1 1 6-6Z',
+  ground: 'M-8 6L-3-3L1 3L4-1L8 6Z',
+  flying: 'M-8 4C-4-6 4-6 8 4M-4 2C-2-2 2-2 4 2',
+  psychic: 'M-8 0C-4-6 4-6 8 0C4 6-4 6-8 0ZM2 0A2 2 0 1 1-2 0A2 2 0 1 1 2 0Z',
+  bug: 'M0-7L6-3.5V3.5L0 7L-6 3.5V-3.5ZM0-7V7',
+  rock: 'M-6 5L-7-2L-2-7L5-5L7 2L2 7ZM-2-7L0 0L7 2M0 0L-6 5',
+  ghost: 'M-5 7V-1A5 5 0 0 1 5-1V7L2.5 5L0 7L-2.5 5Z',
+  dragon: 'M-6-6L0 8L6-6L0-2Z',
+  dark: 'M3-7A7 7 0 1 0 3 7A5.5 5.5 0 1 1 3-7Z',
+  steel: 'M-7 0L-3.5-6H3.5L7 0L3.5 6H-3.5ZM2.5 0A2.5 2.5 0 1 1-2.5 0A2.5 2.5 0 1 1 2.5 0',
+  fairy: 'M0-8L2-2L8 0L2 2L0 8L-2 2L-8 0L-2-2Z',
+}
+
+// Two counter-rotating rings painted on the floor (flattened into the face).
+export function RuneRing({
+  type,
+  colors,
+  radius,
+  count,
+  reverse = false,
+}: {
+  type: string
+  colors: HabitatColors
+  radius: number
+  count: number
+  reverse?: boolean
+}) {
+  const glyph = GLYPHS[type] || GLYPHS.normal
+  return (
+    <g className={reverse ? 'hb-spin-rev' : 'hb-spin'}>
+      <circle
+        r={radius + 12}
+        stroke={colors.glow}
+        strokeWidth="6"
+        opacity="0.18"
+      />
+      <circle
+        r={radius + 12}
+        stroke={colors.glow}
+        strokeWidth="1.6"
+        pathLength="100"
+        strokeDasharray={reverse ? '6 3' : '28 3 1 3'}
+      />
+      <circle r={radius - 12} stroke={colors.light} opacity="0.4" />
+      <g stroke={colors.light} strokeWidth="1.5">
+        {Array.from({ length: count }, (_, i) => (
           <path
-            d="M47 72L63 61H88M232 61H257L273 72M93 88H122L134 82M186 82L198 88H227"
-            strokeWidth="2"
+            key={i}
+            d={glyph}
+            transform={`rotate(${(360 / count) * i}) translate(0 ${-radius}) scale(1.35)`}
           />
-          <g fill={dark} stroke={light}>
-            <path d="M45 66L53 61L61 66V77L53 82L45 77ZM259 66L267 61L275 66V77L267 82L259 77Z" />
-            <circle cx="53" cy="71" r="2" fill={accent} />
-            <circle cx="267" cy="71" r="2" fill={accent} />
+        ))}
+      </g>
+    </g>
+  )
+}
+
+type Particle = { motion: string; shape: (c: HabitatColors) => ReactNode }
+
+const orb = (r: number) => (c: HabitatColors) => (
+  <>
+    <circle r={r * 2.4} fill={c.glow} opacity="0.35" />
+    <circle r={r} fill={c.light} />
+  </>
+)
+
+const PARTICLES: Record<string, Particle> = {
+  normal: { motion: 'rise', shape: orb(1.4) },
+  fire: { motion: 'rise', shape: orb(1.7) },
+  water: {
+    motion: 'sway',
+    shape: (c) => (
+      <>
+        <circle r="2.8" fill={c.glow} fillOpacity="0.25" stroke={c.light} strokeWidth="0.8" />
+        <circle cx="-0.9" cy="-1" r="0.7" fill={c.light} />
+      </>
+    ),
+  },
+  electric: {
+    motion: 'spark',
+    shape: (c) => (
+      <path d="M1-4.5L-2.5 0.5H0L-1 4.5L2.5-0.5H0Z" fill={c.light} stroke={c.glow} strokeWidth="0.6" />
+    ),
+  },
+  grass: {
+    motion: 'swirl',
+    shape: (c) => <path d="M0-4C3-2 3 2 0 4C-3 2-3-2 0-4Z" fill={c.glow} stroke={c.light} strokeWidth="0.4" />,
+  },
+  ice: {
+    motion: 'fall',
+    shape: (c) => (
+      <path d={GLYPHS.ice} transform="scale(0.45)" stroke={c.light} strokeWidth="2" fill="none" />
+    ),
+  },
+  fighting: {
+    motion: 'burst',
+    shape: (c) => <path d="M0-6V6" stroke={c.light} strokeWidth="1.6" />,
+  },
+  poison: {
+    motion: 'sway',
+    shape: (c) => (
+      <>
+        <circle r="2.6" fill={c.glow} fillOpacity="0.75" />
+        <circle cx="-0.8" cy="-0.9" r="0.7" fill={c.light} />
+      </>
+    ),
+  },
+  ground: {
+    motion: 'rise',
+    shape: (c) => <path d="M-2-1L0-2.5L2.5-1L2 1.5L-1.5 2Z" fill={c.light} />,
+  },
+  flying: {
+    motion: 'swirl',
+    shape: (c) => <path d="M-4 3C-2-3 2-4 4-4C2 0-1 2-4 3Z" fill={c.light} />,
+  },
+  psychic: { motion: 'sway', shape: orb(2) },
+  bug: { motion: 'wander', shape: orb(1.3) },
+  rock: {
+    motion: 'rise',
+    shape: (c) => <path d={GLYPHS.rock} transform="scale(0.4)" fill={c.glow} stroke={c.dark} />,
+  },
+  ghost: {
+    motion: 'sway',
+    shape: (c) => (
+      <>
+        <circle r="5" fill={c.glow} opacity="0.3" />
+        <path d="M0-5C3-2 3 2 0 4C-2 3-2 0 0-5Z" fill={c.light} opacity="0.85" />
+      </>
+    ),
+  },
+  dragon: {
+    motion: 'rise',
+    shape: (c) => <path d="M0-3.5L2.5 0L0 3.5L-2.5 0Z" fill={c.glow} stroke={c.light} strokeWidth="0.6" />,
+  },
+  dark: {
+    motion: 'smoke',
+    shape: (c) => <circle r="4" fill={c.dark} stroke={c.glow} strokeOpacity="0.5" />,
+  },
+  steel: {
+    motion: 'twinkle',
+    shape: (c) => <path d="M0-4L.8-.8L4 0L.8.8L0 4L-.8.8L-4 0L-.8-.8Z" fill={c.light} />,
+  },
+  fairy: {
+    motion: 'twinkle',
+    shape: (c) => <path d={GLYPHS.fairy} transform="scale(0.5)" fill={c.light} stroke={c.petal} />,
+  },
+}
+
+// Deterministic scatter so server and client render identical markup.
+const seeded = (i: number, n: number) => {
+  const s = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453
+  return s - Math.floor(s)
+}
+const SLOTS = Array.from({ length: 16 }, (_, i) => {
+  const [x, y] = rim(seeded(i, 1) * 360, 0.2 + seeded(i, 2) * 0.75)
+  const t = 2.8 + seeded(i, 3) * 2.4
+  return {
+    x,
+    y,
+    t,
+    d: -seeded(i, 4) * t,
+    drift: (seeded(i, 5) - 0.5) * 40,
+    s: 0.75 + seeded(i, 6) * 0.6,
+  }
+})
+
+// Dual types share the emitter: even slots belong to one type, odd to the other.
+export function TypeParticles({
+  types,
+  count = SLOTS.length,
+}: {
+  types: { type: string; colors: HabitatColors }[]
+  count?: number
+}) {
+  return (
+    <g>
+      {SLOTS.slice(0, count).map((slot, i) => {
+        const { type, colors } = types[i % types.length]
+        const particle = PARTICLES[type] || PARTICLES.normal
+        return (
+          <g key={i} transform={`translate(${slot.x} ${slot.y}) scale(${slot.s})`}>
+            <g
+              className={`hb-p hb-p-${particle.motion}`}
+              style={timing(slot.d, slot.t, slot.drift)}
+            >
+              {particle.shape(colors)}
+            </g>
           </g>
-          <g stroke={light} strokeWidth="2.2" strokeLinejoin="miter">
-            <path
-              className="electric-arc"
-              d="M42 58L60 37L55 55L72 49L54 76L59 59Z"
-              fill={accent}
-              fillOpacity="0.2"
-            />
-            <path
-              className="electric-arc arc-delayed"
-              d="M251 49L269 30L264 48L280 44L263 70L267 52Z"
-              fill={accent}
-              fillOpacity="0.2"
-            />
-            <path
-              className="electric-arc arc-late"
-              d="M92 87L112 80L126 91L148 82L171 91L190 81L215 87"
-            />
-          </g>
-        </>
-      )
+        )
+      })}
+    </g>
+  )
+}
+
+// The signature effect of a single type, built around the platform.
+export function TypeAura({
+  type,
+  colors: c,
+  uid,
+}: {
+  type: string
+  colors: HabitatColors
+  uid: string
+}) {
+  const id = `${uid}-${type}`
+  switch (type) {
     case 'fire':
       return (
-        <g fill={accent} stroke={light} strokeWidth="0.8">
-          <path
-            className="flame"
-            d="M49 80Q32 68 49 48Q44 61 55 63Q58 52 62 49Q76 72 60 82Z"
-          />
-          <path
-            className="flame flora-delayed"
-            d="M253 76Q240 62 255 39Q250 57 264 58Q265 52 269 49Q282 71 267 79Z"
-          />
-          <path
-            d="M49 78Q46 70 55 64Q53 73 60 78Z"
-            fill={light}
-            stroke="none"
-          />
-          <path
-            d="M255 74Q253 65 262 61Q260 70 267 75Z"
-            fill={light}
-            stroke="none"
-          />
-        </g>
+        <>
+          <defs>
+            <linearGradient id={id} x1="0" y1="1" x2="0" y2="0">
+              <stop stopColor={c.light} />
+              <stop offset="0.4" stopColor={c.glow} />
+              <stop offset="1" stopColor={c.glow} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {around(12, 8, 1.01).map(({ i, x, y, near }) => (
+            <g key={i} transform={`translate(${x} ${y}) scale(${0.8 + 0.15 * near})`}>
+              <path
+                className="hb-flame"
+                style={timing(-i * 0.37)}
+                d="M0 0C-7-3-7-13 0-28C1-18 7-15 6-6C6-2 3 0 0 0Z"
+                fill={`url(#${id})`}
+              />
+            </g>
+          ))}
+        </>
       )
     case 'water':
       return (
         <>
-          <g stroke={light} opacity="0.65">
-            <path d="M58 82Q53 73 57 63M62 82Q68 74 65 69M255 80Q249 69 254 60M260 81Q267 72 264 66" />
+          <g fill="none" stroke={c.light}>
+            {[0, 1, 2].map((i) => (
+              <ellipse
+                key={i}
+                className="hb-ripple"
+                style={timing(-i * 1.1)}
+                cx={CX}
+                cy={CY}
+                rx={RX * 0.86}
+                ry={RY * 0.86}
+                strokeWidth="1.4"
+              />
+            ))}
           </g>
-          <path d="M79 85Q87 70 96 85Z" fill={light} fillOpacity="0.45" />
-          <path d="M83 84L87 76L91 84" stroke={dark} opacity="0.5" />
+          <ellipse
+            className="hb-dash"
+            style={timing(0, 7)}
+            cx={CX}
+            cy={CY}
+            rx={RX + 5}
+            ry={RY + 4}
+            fill="none"
+            stroke={c.glow}
+            strokeWidth="2.6"
+            pathLength="100"
+            strokeDasharray="14 6 3 6"
+          />
+        </>
+      )
+    case 'electric':
+      return (
+        <>
+          <g fill="none" strokeLinejoin="miter">
+            {[
+              'M64 156L56 130L72 118L58 92L76 64',
+              'M256 158L266 132L248 116L262 88L246 58',
+              'M112 178L102 152L118 140L108 122',
+              'M208 180L218 154L202 140L214 120',
+            ].map((d, i) => (
+              <g key={i} className="hb-zap" style={timing(-i * 0.9, 2.4 + i * 0.5)}>
+                <path d={d} stroke={c.glow} strokeWidth="7" opacity="0.35" />
+                <path d={d} stroke={c.light} strokeWidth="1.8" />
+              </g>
+            ))}
+          </g>
+          <ellipse
+            className="hb-dash"
+            style={timing(0, 1.4)}
+            cx={CX}
+            cy={CY}
+            rx={RX + 2}
+            ry={RY + 2}
+            fill="none"
+            stroke={c.light}
+            strokeWidth="1.6"
+            pathLength="100"
+            strokeDasharray="2 7 5 11"
+          />
         </>
       )
     case 'grass':
       return (
-        <g fill={accent}>
-          <path d="M39 76Q23 57 48 50Q57 65 39 76ZM274 72Q263 48 291 47Q294 67 274 72Z" />
-          <path d="M36 70L47 56M275 67L286 52" stroke={light} strokeWidth="1" />
-          <path
-            d="M127 88Q139 78 147 85Q140 94 127 88Z"
-            fill={light}
-            opacity="0.45"
-          />
-        </g>
+        <>
+          {around(10, 12, 1.02).map(({ i, x, y, near }) => (
+            <g key={i} transform={`translate(${x} ${y}) scale(${0.85 + 0.2 * near})`}>
+              <g className="hb-sway" style={timing(-i * 0.6)}>
+                <path d="M0 0Q-10-6-9-18Q-1-12 0 0Z" fill={c.glow} />
+                <path d="M0 0Q7-9 15-9Q11 0 0 0Z" fill={c.light} opacity="0.85" />
+                {i % 3 === 0 && (
+                  <g transform="translate(-6 -18)" fill={c.petal}>
+                    {[0, 72, 144, 216, 288].map((angle) => (
+                      <ellipse key={angle} cy="-3" rx="2.2" ry="3.2" transform={`rotate(${angle})`} />
+                    ))}
+                    <circle r="1.8" fill={c.light} />
+                  </g>
+                )}
+              </g>
+            </g>
+          ))}
+        </>
       )
     case 'ice':
       return (
-        <g fill={light} stroke={accent} strokeWidth="1">
-          <path d="M72 84L79 62L87 77L85 87ZM236 83L244 60L252 79L248 87ZM115 91L121 79L129 89Z" />
-          <path d="M79 62L80 86M244 60L244 86" stroke={dark} opacity="0.45" />
-          <path
-            d="M93 82L107 73L130 82M198 77L216 65L231 74"
-            fill="none"
-            opacity="0.55"
-          />
-        </g>
+        <>
+          <defs>
+            <linearGradient id={id} x1="0" y1="1" x2="0" y2="0">
+              <stop stopColor={c.glow} stopOpacity="0.5" />
+              <stop offset="1" stopColor="#ffffff" stopOpacity="0.95" />
+            </linearGradient>
+          </defs>
+          {around(11, 0, 1.01).map(({ i, x, y, near }) => {
+            const h = 14 + (i % 3) * 8 - near * 4
+            return (
+              <g key={i} transform={`translate(${x} ${y})`}>
+                <path
+                  className="hb-glint"
+                  style={timing(-i * 0.45)}
+                  d={`M-4.5 0L-1.5-${h}L0-${h + 5}L1.5-${h}L4.5 0Z`}
+                  fill={`url(#${id})`}
+                  stroke={c.light}
+                  strokeWidth="0.6"
+                />
+              </g>
+            )
+          })}
+        </>
       )
     case 'fighting':
       return (
         <>
-          <ellipse cx="160" cy="70" rx="112" ry="21" strokeWidth="2" />
-          <path
-            d="M63 74L81 60M239 60L257 74M104 89L112 81M208 81L216 89"
-            stroke={light}
-            strokeWidth="3"
-          />
-          <path
-            d="M65 53L57 42M71 51V38M77 53L85 43M243 81L235 91M250 83V96M257 80L265 89"
-            stroke={light}
-            strokeWidth="1.7"
-          />
-          <path
-            d="M84 73L96 66L105 73L94 81ZM214 73L224 65L236 73L224 81Z"
-            fill={accent}
-          />
+          {[0, 1].map((i) => (
+            <ellipse
+              key={i}
+              className="hb-shock"
+              style={timing(-i * 0.9)}
+              cx={CX}
+              cy={CY}
+              rx={RX}
+              ry={RY}
+              fill="none"
+              stroke={c.glow}
+              strokeWidth="3"
+            />
+          ))}
+          <g className="hb-pulse" stroke={c.light} strokeWidth="2">
+            {around(12, 15).map(({ i, deg }) => {
+              const [x1, y1] = rim(deg, 0.6)
+              const [x2, y2] = rim(deg, 0.9)
+              return <path key={i} d={`M${x1} ${y1}L${x2} ${y2}`} />
+            })}
+          </g>
         </>
       )
     case 'poison':
       return (
         <>
-          <path
-            d="M41 76Q53 94 73 84T109 86M219 86Q239 97 253 86T282 77"
-            strokeWidth="4"
-            opacity="0.7"
-          />
-          <g fill={dark} stroke={light} strokeOpacity="0.7">
-            <circle className="poison-bubble" cx="57" cy="57" r="9" />
+          {around(7, 15, 0.6).map(({ i, x, y }) => (
             <circle
-              className="poison-bubble bubble-delayed"
-              cx="262"
-              cy="64"
-              r="7"
+              key={i}
+              className="hb-boil"
+              style={timing(-i * 0.55, 2.2 + (i % 3) * 0.5)}
+              cx={x}
+              cy={y}
+              r={3 + (i % 3) * 1.8}
+              fill={c.glow}
+              fillOpacity="0.6"
+              stroke={c.light}
+              strokeWidth="0.8"
             />
-            <circle className="mote" cx="74" cy="43" r="3" />
-            <circle className="mote" cx="244" cy="46" r="3.5" />
-          </g>
-          <path d="M52 55Q54 50 59 52M258 62Q260 59 264 61" stroke={light} />
-          <ellipse
-            cx="93"
-            cy="84"
-            rx="14"
-            ry="4"
-            fill={accent}
-            fillOpacity="0.3"
-          />
-          <ellipse
-            cx="234"
-            cy="84"
-            rx="12"
-            ry="3"
-            fill={accent}
-            fillOpacity="0.3"
-          />
+          ))}
+          {around(5, 40, 1)
+            .filter(({ near }) => near > 0.3)
+            .map(({ i, x, y }) => (
+              <path
+                key={i}
+                className="hb-drip"
+                style={timing(-i * 0.8)}
+                d={`M${x - 3} ${y + 2}Q${x - 3} ${y + 10} ${x} ${y + 15}Q${x + 3} ${y + 10} ${x + 3} ${y + 2}Z`}
+                fill={c.glow}
+              />
+            ))}
         </>
       )
     case 'ground':
       return (
         <>
-          <path
-            d="M43 73Q66 56 98 70T158 75M172 76Q219 55 272 72M73 84Q103 75 135 86M186 88Q224 74 252 83"
-            stroke={light}
-            opacity="0.75"
-          />
-          <path d="M100 62Q122 56 142 62M169 89L191 85" opacity="0.5" />
-          <g fill={light} stroke="none">
-            {[
-              [58, 79],
-              [82, 62],
-              [227, 65],
-              [257, 77],
-              [148, 88],
-            ].map(([x, y]) => (
-              <circle key={x} cx={x} cy={y} r="1.5" />
-            ))}
+          <g className="hb-pulse" fill="none" strokeLinecap="round">
+            <path
+              d="M160 160L128 152L104 158L78 150M160 160L190 168L214 161L240 170M160 160L148 176L166 184M160 160L174 146L198 142"
+              stroke={c.glow}
+              strokeWidth="2.6"
+            />
+            <path
+              d="M160 160L128 152L104 158L78 150M160 160L190 168L214 161L240 170M160 160L148 176L166 184M160 160L174 146L198 142"
+              stroke={c.light}
+              strokeWidth="0.8"
+            />
           </g>
+          <ellipse
+            className="hb-dash"
+            style={timing(0, 12)}
+            cx={CX}
+            cy={CY + 2}
+            rx={RX * 1.12}
+            ry={RY * 1.3}
+            fill="none"
+            stroke={c.light}
+            strokeWidth="1.4"
+            pathLength="100"
+            strokeDasharray="0.5 3"
+            opacity="0.7"
+          />
         </>
       )
     case 'flying':
+    case 'dragon': {
+      const dragon = type === 'dragon'
       return (
         <>
-          <g fill={light} fillOpacity="0.48" strokeOpacity="0.6">
-            <path d="M34 74Q22 64 36 60Q32 47 46 48Q51 36 61 48Q76 44 78 58Q93 64 79 73Z" />
-            <path d="M236 75Q225 66 240 60Q234 46 249 48Q256 38 265 50Q280 46 282 61Q298 68 280 76Z" />
-          </g>
-          <g className="wind-streak" stroke={light} opacity="0.75">
-            <path d="M35 44H73Q86 44 79 36M241 39H276Q288 39 281 31" />
-            <path d="M66 88Q107 96 136 88M186 88Q217 79 252 88" />
-          </g>
+          {dragon &&
+            around(14, 0, 1.03).map(({ i, x, y, near }) => (
+              <path
+                key={i}
+                d={`M${x - 3.5} ${y}L${x} ${y - (12 + (i % 2) * 9 - near * 4)}L${x + 3.5} ${y}Z`}
+                fill={c.dark}
+                stroke={c.glow}
+              />
+            ))}
+          {[
+            [148, 128, 24],
+            [124, 112, 19],
+            [98, 96, 15],
+          ].map(([cy, rx, ry], i) => (
+            <ellipse
+              key={cy}
+              className="hb-dash"
+              style={timing(-i * 0.6, dragon ? 1.8 : 2.6 + i * 0.4)}
+              cx={CX}
+              cy={cy}
+              rx={rx}
+              ry={ry}
+              fill="none"
+              stroke={i % 2 ? c.glow : c.light}
+              strokeWidth={2.2 - i * 0.4}
+              pathLength="100"
+              strokeDasharray={dragon ? '18 32' : '26 74'}
+            />
+          ))}
         </>
       )
+    }
     case 'psychic':
       return (
-        <g stroke={light}>
-          <ellipse
-            cx="160"
-            cy="70"
-            rx="95"
-            ry="18"
-            strokeDasharray="19 6 2 6"
-          />
-          <ellipse cx="160" cy="70" rx="64" ry="12" opacity="0.55" />
-          <path d="M47 64Q61 46 76 64Q61 81 47 64ZM244 64Q259 46 274 64Q259 81 244 64Z" />
-          <circle className="mote" cx="62" cy="64" r="4" fill={light} />
-          <circle className="mote" cx="259" cy="64" r="4" fill={light} />
-          <path d="M109 84L117 78L125 84L117 90ZM196 84L204 78L212 84L204 90Z" />
+        <g fill="none">
+          {[
+            [116, 74, 13],
+            [82, 50, 9],
+          ].map(([cy, rx, ry], i) => (
+            <g key={cy} className="hb-bob" style={timing(-i * 1.2)}>
+              <ellipse cx={CX} cy={cy} rx={rx} ry={ry} stroke={c.glow} strokeWidth="6" opacity="0.25" />
+              <ellipse
+                className="hb-dash"
+                style={timing(0, 5 + i * 2)}
+                cx={CX}
+                cy={cy}
+                rx={rx}
+                ry={ry}
+                stroke={c.light}
+                strokeWidth="1.6"
+                pathLength="100"
+                strokeDasharray="22 4 2 4"
+              />
+            </g>
+          ))}
         </g>
       )
     case 'bug':
       return (
-        <>
-          <g opacity="0.65" stroke={light} strokeWidth="0.8">
-            <path d="M246 49L271 71L240 80ZM246 49L255 75M271 71L244 64M240 80L259 61M245 59Q254 58 261 65M243 70Q253 66 266 70" />
-          </g>
-          <path d="M54 80V66M67 83V73" stroke={light} strokeWidth="2" />
-          <path
-            d="M43 66Q54 47 65 66ZM60 73Q68 59 76 73Z"
-            fill={accent}
-            stroke={light}
-          />
-          <g fill={light} stroke="none">
-            <circle cx="51" cy="61" r="1.5" />
-            <circle cx="58" cy="62" r="1" />
-            <circle className="mote" cx="81" cy="51" r="1.6" />
-          </g>
-        </>
+        <g transform={`translate(${CX} ${CY}) scale(1 ${RY / RX})`} fill="none" stroke={c.glow} strokeWidth="1.4">
+          {[-3, -2, -1, 0, 1, 2, 3].map((row) => (
+            <g key={row} className="hb-glint" style={timing(-Math.abs(row) * 0.35, 2.4)}>
+              {[-4, -3, -2, -1, 0, 1, 2, 3, 4].map((col) => {
+                const x = col * 24 + (row % 2 ? 12 : 0)
+                const y = row * 21
+                if (Math.hypot(x, y) > 92) return null
+                return <path key={col} d={`M${x} ${y - 12}l10 6v12l-10 6l-10-6v-12Z`} />
+              })}
+            </g>
+          ))}
+        </g>
       )
     case 'rock':
       return (
-        <g fill={accent} stroke={light} strokeWidth="0.8">
-          <path d="M41 79L47 58L61 49L77 65L74 83ZM236 82L243 61L259 55L277 78L265 87ZM115 92L122 81L139 84L147 93Z" />
-          <path
-            d="M47 58L61 67L77 65M61 49V67L74 83M243 61L257 72L277 78M259 55L257 72L265 87"
-            fill="none"
-            stroke={dark}
-            opacity="0.7"
-          />
-        </g>
+        <>
+          <defs>
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop stopColor={c.light} />
+              <stop offset="1" stopColor={c.dark} />
+            </linearGradient>
+          </defs>
+          {around(6, 25, 1.2).map(({ i, x, y, near }) => (
+            <g key={i} transform={`translate(${x} ${y - 14}) scale(${1.1 + 0.35 * near})`}>
+              <path
+                className="hb-hover"
+                style={timing(-i * 0.7)}
+                d="M-7 2L-5-6L2-8L8-3L6 5L-2 7Z"
+                fill={`url(#${id})`}
+                stroke={c.glow}
+                strokeWidth="0.8"
+              />
+            </g>
+          ))}
+        </>
       )
     case 'ghost':
       return (
-        <g fill={accent} fillOpacity="0.28" stroke={light} strokeOpacity="0.75">
-          <path
-            className="ghost-wisp"
-            d="M46 76Q32 65 47 52Q56 47 54 36Q74 51 61 64Q57 72 66 78Q55 73 46 76Z"
-          />
-          <path
-            className="ghost-wisp wisp-delayed"
-            d="M250 77Q236 65 250 53Q263 48 260 37Q280 51 267 64Q262 73 272 79Q259 74 250 77Z"
-          />
-          <circle cx="51" cy="58" r="1.5" fill={light} />
-          <circle cx="59" cy="57" r="1.5" fill={light} />
-          <path d="M96 86Q116 75 132 86M192 87Q211 74 230 85" opacity="0.5" />
-        </g>
-      )
-    case 'dragon':
-      return (
-        <g stroke={light}>
-          <path
-            d="M44 81L49 48L61 42L75 49L79 80M241 80L246 48L260 41L273 48L277 81"
-            fill={dark}
-          />
-          <path
-            d="M54 55L62 50L69 56L62 62ZM253 55L261 50L268 56L261 62Z"
-            fill={accent}
-          />
-          <path d="M52 70L61 65L71 72M250 71L260 65L270 71M110 86L118 78L126 86L134 79L143 87M180 86L188 79L196 86L204 78L212 86" />
-        </g>
+        <>
+          <g transform={`translate(${CX} ${CY}) scale(1 ${RY / RX})`}>
+            <g className="hb-spin-rev" style={timing(0, 9)}>
+              <path
+                d="M0-80A80 80 0 0 1 80 0M0 80A80 80 0 0 1-80 0M0-50A50 50 0 0 1 50 0M0 50A50 50 0 0 1-50 0"
+                fill="none"
+                stroke={c.glow}
+                strokeWidth="3"
+                opacity="0.6"
+              />
+            </g>
+          </g>
+          {around(7, 10, 0.98).map(({ i, x, y }) => (
+            <g key={i} transform={`translate(${x} ${y})`}>
+              <g className="hb-wisp" style={timing(-i * 0.65)}>
+                <path d="M0 0C-7-4-7-13 0-20C-2-13 5-11 4-4C4-2 2 0 0 0Z" fill={c.glow} opacity="0.75" />
+                <path d="M0-2C-3-4-3-8 0-11C0-7 2-6 2-3Z" fill={c.light} />
+              </g>
+            </g>
+          ))}
+        </>
       )
     case 'dark':
       return (
         <>
+          <defs>
+            <radialGradient id={id}>
+              <stop stopColor="#05030a" stopOpacity="0.95" />
+              <stop offset="0.75" stopColor="#05030a" stopOpacity="0.6" />
+              <stop offset="1" stopColor="#05030a" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx={CX} cy={CY} rx={RX * 0.9} ry={RY * 0.9} fill={`url(#${id})`} />
+          <g className="hb-corona">
+            <circle cx={CX} cy="74" r="48" fill="#05030a" opacity="0.35" />
+            <circle cx={CX} cy="74" r="48" fill="none" stroke={c.glow} strokeWidth="9" opacity="0.25" />
+            <circle cx={CX} cy="74" r="48" fill="none" stroke={c.light} strokeWidth="1.4" opacity="0.8" />
+          </g>
           <ellipse
-            className="eclipse-halo"
-            cx="160"
-            cy="70"
-            rx="116"
-            ry="21"
-            fill={dark}
-            fillOpacity="0.75"
-            stroke={light}
-            strokeOpacity="0.3"
+            className="hb-corona"
+            cx={CX}
+            cy={CY}
+            rx={RX}
+            ry={RY}
+            fill="none"
+            stroke={c.glow}
+            strokeWidth="7"
+            opacity="0.4"
           />
-          <path
-            d="M70 40A13 13 0 1 0 83 61A14 14 0 0 1 70 40Z"
-            fill={light}
-            stroke="none"
-            opacity="0.8"
-          />
-          <path
-            d="M38 78Q61 59 88 77M227 78Q257 53 282 75"
-            stroke={dark}
-            strokeWidth="5"
-          />
-          <path d="M249 45V54M245 49H254" stroke={light} />
         </>
       )
     case 'steel':
       return (
         <>
-          <ellipse
-            cx="160"
-            cy="70"
-            rx="121"
-            ry="24"
-            stroke={light}
-            strokeWidth="2"
-          />
-          <ellipse cx="160" cy="70" rx="105" ry="17" strokeDasharray="34 5" />
-          <path
-            d="M72 57L88 63M248 57L232 63M72 83L88 77M248 83L232 77M116 49L123 56M204 49L197 56"
-            strokeWidth="2"
-          />
-          {[
-            [53, 70],
-            [88, 85],
-            [232, 85],
-            [267, 70],
-          ].map(([x, y]) => (
-            <g key={x} transform={`translate(${x} ${y})`}>
-              <path d="M-5-2L0-5L5-2V3L0 6L-5 3Z" fill={dark} stroke={light} />
-              <path d="M-2 0H2" stroke={light} />
+          <defs>
+            <clipPath id={`${id}-face`}>
+              <ellipse cx={CX} cy={CY} rx={RX} ry={RY} />
+            </clipPath>
+            <linearGradient id={id}>
+              <stop stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.75" />
+              <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g transform={`translate(${CX} ${CY}) scale(1 ${RY / RX})`}>
+            <g className="hb-spin" style={timing(0, 30)}>
+              <circle
+                r="124"
+                fill="none"
+                stroke={c.light}
+                strokeWidth="9"
+                pathLength="100"
+                strokeDasharray="1.4 1.6"
+                opacity="0.85"
+              />
             </g>
-          ))}
+          </g>
+          <g clipPath={`url(#${id}-face)`}>
+            <rect
+              className="hb-sweep"
+              x={CX - 14}
+              y={CY - RY}
+              width="28"
+              height={RY * 2}
+              fill={`url(#${id})`}
+             
+            />
+          </g>
         </>
       )
     case 'fairy':
       return (
-        <g stroke={light}>
-          <path
-            d="M48 73Q62 48 82 69M238 69Q258 48 273 73M96 89Q160 104 226 89"
-            strokeDasharray="2 5"
-          />
+        <>
           {[
-            [61, 55],
-            [260, 54],
-            [105, 88],
-            [217, 87],
-          ].map(([x, y], index) => (
-            <g key={x} transform={`translate(${x} ${y})`}>
+            [134, 112, 20],
+            [104, 84, 14],
+          ].map(([cy, rx, ry], i) => (
+            <ellipse
+              key={cy}
+              className="hb-dash"
+              style={timing(0, 6 + i * 2)}
+              cx={CX}
+              cy={cy}
+              rx={rx}
+              ry={ry}
+              fill="none"
+              stroke={i ? c.light : c.petal}
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              pathLength="100"
+              strokeDasharray="0.1 3.2"
+            />
+          ))}
+          {around(6, 30, 1.12).map(({ i, x, y }) => (
+            <g key={i} transform={`translate(${x} ${y - 6})`}>
               <path
-                className="mote"
-                d="M0-7L2-2L7 0L2 2L0 7L-2 2L-7 0L-2-2Z"
-                fill={index % 2 ? petal : light}
+                className="hb-twinkle"
+                style={timing(-i * 0.5)}
+                d={GLYPHS.fairy}
+                fill={i % 2 ? c.petal : c.light}
               />
             </g>
           ))}
-          <g fill={petal} stroke="none">
-            <ellipse
-              cx="83"
-              cy="79"
-              rx="5"
-              ry="2"
-              transform="rotate(-20 83 79)"
-            />
-            <ellipse
-              cx="238"
-              cy="81"
-              rx="5"
-              ry="2"
-              transform="rotate(22 238 81)"
-            />
-          </g>
-        </g>
+        </>
       )
     default:
       return (
-        <g fill={light} stroke="none" opacity="0.55">
-          {[
-            [73, 72],
-            [247, 75],
-          ].map(([x, y]) => (
-            <g key={x} transform={`translate(${x} ${y})`}>
-              <ellipse cy="4" rx="7" ry="4.5" />
-              <circle cx="-7" cy="-3" r="2.6" />
-              <circle cx="-2" cy="-6" r="2.6" />
-              <circle cx="4" cy="-6" r="2.6" />
-              <circle cx="9" cy="-2" r="2.6" />
-            </g>
-          ))}
-        </g>
+        <>
+          <defs>
+            <linearGradient id={id} x1="0" y1="1" x2="0" y2="0">
+              <stop stopColor={c.glow} stopOpacity="0.8" />
+              <stop offset="1" stopColor={c.glow} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {around(9, 0, 0.9).map(({ i, x, y, near }) => {
+            const h = 46 - near * 14
+            return (
+              <rect
+                key={i}
+                className="hb-ray"
+                style={timing(-i * 0.4)}
+                x={x - 1.6}
+                y={y - h}
+                width="3.2"
+                height={h}
+                rx="1.6"
+                fill={`url(#${id})`}
+              />
+            )
+          })}
+        </>
       )
   }
 }
 
-export function HabitatMotif({
-  type,
-  colors,
-  secondary = false,
-}: {
-  type: string
-  colors: Colors
-  secondary?: boolean
-}) {
-  return (
-    <g
-      data-motif={type}
-      fill="none"
-      stroke={colors.accent}
-      strokeWidth="1.3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity={secondary ? 0.85 : 0.95}
-    >
-      {artwork(type, colors)}
-    </g>
-  )
-}
-
+// Named pairs get an extra signature on top of both auras.
 export function HabitatFusion({
   fusion,
-  colors,
-  secondary,
+  colors: c,
+  secondary: s,
 }: {
   fusion: string | null
-  colors: Colors
-  secondary: Colors | null
+  colors: HabitatColors
+  secondary: HabitatColors | null
 }) {
-  if (!fusion || !secondary) return null
+  if (!fusion || !s) return null
   let shapes
   switch (fusion) {
-    case 'frozen-lagoon':
-      shapes = (
-        <g fill={secondary.light} fillOpacity="0.6" stroke={secondary.accent}>
-          <path d="M69 74L86 66L105 74L96 84L76 83ZM210 79L227 68L246 75L238 85ZM129 89L142 81L157 86L149 94Z" />
-        </g>
-      )
-      break
     case 'storm-water':
     case 'thundercloud':
-      shapes = (
-        <g stroke={secondary.light} strokeWidth="1.7">
-          <path
-            className="electric-arc"
-            d="M64 84L82 79L91 85L107 81M214 84L233 78L249 83"
-          />
-          <path
-            d="M48 45L43 52M75 40L70 47M249 36L244 43M279 49L274 56"
-            opacity="0.6"
-          />
+    case 'magnetic-core': {
+      const bolt = fusion === 'storm-water' ? c : s
+      shapes = [
+        'M70 160L96 150L112 166L140 154L160 168L184 152L206 166L228 152L252 162',
+        'M86 170L118 158L150 176L178 160L214 174L236 164',
+      ].map((d, i) => (
+        <g key={i} className="hb-zap" style={timing(-i * 1.3, 2 + i * 0.7)}>
+          <path d={d} stroke={bolt.glow} strokeWidth="6" opacity="0.4" />
+          <path d={d} stroke={bolt.light} strokeWidth="1.6" />
         </g>
+      ))
+      break
+    }
+    case 'frozen-lagoon':
+    case 'blizzard':
+      shapes = (
+        <ellipse
+          className="hb-glint"
+          cx={CX}
+          cy={CY}
+          rx={RX * 0.96}
+          ry={RY * 0.96}
+          stroke={fusion === 'blizzard' ? c.light : s.light}
+          strokeWidth="3"
+          pathLength="100"
+          strokeDasharray="1 2 4 2"
+        />
       )
       break
-    case 'tidal-shore':
-      shapes = (
-        <path
-          d="M42 78Q73 99 132 96M202 95Q249 96 280 78"
-          stroke={secondary.accent}
-          strokeWidth="5"
-          opacity="0.7"
+    case 'firestorm':
+    case 'soulfire':
+      shapes = [0, 1].map((i) => (
+        <ellipse
+          key={i}
+          className="hb-dash"
+          style={timing(-i, 1.6)}
+          cx={CX}
+          cy={136 - i * 30}
+          rx={110 - i * 22}
+          ry={20 - i * 4}
+          stroke={i ? s.glow : c.glow}
+          strokeWidth="4"
+          pathLength="100"
+          strokeDasharray="34 16"
         />
+      ))
+      break
+    case 'eclipse':
+      shapes = (
+        <g className="hb-corona">
+          <circle cx={CX} cy="74" r="58" stroke={s.glow} strokeWidth="2" strokeDasharray="2 6" />
+          <circle cx={CX} cy="74" r="66" stroke={c.glow} strokeWidth="1" opacity="0.6" />
+        </g>
       )
       break
     case 'toxic-garden':
     case 'toxic-undergrowth':
-      shapes = (
-        <g stroke={secondary.light} strokeWidth="1">
-          {[
-            [77, 74],
-            [236, 80],
-            [111, 88],
-          ].map(([x, y]) => (
-            <g key={x} transform={`translate(${x} ${y})`}>
-              <path d="M0 0V10" strokeWidth="2" />
-              <path d="M-10 0Q0-17 10 0Z" fill={secondary.accent} />
-              <circle cx="-3" cy="-5" r="1.4" fill={secondary.light} />
-              <circle cx="4" cy="-3" r="1" fill={secondary.light} />
-            </g>
-          ))}
-        </g>
-      )
-      break
-    case 'firestorm':
-      shapes = (
-        <g className="wind-streak" stroke={colors.light} opacity="0.75">
-          <path d="M37 78Q52 88 77 80T119 83M204 84Q221 73 244 80T283 70M48 36Q64 29 79 36M243 30Q259 24 276 31" />
-        </g>
-      )
-      break
-    case 'magnetic-core':
-      shapes = (
-        <g stroke={secondary.light} strokeWidth="3">
-          <path d="M75 53V64Q83 76 91 64V53M230 53V64Q238 76 246 64V53" />
-          <path d="M75 53V58M246 53V58" stroke={colors.accent} />
-          <path
-            d="M98 60Q160 42 223 60"
-            strokeWidth="0.8"
-            strokeDasharray="3 5"
-          />
-        </g>
-      )
-      break
-    case 'soulfire':
-      shapes = (
-        <g fill={secondary.accent} stroke={secondary.light} fillOpacity="0.45">
-          <path
-            className="ghost-wisp"
-            d="M83 80Q70 68 85 51Q82 68 94 70Q99 78 92 83Z"
-          />
-          <path
-            className="ghost-wisp wisp-delayed"
-            d="M227 82Q215 69 231 51Q227 68 239 71Q244 80 235 85Z"
-          />
-        </g>
-      )
-      break
-    case 'eclipse':
-      shapes = (
+      // poison sorts last, so it is always the secondary slot
+      shapes = [0, 1, 2].map((i) => (
         <ellipse
-          className="eclipse-halo"
-          cx="160"
-          cy="70"
-          rx="97"
-          ry="16"
-          fill={secondary.dark}
-          fillOpacity="0.5"
-          stroke={colors.light}
-          strokeOpacity="0.55"
+          key={i}
+          className="hb-mist"
+          style={timing(-i * 2)}
+          cx={110 + i * 50}
+          cy={150 + (i % 2) * 8}
+          rx="36"
+          ry="10"
+          fill={s.glow}
+          opacity="0.35"
         />
+      ))
+      break
+    case 'tidal-shore':
+    case 'canyon':
+      shapes = (
+        <g className="hb-pulse">
+          <path d="M70 162L104 154L128 166L162 156L190 170L236 160" stroke={c.dark} strokeWidth="5" />
+          <path d="M70 162L104 154L128 166L162 156L190 170L236 160" stroke={s.glow} strokeWidth="1.6" />
+        </g>
       )
       break
     case 'sky-ruins':
-      shapes = (
-        <g fill={colors.accent} stroke={colors.light}>
-          <path className="mote" d="M82 40L89 31L98 42L91 50Z" />
-          <path className="mote" d="M220 35L229 24L237 36L228 45Z" />
-        </g>
-      )
-      break
-    case 'canyon':
-      shapes = (
-        <>
+      shapes = around(5, 20, 1.25).map(({ i, x, y }) => (
+        <g key={i} transform={`translate(${x} ${y - 30})`}>
           <path
-            d="M69 71L105 64L127 75L164 67L190 82L237 72"
-            stroke={colors.dark}
-            strokeWidth="4"
+            className="hb-hover"
+            style={timing(-i * 0.8)}
+            d="M-4-6L4-4L5 4L-3 6Z"
+            fill={c.dark}
+            stroke={c.glow}
           />
-          <path
-            d="M69 69L105 62L127 73L164 65L190 80L237 70"
-            stroke={secondary.light}
-            strokeWidth="1"
-          />
-        </>
-      )
-      break
-    case 'blizzard':
-      shapes = (
-        <g stroke={colors.light} strokeWidth="1.1">
-          {[
-            [82, 43],
-            [239, 38],
-            [264, 84],
-          ].map(([x, y]) => (
-            <path
-              className="mote"
-              key={x}
-              d={`M${x - 5} ${y}h10M${x - 3} ${y - 4}l6 8M${x + 3} ${y - 4}l-6 8`}
-            />
-          ))}
         </g>
-      )
+      ))
       break
     case 'enchanted-garden':
       shapes = (
-        <path
-          d="M86 58Q160 26 237 58M101 90Q159 103 219 90"
-          stroke={secondary.light}
-          strokeDasharray="2 6"
-          opacity="0.65"
+        <ellipse
+          className="hb-dash"
+          style={timing(0, 4)}
+          cx={CX}
+          cy="118"
+          rx="96"
+          ry="17"
+          stroke={c.petal}
+          strokeWidth="4"
+          strokeLinecap="round"
+          pathLength="100"
+          strokeDasharray="0.1 6"
         />
       )
       break
@@ -585,13 +857,7 @@ export function HabitatFusion({
       return null
   }
   return (
-    <g
-      data-fusion={fusion}
-      fill="none"
-      strokeWidth="1.3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <g data-fusion={fusion} fill="none" strokeLinecap="round" strokeLinejoin="round">
       {shapes}
     </g>
   )

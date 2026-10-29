@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import pokemonApi, { useGetPokemonDetailQuery } from 'app/apis/pokemon'
 import store from 'app/store'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
@@ -13,6 +14,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
 import PokemonHabitat from './PokemonHabitat'
+import { getPokemonPower } from './power.mjs'
 import {
   getPokemonFallbackImage,
   getPokemonImage,
@@ -68,6 +70,9 @@ const PokemonPage = () => {
     RenderingInfo.loader || !pokemonState || carousel.isNavigating
   const lastPokemon = useRef(pokemonState)
   const detailSnapshot = pokemonState || lastPokemon.current
+  const power = getPokemonPower(detailSnapshot?.stats ?? [])
+  // The aura only lights up once the selected Pokémon's data is on screen.
+  const showAura = !isShowLoading && Boolean(detailSnapshot?.stats?.length)
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
   const seoTitle = `Pokemon ${pokemonState?.name} Pokédex: Chỉ số, Chiêu thức & Cách tiến hóa (Gen 9) | Anhchangvt1994`
@@ -211,6 +216,18 @@ const PokemonPage = () => {
         ) : (
           <CarouselStageStyle
             data-scanning={carousel.isNavigating}
+            data-aura={showAura ? power.level : undefined}
+            style={
+              {
+                '--aura-a': power.color.a,
+                '--aura-b': power.color.b,
+                // PokeAPI's copy of the same artwork serves CORS, which
+                // CSS masks need (pokemon.com does not).
+                '--art': detailSnapshot?.id
+                  ? `url(${getPokemonFallbackImage(detailSnapshot.id)})`
+                  : undefined,
+              } as CSSProperties
+            }
             onPointerDownCapture={carousel.onPointerDownCapture}
             onPointerMoveCapture={carousel.onPointerMoveCapture}
             onPointerUpCapture={carousel.onPointerUpCapture}
@@ -219,7 +236,9 @@ const PokemonPage = () => {
             <PokemonHabitat
               types={detailSnapshot?.types ?? []}
               scanning={isShowLoading}
+              power={power.level}
             />
+
             <Swiper
               onSwiper={carousel.onSwiper}
               onResize={carousel.onResize}

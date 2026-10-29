@@ -2,6 +2,7 @@ import { memo } from 'react'
 import PokemonInfo from 'components/pokemon-page/pokemon-info'
 import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
 import PokemonStats from 'components/pokemon-page/pokemon-stats'
+import PokemonPower from './PokemonPower'
 import { DetailsSkeletonStyle } from './styles'
 
 // Keep the long moveset tree mounted and memoized while the carousel is moving.
@@ -16,6 +17,7 @@ const PokemonDetails = memo(({ pokemon }: { pokemon: any }) => {
       <h2 style={headingStyle}>
         Chỉ số cơ bản (Base Stats) của {pokemon.name}
       </h2>
+      <PokemonPower stats={pokemon.stats ?? []} />
       <PokemonStats stats={pokemon.stats ?? []} />
       <h3 style={headingStyle}>
         Chiều cao, cân nặng và khả năng đặc biệt (Abilities) của {pokemon.name}
@@ -37,6 +39,13 @@ PokemonDetails.displayName = 'PokemonDetails'
 
 export const PokemonDetailsSkeleton = () => (
   <DetailsSkeletonStyle aria-hidden="true">
+    <div className="skeleton-card skeleton-power">
+      <i className="skeleton-shape" />
+      <div>
+        <i className="skeleton-shape" />
+        <i className="skeleton-shape" />
+      </div>
+    </div>
     <div className="skeleton-stats">
       {import.meta.env.INFO_POKEMON_STATS_DEFAULT.map((item, index) => (
         <div className="skeleton-stat" key={item.stat.name}>

@@ -126,3 +126,12 @@ test('land and elemental themes use both types and have a safe default', () => {
     assert.equal(habitat.getPokemonHabitat(types(...names)).kind, kind)
   }
 })
+
+test('every type and its pair partner carry a saturated glow colour for the effects', () => {
+  const single = habitat.getPokemonHabitat(types('ghost'))
+  assert.match(single.glow, /^#[0-9a-f]{6}$/)
+  const pair = habitat.getPokemonHabitat(types('fire', 'flying'))
+  assert.match(pair.glow, /^#[0-9a-f]{6}$/)
+  assert.match(pair.secondaryColors.glow, /^#[0-9a-f]{6}$/)
+  assert.notEqual(pair.glow, pair.secondaryColors.glow)
+})

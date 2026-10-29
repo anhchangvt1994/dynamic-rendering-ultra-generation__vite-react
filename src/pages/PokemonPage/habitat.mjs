@@ -61,6 +61,29 @@ const themes = {
   fairy: palette('enchanted', 'fairy-grove', '#ffe4f4', '#edb5da', '#805d7a'),
 }
 
+// Saturated "energy" colour per type: the pastel palette above paints the
+// platform body, this one is what glows (runes, beam, particles, effects).
+const glows = {
+  normal: '#fff1c4',
+  fire: '#ff6a1f',
+  water: '#22b8ff',
+  electric: '#ffd60a',
+  grass: '#3ee06d',
+  ice: '#7af4ff',
+  fighting: '#ff4b2b',
+  poison: '#c147ff',
+  ground: '#ffb347',
+  flying: '#a6c8ff',
+  psychic: '#ff4fa3',
+  bug: '#b5e61d',
+  rock: '#e6c56c',
+  ghost: '#8a63ff',
+  dragon: '#5b6bff',
+  dark: '#a07ce0',
+  steel: '#9fe8ff',
+  fairy: '#ff8fd8',
+}
+
 // The main environment supplies the floor; BOTH types supply their own
 // geometric motifs, consistently regardless of the API's slot order.
 const priority = [
@@ -113,6 +136,7 @@ export function getPokemonHabitat(types = []) {
   const theme = themes[primary]
   return {
     ...theme,
+    glow: glows[primary],
     petal: motifs.includes('poison')
       ? themes.poison.petal
       : motifs.includes('fairy')
@@ -120,7 +144,9 @@ export function getPokemonHabitat(types = []) {
         : theme.petal,
     primary,
     secondary: secondary || null,
-    secondaryColors: secondary ? themes[secondary] : null,
+    secondaryColors: secondary
+      ? { ...themes[secondary], glow: glows[secondary] }
+      : null,
     motifs,
     fusion: secondary
       ? fusions[[primary, secondary].sort().join('-')] || null

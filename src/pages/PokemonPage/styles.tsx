@@ -151,6 +151,155 @@ export const CarouselStageStyle = styled.div`
   .swiper {
     z-index: 1;
   }
+
+  /*
+   * Power reveal on the selected Pokémon, by BST tier (data-aura = 0..9,
+   * see power.mjs). A band of light scans the Pokémon itself from feet to
+   * head (clipped to its silhouette via --art), then leaves a rim light.
+   * Stronger tiers glint again more often; EX scans in holo colours.
+   */
+  .pokemon-visual {
+    position: relative;
+  }
+  &[data-aura] .swiper-slide-active .pokemon-visual::after {
+    content: '';
+    mix-blend-mode: screen;
+    position: absolute;
+    inset: 20px 0;
+    pointer-events: none;
+    -webkit-mask: var(--art) center / contain no-repeat;
+    mask: var(--art) center / contain no-repeat;
+    background: linear-gradient(
+        to top,
+        transparent 45%,
+        color-mix(in srgb, var(--aura-a) 80%, transparent) 48.6%,
+        #fff 50%,
+        color-mix(in srgb, var(--aura-a) 80%, transparent) 51.4%,
+        transparent 55%
+      )
+      0 0 / 100% 300% no-repeat;
+    animation: aura-scan 2.6s ease-in-out both;
+  }
+  &[data-aura='0'] .swiper-slide-active .pokemon-visual::after,
+  &[data-aura='1'] .swiper-slide-active .pokemon-visual::after {
+    opacity: 0.45;
+  }
+  &[data-aura='4'] .swiper-slide-active .pokemon-visual::after,
+  &[data-aura='5'] .swiper-slide-active .pokemon-visual::after {
+    animation-duration: 6s;
+    animation-iteration-count: infinite;
+  }
+  &[data-aura='6'] .swiper-slide-active .pokemon-visual::after,
+  &[data-aura='7'] .swiper-slide-active .pokemon-visual::after {
+    animation-duration: 3.6s;
+    animation-iteration-count: infinite;
+  }
+  &[data-aura='8'] .swiper-slide-active .pokemon-visual::after,
+  &[data-aura='9'] .swiper-slide-active .pokemon-visual::after {
+    animation-duration: 2.6s;
+    animation-iteration-count: infinite;
+  }
+  &[data-aura='9'] .swiper-slide-active .pokemon-visual::after {
+    background-image: linear-gradient(
+      to top,
+      transparent 43%,
+      #ff5f6d 46%,
+      #ffd86f 48.2%,
+      #fff 50%,
+      #6bf2ff 51.8%,
+      #c77dff 54%,
+      transparent 57%
+    );
+  }
+
+  /* rim light that the scan leaves behind */
+  &[data-aura] .swiper-slide-active img {
+    animation: aura-rim-in 600ms ease-out 900ms both;
+  }
+  &[data-aura='6'] .swiper-slide-active img,
+  &[data-aura='7'] .swiper-slide-active img,
+  &[data-aura='8'] .swiper-slide-active img {
+    animation:
+      aura-rim-in 600ms ease-out 900ms both,
+      aura-rim-breathe 2.4s ease-in-out 1.5s infinite alternate;
+  }
+  &[data-aura='9'] .swiper-slide-active img {
+    animation:
+      aura-rim-in 600ms ease-out 900ms both,
+      aura-rim-prism 4s linear 1.5s infinite;
+  }
+  &[data-aura='0'] .swiper-slide-active img,
+  &[data-aura='1'] .swiper-slide-active img {
+    --rim: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
+  }
+  &[data-aura='2'] .swiper-slide-active img,
+  &[data-aura='3'] .swiper-slide-active img {
+    --rim: drop-shadow(0 0 1px var(--aura-a)) drop-shadow(0 0 1px var(--aura-a));
+  }
+  &[data-aura='4'] .swiper-slide-active img,
+  &[data-aura='5'] .swiper-slide-active img {
+    --rim: drop-shadow(0 0 1px var(--aura-a))
+      drop-shadow(0 0 1.5px var(--aura-a)) drop-shadow(0 0 8px var(--aura-b));
+  }
+  &[data-aura='6'] .swiper-slide-active img,
+  &[data-aura='7'] .swiper-slide-active img,
+  &[data-aura='8'] .swiper-slide-active img,
+  &[data-aura='9'] .swiper-slide-active img {
+    --rim: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px var(--aura-a))
+      drop-shadow(0 0 12px var(--aura-b));
+  }
+
+  @keyframes aura-scan {
+    0% {
+      background-position: 0 0;
+    }
+    40%,
+    100% {
+      background-position: 0 100%;
+    }
+  }
+  @keyframes aura-rim-in {
+    from {
+      filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
+    }
+    to {
+      filter: var(--rim);
+    }
+  }
+  @keyframes aura-rim-breathe {
+    from {
+      filter: var(--rim);
+    }
+    to {
+      filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px var(--aura-a))
+        drop-shadow(0 0 20px var(--aura-b));
+    }
+  }
+  @keyframes aura-rim-prism {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #ff5f6d)
+        drop-shadow(0 0 14px #ff5f6d);
+    }
+    33% {
+      filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #ffd86f)
+        drop-shadow(0 0 14px #ffd86f);
+    }
+    66% {
+      filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #6bf2ff)
+        drop-shadow(0 0 14px #6bf2ff);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-aura] .swiper-slide-active .pokemon-visual::after {
+      display: none;
+    }
+    &[data-aura] .swiper-slide-active img {
+      animation: none;
+      filter: var(--rim);
+    }
+  }
 `
 
 export const NameStyle = styled.div`
@@ -346,6 +495,28 @@ export const DetailsSkeletonStyle = styled.div`
     text-align: center;
     display: grid;
     gap: 16px;
+  }
+  .skeleton-power {
+    margin: 0 0 16px;
+    grid-template-columns: 52px 1fr;
+    align-items: center;
+    height: 88px;
+    text-align: left;
+  }
+  .skeleton-power > i {
+    width: 52px;
+    height: 58px;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+  .skeleton-power div {
+    display: grid;
+    gap: 12px;
+  }
+  .skeleton-power div i:first-child {
+    width: 46%;
+  }
+  .skeleton-power div i:last-child {
+    height: 16px;
   }
   .skeleton-measurements {
     grid-template-columns: repeat(2, 1fr);

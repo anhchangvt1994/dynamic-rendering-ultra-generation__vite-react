@@ -12,10 +12,10 @@
     h2 { font-size: 16px; font-weight: 500; margin-top: 32px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
     article { border: 1px solid #304853; border-radius: 16px; overflow: hidden; background: #192f3a; }
-    .stage { position: relative; height: 180px; background: radial-gradient(ellipse at 50% 70%,#2b4956,transparent 72%); }
+    .stage { position: relative; height: 200px; background: radial-gradient(ellipse at 50% 70%,#2b4956,transparent 72%); }
     .stage img { position: absolute; z-index: 2; left: 50%; top: 12px; transform: translateX(-50%); width: 140px; height: 120px; object-fit: contain; }
-    .stage [data-habitat] { width: 240px; bottom: 10px; }
-    .stage [data-habitat] * { animation: none !important; }
+    .stage [data-habitat] { width: 260px; bottom: 6px; }
+    .still .stage [data-habitat] * { animation: none !important; }
     footer { padding: 10px 16px; border-top: 1px solid #304853; }
     small { display: block; color: #90aebc; }
     @media(max-width:600px) { body { padding: 16px; } .grid { grid-template-columns: 1fr; } }
@@ -23,7 +23,7 @@
 </head>
 <body>
   <h1>Nền Pokémon: hệ đơn và hệ kép</h1>
-  <p>Bản kiểm tra hình ảnh cục bộ. Hoạt ảnh được giữ yên để so sánh họa tiết.</p>
+  <p>Bản kiểm tra hình ảnh cục bộ. Thêm <code>?still</code> vào URL để dừng hoạt ảnh và so sánh họa tiết.</p>
   <div id="review"></div>
   <script type="module">
     import React from 'react'
@@ -52,6 +52,7 @@
       ['bug','poison',13,'Bọ / Độc','toxic-undergrowth'],
       ['ice','flying',144,'Băng / Bay','blizzard'],
     ]
+    if (new URLSearchParams(location.search).has('still')) document.body.classList.add('still')
     const h = React.createElement
     const card = (names,id,label,fusion=null) => h('article', {'data-case':names.join('-'),'data-expected-fusion':fusion,key:names.join('-')},
       h('div',{className:'stage'},
