@@ -1,7 +1,10 @@
 import BattleMessage from 'components/common/BattleMessage'
 import { titleCase } from 'components/pokemon-page/format.mjs'
 import type { CSSProperties } from 'react'
-import pokemonApi, { useGetPokemonDetailQuery } from 'app/apis/pokemon'
+import pokemonApi, {
+  useGetPokemonDetailQuery,
+  useGetPokemonSpeciesQuery,
+} from 'app/apis/pokemon'
 import store from 'app/store'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import Image from 'components/common/Image'
@@ -68,6 +71,23 @@ const PokemonPage = () => {
   const { currentData, isError, error, refetch } = useGetPokemonDetailQuery(
     !curId || curId === firstQuery.current.id ? firstQuery.current.key : curId
   )
+  // /pokemon/urshifu, /pokemon/giratina…: species names whose default form
+  // carries a suffix (urshifu-single-strike). A 404 on the first lookup
+  // tries the species and moves to its default form.
+  const notFoundName =
+    isError && !curId && (error as { status?: number })?.status === 404
+      ? name
+      : ''
+  const { data: speciesByName, isFetching: lookingUpSpecies } =
+    useGetPokemonSpeciesQuery(notFoundName, { skip: !notFoundName })
+  const defaultForm: string | undefined = speciesByName?.varieties?.find(
+    (variety: { is_default: boolean }) => variety.is_default
+  )?.pokemon?.name
+  useEffect(() => {
+    if (defaultForm && defaultForm !== name)
+      navigate(getPokemonDetailPath(defaultForm), { replace: true })
+  }, [defaultForm, name, navigate, getPokemonDetailPath])
+
   // currentData belongs to the selected query; never show a late response from
   // an earlier selection under the new image or update its URL/SEO.
   const pokemonState =
@@ -241,6 +261,16 @@ const PokemonPage = () => {
 
   // The very first lookup failed: the name does not exist, or we are offline.
   if (isError && !pokemonState && !curId) {
+    // a species name whose default form has a suffix: on the way there
+    if (notFoundName && (lookingUpSpecies || defaultForm)) {
+      return (
+        <PokemonPageStyle>
+          <NameLoadingStyle role="status">
+            Đang tìm trong Pokédex…
+          </NameLoadingStyle>
+        </PokemonPageStyle>
+      )
+    }
     const notFound = (error as { status?: number })?.status === 404
     setSeoTag({
       title: notFound

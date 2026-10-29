@@ -45,7 +45,7 @@ const pokemonApi = createApi({
       },
     }),
     // Species: genus, Pokédex flavour text, legendary flags, evolution link.
-    getPokemonSpecies: builder.query<any, number>({
+    getPokemonSpecies: builder.query<any, number | string>({
       keepUnusedDataFor: 300,
       query: (id) => {
         const endpoint = `/pokemon-species/${id}`
