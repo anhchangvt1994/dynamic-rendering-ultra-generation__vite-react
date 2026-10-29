@@ -1,23 +1,21 @@
+import BattleMessage from 'components/common/BattleMessage'
 import { useRouteError } from 'react-router'
 
 function RouterError() {
-  const error = useRouteError() as any
+  const error = useRouteError()
 
-  console.log(error)
-
-  if (!error) return ''
-
-  // if (import.meta.env.DEV && error.name === 'TypeError') {
-  //   window.history.go(0)
-  //   return null
-  // }
+  if (!error) return null
+  console.error(error)
 
   return (
-    <div className="flex w-full h-dvh items-center font-extrabold flex-wrap">
-      <div className="center w-full justify-between text-center text-[24px]">
-        Oops! This site is under maintenance <br />
-        Please visit again in a few minutes
-      </div>
+    <div className="flex w-full h-dvh items-center">
+      <BattleMessage
+        title="Trang này vừa gục ngã!"
+        action={{ label: 'Tải lại trang', onClick: () => location.reload() }}
+      >
+        Có lỗi khi hiển thị trang. Tải lại thường sẽ khắc phục được; nếu vẫn
+        lỗi, hãy quay lại sau ít phút.
+      </BattleMessage>
     </div>
   )
 }
