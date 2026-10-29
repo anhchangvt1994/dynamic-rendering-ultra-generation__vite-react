@@ -41,6 +41,8 @@
     "not dead"
   ],
   "dependencies": {
+    "@fontsource/be-vietnam-pro": "5",
+    "@fontsource/dela-gothic-one": "5",
     "@reduxjs/toolkit": "^2.11.2",
     "blurhash": "^2.0.5",
     "polished": "^4.2.2",
