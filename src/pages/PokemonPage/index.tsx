@@ -16,6 +16,7 @@ import type { Swiper as SwiperInstance } from 'swiper'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
+import PokemonActions from './PokemonActions'
 import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
@@ -76,6 +77,25 @@ const PokemonPage = () => {
   const carousel = usePokemonCarousel(curId, setCurId, Boolean(pokemonState))
   // for the visible prev/next buttons (they live outside the gesture area)
   const swiperRef = useRef<SwiperInstance | null>(null)
+
+  // Shiny: swap the centred artwork's src; every new Pokémon starts normal,
+  // and the slide it leaves gets its normal artwork back.
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [shiny, setShiny] = useState(false)
+  useEffect(() => setShiny(false), [curId])
+  const shinyArt =
+    pokemonState?.sprites?.other?.['official-artwork']?.front_shiny
+  useEffect(() => {
+    const img = stageRef.current?.querySelector<HTMLImageElement>(
+      ':is(.swiper-slide-active, .pokemon-solo) img'
+    )
+    if (!img || !shiny || !shinyArt) return
+    const normal = img.src
+    img.src = shinyArt
+    return () => {
+      img.src = normal
+    }
+  }, [shiny, shinyArt])
 
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
@@ -276,7 +296,7 @@ const PokemonPage = () => {
             height={150}
           />
         ) : (
-          <StageWrapStyle>
+          <StageWrapStyle ref={stageRef}>
             <CarouselStageStyle
               data-scanning={carousel.isNavigating}
               data-loading={isShowLoading}
@@ -418,6 +438,19 @@ const PokemonPage = () => {
           key={pokemonState?.name}
           types={isShowLoading ? [] : (pokemonState?.types ?? [])}
         />
+        {/* rendered (hidden) while loading so the page below never jumps */}
+        <div
+          style={{ visibility: isShowLoading ? 'hidden' : 'visible' }}
+          inert={isShowLoading}
+        >
+          <PokemonActions
+            id={pokemonState?.id ?? 0}
+            name={titleCase(pokemonState?.name ?? '')}
+            shiny={shiny}
+            hasShiny={!!shinyArt}
+            onShinyChange={setShiny}
+          />
+        </div>
 
         {isError && !carousel.isNavigating && (
           <InlineAlertStyle role="alert">

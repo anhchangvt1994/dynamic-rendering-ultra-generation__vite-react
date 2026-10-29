@@ -220,3 +220,13 @@ export const NameLoadingStyle = styled.div`
     }
   }
 `
+
+// "Đã bắt" mark, set from the Pokémon page.
+export const CaughtStyle = styled.svg`
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+`
