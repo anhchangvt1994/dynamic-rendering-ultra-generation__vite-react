@@ -90,7 +90,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
     align-items: center;
     gap: 6px;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 11px;
     margin-top: 5px;
   }
   .card-region i {
@@ -115,7 +115,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
       height: 86px;
     }
     .card-region {
-      font-size: 8px;
+      font-size: 11px;
       gap: 5px;
       margin-top: 4px;
     }
@@ -141,13 +141,13 @@ export const NameStyle = styled.h3`
   }
 `
 export const DexStyle = styled.span`
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   letter-spacing: 0.3px;
   @media (max-width: 680px) {
-    font-size: 9px;
+    font-size: 11px;
   }
 `
 export const PokemonCardLoadingStyle = styled.div`

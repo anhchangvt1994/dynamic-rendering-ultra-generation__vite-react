@@ -68,7 +68,7 @@ const ActionsStyle = styled.div`
     right: 0;
     margin: 0;
     min-height: 16px;
-    font-size: 10px;
+    font-size: 12px;
     color: #c9f9df;
     text-align: center;
   }

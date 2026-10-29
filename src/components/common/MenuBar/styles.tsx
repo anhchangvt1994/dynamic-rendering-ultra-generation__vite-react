@@ -54,7 +54,7 @@ export const HeaderStyle = styled.div`
   }
   span {
     color: #a6bcd0;
-    font-size: 7px;
+    font-size: 11px;
     letter-spacing: 2px;
   }
   h2 {

@@ -97,7 +97,7 @@ const EvolutionStyle = styled.section`
     align-items: center;
     gap: 3px;
     max-width: 100%;
-    font-size: 10px;
+    font-size: 12px;
     color: rgba(235, 247, 241, 0.75);
     text-align: center;
     line-height: 1.3;
@@ -114,7 +114,7 @@ const EvolutionStyle = styled.section`
     opacity: 0.6;
   }
   .form-label {
-    font-size: 10px;
+    font-size: 12px;
     color: #c6d8e9;
   }
   .retry-form {
@@ -123,7 +123,7 @@ const EvolutionStyle = styled.section`
     border: 1px solid #ffffff30;
     border-radius: 6px;
     padding: 5px 8px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .evolution-items {
     display: flex;

@@ -37,7 +37,7 @@ export const HeaderStyle = styled.header`
   }
   .brand i {
     display: block;
-    font-size: 7px;
+    font-size: 11px;
     font-style: normal;
     font-weight: 700;
     letter-spacing: 3px;

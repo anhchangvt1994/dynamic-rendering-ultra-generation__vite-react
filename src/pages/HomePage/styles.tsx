@@ -4,7 +4,7 @@ export const HomePageStyle = styled.div`
   padding: 28px 40px 0;
   color: var(--ink);
   .eyebrow {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1.8px;
   }
@@ -14,7 +14,7 @@ export const HomePageStyle = styled.div`
     gap: 16px;
     padding: 18px 4px;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 1px;
   }
   .field-strip span {
@@ -81,7 +81,7 @@ export const HomePageStyle = styled.div`
     color: #496658;
   }
   .collection-progress span {
-    font-size: 10px;
+    font-size: 12px;
     color: #496658;
   }
   progress {
@@ -136,7 +136,7 @@ export const HomePageStyle = styled.div`
   }
   .catalog-heading .eyebrow {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 11px;
   }
   .catalog h2 {
     font-size: clamp(23px, 2.4vw, 30px);
@@ -301,10 +301,10 @@ export const HomePageStyle = styled.div`
     padding: 0 4px;
     border-radius: 5px;
     background: white;
-    font-size: 9px;
+    font-size: 11px;
   }
   .result-count {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
     white-space: nowrap;
   }
@@ -411,11 +411,11 @@ export const HomePageStyle = styled.div`
   }
   .load-more button span {
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
   }
   .load-more p {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
     margin-top: 10px;
   }
@@ -442,7 +442,7 @@ export const HomePageStyle = styled.div`
   }
   .field-footer p {
     text-align: right;
-    font-size: 8px;
+    font-size: 11px;
     color: var(--muted);
     line-height: 1.8 !important;
   }
@@ -480,7 +480,7 @@ export const HomePageStyle = styled.div`
     padding: 16px 18px 0;
     .field-strip {
       padding: 15px 0;
-      font-size: 8px;
+      font-size: 11px;
       letter-spacing: 1px;
       justify-content: center;
     }
@@ -505,7 +505,7 @@ export const HomePageStyle = styled.div`
       font-size: 12px;
     }
     .collection-copy p {
-      font-size: 9px;
+      font-size: 11px;
       margin-top: 2px;
     }
     .collection-progress {
@@ -524,7 +524,7 @@ export const HomePageStyle = styled.div`
       font-size: 15px;
     }
     .collection-progress small {
-      font-size: 9px;
+      font-size: 11px;
     }
     .collection-progress span {
       display: none;
@@ -555,7 +555,7 @@ export const HomePageStyle = styled.div`
       margin-top: 4px;
     }
     .catalog-heading .eyebrow {
-      font-size: 8px;
+      font-size: 11px;
       letter-spacing: 1.6px;
     }
     .random-small {
@@ -588,18 +588,18 @@ export const HomePageStyle = styled.div`
     .type-filter button {
       min-height: 35px;
       padding: 0 12px;
-      font-size: 10px;
+      font-size: 12px;
     }
     .results-heading {
       padding-bottom: 12px;
     }
     .view-tabs button {
-      font-size: 10px;
+      font-size: 12px;
       min-height: 37px;
       padding: 0 9px;
     }
     .result-count {
-      font-size: 9px;
+      font-size: 11px;
     }
     .field-footer {
       flex-direction: column;
@@ -608,10 +608,10 @@ export const HomePageStyle = styled.div`
       margin-top: 28px;
     }
     .field-footer > span {
-      font-size: 10px;
+      font-size: 12px;
     }
     .field-footer p {
-      font-size: 8px;
+      font-size: 11px;
       text-align: left;
     }
   }
@@ -653,7 +653,7 @@ export const HeroStyle = styled.section`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 1.3px;
     color: #cad6e2;
   }
@@ -712,7 +712,7 @@ export const HeroStyle = styled.section`
     color: white;
     background: transparent;
     padding: 0;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
     gap: 7px;
   }
@@ -723,7 +723,7 @@ export const HeroStyle = styled.section`
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: 8px;
+    font-size: 11px;
     margin-top: 27px;
     color: #a5bbcd;
   }
@@ -752,7 +752,7 @@ export const HeroStyle = styled.section`
     gap: 12px;
     position: relative;
     z-index: 3;
-    font-size: 8px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 1px;
   }
@@ -843,7 +843,7 @@ export const HeroStyle = styled.section`
     box-shadow: 3px 3px 0 #172d451a;
     padding: 7px 10px;
     transform: rotate(-10deg);
-    font-size: 8px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.5px;
   }
@@ -871,7 +871,7 @@ export const HeroStyle = styled.section`
     font-size: 18px;
   }
   .encounter-bottom p {
-    font-size: 8px;
+    font-size: 11px;
     margin-top: 1px;
     opacity: 0.8;
   }
@@ -932,7 +932,7 @@ export const HeroStyle = styled.section`
       padding: 25px 23px 0;
     }
     .eyebrow {
-      font-size: 6.5px;
+      font-size: 11px;
       letter-spacing: 1px;
       gap: 6px;
     }
@@ -956,12 +956,12 @@ export const HeroStyle = styled.section`
     .hero-actions button {
       min-height: 41px;
       padding: 0 13px;
-      font-size: 10px;
+      font-size: 12px;
       border-radius: 9px;
       gap: 9px;
     }
     .hero-actions .random {
-      font-size: 9px;
+      font-size: 11px;
       gap: 6px;
     }
     .hero-footnote {
@@ -974,7 +974,7 @@ export const HeroStyle = styled.section`
       transform: rotate(1.5deg);
     }
     .encounter-top {
-      font-size: 6.5px;
+      font-size: 11px;
       letter-spacing: 0.7px;
     }
     .encounter-art {
@@ -1008,7 +1008,7 @@ export const HeroStyle = styled.section`
     .type-stamp {
       right: -6px;
       bottom: 13px;
-      font-size: 6px;
+      font-size: 11px;
       padding: 5px 8px;
     }
     .encounter-bottom {
@@ -1018,7 +1018,7 @@ export const HeroStyle = styled.section`
       font-size: 18px;
     }
     .encounter-bottom p {
-      font-size: 7px;
+      font-size: 11px;
       max-width: 160px;
     }
     .encounter-picker button {

@@ -9,7 +9,7 @@ export const MovesetStyle = styled.section`
   min-width: 0;
   .eyebrow {
     color: var(--muted);
-    font-size: 8px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 1.5px;
   }
@@ -27,7 +27,7 @@ export const MovesetStyle = styled.section`
     margin-top: 3px;
   }
   .moves-total {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
     padding: 5px 9px;
     border-radius: 99px;
@@ -36,7 +36,7 @@ export const MovesetStyle = styled.section`
   .moves-version > span {
     display: block;
     margin-bottom: 7px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--muted);
   }
@@ -107,7 +107,7 @@ export const MovesetStyle = styled.section`
     border-radius: 8px;
     background: white;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
   }
   .move-methods button[aria-pressed='true'] {
@@ -126,7 +126,7 @@ export const MovesetStyle = styled.section`
   }
   th {
     text-align: left;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     padding: 8px 0;
     color: var(--muted);
@@ -153,7 +153,7 @@ export const MovesetStyle = styled.section`
     background: var(--canvas);
     border-radius: 6px;
     padding: 3px 7px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
   }
   .moves-more {
@@ -177,12 +177,12 @@ export const MovesetStyle = styled.section`
   .moves-more span {
     margin-left: 8px;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 400;
   }
   .moves-note {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 11px;
     margin-top: 14px;
     line-height: 1.7 !important;
   }

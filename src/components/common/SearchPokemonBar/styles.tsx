@@ -37,7 +37,7 @@ export const ContainerStyle = styled.div`
     margin-bottom: 20px;
   }
   .dialog-heading span {
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 2px;
     color: #9db2c6;
     font-weight: 600;
@@ -129,7 +129,7 @@ export const SearchBodyStyle = styled.div`
     margin-top: 20px;
   }
   .search-suggestions p {
-    font-size: 10px;
+    font-size: 12px;
     color: #a9bfd2;
     margin-bottom: 12px;
   }
@@ -140,7 +140,7 @@ export const SearchBodyStyle = styled.div`
     border-radius: 8px;
     background: #ffffff08;
     color: white;
-    font-size: 10px;
+    font-size: 12px;
   }
   .search-suggestions button:hover {
     background: #ffffff20;

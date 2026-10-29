@@ -12,7 +12,7 @@ const DefensesStyle = styled.section`
   background: var(--surface);
   color: var(--ink);
   .eyebrow {
-    font-size: 8px;
+    font-size: 11px;
     letter-spacing: 1.6px;
     color: var(--muted);
     font-weight: 700;
@@ -42,7 +42,7 @@ const DefensesStyle = styled.section`
     background: var(--canvas);
     border: 1px solid var(--line);
     border-radius: 9px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
   }
   .defense-chip img {
@@ -58,7 +58,7 @@ const DefensesStyle = styled.section`
     border-radius: 5px;
     background: #e2e8ef;
     color: var(--ink);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 800;
   }
   .defense-chip[data-factor='4'] strong {
@@ -112,7 +112,7 @@ const DefensesStyle = styled.section`
   .scope {
     margin-top: 13px;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.7 !important;
   }
   .defense-state {

@@ -123,7 +123,7 @@ export const ItemStyle = styled(SelectPrimitive.Item)`
     font-weight: 500;
   }
   .select-description {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--muted);
   }
   .select-check {
