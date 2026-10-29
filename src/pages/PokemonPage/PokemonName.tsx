@@ -328,14 +328,17 @@ const slump = (i: number) => ({
 const PokemonName = memo(
   ({
     name,
+    label,
     level,
     color,
   }: {
     name: string
+    /** official display name ("Mr. Mime"); falls back to the slug */
+    label?: string
     level: number
     color: { a: string; b: string }
   }) => {
-    const text = display(name)
+    const text = label || display(name)
     const letters = [...text]
     return (
       <NameStyle
@@ -348,7 +351,7 @@ const PokemonName = memo(
           } as CSSProperties
         }
       >
-        <div key={name} className="name" data-text={text}>
+        <h1 key={name} className="name" data-text={text}>
           <span className="sr">{text}</span>
           {letters.map((letter, i) => (
             <span
@@ -360,7 +363,7 @@ const PokemonName = memo(
               {letter === ' ' ? ' ' : letter}
             </span>
           ))}
-        </div>
+        </h1>
       </NameStyle>
     )
   }

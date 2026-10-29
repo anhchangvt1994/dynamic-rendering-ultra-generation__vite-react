@@ -366,3 +366,34 @@ test('cosmetic forms use their own artwork even when they share a Pokémon ID', 
     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/422-east.png'
   )
 })
+
+test('display names use the official species name, plus the form', async () => {
+  const { displayNameOf } = await import('./species.mjs')
+  const species = (name, en) => ({
+    name,
+    names: [{ language: { name: 'en' }, name: en }],
+  })
+  assert.equal(
+    displayNameOf(
+      { name: 'mr-mime', is_default: true },
+      species('mr-mime', 'Mr. Mime')
+    ),
+    'Mr. Mime'
+  )
+  assert.equal(
+    displayNameOf(
+      { name: 'charizard-mega-x', is_default: false },
+      species('charizard', 'Charizard')
+    ),
+    'Charizard Mega X'
+  )
+  // a default variety with a suffix keeps the species name alone
+  assert.equal(
+    displayNameOf(
+      { name: 'urshifu-single-strike', is_default: true },
+      species('urshifu', 'Urshifu')
+    ),
+    'Urshifu'
+  )
+  assert.equal(displayNameOf({ name: 'type-null' }, undefined), 'Type Null')
+})

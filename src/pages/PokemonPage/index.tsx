@@ -1,5 +1,4 @@
 import BattleMessage from 'components/common/BattleMessage'
-import { titleCase } from 'components/pokemon-page/format.mjs'
 import type { CSSProperties } from 'react'
 import pokemonApi, {
   useGetPokemonDetailQuery,
@@ -20,6 +19,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
 import PokemonActions from './PokemonActions'
+import { displayNameOf, idFromUrl } from './species.mjs'
 import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
@@ -43,7 +43,6 @@ import {
 } from './styles'
 import usePokemonCarousel from './usePokemonCarousel'
 import WaveEffect from './waveEffect'
-import { idFromUrl } from './species.mjs'
 
 // Hides the loading placeholder once the artwork has really painted; also
 // covers images that were already complete (cached) when they mounted.
@@ -169,7 +168,14 @@ const PokemonPage = () => {
   const inCarousel = curId >= 1 && curId <= POKEMON_COUNT
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
-  const displayName = titleCase(pokemonState?.name ?? '')
+  const { data: species } = useGetPokemonSpeciesQuery(speciesId, {
+    skip: !speciesId,
+  })
+  // species data belongs to the shown Pokémon only once their ids agree
+  const displayName = displayNameOf(
+    pokemonState,
+    idFromUrl(pokemonState?.species?.url) === species?.id ? species : undefined
+  )
   const seoTitle = `${displayName} #${pokemonNumber} – Hệ, chỉ số, tiến hóa & chiêu thức | Pokédex`
   const seoDescription = `${displayName} (#${pokemonNumber}): hệ, hạng sức mạnh theo tổng chỉ số cơ bản, chuỗi tiến hóa, mục Pokédex, khả năng đặc biệt và bộ chiêu thức.`
 
@@ -466,6 +472,7 @@ const PokemonPage = () => {
           <NameStyle>
             <PokemonName
               name={pokemonState?.name || ''}
+              label={displayName}
               level={power.level}
               color={power.color}
             />
@@ -482,7 +489,7 @@ const PokemonPage = () => {
         >
           <PokemonActions
             id={idFromUrl(pokemonState?.species?.url) || pokemonState?.id || 0}
-            name={titleCase(pokemonState?.name ?? '')}
+            name={displayName}
             shiny={shiny}
             hasShiny={!!shinyArt}
             onShinyChange={setShiny}

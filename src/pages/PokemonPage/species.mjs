@@ -179,3 +179,32 @@ export function pickGenus(genera = []) {
   const find = (lang) => genera.find((g) => g?.language?.name === lang)?.genus
   return find('vi') || find('en') || ''
 }
+
+const titled = (slug = '') =>
+  slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(' ')
+
+/**
+ * The name to show for a Pokémon: the species' official English name
+ * ("Mr. Mime", "Farfetch’d", "Type: Null", "Nidoran♀"), plus the form for
+ * non-default varieties ("Charizard Mega X"). Without species data yet it
+ * falls back to the title-cased slug.
+ */
+export function displayNameOf(pokemon, species) {
+  const slug = pokemon?.name ?? ''
+  const official = species?.names?.find(
+    (entry) => entry?.language?.name === 'en'
+  )?.name
+  if (!official) return titled(slug)
+  const base = species.name ?? ''
+  const form =
+    slug !== base &&
+    slug.startsWith(`${base}-`) &&
+    pokemon?.is_default === false
+      ? titled(slug.slice(base.length + 1))
+      : ''
+  return form ? `${official} ${form}` : official
+}
