@@ -14,6 +14,7 @@ import {
 } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { getCaught, subscribeCaught } from 'utils/caught.mjs'
+import RecentStrip from './RecentStrip'
 import RegionBadges from './RegionBadges'
 import { POKEMON_COUNT } from 'pages/PokemonPage/navigation.mjs'
 import {
@@ -229,6 +230,7 @@ function HomePage() {
           })
         }}
       />
+      <RecentStrip />
       <section
         className="catalog"
         ref={catalogRef}

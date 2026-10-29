@@ -1,3 +1,4 @@
+import { pushRecent } from 'utils/recent.mjs'
 import BattleMessage from 'components/common/BattleMessage'
 import type { CSSProperties } from 'react'
 import pokemonApi, {
@@ -141,21 +142,31 @@ const PokemonPage = () => {
   }, [])
   const endCatch = useCallback(() => setCatching(0), [])
   useEffect(() => setCatching(0), [curId])
-  const [shiny, setShiny] = useState(false)
-  useEffect(() => setShiny(false), [curId])
+  // ?shiny=1 opens (and shares) the shiny look; another Pokémon starts
+  // normal again
+  const location = useLocation()
+  const [shiny, setShinyState] = useState(
+    () => new URLSearchParams(location.search).get('shiny') === '1'
+  )
+  const shinyFor = useRef(curId)
+  useEffect(() => {
+    const previous = shinyFor.current
+    shinyFor.current = curId
+    // 0 → id is the first load resolving, not a move to another Pokémon
+    if (previous && previous !== curId) setShinyState(false)
+  }, [curId])
+  const setShiny = useCallback(
+    (next: boolean) => {
+      setShinyState(next)
+      navigate(
+        { pathname: location.pathname, search: next ? '?shiny=1' : '' },
+        { replace: true, state: { ...(location.state ?? {}), keepPage: true } }
+      )
+    },
+    [location.pathname, location.state, navigate]
+  )
   const shinyArt =
     pokemonState?.sprites?.other?.['official-artwork']?.front_shiny
-  useEffect(() => {
-    const img = stageRef.current?.querySelector<HTMLImageElement>(
-      ':is(.swiper-slide-active, .pokemon-solo) img'
-    )
-    if (!img || !shiny || !shinyArt) return
-    const normal = img.src
-    img.src = shinyArt
-    return () => {
-      img.src = normal
-    }
-  }, [shiny, shinyArt])
 
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
@@ -179,6 +190,32 @@ const PokemonPage = () => {
   const inCarousel = curId >= 1 && curId <= POKEMON_COUNT
   const ImagePath = pokemonState?.id ? getPokemonImage(pokemonState.id) : ''
 
+  useEffect(() => {
+    if (!shiny || !shinyArt || isShowLoading) return
+    // the centred slide may mount a few frames after the data (deep links)
+    let img: HTMLImageElement | null = null
+    let normal = ''
+    let frame = 0
+    let tries = 0
+    const swap = () => {
+      img =
+        stageRef.current?.querySelector<HTMLImageElement>(
+          ':is(.swiper-slide-active, .pokemon-solo) img'
+        ) ?? null
+      if (!img) {
+        if (++tries < 60) frame = requestAnimationFrame(swap)
+        return
+      }
+      normal = img.src
+      img.src = shinyArt
+    }
+    swap()
+    return () => {
+      cancelAnimationFrame(frame)
+      if (img && normal) img.src = normal
+    }
+  }, [shiny, shinyArt, isShowLoading])
+
   const { data: species } = useGetPokemonSpeciesQuery(speciesId, {
     skip: !speciesId,
   })
@@ -200,6 +237,13 @@ const PokemonPage = () => {
   useEffect(() => {
     if (pokemonState) lastPokemon.current = pokemonState
   }, [pokemonState])
+
+  // "Vừa xem" on the home page: remember Pokémon actually shown, not the
+  // ones swiped past mid-gesture
+  useEffect(() => {
+    if (!isShowLoading && pokemonState?.id)
+      pushRecent({ id: pokemonState.id, name: pokemonState.name })
+  }, [isShowLoading, pokemonState?.id, pokemonState?.name])
 
   useEffect(() => {
     if (
