@@ -208,3 +208,46 @@ export function displayNameOf(pokemon, species) {
       : ''
   return form ? `${official} ${form}` : official
 }
+
+const FORM_WORDS = {
+  gmax: 'Gigantamax',
+  mega: 'Mega',
+  alola: 'Alola',
+  galar: 'Galar',
+  hisui: 'Hisui',
+  paldea: 'Paldea',
+}
+
+/**
+ * Switchable varieties of a species: [{ name, id, label, isDefault }], the
+ * default first. Label is the form part ("Mega X", "Gigantamax", "Alola");
+ * the default form is "Dạng gốc". Empty when the species has one variety.
+ */
+export function formsOf(species) {
+  const varieties = species?.varieties ?? []
+  if (varieties.length < 2) return []
+  const base = species.name ?? ''
+  return varieties
+    .map(({ is_default: isDefault, pokemon }) => {
+      const suffix = pokemon.name.startsWith(`${base}-`)
+        ? pokemon.name.slice(base.length + 1)
+        : pokemon.name
+      const label = isDefault
+        ? 'Dạng gốc'
+        : suffix
+            .split('-')
+            .filter(Boolean)
+            .map(
+              (part) =>
+                FORM_WORDS[part] ?? part[0].toUpperCase() + part.slice(1)
+            )
+            .join(' ')
+      return {
+        name: pokemon.name,
+        id: idFromUrl(pokemon.url),
+        label,
+        isDefault,
+      }
+    })
+    .sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
+}

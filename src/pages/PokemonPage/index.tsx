@@ -20,6 +20,7 @@ import { functionGenerator } from 'utils/EnvHelper'
 import PokemonDetails, { PokemonDetailsSkeleton } from './PokemonDetails'
 import CatchRitual, { prefersReducedMotion } from './CatchRitual'
 import PokemonActions from './PokemonActions'
+import PokemonForms from './PokemonForms'
 import { displayNameOf, idFromUrl } from './species.mjs'
 import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
@@ -182,9 +183,11 @@ const PokemonPage = () => {
     skip: !speciesId,
   })
   // species data belongs to the shown Pokémon only once their ids agree
+  const speciesMatches =
+    !!species && idFromUrl(pokemonState?.species?.url) === species.id
   const displayName = displayNameOf(
     pokemonState,
-    idFromUrl(pokemonState?.species?.url) === species?.id ? species : undefined
+    speciesMatches ? species : undefined
   )
   const seoTitle = `${displayName} #${pokemonNumber} – Hệ, chỉ số, tiến hóa & chiêu thức | Pokédex`
   const seoDescription = `${displayName} (#${pokemonNumber}): hệ, hạng sức mạnh theo tổng chỉ số cơ bản, chuỗi tiến hóa, mục Pokédex, khả năng đặc biệt và bộ chiêu thức.`
@@ -508,6 +511,9 @@ const PokemonPage = () => {
             onCaught={startCatch}
           />
         </div>
+        {!isShowLoading && speciesMatches && (
+          <PokemonForms species={species} current={pokemonState?.name ?? ''} />
+        )}
 
         {isError && !carousel.isNavigating && (
           <InlineAlertStyle role="alert">

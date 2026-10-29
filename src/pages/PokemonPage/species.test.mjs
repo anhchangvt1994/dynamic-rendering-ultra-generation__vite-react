@@ -397,3 +397,32 @@ test('display names use the official species name, plus the form', async () => {
   )
   assert.equal(displayNameOf({ name: 'type-null' }, undefined), 'Type Null')
 })
+
+test('forms list the default first with readable labels', async () => {
+  const { formsOf } = await import('./species.mjs')
+  const v = (name, id, isDefault = false) => ({
+    is_default: isDefault,
+    pokemon: { name, url: `https://pokeapi.co/api/v2/pokemon/${id}/` },
+  })
+  const forms = formsOf({
+    name: 'charizard',
+    varieties: [
+      v('charizard-mega-x', 10034),
+      v('charizard', 6, true),
+      v('charizard-gmax', 10196),
+    ],
+  })
+  assert.deepEqual(
+    forms.map((f) => [f.label, f.id]),
+    [
+      ['Dạng gốc', 6],
+      ['Mega X', 10034],
+      ['Gigantamax', 10196],
+    ]
+  )
+  assert.deepEqual(
+    formsOf({ name: 'pikachu', varieties: [v('pikachu', 25, true)] }),
+    []
+  )
+  assert.deepEqual(formsOf(undefined), [])
+})
