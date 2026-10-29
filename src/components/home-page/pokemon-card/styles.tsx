@@ -72,7 +72,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
 
   .image-wrapper {
     width: 100%;
-    height: 60px;
+    height: 88px;
 
     &::before,
     &::after {
@@ -82,7 +82,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
       top: 0;
       left: 50%;
       width: 120px;
-      height: 60px;
+      height: 88px;
       transform: translateX(-50%);
       z-index: -1;
     }
@@ -115,7 +115,9 @@ export const PokemonCardStyle = styled(LinkCustom)`
   }
 
   .image {
-    object-fit: scale-down;
+    object-fit: contain;
+    /* 96px pixel sprites drawn at 2× stay crisp */
+    image-rendering: pixelated;
   }
 `
 

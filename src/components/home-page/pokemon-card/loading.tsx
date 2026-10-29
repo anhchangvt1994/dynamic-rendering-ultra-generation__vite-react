@@ -7,7 +7,7 @@ const PokemonCardLoading = () => {
       <Image
         alt="Loading..."
         src="/images/pikachu-02.webp"
-        height={60}
+        height={88}
         width={'100%'}
       />
       <NameLoadingStyle>

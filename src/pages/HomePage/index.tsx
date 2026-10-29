@@ -3,6 +3,7 @@ import InfinityLoading from 'components/common/InfinityLoading'
 import PokemonCard from 'components/home-page/pokemon-card'
 import PokemonCardLoading from 'components/home-page/pokemon-card/loading'
 import useScrollInfinity from 'hooks/useScrollInfinity'
+import { POKEMON_COUNT } from 'pages/PokemonPage/navigation.mjs'
 import { getPokemonListPath } from 'utils/ApiHelper'
 import { BottomLineStyle, HomePageStyle, PokemonListStyle } from './styles'
 
@@ -46,11 +47,13 @@ function HomePage() {
   const isShowLoading =
     RenderingInfo.loader || (isFetching && !data && !pokemonListState.length)
 
-  const enablePagination = data?.count ? offset < data.count : false
+  // the API also lists ~300 alternate forms after #1025; the Pokédex
+  // list stops at the last species
+  const lastIndex = Math.min(data?.count ?? 0, POKEMON_COUNT)
+  const enablePagination = lastIndex ? offset + limit < lastIndex : false
   const enableToShowBottomLine =
     !isShowLoading && enablePagination && total - 20 === offset
-  const enableToShowInfinityLoading =
-    !data || data.count <= total ? false : true
+  const enableToShowInfinityLoading = !!data && total < lastIndex
 
   const pokemonList = isShowLoading
     ? Array.from({ length: 8 }).map((_, index) => (
@@ -73,7 +76,10 @@ function HomePage() {
     )
       return
 
-    const tmpPokemonList = [...pokemonListState, ...data.results]
+    const tmpPokemonList = [
+      ...pokemonListState,
+      ...data.results.slice(0, Math.max(0, POKEMON_COUNT - offset)),
+    ]
 
     setPokemonListState(tmpPokemonList)
   }, [JSON.stringify(data)])
