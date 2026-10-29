@@ -236,7 +236,11 @@ const PowerCardStyle = styled.section`
     opacity: 0.55;
   }
 
-  /* ten rising bars, F → EX, like a signal-strength meter */
+  /*
+   * Ten rising bars, F → EX, like a signal-strength meter. Filled bars all
+   * use the current tier's colour (rising in intensity), so the ladder
+   * answers one question only: how far up the scale this Pokémon reaches.
+   */
   .power-ladder {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
@@ -257,13 +261,29 @@ const PowerCardStyle = styled.section`
     position: absolute;
     inset: 0 auto 0 0;
     width: var(--fill);
-    background: linear-gradient(90deg, var(--seg-b), var(--seg-a));
-    box-shadow: 0 0 8px var(--seg-a);
+    background: linear-gradient(90deg, var(--tier-b), var(--tier-a));
+    box-shadow: 0 0 8px var(--tier-a);
+    opacity: calc(0.45 + var(--i) * 0.06);
     transform-origin: left;
     animation: power-charge 320ms ease-out calc(var(--i) * 70ms) both;
   }
   .power-seg[data-state='current'] {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--seg-a) 70%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier-a) 70%, transparent);
+  }
+  /* EX: one continuous holo sweep across the whole ladder */
+  &[data-ex='true'] .power-seg i {
+    background: linear-gradient(
+        90deg,
+        #ff5f6d,
+        #ffd86f,
+        #7dff9b,
+        #6bf2ff,
+        #c77dff,
+        #ff7ce8
+      )
+      calc(var(--i) * 11.1%) 0 / 1000% 100%;
+    box-shadow: none;
+    opacity: 1;
   }
   .power-seg[data-state='current'] i {
     animation:
@@ -367,11 +387,9 @@ const PowerCardStyle = styled.section`
   @keyframes power-charge {
     from {
       transform: scaleX(0);
-      opacity: 0.3;
     }
     to {
       transform: scaleX(1);
-      opacity: 1;
     }
   }
   @keyframes power-pulse {
@@ -538,8 +556,6 @@ const PokemonPower = memo(({ stats }: { stats: any[] }) => {
               style={
                 {
                   '--i': i,
-                  '--seg-a': step.color.a,
-                  '--seg-b': step.color.b,
                   '--fill':
                     i < level
                       ? '100%'
