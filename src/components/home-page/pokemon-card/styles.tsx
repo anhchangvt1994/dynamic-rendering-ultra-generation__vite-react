@@ -1,232 +1,179 @@
-// A Pokédex entry: number, sprite, name, and a Poké Ball pressed into the
-// corner; the Pokémon hops when the entry is hovered or focused.
 export const PokemonCardStyle = styled(LinkCustom)`
   position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 17px 16px;
+  color: var(--ink);
   overflow: hidden;
   isolation: isolate;
   transition:
-    transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 160ms ease-out;
-
-  &::after {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    right: -18px;
-    bottom: -18px;
-    width: 76px;
-    height: 76px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='white' stroke-width='6'%3E%3Ccircle cx='50' cy='50' r='46'/%3E%3Cpath d='M4 50h30M66 50h30'/%3E%3Ccircle cx='50' cy='50' r='15'/%3E%3C/svg%3E")
-      center / contain no-repeat;
-    opacity: 0.09;
-  }
-
-  &:hover,
-  &:focus-visible {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
-  }
-  &:hover .image-wrapper,
-  &:focus-visible .image-wrapper {
-    animation: card-hop 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
+    transform 170ms,
+    border-color 170ms,
+    box-shadow 170ms;
+  &:hover {
+    transform: translateY(-4px);
+    border-color: #b5c6d5;
+    box-shadow: 0 8px 20px #172d450d;
   }
   &:active {
-    transform: translateY(0) scale(0.97);
+    transform: scale(0.98);
   }
-  &:focus-visible {
-    outline: 2px solid #ffcb05;
-    outline-offset: 2px;
+  &[data-caught='true'] {
+    border-color: #b6d9c7;
   }
-
-  @keyframes card-hop {
-    40% {
-      transform: translateY(-10px);
-    }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 20px;
   }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover .image-wrapper,
-    &:focus-visible .image-wrapper {
-      animation: none;
-    }
+  .card-arrow {
+    font-size: 16px;
+    color: #8a9bad;
   }
-
-  display: inline-flex;
-  flex: 0 0 calc(50% - 8px);
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  border-radius: 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  background: -webkit-linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.1),
-    rgb(0, 255, 187, 0.1)
-  );
-  background: linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.1),
-    rgb(0, 255, 187, 0.1)
-  );
-
-  .image-wrapper {
-    width: 100%;
-    height: 88px;
-
-    &::before,
-    &::after {
-      display: block;
-      content: none;
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 120px;
-      height: 88px;
-      transform: translateX(-50%);
-      z-index: -1;
-    }
-
-    &::before {
-      content: '';
-      background: url('/images/pikachu-02.webp') no-repeat center center;
-      background-size: contain;
-    }
-
-    &::after {
-      background: url('/images/pokemon-02.webp') no-repeat center center;
-      background-size: contain;
-    }
-
-    &:has(.show) {
-      &::before {
-        content: none;
-      }
-    }
-
-    &:has(.error) {
-      &::before {
-        content: none;
-      }
-      &::after {
-        content: '';
-      }
-    }
+  .caught-mark {
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--mint);
+    color: #275d42;
   }
-
-  .image {
-    object-fit: contain;
-    /* 96px pixel sprites drawn at 2× stay crisp */
-    image-rendering: pixelated;
-  }
-`
-
-export const PokemonCardLoadingStyle = styled.div`
-  display: inline-flex;
-  flex: 0 0 calc(50% - 8px);
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  border-radius: 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  background: -webkit-linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.1),
-    rgb(0, 255, 187, 0.1)
-  );
-  background: linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.1),
-    rgb(0, 255, 187, 0.1)
-  );
-`
-
-export const NameStyle = styled.div`
-  width: 100%;
-  text-align: center;
-  margin-top: 8px;
-  font-family: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  text-wrap: balance;
-  color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-`
-
-export const DexStyle = styled.span`
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  font-family: 'Dela Gothic One', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.6);
-`
-
-export const NameLoadingStyle = styled.div`
-  width: 100%;
-  height: 20px;
-  text-align: center;
-  margin-top: 8px;
-  text-transform: capitalize;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-
-  .dot-flashing {
+  .card-art {
+    display: grid;
+    place-items: center;
+    height: 142px;
     position: relative;
-    width: 10px;
-    height: 10px;
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    animation: dot-flashing 1s infinite linear alternate;
-    animation-delay: 0.5s;
-    border-radius: 0;
+    margin-top: 5px;
   }
-  .dot-flashing::before,
-  .dot-flashing::after {
-    content: '';
-    display: inline-block;
+  .card-art img {
+    position: relative;
+    width: 160px;
+    height: 142px;
+    object-fit: contain;
+    transition: transform 230ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    filter: drop-shadow(0 8px 5px #172d4512);
+  }
+  .card-art > svg {
+    width: 30px;
+    height: 30px;
+    opacity: 0.5;
+  }
+  .card-orbit {
     position: absolute;
-    top: 0;
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    border-radius: 0;
+    width: 104px;
+    height: 104px;
+    background: #f2f6f5;
+    border-radius: 50%;
   }
-  .dot-flashing::before {
-    left: -15px;
-    width: 10px;
-    height: 10px;
-    animation: dot-flashing 1s infinite alternate;
-    animation-delay: 0s;
+  &:nth-child(3n + 2) .card-orbit {
+    background: #fcf1e9;
   }
-  .dot-flashing::after {
-    left: 15px;
-    width: 10px;
-    height: 10px;
-    animation: dot-flashing 1s infinite alternate;
-    animation-delay: 1s;
+  &:nth-child(3n) .card-orbit {
+    background: #eef1fb;
   }
-
-  @keyframes dot-flashing {
-    0% {
-      background-color: #e6f826;
+  &:hover img,
+  &:focus-visible img {
+    transform: translateY(-5px) rotate(-3deg) scale(1.04);
+  }
+  .card-bottom {
+    position: relative;
+    margin-top: 9px;
+  }
+  .card-region {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 9px;
+    margin-top: 5px;
+  }
+  .card-region i {
+    width: 3px;
+    height: 3px;
+    background: #a7b5bf;
+    border-radius: 50%;
+  }
+  @media (max-width: 680px) {
+    padding: 10px 12px 13px;
+    border-radius: 14px;
+    .card-art {
+      height: 115px;
+      margin-top: 1px;
     }
-    50%,
-    100% {
-      background-color: rgba(240, 255, 128, 0.2);
+    .card-art img {
+      width: 128px;
+      height: 115px;
+    }
+    .card-orbit {
+      width: 86px;
+      height: 86px;
+    }
+    .card-region {
+      font-size: 8px;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .card-bottom {
+      margin-top: 5px;
+    }
+    .card-arrow {
+      font-size: 14px;
     }
   }
 `
-
-// "Đã bắt" mark, set from the Pokémon page.
-export const CaughtStyle = styled.svg`
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 18px;
-  height: 18px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+export const NameStyle = styled.h3`
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  @media (max-width: 680px) {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+  }
+`
+export const DexStyle = styled.span`
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  @media (max-width: 680px) {
+    font-size: 9px;
+  }
+`
+export const PokemonCardLoadingStyle = styled.div`
+  min-height: 202px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: var(--muted);
+  .image-wrapper {
+    height: 32px;
+    width: 32px;
+  }
+  .image {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+  }
+`
+export const NameLoadingStyle = styled.div`
+  height: 12px;
+  width: 45%;
+  background: var(--canvas);
+  border-radius: 5px;
+  margin-top: 14px;
 `

@@ -3,25 +3,29 @@ import styled from 'styled-components'
 import { isCaught, subscribeCaught, toggleCaught } from 'utils/caught.mjs'
 
 const ActionsStyle = styled.div`
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin: 0 0 16px;
+  max-width: 360px;
+  margin: 0 auto 26px;
 
   button {
     display: inline-flex;
+    flex: 1 1 0;
+    justify-content: center;
     align-items: center;
     gap: 6px;
     min-height: 44px;
-    padding: 0 16px 0 12px;
+    padding: 0 10px;
     border: none;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
     color: #fff;
     font: inherit;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition:
@@ -58,10 +62,13 @@ const ActionsStyle = styled.div`
   }
 
   .toast {
-    flex-basis: 100%;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
     margin: 0;
-    min-height: 20px;
-    font-size: 13px;
+    min-height: 16px;
+    font-size: 10px;
     color: #c9f9df;
     text-align: center;
   }

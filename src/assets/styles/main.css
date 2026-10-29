@@ -1,2 +1,79 @@
 @import './vars/_color';
 @import './layout/_reset';
+
+:root {
+  --ink: #172d45;
+  --ink-soft: #29445c;
+  --canvas: #f3f6fa;
+  --surface: #ffffff;
+  --muted: #637387;
+  --line: #dfe6ed;
+  --red: #d94136;
+  --yellow: #ffda55;
+  --mint: #d6eee2;
+  --focus: #2666b1;
+  --scroll-thumb: #a5b6c6;
+  --scroll-track: #edf1f5;
+  --radius-card: 20px;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+  --font-display: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #7a8fa4;
+}
+button,
+input,
+select {
+  font-family: var(--font-body);
+}
+button,
+a,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled),
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (forced-colors: active) {
+  * {
+    scrollbar-color: auto;
+  }
+}

@@ -1,125 +1,126 @@
 export const HeaderStyle = styled.header`
+  flex: 0 0 auto;
   position: relative;
-  display: flex;
-  padding: 16px;
-  width: 100%;
-  height: 80px;
-  flex: 0 0 80px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  z-index: 11;
-`
-
-export const HeaderBackgroundStyle = styled.div`
-  position: absolute;
-  height: calc(100% - 8px);
-  width: calc(100% - 8px);
-  z-index: -1;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  margin: auto;
-  border-radius: 12px;
-  overflow: hidden;
-
-  .left,
-  .right {
+  z-index: 30;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  .header-inner {
+    height: 76px;
+    max-width: 1240px;
+    padding: 0 40px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--ink);
+    flex: none;
+  }
+  .brand > svg {
+    width: 37px;
+    height: 37px;
+  }
+  .brand > span {
+    font-weight: 800;
+    font-size: 25px;
+    letter-spacing: -1.5px;
+    line-height: 1.1 !important;
+  }
+  .brand-light {
+    font-weight: 500;
+  }
+  .brand i {
+    display: block;
+    font-size: 7px;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-top: 4px;
+  }
+  nav {
+    display: flex;
+    gap: 34px;
+    align-self: stretch;
+  }
+  nav a {
+    display: flex;
+    align-items: center;
+    position: relative;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  nav a:hover,
+  nav a[aria-current='page'] {
+    color: var(--ink);
+  }
+  nav a[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    height: 3px;
+    border-radius: 3px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--red);
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  button {
+    min-width: 42px;
+    height: 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    position: absolute;
-    height: 100%;
-    width: calc(50% - 2px);
-    top: 0;
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    border-radius: 0;
-    color: #ffffff;
-    font-size: 24px;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    transition: filter 120ms ease-out;
-
-    & .icon {
-      font-size: 32px;
-    }
-
-    &:active {
-      filter: brightness(0.85);
-    }
-    &:focus-visible {
-      outline: 2px solid #ffcb05;
-      outline-offset: -4px;
-    }
+    gap: 10px;
+    background: var(--canvas);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 160ms;
   }
-
-  .left {
-    left: 0;
-    background: rgba(255, 2, 1, 0.2);
-    span {
-      margin-left: -16px;
+  button:hover {
+    background: var(--mint);
+  }
+  .menu-trigger {
+    display: none;
+  }
+  @media (max-width: 680px) {
+    .header-inner {
+      height: 64px;
+      padding: 0 20px;
+      gap: 12px;
     }
-  }
-
-  .right {
-    right: 0;
-    background: rgba(255, 255, 255, 0.2);
-    span {
-      margin-right: -24px;
+    .brand > span {
+      font-size: 23px;
     }
-  }
-`
-
-export const AvatarStyle = styled.div`
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-  top: calc(100% - 40px);
-  border-radius: 100%;
-  z-index: 0;
-  background: #ff00cc;
-  background: -webkit-linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.2),
-    rgb(0, 255, 187, 0.2)
-  );
-  background: linear-gradient(
-    to right,
-    rgb(6, 65, 168, 0.2),
-    rgb(0, 255, 187, 0.2)
-  );
-
-  &::before {
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    content: '';
-    position: absolute;
-    width: calc(100% - 12px);
-    height: calc(100% - 12px);
-    border-radius: 100%;
-    z-index: -1;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    margin: auto;
-  }
-
-  &.lazy-load {
-    &::before {
-      background: url('/images/pikachu_lazy-load-01.webp') center center / 180%
-        no-repeat;
+    .brand > svg {
+      width: 33px;
+      height: 33px;
     }
-  }
-
-  &.full-load {
-    &::before {
-      background:
-        url('/images/pikachu-01.webp') center center / 180% no-repeat,
-        url('/images/pikachu_lazy-load-01.webp') center center / 180% no-repeat;
+    nav {
+      display: none;
+    }
+    .search-trigger span {
+      display: none;
+    }
+    button {
+      padding: 0;
+    }
+    .menu-trigger {
+      display: inline-flex;
     }
   }
 `

@@ -102,48 +102,44 @@ export const PokemonPageStyle = styled.div`
 `
 
 export const HeaderStyle = styled.div`
-  /* aligned with BodyStyle's 640px column on wide screens */
   max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
-  position: sticky;
-  height: 24px;
-  margin-top: -16px;
-  top: 0;
+  margin: 0 auto 4px;
+  position: relative;
+  min-height: 36px;
   z-index: 10;
 `
 
 export const BackButtonStyle = styled.button`
-  position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  height: 44px;
-  width: 44px;
-  border-radius: 50%;
-  /* floats over the content while scrolling, so it gets its own surface */
-  background: rgba(8, 28, 26, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px 0 10px;
+  border: 1px solid #ffffff25;
+  border-radius: 11px;
+  background: #ffffff0c;
+  backdrop-filter: blur(10px);
+  color: #d8e2ed;
+  font: inherit;
+  font-size: 11px;
   user-select: none;
-  margin-left: -8px;
-  z-index: 10;
-
+  transition: background 150ms;
+  &:hover {
+    background: #ffffff18;
+  }
   .back-arrow {
-    width: 22px;
-    height: 22px;
+    width: 17px;
+    height: 17px;
     fill: none;
-    stroke: #fff;
-    stroke-width: 2.6;
+    stroke: currentColor;
+    stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-
   &:focus-visible {
-    outline: 2px solid #ffcb05;
-    outline-offset: 2px;
+    outline: 2px solid #ffda55;
+    outline-offset: 3px;
   }
 `
 
@@ -787,60 +783,12 @@ export const InlineAlertStyle = styled.div`
   }
 `
 
-// Stage plus the visible prev/next steppers, which sit outside the
-// carousel's gesture-capturing area.
+// Swiping, tapping neighbours and keyboard arrows navigate the stage.
 export const StageWrapStyle = styled.div`
   position: relative;
-`
-
-export const StepButtonStyle = styled.button`
-  position: absolute;
-  z-index: 3;
-  top: 96px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: rgba(8, 28, 26, 0.5);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  color: #fff;
-  cursor: pointer;
-  transition:
-    opacity 160ms ease-out,
-    transform 160ms ease-out;
-
-  &[data-dir='prev'] {
-    left: -6px;
-  }
-  &[data-dir='next'] {
-    right: -6px;
-  }
-  svg {
-    width: 22px;
-    height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  &:hover:not(:disabled) {
-    background: rgba(8, 28, 26, 0.7);
-  }
-  &:active:not(:disabled) {
-    transform: scale(0.92);
-  }
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
   &:focus-visible {
-    outline: 2px solid #ffcb05;
-    outline-offset: 2px;
+    outline: 2px solid #ffda55;
+    outline-offset: 4px;
+    border-radius: 18px;
   }
 `

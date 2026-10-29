@@ -34,13 +34,13 @@ import {
   HeaderStyle,
   InlineAlertStyle,
   StageWrapStyle,
-  StepButtonStyle,
   NameLoadingStyle,
   NameStyle,
   PokemonPageStyle,
 } from './styles'
 import usePokemonCarousel from './usePokemonCarousel'
 import WaveEffect from './waveEffect'
+import { idFromUrl } from './species.mjs'
 
 // Hides the loading placeholder once the artwork has really painted; also
 // covers images that were already complete (cached) when they mounted.
@@ -249,7 +249,7 @@ const PokemonPage = () => {
       robots: 'noindex, follow',
     })
     return (
-      <PokemonPageStyle>
+      <PokemonPageStyle className="pokemon-page">
         {notFound ? (
           <BattleMessage
             title="Pokémon này chưa có trong Pokédex!"
@@ -274,17 +274,17 @@ const PokemonPage = () => {
   }
 
   return (
-    <PokemonPageStyle>
+    <PokemonPageStyle className="pokemon-page">
       {createPortal(
         <RelatedBlogsSheet keyword={pokemonState?.name || ''} />,
         document.getElementById('related-blogs-sheet')!
       )}
       <HeaderStyle>
         <BackButtonStyle aria-label="Quay lại" onClick={handleBack}>
-          {/* an arrow with a stem: distinct from the ‹ › Pokémon steppers */}
           <svg className="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20 12H5M11 5l-7 7 7 7" />
           </svg>
+          <span>Quay lại</span>
         </BackButtonStyle>
       </HeaderStyle>
       <BodyStyle>
@@ -296,7 +296,12 @@ const PokemonPage = () => {
             height={150}
           />
         ) : (
-          <StageWrapStyle ref={stageRef}>
+          <StageWrapStyle
+            ref={stageRef}
+            role="region"
+            aria-label="Vuốt hoặc dùng phím mũi tên để đổi Pokémon"
+            tabIndex={0}
+          >
             <CarouselStageStyle
               data-scanning={carousel.isNavigating}
               data-loading={isShowLoading}
@@ -388,32 +393,6 @@ const PokemonPage = () => {
                 </div>
               )}
             </CarouselStageStyle>
-            {inCarousel && (
-              <>
-                <StepButtonStyle
-                  type="button"
-                  data-dir="prev"
-                  aria-label="Pokémon trước"
-                  disabled={curId <= 1}
-                  onClick={() => swiperRef.current?.slidePrev()}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M15 5l-7 7 7 7" />
-                  </svg>
-                </StepButtonStyle>
-                <StepButtonStyle
-                  type="button"
-                  data-dir="next"
-                  aria-label="Pokémon tiếp theo"
-                  disabled={curId >= POKEMON_COUNT}
-                  onClick={() => swiperRef.current?.slideNext()}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M9 5l7 7-7 7" />
-                  </svg>
-                </StepButtonStyle>
-              </>
-            )}
           </StageWrapStyle>
         )}
         {isShowLoading ? (
@@ -444,7 +423,7 @@ const PokemonPage = () => {
           inert={isShowLoading}
         >
           <PokemonActions
-            id={pokemonState?.id ?? 0}
+            id={idFromUrl(pokemonState?.species?.url) || pokemonState?.id || 0}
             name={titleCase(pokemonState?.name ?? '')}
             shiny={shiny}
             hasShiny={!!shinyArt}
@@ -462,6 +441,7 @@ const PokemonPage = () => {
         )}
         <DetailsRegionStyle aria-busy={isShowLoading}>
           <DetailsContentStyle
+            key={`details-${detailSnapshot?.id}`}
             data-loading={isShowLoading}
             aria-hidden={isShowLoading}
             inert={isShowLoading}

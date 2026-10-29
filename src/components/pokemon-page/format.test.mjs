@@ -65,3 +65,35 @@ test('moves sort by level-up level, then TM, egg and tutor', () => {
   ]).map(({ entry }) => entry.move.name)
   assert.deepEqual(sorted, ['tackle', 'bite', 'aqua-tail', 'surf', 'outrage'])
 })
+
+test('latest explicit game data keeps the earliest learning route instead of the last array row', () => {
+  const pokemonMove = {
+    version_group_details: [
+      {
+        version_group: { url: 'https://pokeapi.co/api/v2/version-group/25/' },
+        move_learn_method: { name: 'level-up' },
+        level_learned_at: 5,
+      },
+      {
+        version_group: { url: 'https://pokeapi.co/api/v2/version-group/25/' },
+        move_learn_method: { name: 'machine' },
+        level_learned_at: 0,
+      },
+      {
+        version_group: { url: 'https://pokeapi.co/api/v2/version-group/1/' },
+        move_learn_method: { name: 'level-up' },
+        level_learned_at: 10,
+      },
+    ],
+  }
+  assert.equal(getMoveLearning(pokemonMove).label, 'Lv 5')
+})
+
+test('Champions training is named explicitly rather than hidden as an unknown method', () => {
+  assert.equal(
+    getMoveLearning({
+      version_group_details: [{ move_learn_method: { name: 'train' } }],
+    }).label,
+    'Huấn luyện'
+  )
+})

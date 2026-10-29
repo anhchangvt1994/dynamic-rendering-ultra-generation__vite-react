@@ -39,7 +39,10 @@ export default function useScrollRestoration(
   useLayoutEffect(() => {
     keyRef.current = location.key
     const scroller = scrollerRef.current
-    if (!scroller || location.state?.keepPage) return
+    // keepPage describes a URL-only PUSH/REPLACE, not a later browser Back
+    // from a detail page into that entry. POP must restore its saved position.
+    if (!scroller || (location.state?.keepPage && navigationType !== 'POP'))
+      return
 
     const target = navigationType === 'POP' ? positions.get(location.key) : 0
     if (!target) {

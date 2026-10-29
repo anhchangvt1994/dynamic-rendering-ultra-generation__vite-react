@@ -5,7 +5,12 @@ function LinkCustom(props: any) {
 
   const onClick = (ev) => {
     linkProps.onClick?.(ev)
-    if (ev.target.pathname === location.pathname) {
+    const anchor = ev.currentTarget
+    if (
+      anchor.pathname === location.pathname &&
+      anchor.search === location.search &&
+      anchor.hash === location.hash
+    ) {
       ev.preventDefault()
       return
     }

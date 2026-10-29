@@ -46,14 +46,10 @@ export default function RouterDeliver({ children }) {
   const location = useLocation()
   const routeInit = useRouteInit()
   const params = useSplitParams(location)
-  const queryString = location.search?.substring(1)
-  const query = queryString
-    ? JSON.parse(
-        '{"' + queryString.replace(/&/g, '","').replace(/=/g, '":"') + '"}',
-        function (key, value) {
-          return key === '' ? value : decodeURIComponent(value)
-        }
-      )
+  // URLSearchParams handles escaped quotes, plus signs and malformed percent
+  // sequences without constructing JSON from user-controlled query text.
+  const query = location.search
+    ? Object.fromEntries(new URLSearchParams(location.search))
     : undefined
 
   const routeInfo: IRouteInfo = {

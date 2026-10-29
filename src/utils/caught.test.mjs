@@ -53,3 +53,24 @@ test('a full storage still toggles for this view and notifies', () => {
   toggleCaught(7, storage)
   assert.equal(calls, 1)
 })
+
+test('a failed storage write retains caught state and can be toggled back', () => {
+  const storage = {
+    getItem: () => '[]',
+    setItem: () => {
+      throw new Error('QuotaExceededError')
+    },
+  }
+  toggleCaught(25, storage)
+  assert.equal(isCaught(25, storage), true)
+  assert.deepEqual([...getCaught(storage)], [25])
+  assert.equal(toggleCaught(25, storage), false)
+  assert.equal(isCaught(25, storage), false)
+})
+
+test('only supported national species can enter the collection', () => {
+  const storage = memory('[0,1,10001,-2]')
+  assert.deepEqual([...getCaught(storage)], [1])
+  assert.equal(toggleCaught(10001, storage), false)
+  assert.deepEqual([...getCaught(storage)], [1])
+})

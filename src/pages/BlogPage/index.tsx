@@ -24,7 +24,7 @@ const BlogPage = () => {
 
   if (isShowLoading) {
     return (
-      <BlogPageStyled>
+      <BlogPageStyled className="blog-page">
         {Array.from({ length: 8 }).map((_, index) => (
           <BlogCardLoading key={index} />
         ))}
@@ -55,7 +55,7 @@ const BlogPage = () => {
   }
 
   return (
-    <BlogPageStyled>
+    <BlogPageStyled className="blog-page">
       {articles.map((blog) => (
         <BlogCard key={blog.id} {...blog} />
       ))}

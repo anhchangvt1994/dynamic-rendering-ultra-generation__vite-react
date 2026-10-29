@@ -1,4 +1,5 @@
 // Presentation helpers for raw PokéAPI fields.
+import { versionOrder } from './version-order.mjs'
 
 const vi = (value, digits) =>
   value.toLocaleString('vi-VN', {
@@ -39,13 +40,26 @@ const METHODS = {
   machine: { order: 1, label: 'TM' },
   egg: { order: 2, label: 'Trứng' },
   tutor: { order: 3, label: 'Dạy chiêu' },
+  train: { order: 4, label: 'Huấn luyện' },
 }
 
 // How a move is learned in the most recent game that teaches it.
 // Level 0 on a level-up move means "learned on evolution".
 export function getMoveLearning(entry) {
   const details = entry?.version_group_details ?? []
-  const latest = details[details.length - 1]
+  const id = (detail) => versionOrder(detail.version_group)
+  const latestId = Math.max(0, ...details.map(id))
+  const routes = latestId
+    ? details.filter((detail) => id(detail) === latestId)
+    : details.slice(-1)
+  // Same game can teach the same move by level AND TM; prefer the earliest
+  // level route instead of whichever record happens to occur last.
+  const latest = [...routes].sort(
+    (a, b) =>
+      (METHODS[a.move_learn_method?.name]?.order ?? 4) -
+        (METHODS[b.move_learn_method?.name]?.order ?? 4) ||
+      (a.level_learned_at ?? 0) - (b.level_learned_at ?? 0)
+  )[0]
   const method = latest?.move_learn_method?.name
   const level = latest?.level_learned_at ?? 0
   const known = METHODS[method]

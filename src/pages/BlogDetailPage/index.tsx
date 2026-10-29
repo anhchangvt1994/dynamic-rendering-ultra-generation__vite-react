@@ -69,7 +69,7 @@ const BlogDetailPage = () => {
   } // handleBack
 
   return (
-    <BlogDetailPageStyle>
+    <BlogDetailPageStyle className="blog-detail-page">
       <HeaderStyle>
         <BackButtonStyle onClick={handleBack}>
           <BackIconStyle />

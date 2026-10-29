@@ -4,14 +4,20 @@ import styled from 'styled-components'
 import {
   useGetEvolutionChainQuery,
   useGetPokemonSpeciesQuery,
+  useGetPokemonFormQuery,
 } from 'app/apis/pokemon'
 import { functionGenerator } from 'utils/EnvHelper'
-import { getPokemonFallbackImage } from './navigation.mjs'
-import { flattenEvolution, idFromUrl } from './species.mjs'
+import {
+  getEvolutionStages,
+  getEvolutionArtwork,
+  idFromUrl,
+} from './species.mjs'
+import { titleCase } from 'components/pokemon-page/format.mjs'
+import { Pokeball } from 'components/common/FieldIcon'
 
 const EvolutionStyle = styled.section`
   margin-bottom: 16px;
-  padding: 12px 10px 14px;
+  padding: 16px 12px;
   color: #fff;
   ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
 
@@ -77,17 +83,58 @@ const EvolutionStyle = styled.section`
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
   }
   .mon .n {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: capitalize;
     text-align: center;
     line-height: 1.25;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .mon .c {
-    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    max-width: 100%;
+    font-size: 10px;
     color: rgba(235, 247, 241, 0.75);
     text-align: center;
     line-height: 1.3;
+  }
+  .evolution-art {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+  }
+  .evolution-art > svg {
+    width: 24px;
+    height: 24px;
+    opacity: 0.6;
+  }
+  .form-label {
+    font-size: 10px;
+    color: #c6d8e9;
+  }
+  .retry-form {
+    background: #ffffff15;
+    color: white;
+    border: 1px solid #ffffff30;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+  .evolution-items {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+  }
+  .mon .evolution-item {
+    width: 26px;
+    height: 26px;
+    image-rendering: pixelated;
+    filter: none;
   }
   .single {
     margin: 0 4px;
@@ -103,16 +150,102 @@ const EvolutionStyle = styled.section`
     transform: rotate(90deg);
   }
   &[data-branching='true'] .stage {
-    grid-template-columns: repeat(auto-fit, minmax(84px, 108px));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 6px;
     justify-content: center;
     align-items: start;
     width: 100%;
+  }
+  &[data-branching='true'] .stage .mon {
+    width: 100%;
+    max-width: 100px;
+    margin-inline: auto;
+  }
+  &[data-branching='true'] .stage[data-count='1'] {
+    grid-template-columns: minmax(0, 100px);
+  }
+  &[data-branching='true'] .stage[data-count='2'] {
+    grid-template-columns: repeat(2, minmax(0, 100px));
   }
 `
 
 const toPath = functionGenerator(
   import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
 )
+
+function EvolutionMon({ mon, current }: { mon: any; current: boolean }) {
+  const {
+    currentData: form,
+    isError,
+    refetch,
+  } = useGetPokemonFormQuery(mon.form || '', { skip: !mon.form })
+  // Form IDs and Pokémon IDs differ. Resolve the form's Pokémon resource,
+  // rather than showing the base species artwork or guessing an image ID.
+  const artworkId = mon.form ? idFromUrl(form?.pokemon?.url) : mon.id
+  const target = mon.form ? form?.pokemon?.name : mon.name
+  const formLabel = mon.form
+    ? titleCase(mon.form.replace(`${mon.name}-`, ''))
+    : ''
+  const body = (
+    <>
+      <span className="evolution-art">
+        {artworkId ? (
+          <img
+            src={getEvolutionArtwork(artworkId, form)}
+            alt=""
+            width={64}
+            height={64}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <Pokeball />
+        )}
+      </span>
+      <span className="n">{titleCase(mon.name)}</span>
+      {formLabel && <span className="form-label">{formLabel}</span>}
+      {mon.condition && (
+        <span className="c">
+          {mon.items?.length > 0 && (
+            <span className="evolution-items">
+              {mon.items.map((item) => (
+                <img
+                  key={item.name}
+                  className="evolution-item"
+                  src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${item.name}.png`}
+                  width={26}
+                  height={26}
+                  alt=""
+                  title={item.label}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    event.currentTarget.style.visibility = 'hidden'
+                  }}
+                />
+              ))}
+            </span>
+          )}
+          {mon.condition}
+        </span>
+      )}
+      {mon.form && !form && isError && (
+        <button type="button" className="retry-form" onClick={() => refetch()}>
+          Tải lại ảnh dạng
+        </button>
+      )}
+    </>
+  )
+  return current || !target ? (
+    <div className="mon" aria-current={current ? 'page' : undefined}>
+      {body}
+    </div>
+  ) : (
+    <LinkCustom className="mon" to={toPath(target)}>
+      {body}
+    </LinkCustom>
+  )
+}
 
 const PokemonEvolution = memo(
   ({ pokemon, color }: { pokemon: any; color: { a: string; b: string } }) => {
@@ -126,7 +259,12 @@ const PokemonEvolution = memo(
     })
     if (!chain?.chain) return null
 
-    const stages = flattenEvolution(chain.chain)
+    const stages = getEvolutionStages(chain.chain, {
+      speciesId,
+      pokemonName: pokemon.name,
+      isDefault: pokemon.is_default,
+      formNames: (pokemon.forms || []).map((form) => form.name),
+    })
     const branching = stages.some((stage) => stage.length > 1)
 
     return (
@@ -135,7 +273,9 @@ const PokemonEvolution = memo(
         style={{ '--tier-a': color.a } as CSSProperties}
       >
         <h3>Tiến hóa</h3>
-        {stages.length === 1 ? (
+        {!stages.length ? (
+          <p className="single">Chưa có dữ liệu tiến hóa cho dạng này.</p>
+        ) : stages.length === 1 ? (
           <p className="single">Pokémon này không tiến hóa.</p>
         ) : (
           <div className="chain">
@@ -146,39 +286,14 @@ const PokemonEvolution = memo(
                     <path d="M5 12h13M13 6l6 6-6 6" />
                   </svg>
                 )}
-                <div className="stage">
-                  {stage.map((mon) => {
-                    const current = mon.id === speciesId
-                    const body = (
-                      <>
-                        <img
-                          src={getPokemonFallbackImage(mon.id)}
-                          alt=""
-                          width={64}
-                          height={64}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <span className="n">{mon.name.replace(/-/g, ' ')}</span>
-                        {mon.condition && (
-                          <span className="c">{mon.condition}</span>
-                        )}
-                      </>
-                    )
-                    return current ? (
-                      <div key={mon.id} className="mon" aria-current="page">
-                        {body}
-                      </div>
-                    ) : (
-                      <LinkCustom
-                        key={mon.id}
-                        className="mon"
-                        to={toPath(mon.name)}
-                      >
-                        {body}
-                      </LinkCustom>
-                    )
-                  })}
+                <div className="stage" data-count={stage.length}>
+                  {stage.map((mon) => (
+                    <EvolutionMon
+                      key={`${mon.id}-${mon.form || 'default'}`}
+                      mon={mon}
+                      current={mon.id === speciesId}
+                    />
+                  ))}
                 </div>
               </Fragment>
             ))}

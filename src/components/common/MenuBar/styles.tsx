@@ -1,128 +1,108 @@
 import styled from 'styled-components'
-
 export const OverlayStyle = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: #102033a8;
+  backdrop-filter: blur(5px);
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
-  /* visible at once when opening (so focus can move in), hidden only
-     after the fade when closing */
   transition:
-    opacity 0.3s ease,
-    visibility 0s linear ${({ $isOpen }) => ($isOpen ? '0s' : '0.3s')};
+    opacity 200ms,
+    visibility 0s linear ${({ $isOpen }) => ($isOpen ? '0s' : '200ms')};
 `
-
 export const ContainerStyle = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
   width: 320px;
-  max-width: 85vw;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  max-width: 86vw;
+  background: var(--ink);
+  color: white;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  overflow-x: hidden;
-  transform: ${({ $isOpen }) =>
-    $isOpen ? 'translateX(0)' : 'translateX(-100%)'};
-  transition: transform 0.35s ease;
-  border-radius: 0;
-
-  /* Custom scrollbar */
+  scrollbar-width: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: ${({ $isOpen }) => ($isOpen ? 'translateX(0)' : 'translateX(-100%)')};
+  transition: transform 250ms cubic-bezier(0.2, 0.7, 0.3, 1);
   &::-webkit-scrollbar {
-    width: 6px;
+    display: none;
   }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+  .menu-footnote {
+    font-size: 11px;
+    line-height: 1.8 !important;
+    color: #a6bcd0;
+    margin: 20px 24px 30px;
   }
 `
-
 export const HeaderStyle = styled.div`
-  padding: 28px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 28px 22px;
+  border-bottom: 1px solid #ffffff20;
   display: flex;
   align-items: center;
-  gap: 12px;
-
-  .menu-icon {
-    font-size: 28px;
-    color: #ffffff;
+  gap: 10px;
+  .menu-ball {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    color: white;
   }
-
+  > div {
+    flex: 1;
+  }
+  span {
+    color: #a6bcd0;
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
   h2 {
-    margin: 0;
-    color: #ffffff;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 5px;
+  }
+  button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 38px;
+    border: 1px solid #ffffff20;
+    border-radius: 10px;
+    color: white;
+    background: #ffffff10;
+    flex: none;
+  }
+  button:hover {
+    background: #ffffff25;
   }
 `
-
 export const BodyStyle = styled.div`
   flex: 1;
-  padding: 20px 16px;
+  padding: 24px 14px;
 `
-
 export const MenuItemStyle = styled(LinkCustom)`
   position: relative;
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  margin-bottom: 6px;
-  cursor: pointer;
-  border-radius: 12px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-
-  &:before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  &.is-active {
-    background: rgba(255, 255, 255, 0.2);
-
-    &:before {
-      height: 4px;
-    }
-  }
-
+  padding: 15px 18px;
+  gap: 13px;
+  margin-bottom: 7px;
+  color: #c5d5e5;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 150ms;
   .icon {
-    font-size: 24px;
-    color: rgba(255, 255, 255, 0.9);
-    margin-right: 14px;
-    transition: transform 0.2s ease;
+    font-size: 22px;
   }
-
-  span:last-child {
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+  &:hover {
+    background: #ffffff10;
   }
-
-  &:hover .icon {
-    transform: scale(1.1);
+  &.is-active {
+    background: #ffffff15;
+    border-color: #ffffff20;
+    color: var(--yellow);
   }
 `

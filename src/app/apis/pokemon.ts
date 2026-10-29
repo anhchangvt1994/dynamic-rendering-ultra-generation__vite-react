@@ -19,7 +19,8 @@ const pokemonApi = createApi({
       { limit: number; offset: number }
     >({
       query: ({ limit, offset }) => {
-        const limitFinal = RenderingInfo.type !== 'ISR' ? limit : 500
+        const limitFinal =
+          RenderingInfo.type !== 'ISR' ? limit : Math.max(limit, 500)
 
         const pokemonListEndpoint = getPokemonListPath(limitFinal, offset)
         return proxyApi.get(pokemonListEndpoint, {
@@ -64,6 +65,26 @@ const pokemonApi = createApi({
         })
       },
     }),
+    getPokemonType: builder.query<any, string>({
+      keepUnusedDataFor: 600,
+      query: (type) => {
+        const endpoint = `/type/${type}`
+        return proxyApi.get(endpoint, {
+          expiredTime: 'infinite',
+          cacheKey: endpoint,
+        })
+      },
+    }),
+    getPokemonForm: builder.query<any, string>({
+      keepUnusedDataFor: 600,
+      query: (name) => {
+        const endpoint = `/pokemon-form/${name}`
+        return proxyApi.get(endpoint, {
+          expiredTime: 'infinite',
+          cacheKey: endpoint,
+        })
+      },
+    }),
   }),
 })
 
@@ -73,6 +94,8 @@ export const {
   useGetPokemonDetailQuery,
   useGetPokemonSpeciesQuery,
   useGetEvolutionChainQuery,
+  useGetPokemonTypeQuery,
+  useGetPokemonFormQuery,
 } = pokemonApi
 
 export default pokemonApi

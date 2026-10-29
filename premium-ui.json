@@ -1,0 +1,8 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src"],
+  "locale": "vi-VN",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Scrollbar"],
+  "ownership": { "Select/Listbox": "authored" }
+}

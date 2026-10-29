@@ -1,0 +1,74 @@
+{
+  "findings": [
+    {
+      "severity": "warning",
+      "path": "colors",
+      "message": "No 'primary' color defined. The agent will auto-generate key colors, reducing your control over the palette.",
+      "rule": "missing-primary"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.ink",
+      "message": "'ink' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.ink-soft",
+      "message": "'ink-soft' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.canvas",
+      "message": "'canvas' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.muted",
+      "message": "'muted' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.line",
+      "message": "'line' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.red",
+      "message": "'red' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.yellow",
+      "message": "'yellow' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.mint",
+      "message": "'mint' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "warning",
+      "path": "colors.focus",
+      "message": "'focus' is defined but never referenced by any component.",
+      "rule": "orphaned-tokens"
+    },
+    {
+      "severity": "info",
+      "message": "Design system defines 10 colors, 2 typography scales, 3 rounding levels, 2 spacing tokens, 4 components.",
+      "rule": "token-summary"
+    }
+  ],
+  "summary": {
+    "errors": 0,
+    "warnings": 10,
+    "infos": 1
+  }
+}

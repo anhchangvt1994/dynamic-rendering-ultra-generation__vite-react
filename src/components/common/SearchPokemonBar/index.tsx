@@ -1,4 +1,5 @@
 import Icon from 'components/common/Icon'
+import FieldIcon from 'components/common/FieldIcon'
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import useDialog from 'hooks/useDialog'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -33,14 +34,15 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
   const location = useLocation()
   const [keyword, setKeyword] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
   // the 1300-name list is only needed once someone actually searches
   const [wanted, setWanted] = useState(false)
   useEffect(() => {
     if (isOpen) setWanted(true)
   }, [isOpen])
 
-  const { data, isFetching } = useGetPokemonListQuery(
-    { limit: 1500, offset: 0 },
+  const { data, isFetching, isError, refetch } = useGetPokemonListQuery(
+    { limit: 1025, offset: 0 },
     { skip: !wanted }
   )
   const results = useMemo(
@@ -73,6 +75,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return
     if (!results.length) return
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
@@ -102,9 +105,19 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
         aria-label="Tìm Pokémon"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="dialog-heading">
+          <div>
+            <span>POKÉDEX SEARCH</span>
+            <h2>Tìm người bạn của bạn</h2>
+          </div>
+          <button type="button" aria-label="Đóng tìm kiếm" onClick={onClose}>
+            <FieldIcon name="close" />
+          </button>
+        </div>
         <SearchBarStyle>
           <Icon name="search" className="icon" />
           <input
+            ref={inputRef}
             autoFocus
             type="search"
             role="combobox"
@@ -113,7 +126,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
             aria-controls={LIST_ID}
             aria-autocomplete="list"
             aria-activedescendant={active ? optionId(active.name) : undefined}
-            placeholder="Tên hoặc số, ví dụ “pika” hay “25”"
+            placeholder="Tên hoặc số, ví dụ Pikachu, #25"
             enterKeyHint="go"
             autoComplete="off"
             spellCheck={false}
@@ -124,10 +137,47 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
             }}
             onKeyDown={onKeyDown}
           />
+          {keyword && (
+            <button
+              type="button"
+              aria-label="Xóa tìm kiếm"
+              onClick={() => {
+                setKeyword('')
+                setActiveIndex(0)
+                inputRef.current?.focus()
+              }}
+            >
+              <FieldIcon name="close" size={17} />
+            </button>
+          )}
         </SearchBarStyle>
 
         <SearchBodyStyle>
-          {!keyword.trim() ? null : waiting ? (
+          {isError && !data ? (
+            <div className="search-error" role="alert">
+              <p>Chưa tải được Pokédex.</p>
+              <button type="button" onClick={refetch}>
+                Thử lại
+              </button>
+            </div>
+          ) : !keyword.trim() ? (
+            <div className="search-suggestions">
+              <p>Thử một cái tên quen thuộc</p>
+              {['Pikachu', 'Eevee', 'Gengar'].map((name) => (
+                <button
+                  type="button"
+                  key={name}
+                  onClick={() => {
+                    setKeyword(name)
+                    setActiveIndex(0)
+                    inputRef.current?.focus()
+                  }}
+                >
+                  {name} ↗
+                </button>
+              ))}
+            </div>
+          ) : waiting ? (
             <p className="hint" role="status">
               Đang mở Pokédex…
             </p>

@@ -7,6 +7,7 @@ import PokemonEvolution from './PokemonEvolution'
 import PokemonPower from './PokemonPower'
 import { getPokemonPower } from './power.mjs'
 import PokemonStatRadar from './PokemonStatRadar'
+import PokemonTypeDefenses from './PokemonTypeDefenses'
 import { DetailsSkeletonStyle } from './styles'
 
 // Keep the long moveset tree mounted and memoized while the carousel is moving.
@@ -24,6 +25,10 @@ const PokemonDetails = memo(({ pokemon }: { pokemon: any }) => {
       <PokemonPower stats={pokemon.stats ?? []} />
       <PokemonEntry pokemon={pokemon} />
       <PokemonStatRadar stats={pokemon.stats ?? []} />
+      <PokemonTypeDefenses
+        key={`defenses-${pokemon.id}`}
+        types={pokemon.types ?? []}
+      />
       <PokemonEvolution
         pokemon={pokemon}
         color={getPokemonPower(pokemon.stats ?? []).color}
@@ -39,7 +44,10 @@ const PokemonDetails = memo(({ pokemon }: { pokemon: any }) => {
       <h2 style={headingStyle}>
         Bộ chiêu thức (Moveset) của {pokemon.name} và cách học
       </h2>
-      <PokemonMoveset moveset={pokemon.moves ?? []} />
+      <PokemonMoveset
+        key={`moves-${pokemon.id}`}
+        moveset={pokemon.moves ?? []}
+      />
     </>
   )
 })

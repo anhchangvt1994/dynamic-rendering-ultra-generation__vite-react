@@ -1,68 +1,38 @@
 export const MainContainerStyle = styled.div`
   display: flex;
   flex-direction: column;
-  max-width: 1280px;
   min-width: 0;
   height: 100dvh;
   overflow: hidden;
-  margin: 0 auto;
-  padding: 16px;
-
-  &.lazy-load {
-    background: url('/images/pokemon_lazy-load-01.webp') center center / cover
-      no-repeat;
-  }
-  &.full-load {
-    background:
-      url('/images/pokemon-01.webp') center center / cover no-repeat,
-      url('/images/pokemon_lazy-load-01.webp') center center / cover no-repeat;
-  }
-
-  @media (min-width: ${import.meta.env.STYLE_SCREEN_TABLET}) {
-  }
-
-  @media (min-width: ${import.meta.env.STYLE_SCREEN_LAPTOP}) {
-  }
+  background: var(--canvas);
 `
 
 export const BodyWrapperStyle = styled.div`
   position: relative;
   flex: 1 1 auto;
-  overflow: auto;
-  border-radius: 16px;
-  margin-top: 16px;
-
-  &::before {
-    content: '';
-    display: block;
-    position: absolute;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    z-index: 0;
-  }
+  min-height: 0;
+  overflow: hidden;
 `
 
-export const BodyStyle = styled.div`
+export const BodyStyle = styled.main`
   position: relative;
   overflow-y: auto;
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE / Edge cũ */
-  -ms-overflow-style: none;
+  overflow-x: hidden;
   height: 100%;
-  padding: 16px;
-  /* room under the last row for the floating back-to-top Poké Ball */
-  padding-bottom: 84px;
-  z-index: 10;
-
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
   &::-webkit-scrollbar {
-    display: none; /* Chrome / Safari */
+    display: none;
   }
 `
 
 export const ContentStyle = styled.div`
-  height: 100%;
+  min-height: 100%;
+  &:has(.pokemon-page),
+  &:has(.blog-page),
+  &:has(.blog-detail-page) {
+    padding: 20px 16px 84px;
+    background: var(--ink);
+    color: white;
+  }
 `

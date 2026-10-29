@@ -4,12 +4,10 @@ import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
 import SearchBlogBar from 'components/common/SearchBlogBar'
 import SearchPokemonBar from 'components/common/SearchPokemonBar'
-import PokemonCardLoading from 'components/home-page/pokemon-card/loading'
 import LoadingPageComponent from 'components/LoadingPageComponent'
 import BlogDetailLoading from 'pages/BlogDetailPage/loading'
 import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
 import { BlogPageStyled } from 'pages/BlogPage/styles'
-import { HomePageStyle, PokemonListStyle } from 'pages/HomePage/styles'
 import React from 'react'
 import {
   BodyStyle,
@@ -36,15 +34,7 @@ const OutletWrapper = React.memo(() => {
   const loading = useMemo(() => {
     switch (true) {
       case route.id === import.meta.env.ROUTER_HOME_ID:
-        return (
-          <HomePageStyle>
-            <PokemonListStyle>
-              {Array.from({ length: 8 }).map((_, index) => (
-                <PokemonCardLoading key={index} />
-              ))}
-            </PokemonListStyle>
-          </HomePageStyle>
-        )
+        return <LoadingPageComponent />
       case route.id === import.meta.env.ROUTER_BLOG_DETAIL_ID:
         return (
           <BlogDetailPageStyle>
@@ -141,9 +131,11 @@ function Layout() {
       <MainContainerStyle
         className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
       >
-        <Header onClickMenu={onShowMenu} onClickSearch={onShowSearch} />
+        <div inert={isShowMenuBar || isShowSearchBar}>
+          <Header onClickMenu={onShowMenu} onClickSearch={onShowSearch} />
+        </div>
 
-        <BodyWrapperStyle>
+        <BodyWrapperStyle inert={isShowMenuBar || isShowSearchBar}>
           <BodyStyle ref={scrollerRef}>
             <ContentMemo />
           </BodyStyle>

@@ -1,4 +1,5 @@
 import Icon from 'components/common/Icon'
+import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import useDialog from 'hooks/useDialog'
 import {
   BodyStyle,
@@ -15,6 +16,10 @@ interface MenuBarProps {
 
 const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
   const route = useRoute()
+  const location = useLocation()
+  const collection =
+    location.pathname === '/' &&
+    new URLSearchParams(location.search).get('view') === 'caught'
 
   const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose)
 
@@ -26,23 +31,36 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       path: import.meta.env.ROUTER_HOME_PATH,
     },
     {
+      title: 'Bộ sưu tập',
+      id: 'collection',
+      icon: import.meta.env.ROUTER_HOME_ICON,
+      path: '/?view=caught',
+    },
+    {
       title: 'Bài viết',
       id: import.meta.env.ROUTER_BLOGS_ID,
       icon: import.meta.env.ROUTER_BLOGS_ICON,
       path: import.meta.env.ROUTER_BLOGS_PATH,
     },
-  ].map((menu) => (
-    <MenuItemStyle
-      key={menu.id}
-      className={`${menu.id === route.id ? 'is-active' : ''}`}
-      aria-current={menu.id === route.id ? 'page' : undefined}
-      to={menu.path}
-      onClick={onClose}
-    >
-      <Icon name={menu.icon} className="icon" />
-      <span>{menu.title}</span>
-    </MenuItemStyle>
-  ))
+  ].map((menu) => {
+    const active =
+      menu.id === 'collection'
+        ? collection
+        : menu.id === route.id &&
+          !(collection && menu.id === import.meta.env.ROUTER_HOME_ID)
+    return (
+      <MenuItemStyle
+        key={menu.id}
+        className={active ? 'is-active' : ''}
+        aria-current={active ? 'page' : undefined}
+        to={menu.path}
+        onClick={onClose}
+      >
+        <Icon name={menu.icon} className="icon" />
+        <span>{menu.title}</span>
+      </MenuItemStyle>
+    )
+  })
 
   return (
     // closed, it only slides off-screen: inert keeps its links out of Tab
@@ -56,10 +74,21 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         <HeaderStyle>
-          <Icon name="menu" className="icon menu-icon" />
-          <h2>Menu</h2>
+          <Pokeball className="menu-ball" />
+          <div>
+            <span>FIELD NOTES</span>
+            <h2>Hành trình của bạn</h2>
+          </div>
+          <button type="button" aria-label="Đóng menu" onClick={onClose}>
+            <FieldIcon name="close" />
+          </button>
         </HeaderStyle>
         <BodyStyle>{menuList}</BodyStyle>
+        <p className="menu-footnote">
+          Một thế giới. Ngàn người bạn.
+          <br />
+          Bạn sẽ gặp ai hôm nay?
+        </p>
       </ContainerStyle>
     </OverlayStyle>
   )

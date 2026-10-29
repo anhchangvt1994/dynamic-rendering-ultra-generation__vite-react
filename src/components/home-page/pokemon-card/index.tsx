@@ -1,63 +1,73 @@
-import Image from 'components/common/Image'
-import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
-import { functionGenerator } from 'utils/EnvHelper'
-import { useSyncExternalStore } from 'react'
+import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
+import {
+  getPokemonFallbackImage,
+  getPokemonSprite,
+} from 'pages/PokemonPage/navigation.mjs'
+import { titleCase } from 'components/pokemon-page/format.mjs'
+import { useState, useSyncExternalStore } from 'react'
 import { isCaught, subscribeCaught } from 'utils/caught.mjs'
-import { CaughtStyle, DexStyle, NameStyle, PokemonCardStyle } from './styles'
-
-const getPokemonDetailUrl = functionGenerator(
-  import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION
-)
+import { pokemonId, GENERATIONS } from 'pages/HomePage/catalog.mjs'
+import { DexStyle, NameStyle, PokemonCardStyle } from './styles'
 
 const PokemonCard = ({ pokemon }) => {
-  // ".../pokemon/445/" → "#0445"
-  const id = pokemon.url?.match(/\/(\d+)\/?$/)?.[1]
-  const dexNumber = id ? `#${id.padStart(4, '0')}` : ''
+  const id = pokemonId(pokemon)
   const caught = useSyncExternalStore(
     subscribeCaught,
-    () => isCaught(Number(id)),
+    () => isCaught(id),
     () => false
   )
-
+  const [imageFailed, setImageFailed] = useState(false)
+  const region = GENERATIONS.find((gen) => id >= gen.start && id <= gen.end)
+  const image =
+    id <= 151 ? `/images/pokemon/${id}.webp` : getPokemonFallbackImage(id)
   return (
-    <PokemonCardStyle to={getPokemonDetailUrl(getSlug(pokemon.name))}>
-      {dexNumber && <DexStyle aria-hidden="true">{dexNumber}</DexStyle>}
-      {caught && (
-        <CaughtStyle viewBox="0 0 24 24" role="img" aria-label="Đã bắt">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            fill="#f4f4f4"
-            stroke="#222"
-            strokeWidth="2"
+    <PokemonCardStyle
+      to={`/pokemon/${getSlug(pokemon.name)}`}
+      data-caught={caught}
+      aria-label={`${titleCase(pokemon.name)}, số ${id}${caught ? ', đã bắt' : ''}`}
+    >
+      <div className="card-top">
+        <DexStyle>#{String(id).padStart(4, '0')}</DexStyle>
+        {caught ? (
+          <span className="caught-mark" aria-label="Đã bắt">
+            <FieldIcon name="check" size={12} />
+          </span>
+        ) : (
+          <span className="card-arrow" aria-hidden="true">
+            ↗
+          </span>
+        )}
+      </div>
+      <div className="card-art">
+        <span className="card-orbit" aria-hidden="true" />
+        {!imageFailed ? (
+          <img
+            src={image}
+            width="160"
+            height="142"
+            loading="lazy"
+            decoding="async"
+            alt=""
+            onError={(event) => {
+              if (!event.currentTarget.dataset.fallback) {
+                event.currentTarget.dataset.fallback = 'true'
+                event.currentTarget.src = getPokemonSprite(id)
+              } else setImageFailed(true)
+            }}
           />
-          <path
-            d="M2 12a10 10 0 0 1 20 0z"
-            fill="#e3350d"
-            stroke="#222"
-            strokeWidth="2"
-          />
-          <path d="M2 12h20" stroke="#222" strokeWidth="2" />
-          <circle
-            cx="12"
-            cy="12"
-            r="3.2"
-            fill="#f4f4f4"
-            stroke="#222"
-            strokeWidth="2"
-          />
-        </CaughtStyle>
-      )}
-      <Image
-        alt={pokemon.name}
-        src={getPokemonSprite(id)}
-        width={'100%'}
-        height={88}
-      />
-      <NameStyle>{pokemon.name}</NameStyle>
+        ) : (
+          <Pokeball />
+        )}
+      </div>
+      <div className="card-bottom">
+        <NameStyle>{titleCase(pokemon.name)}</NameStyle>
+        <span className="card-region">
+          {region?.name}
+          <i />
+          {caught ? 'Đã bắt' : 'Khám phá'}
+        </span>
+      </div>
     </PokemonCardStyle>
   )
 }
-
 export default PokemonCard
