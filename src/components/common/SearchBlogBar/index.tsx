@@ -1,3 +1,4 @@
+import Icon from 'components/common/Icon'
 import useDialog from 'hooks/useDialog'
 import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
 import React, { useEffect, useRef, useState } from 'react'
@@ -93,9 +94,7 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         <SearchBarStyle>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            search
-          </span>
+          <Icon name="search" className="icon" />
           <input
             ref={inputRef}
             autoFocus

@@ -1,3 +1,4 @@
+import Icon from 'components/common/Icon'
 import { AvatarStyle, HeaderBackgroundStyle, HeaderStyle } from './styles'
 
 const Header = (props) => {
@@ -12,9 +13,7 @@ const Header = (props) => {
           aria-label="Mở menu"
           onClick={onClickMenu}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            menu
-          </span>
+          <Icon name="menu" className="icon" />
         </button>
         <button
           type="button"
@@ -22,9 +21,7 @@ const Header = (props) => {
           aria-label="Tìm kiếm"
           onClick={onClickSearch}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            search
-          </span>
+          <Icon name="search" className="icon" />
         </button>
       </HeaderBackgroundStyle>
       <AvatarStyle

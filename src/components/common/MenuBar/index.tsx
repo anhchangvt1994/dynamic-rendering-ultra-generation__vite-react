@@ -1,3 +1,4 @@
+import Icon from 'components/common/Icon'
 import useDialog from 'hooks/useDialog'
 import {
   BodyStyle,
@@ -38,9 +39,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       to={menu.path}
       onClick={onClose}
     >
-      <span className="material-symbols-outlined" aria-hidden="true">
-        {menu.icon}
-      </span>
+      <Icon name={menu.icon} className="icon" />
       <span>{menu.title}</span>
     </MenuItemStyle>
   ))
@@ -57,12 +56,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         <HeaderStyle>
-          <span
-            className="material-symbols-outlined menu-icon"
-            aria-hidden="true"
-          >
-            menu
-          </span>
+          <Icon name="menu" className="icon menu-icon" />
           <h2>Menu</h2>
         </HeaderStyle>
         <BodyStyle>{menuList}</BodyStyle>

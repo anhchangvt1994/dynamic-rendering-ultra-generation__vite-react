@@ -31,7 +31,7 @@ export const SearchBarStyle = styled.div`
   border-radius: 12px;
   padding: 12px 16px;
 
-  .material-symbols-outlined {
+  .icon {
     font-size: 24px;
     color: #ffffff;
     margin-right: 12px;

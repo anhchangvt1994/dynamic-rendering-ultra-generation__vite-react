@@ -1,3 +1,4 @@
+import Icon from 'components/common/Icon'
 import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
 import { getSearchArticlesByTitlePath } from 'utils/ApiHelper'
 import BlogList from './components/BlogList'
@@ -55,16 +56,18 @@ const RelatedBlogsSheet = (props) => {
     isDataAvailable && (
       <>
         <BlogIsland onClick={open} className="blog-island">
-          <span className="material-symbols-outlined menu-icon">
-            {import.meta.env.ROUTER_BLOGS_ICON}
-          </span>
+          <Icon
+            name={import.meta.env.ROUTER_BLOGS_ICON}
+            className="icon menu-icon"
+          />
         </BlogIsland>
         <OverlayStyle $isOpen={isOpen} onClick={close}>
           <ContainerStyle $isOpen={isOpen} onClick={(e) => e.stopPropagation()}>
             <HeaderStyle>
-              <span className="material-symbols-outlined menu-icon">
-                {import.meta.env.ROUTER_BLOGS_ICON}
-              </span>
+              <Icon
+                name={import.meta.env.ROUTER_BLOGS_ICON}
+                className="icon menu-icon"
+              />
               <h2>Related blogs</h2>
             </HeaderStyle>
             <BodyStyle>{blogListBody}</BodyStyle>

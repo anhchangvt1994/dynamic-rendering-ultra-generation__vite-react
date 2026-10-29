@@ -1,3 +1,4 @@
+import Icon from 'components/common/Icon'
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import useDialog from 'hooks/useDialog'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -102,9 +103,7 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
         onClick={(e) => e.stopPropagation()}
       >
         <SearchBarStyle>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            search
-          </span>
+          <Icon name="search" className="icon" />
           <input
             autoFocus
             type="search"

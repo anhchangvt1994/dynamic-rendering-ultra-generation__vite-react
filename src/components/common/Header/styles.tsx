@@ -40,7 +40,7 @@ export const HeaderBackgroundStyle = styled.div`
     cursor: pointer;
     transition: filter 120ms ease-out;
 
-    & .material-symbols-outlined {
+    & .icon {
       font-size: 32px;
     }
 

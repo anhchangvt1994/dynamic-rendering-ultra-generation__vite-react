@@ -108,7 +108,7 @@ export const MenuItemStyle = styled(LinkCustom)`
     }
   }
 
-  .material-symbols-outlined {
+  .icon {
     font-size: 24px;
     color: rgba(255, 255, 255, 0.9);
     margin-right: 14px;
@@ -122,7 +122,7 @@ export const MenuItemStyle = styled(LinkCustom)`
     letter-spacing: 0.3px;
   }
 
-  &:hover .material-symbols-outlined {
+  &:hover .icon {
     transform: scale(1.1);
   }
 `
