@@ -681,16 +681,18 @@ export const HeroStyle = styled.section`
   }
   .hero-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 18px;
+    gap: 12px 18px;
     margin-top: 26px;
   }
-  .hero-actions button {
+  .hero-actions button,
+  .hero-actions .quiz-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    min-height: 43px;
+    min-height: 44px;
     padding: 0 19px;
     border-radius: 10px;
     border: 0;
@@ -718,6 +720,26 @@ export const HeroStyle = styled.section`
   }
   .hero-actions .random:hover {
     color: var(--yellow);
+  }
+  /* the quiz: a black silhouette badge with a yellow question mark */
+  .quiz-badge {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #0b1626;
+    box-shadow: 0 0 0 2px var(--yellow);
+    color: var(--yellow);
+    font-family: var(--font-display);
+    font-size: 13px;
+    line-height: 1 !important;
+  }
+  .hero-actions .quiz-link:hover .quiz-badge {
+    transform: rotate(-12deg) scale(1.1);
+  }
+  .quiz-badge {
+    transition: transform 160ms ease-out;
   }
   .hero-footnote {
     display: flex;
