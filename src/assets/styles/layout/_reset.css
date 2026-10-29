@@ -99,6 +99,7 @@ html {
 
 body {
   position: relative;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 14px;
   width: 100%;
   min-height: 100%;
