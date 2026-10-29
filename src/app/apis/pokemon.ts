@@ -43,6 +43,27 @@ const pokemonApi = createApi({
         })
       },
     }),
+    // Species: genus, Pokédex flavour text, legendary flags, evolution link.
+    getPokemonSpecies: builder.query<any, number>({
+      keepUnusedDataFor: 300,
+      query: (id) => {
+        const endpoint = `/pokemon-species/${id}`
+        return proxyApi.get(endpoint, {
+          expiredTime: 'infinite',
+          cacheKey: endpoint,
+        })
+      },
+    }),
+    getEvolutionChain: builder.query<any, number>({
+      keepUnusedDataFor: 300,
+      query: (id) => {
+        const endpoint = `/evolution-chain/${id}`
+        return proxyApi.get(endpoint, {
+          expiredTime: 'infinite',
+          cacheKey: endpoint,
+        })
+      },
+    }),
   }),
 })
 
@@ -50,6 +71,8 @@ export const {
   useGetPokemonListQuery,
   useLazyGetPokemonListQuery,
   useGetPokemonDetailQuery,
+  useGetPokemonSpeciesQuery,
+  useGetEvolutionChainQuery,
 } = pokemonApi
 
 export default pokemonApi

@@ -2,7 +2,10 @@ import type { CSSProperties } from 'react'
 import { memo } from 'react'
 import PokemonInfo from 'components/pokemon-page/pokemon-info'
 import PokemonMoveset from 'components/pokemon-page/pokemon-moveset'
+import PokemonEntry from './PokemonEntry'
+import PokemonEvolution from './PokemonEvolution'
 import PokemonPower from './PokemonPower'
+import { getPokemonPower } from './power.mjs'
 import PokemonStatRadar from './PokemonStatRadar'
 import { DetailsSkeletonStyle } from './styles'
 
@@ -19,7 +22,12 @@ const PokemonDetails = memo(({ pokemon }: { pokemon: any }) => {
         Chỉ số cơ bản (Base Stats) của {pokemon.name}
       </h2>
       <PokemonPower stats={pokemon.stats ?? []} />
+      <PokemonEntry pokemon={pokemon} />
       <PokemonStatRadar stats={pokemon.stats ?? []} />
+      <PokemonEvolution
+        pokemon={pokemon}
+        color={getPokemonPower(pokemon.stats ?? []).color}
+      />
       <h3 style={headingStyle}>
         Chiều cao, cân nặng và khả năng đặc biệt (Abilities) của {pokemon.name}
       </h3>
