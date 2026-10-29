@@ -9,12 +9,35 @@ export const PokemonPageStyle = styled.div`
       #000 95%,
       transparent
     );
+  }
 
-    img {
-      height: 150px;
-      width: 100%;
-      object-fit: contain;
-      filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
+  .swiper img,
+  .pokemon-solo img {
+    height: 150px;
+    width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
+  }
+
+  /* placeholder silhouette while the artwork loads (or after it fails) */
+  .swiper img:not([data-loaded]),
+  .pokemon-solo img:not([data-loaded]) {
+    background: url('/images/pikachu-02.webp') center / 56% no-repeat;
+    animation: artwork-pending 1.1s ease-in-out infinite alternate;
+  }
+  @keyframes artwork-pending {
+    from {
+      opacity: 0.25;
+    }
+    to {
+      opacity: 0.6;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .swiper img:not([data-loaded]),
+    .pokemon-solo img:not([data-loaded]) {
+      animation: none;
+      opacity: 0.4;
     }
   }
 
@@ -79,20 +102,26 @@ export const BackButtonStyle = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
   border: none;
-  height: 48px;
-  width: 48px;
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  /* floats over the content while scrolling, so it gets its own surface */
+  background: rgba(8, 28, 26, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
   user-select: none;
-  margin-left: -16px;
+  margin-left: -8px;
   z-index: 10;
 `
 
 export const BackIconStyle = styled.span`
   border: solid #ffffff;
-  border-width: 0 4px 4px 0;
+  border-width: 0 3px 3px 0;
   display: inline-block;
   padding: 4px;
+  margin-left: 3px;
   transform: rotate(135deg);
   -webkit-transform: rotate(135deg);
 `
@@ -143,6 +172,10 @@ export const BodyStyle = styled.div`
   }
 `
 
+// The Pokémon whose power is shown: the centred carousel slide, or the
+// lone artwork for forms outside the carousel.
+const SELECTED = ':is(.swiper-slide-active, .pokemon-solo)'
+
 export const CarouselStageStyle = styled.div`
   position: relative;
   isolation: isolate;
@@ -150,6 +183,18 @@ export const CarouselStageStyle = styled.div`
 
   .swiper {
     z-index: 1;
+  }
+
+  /* forms outside the National Dex carousel get a single, still stage */
+  .pokemon-solo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    height: 190px;
+  }
+  .pokemon-solo .pokemon-visual {
+    width: calc(100% / 3);
   }
 
   /*
@@ -161,7 +206,7 @@ export const CarouselStageStyle = styled.div`
   .pokemon-visual {
     position: relative;
   }
-  &[data-aura] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura] ${SELECTED} .pokemon-visual::after {
     content: '';
     mix-blend-mode: screen;
     position: absolute;
@@ -180,26 +225,26 @@ export const CarouselStageStyle = styled.div`
       0 0 / 100% 300% no-repeat;
     animation: aura-scan 2.6s ease-in-out both;
   }
-  &[data-aura='0'] .swiper-slide-active .pokemon-visual::after,
-  &[data-aura='1'] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura='0'] ${SELECTED} .pokemon-visual::after,
+  &[data-aura='1'] ${SELECTED} .pokemon-visual::after {
     opacity: 0.45;
   }
-  &[data-aura='4'] .swiper-slide-active .pokemon-visual::after,
-  &[data-aura='5'] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura='4'] ${SELECTED} .pokemon-visual::after,
+  &[data-aura='5'] ${SELECTED} .pokemon-visual::after {
     animation-duration: 6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='6'] .swiper-slide-active .pokemon-visual::after,
-  &[data-aura='7'] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura='6'] ${SELECTED} .pokemon-visual::after,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual::after {
     animation-duration: 3.6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='8'] .swiper-slide-active .pokemon-visual::after,
-  &[data-aura='9'] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura='8'] ${SELECTED} .pokemon-visual::after,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual::after {
     animation-duration: 2.6s;
     animation-iteration-count: infinite;
   }
-  &[data-aura='9'] .swiper-slide-active .pokemon-visual::after {
+  &[data-aura='9'] ${SELECTED} .pokemon-visual::after {
     background-image: linear-gradient(
       to top,
       transparent 43%,
@@ -218,12 +263,12 @@ export const CarouselStageStyle = styled.div`
    * silhouette a little larger; streaks inside rise like ki. Higher tiers
    * grow it further and run it faster.
    */
-  &[data-aura='4'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='5'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='6'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='7'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='8'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+  &[data-aura='4'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='5'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='6'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='8'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
     --grow: 7px;
     --flow: 0.9s;
     content: '';
@@ -247,17 +292,17 @@ export const CarouselStageStyle = styled.div`
       aura-flow var(--flow) linear 900ms infinite,
       aura-surge 1.2s ease-in-out 900ms infinite alternate;
   }
-  &[data-aura='6'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='7'] .swiper-slide-active .pokemon-visual::before {
+  &[data-aura='6'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='7'] ${SELECTED} .pokemon-visual::before {
     --grow: 10px;
     --flow: 0.6s;
   }
-  &[data-aura='8'] .swiper-slide-active .pokemon-visual::before,
-  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+  &[data-aura='8'] ${SELECTED} .pokemon-visual::before,
+  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
     --grow: 13px;
     --flow: 0.42s;
   }
-  &[data-aura='9'] .swiper-slide-active .pokemon-visual::before {
+  &[data-aura='9'] ${SELECTED} .pokemon-visual::before {
     background:
       repeating-linear-gradient(
           to top,
@@ -269,42 +314,42 @@ export const CarouselStageStyle = styled.div`
   }
 
   /* rim light that the scan leaves behind */
-  &[data-aura] .swiper-slide-active img {
+  &[data-aura] ${SELECTED} img {
     animation:
       aura-rim-in 600ms ease-out 900ms both,
       aura-flash 700ms ease-out;
   }
-  &[data-aura='6'] .swiper-slide-active img,
-  &[data-aura='7'] .swiper-slide-active img,
-  &[data-aura='8'] .swiper-slide-active img {
+  &[data-aura='6'] ${SELECTED} img,
+  &[data-aura='7'] ${SELECTED} img,
+  &[data-aura='8'] ${SELECTED} img {
     animation:
       aura-rim-in 600ms ease-out 900ms both,
       aura-rim-breathe 2.4s ease-in-out 1.5s infinite alternate,
       aura-flash 700ms ease-out;
   }
-  &[data-aura='9'] .swiper-slide-active img {
+  &[data-aura='9'] ${SELECTED} img {
     animation:
       aura-rim-in 600ms ease-out 900ms both,
       aura-rim-prism 4s linear 1.5s infinite,
       aura-flash 700ms ease-out;
   }
-  &[data-aura='0'] .swiper-slide-active img,
-  &[data-aura='1'] .swiper-slide-active img {
+  &[data-aura='0'] ${SELECTED} img,
+  &[data-aura='1'] ${SELECTED} img {
     --rim: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
   }
-  &[data-aura='2'] .swiper-slide-active img,
-  &[data-aura='3'] .swiper-slide-active img {
+  &[data-aura='2'] ${SELECTED} img,
+  &[data-aura='3'] ${SELECTED} img {
     --rim: drop-shadow(0 0 1px var(--aura-a)) drop-shadow(0 0 1px var(--aura-a));
   }
-  &[data-aura='4'] .swiper-slide-active img,
-  &[data-aura='5'] .swiper-slide-active img {
+  &[data-aura='4'] ${SELECTED} img,
+  &[data-aura='5'] ${SELECTED} img {
     --rim: drop-shadow(0 0 1px var(--aura-a))
       drop-shadow(0 0 1.5px var(--aura-a)) drop-shadow(0 0 8px var(--aura-b));
   }
-  &[data-aura='6'] .swiper-slide-active img,
-  &[data-aura='7'] .swiper-slide-active img,
-  &[data-aura='8'] .swiper-slide-active img,
-  &[data-aura='9'] .swiper-slide-active img {
+  &[data-aura='6'] ${SELECTED} img,
+  &[data-aura='7'] ${SELECTED} img,
+  &[data-aura='8'] ${SELECTED} img,
+  &[data-aura='9'] ${SELECTED} img {
     --rim: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px var(--aura-a))
       drop-shadow(0 0 12px var(--aura-b));
   }
@@ -391,14 +436,14 @@ export const CarouselStageStyle = styled.div`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &[data-aura] .swiper-slide-active .pokemon-visual::before {
+    &[data-aura] ${SELECTED} .pokemon-visual::before {
       animation: none;
       opacity: 0.8;
     }
-    &[data-aura] .swiper-slide-active .pokemon-visual::after {
+    &[data-aura] ${SELECTED} .pokemon-visual::after {
       display: none;
     }
-    &[data-aura] .swiper-slide-active img {
+    &[data-aura] ${SELECTED} img {
       animation: none;
       filter: var(--rim);
     }

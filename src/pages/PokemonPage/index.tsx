@@ -35,6 +35,12 @@ import {
 import usePokemonCarousel from './usePokemonCarousel'
 import WaveEffect from './waveEffect'
 
+// Hides the loading placeholder once the artwork has really painted; also
+// covers images that were already complete (cached) when they mounted.
+const markArtworkLoaded = (image: HTMLImageElement | null) => {
+  if (image?.complete && image.naturalWidth) image.dataset.loaded = 'true'
+}
+
 const PokemonPage = () => {
   const route = useRoute()
   const navigateInfo = useNavigateInfo()
@@ -73,6 +79,9 @@ const PokemonPage = () => {
   const power = getPokemonPower(detailSnapshot?.stats ?? [])
   // The aura only lights up once the selected Pokémon's data is on screen.
   const showAura = !isShowLoading && Boolean(detailSnapshot?.stats?.length)
+  // Alternate forms (id > POKEMON_COUNT, e.g. Eternamax #10190) have no
+  // carousel slide, so they get a single stage instead.
+  const inCarousel = curId >= 1 && curId <= POKEMON_COUNT
   const ImagePath = `https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/${pokemonNumber}.png`
 
   const seoTitle = `Pokemon ${pokemonState?.name} Pokédex: Chỉ số, Chiêu thức & Cách tiến hóa (Gen 9) | Anhchangvt1994`
@@ -173,9 +182,12 @@ const PokemonPage = () => {
                 height={150}
                 decoding="async"
                 draggable={false}
+                ref={markArtworkLoaded}
+                onLoad={(event) => markArtworkLoaded(event.currentTarget)}
                 onError={(event) => {
                   const image = event.currentTarget
                   if (image.dataset.fallback === 'placeholder') return
+                  delete image.dataset.loaded
                   image.src = image.dataset.fallback
                     ? '/images/pokemon-02.webp'
                     : getPokemonFallbackImage(pokemonId)
@@ -239,36 +251,60 @@ const PokemonPage = () => {
               power={power.level}
             />
 
-            <Swiper
-              onSwiper={carousel.onSwiper}
-              onResize={carousel.onResize}
-              onUpdate={carousel.onUpdate}
-              modules={[Virtual, FreeMode, WaveEffect]}
-              onSlideChange={carousel.onSlideChange}
-              onTouchStart={carousel.onTouchStart}
-              onSliderMove={carousel.onSliderMove}
-              onTouchEnd={carousel.onTouchEnd}
-              onTransitionEnd={carousel.onTransitionEnd}
-              virtual={{
-                addSlidesBefore: carousel.renderAhead,
-                addSlidesAfter: carousel.renderAhead,
-              }}
-              centeredSlides
-              slidesPerView={3}
-              initialSlide={Math.max(0, curId - 1)}
-              grabCursor
-              threshold={0}
-              preventInteractionOnTransition={false}
-              speed={carousel.reducedMotion ? 0 : 560}
-              freeMode={{
-                enabled: true,
-                sticky: true,
-                momentum: !carousel.reducedMotion,
-                momentumBounce: false,
-              }}
-            >
-              {pokemonSwiperSlides}
-            </Swiper>
+            {inCarousel ? (
+              <Swiper
+                onSwiper={carousel.onSwiper}
+                onResize={carousel.onResize}
+                onUpdate={carousel.onUpdate}
+                modules={[Virtual, FreeMode, WaveEffect]}
+                onSlideChange={carousel.onSlideChange}
+                onTouchStart={carousel.onTouchStart}
+                onSliderMove={carousel.onSliderMove}
+                onTouchEnd={carousel.onTouchEnd}
+                onTransitionEnd={carousel.onTransitionEnd}
+                virtual={{
+                  addSlidesBefore: carousel.renderAhead,
+                  addSlidesAfter: carousel.renderAhead,
+                }}
+                centeredSlides
+                slidesPerView={3}
+                initialSlide={Math.max(0, curId - 1)}
+                grabCursor
+                threshold={0}
+                preventInteractionOnTransition={false}
+                speed={carousel.reducedMotion ? 0 : 560}
+                freeMode={{
+                  enabled: true,
+                  sticky: true,
+                  momentum: !carousel.reducedMotion,
+                  momentumBounce: false,
+                }}
+              >
+                {pokemonSwiperSlides}
+              </Swiper>
+            ) : (
+              <div className="pokemon-solo">
+                <div className="pokemon-visual">
+                  <img
+                    key={curId}
+                    src={getPokemonFallbackImage(curId)}
+                    alt={`Pokémon ${pokemonState?.name || ''}`}
+                    width="100%"
+                    height={150}
+                    decoding="async"
+                    draggable={false}
+                    ref={markArtworkLoaded}
+                    onLoad={(event) => markArtworkLoaded(event.currentTarget)}
+                    onError={(event) => {
+                      const image = event.currentTarget
+                      if (image.dataset.fallback) return
+                      image.dataset.fallback = 'placeholder'
+                      image.src = '/images/pokemon-02.webp'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </CarouselStageStyle>
         )}
         {isShowLoading ? (
@@ -278,7 +314,7 @@ const PokemonPage = () => {
                 <i key={bar} />
               ))}
             </span>
-            What Is Pokemon ?
+            Who&apos;s that Pokémon?
           </NameLoadingStyle>
         ) : (
           <NameStyle>{pokemonState?.name}</NameStyle>
