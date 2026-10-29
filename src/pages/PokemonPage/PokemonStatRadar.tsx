@@ -43,7 +43,7 @@ const RadarStyle = styled.section`
   .radar-shape {
     transform-box: view-box;
     transform-origin: ${CX}px ${CY}px;
-    animation: radar-grow 760ms cubic-bezier(0.2, 1.2, 0.3, 1) 250ms both;
+    animation: radar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
   }
   .radar-beam {
     transform-box: view-box;
@@ -66,7 +66,7 @@ const RadarStyle = styled.section`
 
   @keyframes radar-grow {
     from {
-      transform: scale(0);
+      transform: scale(0.85);
       opacity: 0;
     }
     to {

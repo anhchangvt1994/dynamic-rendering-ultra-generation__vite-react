@@ -420,7 +420,7 @@ export const CarouselStageStyle = styled.div`
   }
   @keyframes aura-awaken {
     0% {
-      transform: scale(0.6);
+      transform: scale(0.85);
       opacity: 0;
     }
     60% {
