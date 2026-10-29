@@ -217,7 +217,7 @@ export const CarouselStageStyle = styled.div`
     color: transparent;
     -webkit-text-stroke: 1.5px
       color-mix(in srgb, var(--aura-a) 55%, transparent);
-    opacity: 0.45;
+    opacity: 0.3;
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
@@ -229,7 +229,7 @@ export const CarouselStageStyle = styled.div`
       letter-spacing: 0.2em;
     }
     to {
-      opacity: 0.45;
+      opacity: 0.3;
       letter-spacing: -0.02em;
     }
   }
