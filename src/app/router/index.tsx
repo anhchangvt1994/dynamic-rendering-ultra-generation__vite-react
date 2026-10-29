@@ -66,6 +66,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: import.meta.env.ROUTER_BLOG_DETAIL_ID,
       }, // Blog Detail Page
       {
+        // "Ai đây?" — Who's that Pokémon? quiz
+        path: 'ai-day',
+        element: withLazy(() => import('pages/QuizPage')),
+        id: 'QuizPage',
+      }, // Quiz Page
+      {
         path: import.meta.env.ROUTER_NOT_FOUND_PATH,
         element: <NotFoundPage />,
       },

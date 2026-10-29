@@ -38,6 +38,12 @@ const Header = ({
             Bộ sưu tập
           </LinkCustom>
           <LinkCustom
+            to="/ai-day"
+            aria-current={location.pathname === '/ai-day' ? 'page' : undefined}
+          >
+            Ai đây?
+          </LinkCustom>
+          <LinkCustom
             to="/blogs"
             aria-current={
               location.pathname.startsWith('/blogs') ? 'page' : undefined

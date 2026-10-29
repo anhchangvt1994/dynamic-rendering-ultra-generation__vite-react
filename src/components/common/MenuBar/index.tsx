@@ -33,8 +33,14 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
     {
       title: 'Bộ sưu tập',
       id: 'collection',
-      icon: import.meta.env.ROUTER_HOME_ICON,
+      icon: 'ball',
       path: '/?view=caught',
+    },
+    {
+      title: 'Ai đây? – Đoán Pokémon',
+      id: 'QuizPage',
+      icon: 'quiz',
+      path: '/ai-day',
     },
     {
       title: 'Bài viết',
