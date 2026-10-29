@@ -71,7 +71,11 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
 
   const open = (index: number) => {
     const target = results[index]
-    if (target) navigate(toPath(getSlug(target.name)))
+    if (!target) return
+    const path = toPath(getSlug(target.name))
+    // already on that Pokémon: the URL will not change, so close here
+    if (path === location.pathname) onClose()
+    else navigate(path)
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -152,7 +156,16 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
           )}
         </SearchBarStyle>
 
-        <SearchBodyStyle>
+        <SearchBodyStyle
+          onClickCapture={(event) => {
+            // a click on the Pokémon already open would change nothing
+            const link = (event.target as HTMLElement).closest('a')
+            if (link && link.pathname === location.pathname) {
+              event.preventDefault()
+              onClose()
+            }
+          }}
+        >
           {isError && !data ? (
             <div className="search-error" role="alert">
               <p>Chưa tải được Pokédex.</p>

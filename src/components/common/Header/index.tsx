@@ -2,7 +2,12 @@ import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import { useLocation } from 'react-router'
 import { HeaderStyle } from './styles'
 
-const Header = ({ onClickMenu = () => {}, onClickSearch = () => {} }) => {
+const Header = ({
+  onClickMenu = () => {},
+  onClickSearch = () => {},
+  isMenuOpen = false,
+  isSearchOpen = false,
+}) => {
   const location = useLocation()
   const collection =
     location.pathname === '/' &&
@@ -46,6 +51,8 @@ const Header = ({ onClickMenu = () => {}, onClickSearch = () => {} }) => {
             className="search-trigger"
             type="button"
             aria-label="Tìm Pokémon hoặc bài viết"
+            aria-haspopup="dialog"
+            aria-expanded={isSearchOpen}
             onClick={onClickSearch}
           >
             <FieldIcon name="search" />
@@ -55,6 +62,8 @@ const Header = ({ onClickMenu = () => {}, onClickSearch = () => {} }) => {
             className="menu-trigger"
             type="button"
             aria-label="Mở menu"
+            aria-haspopup="dialog"
+            aria-expanded={isMenuOpen}
             onClick={onClickMenu}
           >
             <FieldIcon name="menu" />

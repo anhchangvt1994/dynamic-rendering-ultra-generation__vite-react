@@ -76,8 +76,8 @@ export const HeaderStyle = styled.header`
     gap: 8px;
   }
   button {
-    min-width: 42px;
-    height: 42px;
+    min-width: 44px;
+    height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;

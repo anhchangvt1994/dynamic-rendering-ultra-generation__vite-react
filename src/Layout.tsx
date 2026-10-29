@@ -132,7 +132,12 @@ function Layout() {
         className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
       >
         <div inert={isShowMenuBar || isShowSearchBar}>
-          <Header onClickMenu={onShowMenu} onClickSearch={onShowSearch} />
+          <Header
+            onClickMenu={onShowMenu}
+            onClickSearch={onShowSearch}
+            isMenuOpen={isShowMenuBar}
+            isSearchOpen={isShowSearchBar}
+          />
         </div>
 
         <BodyWrapperStyle inert={isShowMenuBar || isShowSearchBar}>

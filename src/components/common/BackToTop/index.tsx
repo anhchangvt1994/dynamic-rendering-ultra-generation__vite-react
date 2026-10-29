@@ -87,10 +87,20 @@ export default function BackToTop({
 
   const toTop = () => {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
-    scrollerRef.current?.scrollTo({
+    const scroller = scrollerRef.current
+    scroller?.scrollTo({
       top: 0,
       behavior: reduce ? 'auto' : 'smooth',
     })
+    // this button hides at the top: hand keyboard focus to the page's first
+    // heading (or the content itself) instead of leaving it on nothing
+    const heading = scroller?.querySelector<HTMLElement>('h1')
+    const target = heading ?? scroller
+    if (target) {
+      if (!target.hasAttribute('tabindex'))
+        target.setAttribute('tabindex', '-1')
+      target.focus({ preventScroll: true })
+    }
   }
 
   return (
