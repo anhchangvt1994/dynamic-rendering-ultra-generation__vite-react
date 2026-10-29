@@ -243,9 +243,10 @@ export const CarouselStageStyle = styled.div`
 
   /* "Who's that Pokémon?": every Pokémon that has not been revealed is a
      silhouette: all the neighbours, and the centred one until its data
-     arrives. Only the revealed one shows its colours (arrival flash). */
-  .swiper-slide:not(.swiper-slide-active) img,
-  &[data-loading='true'] ${SELECTED} img {
+     arrives. Only the revealed one shows its colours (arrival flash).
+     Artwork still loading keeps its Poké Ball, which gives nothing away. */
+  .swiper-slide:not(.swiper-slide-active) img[data-loaded],
+  &[data-loading='true'] ${SELECTED} img[data-loaded] {
     filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
       drop-shadow(0 0 14px rgba(120, 200, 255, 0.45)) !important;
   }
