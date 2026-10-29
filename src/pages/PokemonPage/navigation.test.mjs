@@ -132,6 +132,18 @@ test('rapid navigation keeps one scanning state and commits only after motion se
   assert.deepEqual(events, ['busy', 'commit', 'ready'])
 })
 
+test('cached details are revealed within two frames of a completed transition', () => {
+  const { activity, events, advance, animate } = createActivityHarness()
+  activity.start()
+  animate(true)
+  advance(500)
+  assert.deepEqual(events, ['busy'])
+  animate(false)
+  activity.transitionEnd()
+  advance(32)
+  assert.deepEqual(events, ['busy', 'commit', 'ready'])
+})
+
 test('an interrupted transition cannot reveal details while a new drag is held', () => {
   const { activity, events, advance } = createActivityHarness()
   activity.start()

@@ -5,6 +5,9 @@
   "exclude": [
     "node_modules",
     "dist",
+    "server/dist",
+    "server/resources",
+    ".cache",
     "package.json",
     "package-lock.json",
     "yarn-lock.json",

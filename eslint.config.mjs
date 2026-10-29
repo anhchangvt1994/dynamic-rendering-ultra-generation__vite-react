@@ -1,4 +1,4 @@
-import { parse, parseForESLint } from '@typescript-eslint/parser'
+import typescriptParser from '@typescript-eslint/parser'
 import typescriptEslint from '@typescript-eslint/eslint-plugin'
 import eslintAirBnb from 'eslint-config-airbnb'
 import eslintAirBnbTs from 'eslint-config-airbnb-typescript'
@@ -53,10 +53,7 @@ export default [
         ...EslintAutoImportType.globals,
         ...EslintAutoImport.globals,
       },
-      parser: {
-        parse,
-        parseForESLint,
-      },
+      parser: typescriptParser,
       parserOptions: {
         parser: {
           js: 'espree',

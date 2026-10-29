@@ -41,11 +41,15 @@ const PokemonPage = () => {
     () => functionGenerator(import.meta.env.ROUTER_POKEMON_GET_PATH_FUNCTION),
     []
   )
-  const { name, id } = route.params
-  const [curId, setCurId] = useState(Number(id) || 0)
-  const firstQuery = useRef({ key: Number(id) || name, id: Number(id) || 0 })
+  const { name } = route.params
   const pokemonDetailEndpoint = getPokemonDetailPath(name)
   const initialPokemon = getAPIStore(pokemonDetailEndpoint)
+  // History state can survive a reload with an unrelated ID. Mount the
+  // carousel only after the URL's ID is known (SSR data can provide it now).
+  const [curId, setCurId] = useState(() =>
+    initialPokemon?.name === name ? Number(initialPokemon.id) || 0 : 0
+  )
+  const firstQuery = useRef({ key: name, id: curId, resolved: false })
   const { currentData, isError, refetch } = useGetPokemonDetailQuery(
     !curId || curId === firstQuery.current.id ? firstQuery.current.key : curId
   )
@@ -79,9 +83,15 @@ const PokemonPage = () => {
   }, [pokemonState])
 
   useEffect(() => {
-    if (!curId && pokemonState?.id) {
+    if (
+      !firstQuery.current.resolved &&
+      (!curId || curId === firstQuery.current.id) &&
+      pokemonState?.id
+    ) {
       // Keep the initial name-keyed query instead of immediately requesting
-      // the same Pokémon a second time under its numeric ID.
+      // the same Pokémon a second time under its numeric ID. The URL name
+      // takes precedence over history state restored by a browser reload.
+      firstQuery.current.resolved = true
       firstQuery.current.id = pokemonState.id
       store.dispatch(
         pokemonApi.util.upsertQueryData(
@@ -212,6 +222,8 @@ const PokemonPage = () => {
             />
             <Swiper
               onSwiper={carousel.onSwiper}
+              onResize={carousel.onResize}
+              onUpdate={carousel.onUpdate}
               modules={[Virtual, FreeMode, WaveEffect]}
               onSlideChange={carousel.onSlideChange}
               onTouchStart={carousel.onTouchStart}

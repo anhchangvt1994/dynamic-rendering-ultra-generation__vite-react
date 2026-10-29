@@ -1,5 +1,3 @@
-import alias from '@rollup/plugin-alias'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
 import tailwind from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react-swc'
 import autoprefixer from 'autoprefixer'
@@ -19,14 +17,29 @@ import { getPort } from './config/utils/PortHandler'
 import vitePrepareConfig from './config/vite.prepare.config'
 
 const resolve = resolveTsconfigPathsToAlias()
-const PUPPETEER_SSR_PORT = getPort('PUPPETEER_SSR_PORT') || 8080
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const ViteConfigWithMode = getViteConfigWithMode(mode)
   const config = ViteConfigWithMode?.() ?? {}
+  const apiPort = Number(
+    process.env.DEV_API_PORT || getPort('PUPPETEER_SSR_PORT') || 8080
+  )
+  const backend = {
+    target: `http://127.0.0.1:${apiPort}`,
+    ...(mode === 'development' ? { proxyTimeout: 15000, timeout: 15000 } : {}),
+  }
 
   return {
+    cacheDir:
+      command === 'serve'
+        ? fileURLToPath(
+            new URL(
+              `./node_modules/.cache/vite-dev/${process.env.DEV_PORT || 5173}`,
+              import.meta.url
+            )
+          )
+        : undefined,
     publicDir: 'src/assets/static',
     plugins: [
       react(),
@@ -34,18 +47,7 @@ export default defineConfig(({ mode }) => {
       EnvironmentPlugin(ENV_OBJECT_DEFAULT as any, {
         defineOn: 'import.meta.env',
       }),
-      nodeResolve({
-        extensions: ['.mjs', '.js', '.json', '.js', '.ts', '.jsx', '.tsx'],
-        modulePaths: resolve.modules,
-      }),
       ...vitePrepareConfig.plugins,
-      ...(mode === 'development'
-        ? [
-            alias({
-              entries: aliasExternal.entries || {},
-            }),
-          ]
-        : []),
       ...(config?.plugins ?? []),
     ],
     css: {
@@ -60,12 +62,26 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
+      include: [
+        'react',
+        'react-dom/client',
+        'react-router',
+        'react-redux',
+        '@reduxjs/toolkit/query/react',
+        'styled-components',
+        'swiper/react',
+        'swiper/modules',
+      ],
       ...(mode === 'production'
         ? {
             exclude: Object.keys(aliasExternal.entries || {}),
           }
         : {}),
     },
+    esbuild:
+      command === 'build'
+        ? { drop: ['console'], legalComments: 'none' }
+        : undefined,
     build: {
       assetsDir: '',
       rollupOptions: {
@@ -75,27 +91,40 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      minify: 'terser',
-      terserOptions: {
-        format: {
-          comments: false,
-        },
-        compress: {
-          drop_console: true, // It will stop showing any console.log statement in dev tools. Make it false if you want to see consoles in production mode.
-        },
-      },
+      minify: 'esbuild',
+      reportCompressedSize: false,
     },
     server: {
-      host: true,
+      host: '0.0.0.0',
+      port: Number(process.env.DEV_PORT || 5173),
+      strictPort: true,
+      warmup: {
+        clientFiles: [
+          './src/index.tsx',
+          './src/pages/HomePage/index.tsx',
+          './src/pages/PokemonPage/index.tsx',
+        ],
+      },
       watch: {
-        ignored: ['**/config/**', '**/server/**'],
+        ignored: ['**/server/**', '**/dist/**', '**/.cache/**'],
       },
       proxy:
         mode === 'development'
           ? {
+              '^/api(?:/|\\?|$)': { ...backend },
               '/': {
-                target: `http://localhost:${PUPPETEER_SSR_PORT}`,
+                ...backend,
                 bypass(req) {
+                  const pathname = (req.url || '/').split('?')[0]
+                  // Accept headers describe the response, not which server
+                  // owns it. Vite must always handle modules and public assets.
+                  if (
+                    /^\/(?:@|src\/|node_modules\/|scripts\/|config\/|assets\/|images\/|fonts\/)/.test(
+                      pathname
+                    ) ||
+                    /\.[a-z0-9]+$/i.test(pathname)
+                  )
+                    return req.url
                   if (
                     /text\/html|application\/json/.test(
                       req.headers['accept'] as string
@@ -105,14 +134,13 @@ export default defineConfig(({ mode }) => {
                       __dirname,
                       './config/templates/index.development.html'
                     )
-                  } else if (!/.js.map|favicon.ico/g.test(req.url as string))
-                    return req.url
+                  } else return req.url
                 },
               },
             }
           : {
               '/': {
-                target: `http://localhost:${PUPPETEER_SSR_PORT}`,
+                ...backend,
                 bypass(req) {
                   if (/.js.map|favicon.ico/g.test(req.url as string))
                     return req.url
@@ -136,7 +164,7 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
   // https://stackoverflow.com/questions/40685262/read-json-file-ignoring-custom-comments
   const tsconfig = JSON.parse(
     fs
-      .readFileSync(path.resolve('.', tsconfigPath))
+      .readFileSync(path.resolve(__dirname, tsconfigPath))
       ?.toString()
       .replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) =>
         g ? '' : m
@@ -145,8 +173,6 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
 
   // Without baseUrl, TypeScript resolves paths relative to the config directory.
   const { paths, baseUrl = '.' } = tsconfig.compilerOptions
-
-  const modules = [path.resolve(__dirname, baseUrl)]
 
   const alias = Object.fromEntries(
     Object.entries(paths)
@@ -158,7 +184,6 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
           baseUrl,
           (pathValues as Array<string>)[0].replace(/[\/|\*]+(?:$)/g, '')
         )
-        modules.push(value)
         return [key, value]
       })
   )
@@ -168,6 +193,5 @@ function resolveTsconfigPathsToAlias(tsconfigPath = 'tsconfig.json') {
       src: path.resolve(__dirname, 'src'),
       ...alias,
     },
-    modules,
   }
 } // resolveTsconfigPathsToAlias()

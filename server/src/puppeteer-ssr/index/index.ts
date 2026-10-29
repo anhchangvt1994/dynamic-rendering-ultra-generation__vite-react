@@ -284,10 +284,8 @@ const puppeteerSSRService = (async () => {
               if (!apiCache || !apiCache.cache || apiCache.cache.status !== 200)
                 continue
 
-              const data = await getDataCompression(
-                cacheKey,
-                contentEncoding as any
-              )
+              // API_STORE is decoded below, independently of the HTML response encoding.
+              const data = await getDataCompression(cacheKey, 'br')
               const dataToSend = data
                 ? brotliDecompressSync(data).toString()
                 : ''

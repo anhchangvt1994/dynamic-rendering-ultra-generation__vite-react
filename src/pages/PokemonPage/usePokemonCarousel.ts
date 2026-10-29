@@ -2,6 +2,7 @@ import pokemonApi from 'app/apis/pokemon'
 import store from 'app/store'
 import {
   useEffect,
+  useCallback,
   useLayoutEffect,
   useRef,
   useState,
@@ -45,6 +46,12 @@ export default function usePokemonCarousel(
   const detailQueue = useRef<ReturnType<typeof createPrefetchQueue> | null>(
     null
   )
+  const selectedDetailQueue = useRef<ReturnType<
+    typeof createPrefetchQueue
+  > | null>(null)
+  const selectedDetailTimer = useRef<number | null>(null)
+  const selectedDetailId = useRef(0)
+  const synchronizing = useRef(false)
   const touching = useRef(false)
   const pendingPrefetch = useRef<number | null>(null)
   const latestPrefetch = useRef<number[]>([])
@@ -65,6 +72,45 @@ export default function usePokemonCarousel(
   const activity = useRef<ReturnType<typeof createCarouselActivity> | null>(
     null
   )
+
+  const synchronizeSelection = useCallback(
+    (instance: Swiper | null) => {
+      if (
+        !instance ||
+        instance.destroyed ||
+        !id ||
+        !instance.width ||
+        touching.current ||
+        instance.animating ||
+        isNavigating ||
+        instance.activeIndex === id - 1
+      )
+        return
+      synchronizing.current = true
+      selectedDetailId.current = id
+      try {
+        instance.slideTo(id - 1, 0, false)
+      } finally {
+        synchronizing.current = false
+      }
+    },
+    [id, isNavigating]
+  )
+
+  useLayoutEffect(() => {
+    synchronizeSelection(swiper.current)
+  }, [synchronizeSelection])
+
+  const requestSelectedDetail = (pokemonId: number) => {
+    selectedDetailId.current = pokemonId
+    if (selectedDetailTimer.current !== null) return
+    // Coalesce rapid retargets without putting Redux work in the pointer event.
+    selectedDetailTimer.current = window.setTimeout(() => {
+      selectedDetailTimer.current = null
+      if (!touching.current)
+        selectedDetailQueue.current?.replace([selectedDetailId.current])
+    }, 35)
+  }
 
   useEffect(() => {
     const controller = createCarouselActivity({
@@ -150,6 +196,7 @@ export default function usePokemonCarousel(
         if (motion.target === instance.activeIndex + 1 && !instance.animating)
           continue
         activity.current?.start()
+        requestSelectedDetail(motion.target)
         prefetch(motion.target, direction, motion.rate)
         instance.slideTo(
           motion.target - 1,
@@ -168,18 +215,25 @@ export default function usePokemonCarousel(
     const update = () => setReducedMotion(media.matches)
     update()
     media.addEventListener('change', update)
-    const apiQueue = createPrefetchQueue(async (pokemonId) => {
-      if (touching.current || swiper.current?.animating)
-        throw new Error('Selection is moving')
-      await store
+    const loadDetail = (pokemonId: number) =>
+      store
         .dispatch(
           pokemonApi.endpoints[
             import.meta.env.API_ENDPOINT_GET_POKEMON_DETAIL
           ].initiate(pokemonId, { subscribe: false })
         )
         .unwrap()
+    const apiQueue = createPrefetchQueue(async (pokemonId) => {
+      if (touching.current || swiper.current?.animating)
+        throw new Error('Selection is moving')
+      await loadDetail(pokemonId)
     }, 1)
     detailQueue.current = apiQueue
+    const selectedQueue = createPrefetchQueue(async (pokemonId) => {
+      if (touching.current) throw new Error('Selection is held')
+      await loadDetail(pokemonId)
+    }, 2)
+    selectedDetailQueue.current = selectedQueue
     const imageQueue = createPrefetchQueue(
       (pokemonId) =>
         new Promise<void>((resolve, reject) => {
@@ -219,6 +273,12 @@ export default function usePokemonCarousel(
       queues.current = []
       apiQueue.stop()
       detailQueue.current = null
+      selectedQueue.stop()
+      selectedDetailQueue.current = null
+      if (selectedDetailTimer.current !== null) {
+        window.clearTimeout(selectedDetailTimer.current)
+        selectedDetailTimer.current = null
+      }
       media.removeEventListener('change', update)
     }
   }, [])
@@ -247,9 +307,10 @@ export default function usePokemonCarousel(
       activity.current?.transitionEnd()
     },
     onSlideChange(instance: Swiper) {
-      if (swiper.current !== instance) return
+      if (swiper.current !== instance || synchronizing.current) return
       const nextId = instance.activeIndex + 1
       activity.current?.start()
+      if (!touching.current) requestSelectedDetail(nextId)
       prefetch(
         nextId,
         instance.activeIndex >= instance.previousIndex ? 1 : -1,
@@ -258,11 +319,15 @@ export default function usePokemonCarousel(
     },
     onSwiper(instance: Swiper) {
       swiper.current = instance
+      synchronizeSelection(instance)
     },
+    onResize: synchronizeSelection,
+    onUpdate: synchronizeSelection,
     onPointerDownCapture(event: ReactPointerEvent) {
       if (!event.isPrimary || event.button !== 0) return
       gesture.current++
       touching.current = true
+      selectedDetailQueue.current?.replace([])
       activity.current?.touchStart()
       interruptCarouselMotion(swiper.current)
       pointer.current = {
@@ -312,6 +377,7 @@ export default function usePokemonCarousel(
     },
     onTouchStart(instance: Swiper) {
       touching.current = true
+      selectedDetailQueue.current?.replace([])
       activity.current?.touchStart()
       drag.current = {
         time: performance.now(),
@@ -352,6 +418,7 @@ export default function usePokemonCarousel(
     },
     onTouchEnd(instance: Swiper) {
       touching.current = false
+      requestSelectedDetail(instance.activeIndex + 1)
       activity.current?.touchEnd()
       if (pendingTaps.current.length) flushTaps()
       const sample = drag.current

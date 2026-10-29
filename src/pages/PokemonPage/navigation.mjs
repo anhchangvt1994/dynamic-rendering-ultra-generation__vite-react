@@ -9,8 +9,8 @@ export const getPokemonFallbackImage = (id) =>
 export const getLookAhead = (slidesPerSecond) =>
   Math.min(40, 10 + Math.ceil(Math.max(0, slidesPerSecond) * 1.5))
 
-// Detail payloads include the full moveset. Unlike images, their speculative
-// window stays small and is only consumed after the selection has settled.
+// Neighbor payloads include the full moveset. Their speculative window stays
+// small and waits until settling; the selected target loads during animation.
 export const getDetailPrefetchIds = (id, direction = 1) =>
   [id + (direction || 1), id - (direction || 1)].filter(
     (neighbor) => neighbor >= 1 && neighbor <= POKEMON_COUNT
@@ -63,7 +63,7 @@ export function createCarouselActivity({
     if (timer !== undefined) cancel(timer)
     timer = undefined
   }
-  const settle = () => {
+  const settle = (delay = 60) => {
     clear()
     if (!busy || stopped) return
     timer = schedule(() => {
@@ -72,7 +72,7 @@ export function createCarouselActivity({
       busy = false
       onSettle()
       onBusy(false)
-    }, 120)
+    }, delay)
   }
   return {
     start() {
@@ -92,7 +92,7 @@ export function createCarouselActivity({
       touching = false
       settle()
     },
-    transitionEnd: settle,
+    transitionEnd: () => settle(32),
     stop() {
       stopped = true
       clear()

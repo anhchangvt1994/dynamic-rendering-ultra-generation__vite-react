@@ -266,8 +266,8 @@ export const DetailsContentStyle = styled.div`
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 320ms ease-out,
-    transform 320ms ease-out;
+    opacity 180ms ease-out,
+    transform 220ms ease-out;
 
   &[data-loading='true'] {
     visibility: hidden;

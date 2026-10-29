@@ -413,9 +413,11 @@ export const getData = async (key: string, options?: IGetCacheOptionsParam) => {
 
 export const getDataCompression = async (
   key: string,
-  compression: 'br' | 'gzip'
+  compression: 'br' | 'gzip' | ''
 ): Promise<Buffer | undefined> => {
-  const file = `${dataPath}/${key}-${compression}.${compression}`
+  const format = compression || 'br'
+  const extension = format === 'gzip' ? 'gz' : 'br'
+  const file = `${dataPath}/${key}-${format}.${extension}`
   const startAt = Date.now()
   const maxWaitTime = 7000
   const retryDelay = 100
@@ -435,7 +437,7 @@ export const getDataCompression = async (
   while (Date.now() - startAt < maxWaitTime) {
     try {
       const content = await fsPromises.readFile(file)
-      return content
+      return compression ? content : brotliDecompressSync(content)
     } catch {
       // File might be locked or not fully written yet, wait and retry
       await wait(retryDelay)

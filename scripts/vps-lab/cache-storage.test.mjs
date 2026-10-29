@@ -5,6 +5,12 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
 import test from 'node:test'
+import {
+  brotliCompressSync,
+  brotliDecompressSync,
+  gzipSync,
+  gunzipSync,
+} from 'node:zlib'
 import { transform } from 'sucrase'
 const require = createRequire(import.meta.url)
 function load(file, deps) {
@@ -21,12 +27,48 @@ function load(file, deps) {
       Buffer,
       URL,
       console,
+      setTimeout,
+      clearTimeout,
       require: (name) => deps[name] ?? require(name),
     }
   )
   return module.exports
 }
 const silent = { log() {}, error() {} }
+test('API cache reads stored gzip .gz files and serves identity from Brotli', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-encodings-'))
+  try {
+    const api = load('server/src/api/utils/CacheManager/utils.ts', {
+      '../../../utils/ConsoleHandler': silent,
+      '../../../utils/PathHandler': {
+        getDataPath: () => dir,
+        getStorePath: () => path.join(dir, 'store'),
+      },
+      '../../../constants': { BROTLI_OPTIONS: {} },
+    })
+    const payload = JSON.stringify({ id: 25, name: 'pikachu' })
+    await api.setDataCompression('pokemon', brotliCompressSync(payload), 'br')
+    await api.setDataCompression('pokemon', gzipSync(payload), 'gzip')
+    assert.equal(
+      brotliDecompressSync(
+        await api.getDataCompression('pokemon', 'br')
+      ).toString(),
+      payload
+    )
+    const gzip = await api.getDataCompression('pokemon', 'gzip')
+    assert.ok(
+      gzip,
+      'Stored .gz data must be found without waiting for a nonexistent .gzip file'
+    )
+    assert.equal(gunzipSync(gzip).toString(), payload)
+    assert.equal(
+      (await api.getDataCompression('pokemon', '')).toString(),
+      payload
+    )
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
 test('pages/views writes create missing parents and recreate directories removed after startup', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-html-'))
   try {
@@ -39,7 +81,9 @@ test('pages/views writes create missing parents and recreate directories removed
       const root = path.join(dir, 'nested', name),
         url = 'https://example.com/' + name
       await api.set(url, root, { html: '<html>first</html>' })
-      assert.ok(fs.existsSync(path.join(root, 'info', api.getKey(url) + '.txt')))
+      assert.ok(
+        fs.existsSync(path.join(root, 'info', api.getKey(url) + '.txt'))
+      )
       assert.ok(fs.existsSync(path.join(root, api.getKey(url) + '.br')))
       fs.rmSync(root, { recursive: true })
       await api.get(url, root)
@@ -51,10 +95,15 @@ test('pages/views writes create missing parents and recreate directories removed
       await api.renew(url, root)
       await api.set(url, root, { html: '<html>fallback</html>', isRaw: true })
       await api.rename(url, root, {})
-      assert.deepEqual(fs.readdirSync(root).filter(name => name.endsWith('.br')), [api.getKey(url) + '.br'])
+      assert.deepEqual(
+        fs.readdirSync(root).filter((name) => name.endsWith('.br')),
+        [api.getKey(url) + '.br']
+      )
       fs.rmSync(root, { recursive: true })
       await api.set(url, root, { html: '<html>after cleanup</html>' })
-      assert.ok(fs.existsSync(path.join(root, 'info', api.getKey(url) + '.txt')))
+      assert.ok(
+        fs.existsSync(path.join(root, 'info', api.getKey(url) + '.txt'))
+      )
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
