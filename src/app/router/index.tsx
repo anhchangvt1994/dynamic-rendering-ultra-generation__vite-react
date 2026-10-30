@@ -72,7 +72,8 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'QuizPage',
       }, // Quiz Page
       {
-        path: 'so-sanh',
+        // /so-sanh, /so-sanh/charizard, /so-sanh/charizard-vs-blastoise
+        path: 'so-sanh/:pair?',
         element: <ROUTE_MODULES.compare.Route />,
         id: 'ComparePage',
       }, // Compare Page

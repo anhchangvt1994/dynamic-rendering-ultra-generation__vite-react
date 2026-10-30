@@ -20,7 +20,12 @@ import {
   compareStats,
   formatMultiplier,
   hitLabel,
+  compareCopy,
+  comparePath,
+  leaderOf,
   readComparePair,
+  readComparePath,
+  verdictOf,
 } from './compare.mjs'
 import { CompareStyle, SheetStyle } from './styles'
 
@@ -404,20 +409,28 @@ function Plate({
   )
 }
 
-/** /so-sanh?a=garchomp&b=salamence — two Pokémon, head to head. */
+// bump when the share card's design changes: networks re-fetch the image
+const SHARE_CARD_VERSION = 1
+
+/** /so-sanh/garchomp-vs-salamence — two Pokémon, head to head. */
 export default function ComparePage() {
   const location = useLocation()
   const navigate = useNavigate()
   const navigateInfo = useNavigateInfo()
-  const pair = readComparePair(location.search)
+  const pair = readComparePath(location.pathname)
   const [picking, setPicking] = useState<Side | null>(null)
   const [shared, setShared] = useState(false)
-  const setPair = (next: { a: string; b: string }) => {
-    const params = new URLSearchParams()
-    if (next.a) params.set('a', next.a)
-    if (next.b) params.set('b', next.b)
-    navigate(`?${params}`, { replace: true, state: { keepPage: true } })
-  }
+  const setPair = (next: { a: string; b: string }) =>
+    navigate(comparePath(next), {
+      replace: true,
+      state: { keepPage: true },
+    })
+  // links shared before the pair moved into the path (?a=&b=)
+  const legacy = readComparePair(location.search)
+  useEffect(() => {
+    if (legacy.a || legacy.b) setPair(legacy)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legacy.a, legacy.b])
   const goBack = () =>
     navigateInfo.from
       ? navigate(-1)
@@ -431,42 +444,84 @@ export default function ComparePage() {
   })
   const both = a && b
   const result = both ? compareStats(a, b) : null
-
-  setSeoTag({
-    title: both
-      ? `${pokemonLabel(a.name)} vs ${pokemonLabel(b.name)} – So sánh | Pokédex`
-      : 'So sánh Pokémon | Pokédex',
-    description:
-      'Đặt hai Pokémon cạnh nhau: hạng sức mạnh, hệ và từng chỉ số cơ bản.',
-    robots: both ? 'index, follow' : 'noindex, follow',
-  })
-
   // who leads: total first, stats won as the tie-break
-  const leader: Side | null = !result
-    ? null
-    : result.totalA !== result.totalB
-      ? result.totalA > result.totalB
-        ? 'a'
-        : 'b'
-      : result.winsA !== result.winsB
-        ? result.winsA > result.winsB
-          ? 'a'
-          : 'b'
-        : null
+  const leader: Side | null = leaderOf(result)
+  const verdict = both ? verdictOf(a, b, result) : ''
 
-  const verdict = (() => {
-    if (!result || !both) return ''
-    if (!leader) return 'Ngang tài ngang sức!'
-    const name = pokemonLabel((leader === 'a' ? a : b).name)
-    const wins = leader === 'a' ? result.winsA : result.winsB
-    const gap = Math.abs(result.totalA - result.totalB)
-    return gap
-      ? `${name} nhỉnh hơn ${gap} điểm, thắng ${wins}/6 chỉ số.`
-      : `Cùng ${result.totalA} điểm; ${name} thắng ${wins}/6 chỉ số.`
-  })()
+  const label = (side: Side) => {
+    const mon = side === 'a' ? a : b
+    return mon ? pokemonLabel(mon.name) : `Đấu thủ ${SIDE_NAME[side]}`
+  }
+
+  // NOTE - What a shared link shows (crawlers get this through the ISR
+  // render): only the Pokémon that have loaded, so a half-loaded pair is
+  // never described as the wrong one
+  const shown = {
+    a: pair.a && a ? pair.a : '',
+    b: pair.b && b ? pair.b : '',
+  }
+  const pending = (pair.a && !a) || (pair.b && !b)
+  const copy = compareCopy(shown.a ? a : null, shown.b ? b : null)
+  const pagePath = comparePath(pair)
+  const origin = window.location.origin
+  const cardPath = pagePath.replace('/so-sanh', '/og/so-sanh')
+  const shareImage = `${origin}${cardPath}.png?v=${SHARE_CARD_VERSION}`
+  if (!pending)
+    setSeoTag({
+      title: copy.title,
+      description: copy.description,
+      canonical: `${origin}${pagePath}`,
+      // a pair or the hub is a page worth finding; a lone half is not
+      robots: !pair.a === !pair.b ? 'index, follow' : 'noindex, follow',
+      'og:type': 'website',
+      'og:site_name': 'Pokédex',
+      'og:url': `${origin}${pagePath}`,
+      'og:title': copy.title,
+      'og:description': copy.description,
+      'og:image': shareImage,
+      'og:image:width': '1200',
+      'og:image:height': '630',
+      'twitter:card': 'summary_large_image',
+      'twitter:title': copy.title,
+      'twitter:description': copy.description,
+      'twitter:image': shareImage,
+    })
+  // breadcrumbs, and the question people search for, answered with numbers
+  const jsonLd = both
+    ? [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            ['Pokédex', '/'],
+            ['So sánh', '/so-sanh'],
+            [`${label('a')} vs ${label('b')}`, pagePath],
+          ].map(([name, path], index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name,
+            item: `${origin}${path}`,
+          })),
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: [
+            {
+              '@type': 'Question',
+              name: `${label('a')} và ${label('b')}, ai mạnh hơn?`,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: `${verdict} Tổng chỉ số cơ bản: ${label('a')} ${result.totalA}, ${label('b')} ${result.totalB}.`,
+              },
+            },
+          ],
+        },
+      ]
+    : null
 
   const share = async () => {
-    const url = window.location.href
+    const url = `${origin}${pagePath}`
     const title = `${pokemonLabel(a.name)} vs ${pokemonLabel(b.name)}`
     try {
       if (navigator.share) {
@@ -481,11 +536,6 @@ export default function ComparePage() {
     }
   }
 
-  const label = (side: Side) => {
-    const mon = side === 'a' ? a : b
-    return mon ? pokemonLabel(mon.name) : `Đấu thủ ${SIDE_NAME[side]}`
-  }
-
   return (
     <CompareStyle
       style={{ '--a': '#e3350d', '--b': '#2a6fdb' } as CSSProperties}
@@ -498,6 +548,15 @@ export default function ComparePage() {
           Quay lại
         </button>
         <h1>So sánh</h1>
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            // `<` escaped: no text in the data can close the script
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+            }}
+          />
+        )}
         <button
           type="button"
           className="swap"

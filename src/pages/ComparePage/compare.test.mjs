@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  STAT_ORDER,
   bestHit,
+  compareCopy,
+  comparePath,
   compareStats,
   formatMultiplier,
   hitLabel,
   readComparePair,
+  readComparePath,
   statsOf,
+  verdictOf,
 } from './compare.mjs'
 
 const mon = (...values) => ({
@@ -97,4 +102,64 @@ test('multipliers read as words and fractions', () => {
   assert.equal(hitLabel(0), 'Không tác dụng')
   assert.equal(formatMultiplier(0.5), '×½')
   assert.equal(formatMultiplier(4), '×4')
+})
+
+const pokemon = (name, values, types = ['normal']) => ({
+  name,
+  stats: STAT_ORDER.map((stat, index) => ({
+    stat: { name: stat },
+    base_stat: values[index],
+  })),
+  types: types.map((type) => ({ type: { name: type } })),
+})
+const charizard = pokemon(
+  'charizard',
+  [78, 84, 78, 109, 85, 100],
+  ['fire', 'flying']
+)
+const blastoise = pokemon('blastoise', [79, 83, 100, 85, 105, 78], ['water'])
+
+test('a pair lives in the path, both ways', () => {
+  for (const pair of [
+    { a: 'charizard', b: 'blastoise' },
+    { a: 'mr-mime-galar', b: 'zygarde-mega' },
+    { a: 'charizard', b: '' },
+    { a: '', b: 'blastoise' },
+    { a: '', b: '' },
+  ])
+    assert.deepEqual(readComparePath(comparePath(pair)), pair)
+  assert.equal(
+    comparePath({ a: 'charizard', b: 'blastoise' }),
+    '/so-sanh/charizard-vs-blastoise'
+  )
+  assert.deepEqual(readComparePath('/so-sanh/Charizard-VS-Blastoise/'), {
+    a: 'charizard',
+    b: 'blastoise',
+  })
+  assert.deepEqual(readComparePath('/so-sanh/<script>-vs-x'), {
+    a: '',
+    b: 'x',
+  })
+  assert.deepEqual(readComparePath('/so-sanh/%E0%A4%A'), { a: '', b: '' })
+})
+
+test('the verdict names the leader, its margin and stats won', () => {
+  assert.equal(
+    verdictOf(charizard, blastoise),
+    'Charizard nhỉnh hơn 4 điểm, thắng 3/6 chỉ số.'
+  )
+  assert.equal(verdictOf(charizard, charizard), 'Ngang tài ngang sức!')
+})
+
+test('share copy for two, one and no Pokémon', () => {
+  const two = compareCopy(charizard, blastoise)
+  assert.equal(two.title, 'Charizard vs Blastoise: ai mạnh hơn? | Pokédex')
+  assert.ok(two.title.length <= 60, two.title)
+  assert.match(two.description, /hạng A, 534 BST.*hạng A, 530 BST/)
+  assert.ok(two.description.length <= 170, String(two.description.length))
+  const one = compareCopy(charizard, null)
+  assert.match(one.description, /Lửa\/Bay, hạng A, 534 BST/)
+  assert.ok(one.title.length <= 60, one.title)
+  assert.equal(compareCopy(null, blastoise).alt, 'Blastoise đang chờ đối thủ')
+  assert.ok(compareCopy(null, null).description.length <= 160)
 })

@@ -22,6 +22,7 @@
     "parse5": "7.3.0",
     "pm2": "7.1.1",
     "puppeteer-ssr": "file:./src/puppeteer-ssr",
+    "satori": "0.60.0",
     "sharp": "^0.34.2",
     "sucrase": "3.35.1",
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.56.0",

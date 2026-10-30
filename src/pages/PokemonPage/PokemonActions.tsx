@@ -237,7 +237,7 @@ const PokemonActions = memo(
           <button
             type="button"
             data-kind="compare"
-            onClick={() => navigate(`/so-sanh?a=${slug}`)}
+            onClick={() => navigate(`/so-sanh/${slug}`)}
           >
             <CompareIcon />
             So sánh
