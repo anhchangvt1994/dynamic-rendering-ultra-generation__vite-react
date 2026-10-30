@@ -54,30 +54,15 @@ export const boneCss = css`
   }
 
   .dex {
-    display: inline-flex;
-    line-height: 1 !important;
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  /* each digit is a window over a 0-9 strip; the strip rolls like an
-     odometer, the ones fastest, so the number reads as "searching" */
+  /* a rolling digit: a counter drawn as text, stepped 0-9 by dex-count */
   .dex-digit {
-    display: inline-block;
-    /* one "0" wide: a strip is as wide as its widest digit otherwise */
-    width: 1ch;
-    height: 1em;
-    overflow: hidden;
-    line-height: 1 !important;
+    counter-reset: dex-digit 0;
+    animation: dex-count var(--roll, 0s) linear infinite;
   }
-  .dex-digit > span {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1 !important;
-    animation: dex-roll var(--roll, 0s) steps(10) infinite;
-  }
-  .dex-digit > span > span {
-    line-height: 1 !important;
+  .dex-digit::before {
+    content: counter(dex-digit);
   }
 
   .sr-only {
@@ -116,15 +101,45 @@ export const boneCss = css`
       rotate: 0deg;
     }
   }
-  @keyframes dex-roll {
-    to {
-      translate: 0 -10em;
+  @keyframes dex-count {
+    0% {
+      counter-reset: dex-digit 0;
+    }
+    10% {
+      counter-reset: dex-digit 1;
+    }
+    20% {
+      counter-reset: dex-digit 2;
+    }
+    30% {
+      counter-reset: dex-digit 3;
+    }
+    40% {
+      counter-reset: dex-digit 4;
+    }
+    50% {
+      counter-reset: dex-digit 5;
+    }
+    60% {
+      counter-reset: dex-digit 6;
+    }
+    70% {
+      counter-reset: dex-digit 7;
+    }
+    80% {
+      counter-reset: dex-digit 8;
+    }
+    90% {
+      counter-reset: dex-digit 9;
+    }
+    100% {
+      counter-reset: dex-digit 9;
     }
   }
   @media (prefers-reduced-motion: reduce) {
     .bone,
     .catch-ball,
-    .dex-digit > span {
+    .dex-digit {
       animation: none;
     }
   }

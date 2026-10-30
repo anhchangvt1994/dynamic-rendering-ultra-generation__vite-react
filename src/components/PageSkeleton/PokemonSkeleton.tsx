@@ -60,7 +60,8 @@ const PokemonSkeletonStyle = styled.div`
     top: 14px;
     left: 50%;
     translate: -50% 0;
-    font-family: var(--font-display);
+    /* the real .dex-number's exact stack, so both fall back alike */
+    font-family: 'Dela Gothic One', sans-serif;
     font-size: clamp(48px, 17vw, 84px);
     letter-spacing: -0.02em;
     color: transparent;
