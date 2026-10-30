@@ -1,3 +1,4 @@
+import useDismissKeyboardOnDrag from 'hooks/useDismissKeyboardOnDrag'
 import Icon from 'components/common/Icon'
 import FieldIcon from 'components/common/FieldIcon'
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
@@ -68,6 +69,8 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
   }, [onClose, pathname])
 
   const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose)
+  // dragging the results hides the keyboard so they get the room
+  useDismissKeyboardOnDrag(dialogRef, inputRef, isOpen)
 
   const open = (index: number) => {
     const target = results[index]

@@ -9,6 +9,7 @@ import { pokemonLabel, statLabel } from 'components/pokemon-page/format.mjs'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import FormImage from 'components/common/FormImage'
 import useDialog from 'hooks/useDialog'
+import useDismissKeyboardOnDrag from 'hooks/useDismissKeyboardOnDrag'
 import { getRecent } from 'utils/recent.mjs'
 import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
 import { getPokemonPower } from 'pages/PokemonPage/power.mjs'
@@ -132,6 +133,8 @@ function PickerSheet({
   const [query, setQuery] = useState('')
   const dialogRef = useDialog<HTMLDivElement>(!!side, onClose)
   const inputRef = useRef<HTMLInputElement>(null)
+  // dragging the results hides the keyboard so they get the room
+  useDismissKeyboardOnDrag(dialogRef, inputRef, !!side)
   // moving on from A to B keeps the sheet open: back to the search box
   useEffect(() => {
     if (side) inputRef.current?.focus()
