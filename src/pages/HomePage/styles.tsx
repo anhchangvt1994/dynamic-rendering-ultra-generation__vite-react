@@ -791,6 +791,130 @@ export const HeroStyle = styled.section`
     align-items: center;
     gap: 6px;
   }
+  /* reroll: a little Poké Ball pinned on the card's corner like a sticker,
+     out of the header row (it would wrap on a 320px phone). The hero keeps
+     14px+ around the card; ::after gives a 44px touch target. */
+  .reroll {
+    position: absolute;
+    z-index: 4;
+    top: -11px;
+    right: -11px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      0 0 0 1.5px #172d4540,
+      0 3px 0 #172d4526;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 140ms ease-out;
+  }
+  .reroll::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+  .reroll svg {
+    width: 25px;
+    height: 25px;
+  }
+  .reroll:hover svg,
+  .reroll:focus-visible svg {
+    animation: reroll-wiggle 600ms ease-in-out;
+  }
+  .reroll:active {
+    transform: translateY(2px) scale(0.92);
+    box-shadow:
+      0 0 0 1.5px #172d4540,
+      0 1px 0 #172d4526;
+  }
+  .reroll:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+  .reroll svg.is-rolling {
+    animation: reroll-spin 720ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .reroll i {
+    /* toward the card: on the right the hero's edge would clip it */
+    position: absolute;
+    top: -11px;
+    left: -9px;
+    width: auto;
+    height: auto;
+    background: none;
+    font-size: 13px;
+    font-style: normal;
+    color: #ffda55;
+    text-shadow:
+      0 0 1px #172d45,
+      0 0 1px #172d45;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .reroll i.is-rolling {
+    animation: reroll-spark 720ms ease-out;
+  }
+  @keyframes reroll-wiggle {
+    25% {
+      rotate: -16deg;
+    }
+    50% {
+      rotate: 12deg;
+    }
+    75% {
+      rotate: -6deg;
+    }
+  }
+  @keyframes reroll-spin {
+    60% {
+      rotate: 400deg;
+    }
+    78% {
+      rotate: 345deg;
+    }
+    to {
+      rotate: 360deg;
+    }
+  }
+  @keyframes reroll-spark {
+    0% {
+      opacity: 0;
+      scale: 0.3;
+      translate: 4px 6px;
+    }
+    35% {
+      opacity: 1;
+      scale: 1.35;
+    }
+    to {
+      opacity: 0;
+      scale: 0.8;
+      translate: -5px -10px;
+    }
+  }
+  /* each new Pokémon pops out of the ball */
+  .encounter-art img {
+    animation: encounter-pop 520ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  @keyframes encounter-pop {
+    from {
+      opacity: 0;
+      scale: 0.4;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reroll svg,
+    .reroll i,
+    .encounter-art img {
+      animation: none !important;
+    }
+  }
   .encounter-top i {
     height: 5px;
     width: 5px;

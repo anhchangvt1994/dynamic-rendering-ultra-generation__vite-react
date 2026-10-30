@@ -16,6 +16,17 @@ test('one moment, one trio; the next second, another', () => {
   assert.notEqual(seedFromDate(at(1)), seedFromDate(at(2)))
 })
 
+test('a reroll in the same second meets another trio', () => {
+  assert.notDeepEqual(
+    pickEncounterIds(at(1)),
+    pickEncounterIds(at(1), 3, 1025, 1)
+  )
+  assert.deepEqual(
+    pickEncounterIds(at(1), 3, 1025, 2),
+    pickEncounterIds(at(1), 3, 1025, 2)
+  )
+})
+
 test('three different Pokémon inside the National Dex', () => {
   for (let s = 0; s < 60; s++) {
     const ids = pickEncounterIds(at(s))

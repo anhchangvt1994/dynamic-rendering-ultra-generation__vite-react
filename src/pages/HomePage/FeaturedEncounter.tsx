@@ -1,7 +1,7 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
-import FieldIcon from 'components/common/FieldIcon'
+import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import {
   POKEMON_COUNT,
   getPokemonFallbackImage,
@@ -24,8 +24,16 @@ export default function FeaturedEncounter({
 }) {
   // three Pokémon from the whole Pokédex, drawn from this very second
   // (encounter.mjs); the app renders on the client, so no markup to match
-  const [ids] = useState(() => pickEncounterIds(new Date()))
+  const [ids, setIds] = useState(() => pickEncounterIds(new Date()))
   const [selected, setSelected] = useState(0)
+  // the Poké Ball button draws a new trio: this moment plus the roll count
+  const [roll, setRoll] = useState(0)
+  const reroll = () => {
+    const next = roll + 1
+    setIds(pickEncounterIds(new Date(), 3, POKEMON_COUNT, next))
+    setSelected(0)
+    setRoll(next)
+  }
   // the same request as the catalogue below: names come from its cache
   const { data } = useGetPokemonListQuery({ limit: POKEMON_COUNT, offset: 0 })
   const encounters = useMemo(
@@ -73,6 +81,19 @@ export default function FeaturedEncounter({
         </div>
       </div>
       <div className="encounter">
+        <button
+          type="button"
+          className="reroll"
+          aria-label="Gặp ba Pokémon khác"
+          title="Gặp ba Pokémon khác"
+          onClick={reroll}
+        >
+          {/* keyed by the roll: each tap replays the spin and sparkle */}
+          <Pokeball key={roll} className={roll ? 'is-rolling' : ''} />
+          <i key={`spark-${roll}`} className={roll ? 'is-rolling' : ''}>
+            ✦
+          </i>
+        </button>
         <div className="encounter-top">
           <span>
             <i /> CUỘC GẶP HÔM NAY

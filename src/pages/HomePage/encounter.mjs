@@ -57,12 +57,16 @@ const FLAVOR = {
 export const wordLength = (word) =>
   [...word].reduce((length, char) => length + (char === '…' ? 2 : 1), 0)
 
-/** Hash of the local date and time, to the second (xmur3). */
-export function seedFromDate(date) {
+/**
+ * Hash of the local date and time, to the second (xmur3). `roll` counts the
+ * visitor's rerolls, so two taps within one second still differ.
+ */
+export function seedFromDate(date, roll = 0) {
   const pad = (n) => String(n).padStart(2, '0')
   const text =
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
-    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+    (roll ? `#${roll}` : '')
   let h = 1779033703 ^ text.length
   for (let i = 0; i < text.length; i++) {
     h = Math.imul(h ^ text.charCodeAt(i), 3432918353)
@@ -85,9 +89,14 @@ export function random(seed) {
   }
 }
 
-/** `count` different National Dex numbers for this moment. */
-export function pickEncounterIds(date, count = 3, max = POKEMON_COUNT) {
-  const next = random(seedFromDate(date))
+/** `count` different National Dex numbers for this moment (and roll). */
+export function pickEncounterIds(
+  date,
+  count = 3,
+  max = POKEMON_COUNT,
+  roll = 0
+) {
+  const next = random(seedFromDate(date, roll))
   const ids = []
   while (ids.length < Math.min(count, max)) {
     const id = 1 + Math.floor(next() * max)

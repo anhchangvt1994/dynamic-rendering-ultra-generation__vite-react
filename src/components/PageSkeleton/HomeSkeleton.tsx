@@ -388,6 +388,9 @@ export default function HomeSkeleton() {
           </div>
         </div>
         <div className="encounter" aria-hidden="true">
+          <span className="reroll">
+            <Pokeball />
+          </span>
           <div className="encounter-top">
             <span>
               <i /> CUỘC GẶP HÔM NAY
