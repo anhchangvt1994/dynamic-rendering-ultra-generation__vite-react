@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { matchRange, searchPokemon } from './search.mjs'
+import { baseIdOf, matchRange, searchPokemon } from './search.mjs'
 
 const mon = (name, id) => ({
   name,
@@ -47,4 +47,21 @@ test('forms rank after the species', () => {
 test('match range maps onto the displayed name', () => {
   assert.deepEqual(matchRange('mr-mime', 'r mi'), [1, 5])
   assert.equal(matchRange('pikachu', '25'), null)
+})
+
+test('a form knows its species, for images it lacks', () => {
+  const dex = [
+    mon('zygarde-50', 718),
+    mon('zygarde-mega', 10301),
+    mon('koraidon', 1007),
+    mon('koraidon-swimming-build', 10267),
+    mon('mr-mime', 122),
+    mon('mr-mime-galar', 10168),
+  ]
+  assert.equal(baseIdOf(dex, 'zygarde-mega'), 718)
+  assert.equal(baseIdOf(dex, 'koraidon-swimming-build'), 1007)
+  assert.equal(baseIdOf(dex, 'mr-mime-galar'), 122)
+  assert.equal(baseIdOf(dex, 'missingno'), undefined)
+  assert.equal(searchPokemon(dex, 'zygarde mega')[0].baseId, 718)
+  assert.equal(searchPokemon(dex, 'koraidon')[0].baseId, undefined)
 })

@@ -1,4 +1,4 @@
-import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
+import FormImage from 'components/common/FormImage'
 import { functionGenerator } from 'utils/EnvHelper'
 import { pokemonLabel } from 'components/pokemon-page/format.mjs'
 import { matchRange } from '../../search.mjs'
@@ -30,7 +30,8 @@ const highlight = (name: string, keyword: string) => {
   )
 }
 
-type Result = { name: string; id: number }
+// baseId: the species of a form, whose images back up its own
+type Result = { name: string; id: number; baseId?: number }
 
 export const optionId = (name: string) => `search-option-${name}`
 
@@ -64,8 +65,10 @@ const SearchResults = ({
       >
         <SearchItemInnerStyle to={toPath(getSlug(result.name))} tabIndex={-1}>
           <ImageColStyle>
-            <img
-              src={getPokemonSprite(result.id)}
+            <FormImage
+              pokemonId={result.id}
+              baseId={result.baseId}
+              small
               alt=""
               width={56}
               height={56}

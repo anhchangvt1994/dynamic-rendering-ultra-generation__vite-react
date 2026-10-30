@@ -7,12 +7,10 @@ import { useNavigateInfo } from 'app/router/context/InfoContext'
 import { searchPokemon } from 'components/common/SearchPokemonBar/search.mjs'
 import { pokemonLabel, statLabel } from 'components/pokemon-page/format.mjs'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
+import FormImage from 'components/common/FormImage'
 import useDialog from 'hooks/useDialog'
 import { getRecent } from 'utils/recent.mjs'
-import {
-  getPokemonImage,
-  getPokemonSprite,
-} from 'pages/PokemonPage/navigation.mjs'
+import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
 import { getPokemonPower } from 'pages/PokemonPage/power.mjs'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
@@ -142,7 +140,9 @@ function PickerSheet({
     [data?.results, query]
   )
   // an empty box offers the Pokémon read most recently
-  const recent: { id: number; name: string }[] = side ? getRecent() : []
+  const recent: { id: number; name: string; baseId?: number }[] = side
+    ? getRecent()
+    : []
   const shown = query.trim() ? results : recent
   if (!side) return null
   const pick = (name: string) => {
@@ -200,8 +200,10 @@ function PickerSheet({
               {shown.map((result) => (
                 <li key={result.name}>
                   <button type="button" onClick={() => pick(result.name)}>
-                    <img
-                      src={getPokemonSprite(result.id)}
+                    <FormImage
+                      pokemonId={result.id}
+                      baseId={result.baseId}
+                      small
                       alt=""
                       width={48}
                       height={48}
@@ -256,9 +258,9 @@ function Portrait({
       style={{ '--halo': haloOf(pokemon) } as CSSProperties}
     >
       {pokemon ? (
-        <img
-          key={pokemon.id}
-          src={getPokemonImage(pokemon.id)}
+        <FormImage
+          pokemonId={pokemon.id}
+          baseId={Number(pokemon.species?.url?.match(/\/(\d+)\/?$/)?.[1])}
           alt=""
           width={200}
           height={200}
