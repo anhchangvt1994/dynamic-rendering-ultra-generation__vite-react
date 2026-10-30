@@ -97,3 +97,25 @@ test('Champions training is named explicitly rather than hidden as an unknown me
     'Huấn luyện'
   )
 })
+
+test('ability text prefers the short effect, then the newest flavour', async () => {
+  const { abilityText } = await import('./format.mjs')
+  const en = { name: 'en' }
+  assert.equal(
+    abilityText({
+      effect_entries: [{ language: en, short_effect: 'Damages\n attackers.' }],
+    }),
+    'Damages attackers.'
+  )
+  assert.equal(
+    abilityText({
+      effect_entries: [],
+      flavor_text_entries: [
+        { language: en, flavor_text: 'Old.' },
+        { language: en, flavor_text: 'New text.' },
+      ],
+    }),
+    'New text.'
+  )
+  assert.equal(abilityText(undefined), '')
+})

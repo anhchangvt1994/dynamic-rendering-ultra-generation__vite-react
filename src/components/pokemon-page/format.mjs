@@ -128,3 +128,16 @@ export function pokemonLabel(name = '') {
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(' ')
 }
+
+/** An ability's short English effect, newest flavour text as fallback. */
+export function abilityText(ability) {
+  const clean = (text = '') => text.replace(/\s+/g, ' ').trim()
+  const effect = ability?.effect_entries?.find(
+    (entry) => entry?.language?.name === 'en'
+  )?.short_effect
+  if (effect) return clean(effect)
+  const flavour = (ability?.flavor_text_entries ?? []).filter(
+    (entry) => entry?.language?.name === 'en'
+  )
+  return clean(flavour[flavour.length - 1]?.flavor_text)
+}

@@ -55,6 +55,17 @@ const pokemonApi = createApi({
         })
       },
     }),
+    // Ability text (effect, flavour), fetched when a reader opens it.
+    getAbility: builder.query<any, string>({
+      keepUnusedDataFor: 600,
+      query: (name) => {
+        const endpoint = `/ability/${name}`
+        return proxyApi.get(endpoint, {
+          expiredTime: 'infinite',
+          cacheKey: endpoint,
+        })
+      },
+    }),
     getEvolutionChain: builder.query<any, number>({
       keepUnusedDataFor: 300,
       query: (id) => {
@@ -94,6 +105,7 @@ export const {
   useGetPokemonDetailQuery,
   useGetPokemonSpeciesQuery,
   useGetEvolutionChainQuery,
+  useGetAbilityQuery,
   useGetPokemonTypeQuery,
   useGetPokemonFormQuery,
 } = pokemonApi
