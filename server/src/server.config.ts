@@ -24,6 +24,18 @@ const ServerConfig = defineServerConfig({
             name: 'pokemon-page',
           },
         }
+      else if (pathSlitted[1] === 'ai-day')
+        return {
+          loader: {
+            name: 'ai-day-page',
+          },
+        }
+      else if (pathSlitted[1] === 'so-sanh')
+        return {
+          loader: {
+            name: 'so-sanh-page',
+          },
+        }
       else if (pathSlitted[1] === 'blogs') {
         if (pathSlitted[2])
           return {
@@ -37,7 +49,10 @@ const ServerConfig = defineServerConfig({
               name: 'blog-page',
             },
           }
-      } else if (!pathSlitted[0])
+      } else if (
+        // NOTE - "/" splits into ['', '']: [0] is empty for every path
+        !pathSlitted[1]
+      )
         return {
           loader: {
             name: 'home-page',

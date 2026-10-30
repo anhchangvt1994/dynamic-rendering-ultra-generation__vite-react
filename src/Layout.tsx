@@ -4,7 +4,7 @@ import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
 import SearchBlogBar from 'components/common/SearchBlogBar'
 import SearchPokemonBar from 'components/common/SearchPokemonBar'
-import LoadingPageComponent from 'components/LoadingPageComponent'
+import PageSkeleton, { HeaderSkeleton } from 'components/PageSkeleton'
 import BlogDetailLoading from 'pages/BlogDetailPage/loading'
 import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
 import { BlogPageStyled } from 'pages/BlogPage/styles'
@@ -18,6 +18,8 @@ import {
 import LoadingBoundary from 'utils/LoadingBoundary'
 import useScrollRestoration from 'hooks/useScrollRestoration'
 
+let isFirstPaint = true
+
 // Memoized Outlet wrapper that only re-renders when route location changes
 const OutletWrapper = React.memo(() => {
   const route = useRoute()
@@ -29,19 +31,20 @@ const OutletWrapper = React.memo(() => {
   const pageKeyRef = useRef(location.key)
   if (!location.state?.keepPage) pageKeyRef.current = location.key
 
-  // This useMemo ensures the key changes on location, forcing remount on route change
+  // NOTE - The deepest match names the page: route.id stays the layout's
+  // ("0") on the index route
+  const matches = useMatches()
+  const pageId = matches[matches.length - 1]?.id ?? route.id
 
   const loading = useMemo(() => {
     switch (true) {
-      case route.id === import.meta.env.ROUTER_HOME_ID:
-        return <LoadingPageComponent />
-      case route.id === import.meta.env.ROUTER_BLOG_DETAIL_ID:
+      case pageId === import.meta.env.ROUTER_BLOG_DETAIL_ID:
         return (
           <BlogDetailPageStyle>
             <BlogDetailLoading />
           </BlogDetailPageStyle>
         )
-      case route.id === import.meta.env.ROUTER_BLOGS_ID:
+      case pageId === import.meta.env.ROUTER_BLOGS_ID:
         return (
           <BlogPageStyled>
             {Array.from({ length: 8 }).map((_, index) => (
@@ -50,14 +53,26 @@ const OutletWrapper = React.memo(() => {
           </BlogPageStyled>
         )
       default:
-        return <LoadingPageComponent />
+        return <PageSkeleton routeId={pageId} />
     }
-  }, [route.id])
+  }, [pageId])
+
+  useEffect(() => {
+    isFirstPaint = false
+  }, [])
+
+  // NOTE - The ISR loader snapshot (RenderingInfo.loader) is the page's
+  // skeleton only: no page code, no data requests
+  if (RenderingInfo.loader) return loading
+
+  // NOTE - On the first paint the skeleton shows at once: the page may be
+  // replacing a loader snapshot that already shows it, a delay would blank it
+  const delay = isFirstPaint ? 0 : 150
 
   return (
     <React.Fragment key={route.id}>
       <LoadingBoundary
-        delay={150}
+        delay={delay}
         fallback={loading}
         resetKey={pageKeyRef.current}
       >
@@ -132,12 +147,16 @@ function Layout() {
         className={`${RenderingInfo.loader ? 'lazy-load' : 'full-load'}`}
       >
         <div inert={isShowMenuBar || isShowSearchBar}>
-          <Header
-            onClickMenu={onShowMenu}
-            onClickSearch={onShowSearch}
-            isMenuOpen={isShowMenuBar}
-            isSearchOpen={isShowSearchBar}
-          />
+          {RenderingInfo.loader ? (
+            <HeaderSkeleton />
+          ) : (
+            <Header
+              onClickMenu={onShowMenu}
+              onClickSearch={onShowSearch}
+              isMenuOpen={isShowMenuBar}
+              isSearchOpen={isShowSearchBar}
+            />
+          )}
         </div>
 
         <BodyWrapperStyle inert={isShowMenuBar || isShowSearchBar}>
