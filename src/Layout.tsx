@@ -17,8 +17,7 @@ import {
 } from 'styles'
 import LoadingBoundary from 'utils/LoadingBoundary'
 import useScrollRestoration from 'hooks/useScrollRestoration'
-
-let isFirstPaint = true
+import { preloadPath, preloadWhenIdle } from 'app/router/routeModules'
 
 // Memoized Outlet wrapper that only re-renders when route location changes
 const OutletWrapper = React.memo(() => {
@@ -57,22 +56,18 @@ const OutletWrapper = React.memo(() => {
     }
   }, [pageId])
 
-  useEffect(() => {
-    isFirstPaint = false
-  }, [])
-
   // NOTE - The ISR loader snapshot (RenderingInfo.loader) is the page's
   // skeleton only: no page code, no data requests
   if (RenderingInfo.loader) return loading
 
-  // NOTE - On the first paint the skeleton shows at once: the page may be
-  // replacing a loader snapshot that already shows it, a delay would blank it
-  const delay = isFirstPaint ? 0 : 150
+  // NOTE - The skeleton shows at once, never after a delay: by the time the
+  // next page suspends the previous one is already gone, so a delay only
+  // shows a blank page (and on a busy phone its timer fires late)
 
   return (
     <React.Fragment key={route.id}>
       <LoadingBoundary
-        delay={delay}
+        delay={0}
         fallback={loading}
         resetKey={pageKeyRef.current}
       >
@@ -103,6 +98,26 @@ function Layout() {
   // the page scrolls inside BodyStyle, not the window
   const scrollerRef = useRef<HTMLDivElement>(null)
   useScrollRestoration(scrollerRef)
+
+  // NOTE - Fetch the next page's code before it is needed: the page behind a
+  // link as soon as it is pointed at, touched or focused, and the main pages
+  // once the browser is idle. Not for crawlers (bots, ISR snapshots,
+  // automation): they never navigate.
+  useEffect(() => {
+    if (BotInfo.isBot || RenderingInfo.loader || navigator.webdriver) return
+    const onIntent = (event: Event) => {
+      const link = (event.target as Element | null)?.closest?.('a[href]')
+      if (!(link instanceof HTMLAnchorElement)) return
+      if (link.origin === location.origin) preloadPath(link.pathname)
+    }
+    const events = ['pointerover', 'touchstart', 'focusin'] as const
+    events.forEach((name) =>
+      document.addEventListener(name, onIntent, { passive: true })
+    )
+    preloadWhenIdle()
+    return () =>
+      events.forEach((name) => document.removeEventListener(name, onIntent))
+  }, [])
 
   const [isShowMenuBar, setIsShowMenuBar] = useState(false)
   const [isShowSearchBar, setIsShowSearchBar] = useState(false)

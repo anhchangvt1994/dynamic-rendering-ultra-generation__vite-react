@@ -5,7 +5,7 @@ import { ServerStore } from 'store/ServerStore'
 import { LoadingInfoProvider } from './context/LoadingInfoContext'
 import { RouteObjectCustomize } from './types'
 import defineRoute from './utils/DefineRoute'
-import { withLazy } from './utils/LazyComponentHandler'
+import { ROUTE_MODULES } from './routeModules'
 import RouterDeliver from './utils/RouterDeliver'
 import RouterInit from './utils/RouterInit'
 import RouterProtection from './utils/RouterProtection'
@@ -37,12 +37,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
       {
         index: true,
         path: import.meta.env.ROUTER_HOME_PATH,
-        element: withLazy(() => import('pages/HomePage')),
+        element: <ROUTE_MODULES.home.Route />,
         id: import.meta.env.ROUTER_HOME_ID,
       }, // Home Page
       {
         path: import.meta.env.ROUTER_POKEMON_PATH,
-        element: withLazy(() => import('pages/PokemonPage')),
+        element: <ROUTE_MODULES.pokemon.Route />,
         id: import.meta.env.ROUTER_POKEMON_ID,
         handle: {
           params: {
@@ -57,23 +57,23 @@ const routes: RouteObjectCustomize[] = defineRoute([
       }, // Pokemon Page
       {
         path: import.meta.env.ROUTER_BLOGS_PATH,
-        element: withLazy(() => import('pages/BlogPage')),
+        element: <ROUTE_MODULES.blogs.Route />,
         id: import.meta.env.ROUTER_BLOGS_ID,
       }, // Blog Page
       {
         path: import.meta.env.ROUTER_BLOG_DETAIL_PATH,
-        element: withLazy(() => import('pages/BlogDetailPage')),
+        element: <ROUTE_MODULES.blogDetail.Route />,
         id: import.meta.env.ROUTER_BLOG_DETAIL_ID,
       }, // Blog Detail Page
       {
         // "Ai đây?" — Who's that Pokémon? quiz
         path: 'ai-day',
-        element: withLazy(() => import('pages/QuizPage')),
+        element: <ROUTE_MODULES.quiz.Route />,
         id: 'QuizPage',
       }, // Quiz Page
       {
         path: 'so-sanh',
-        element: withLazy(() => import('pages/ComparePage')),
+        element: <ROUTE_MODULES.compare.Route />,
         id: 'ComparePage',
       }, // Compare Page
       {
