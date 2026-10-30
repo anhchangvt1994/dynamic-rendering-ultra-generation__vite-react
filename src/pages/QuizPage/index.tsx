@@ -217,15 +217,18 @@ export default function QuizPage() {
       <div className="settings">
         <AppSelect
           label="Thế hệ"
-          value={generation?.id ?? ''}
+          value={generation?.id ?? 'all'}
           options={[
-            { value: '', label: 'Mọi thế hệ' },
+            // Radix Select reads '' as "nothing chosen" and shows a blank box
+            { value: 'all', label: 'Mọi thế hệ' },
             ...GENERATIONS.map((gen) => ({
               value: gen.id,
               label: `${gen.name} (#${gen.start}–${gen.end})`,
             })),
           ]}
-          onValueChange={(value) => setSetting('gen', value)}
+          onValueChange={(value) =>
+            setSetting('gen', value === 'all' ? '' : value)
+          }
         />
         <div className="mode" role="group" aria-label="Độ khó">
           <button
