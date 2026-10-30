@@ -26,6 +26,13 @@ const runtimeOptions = {
     `--max-old-space-size=${budget.nodeHeapMB}` +
     (_constants.resourceExtension === 'ts' ? ' --require sucrase/register' : ''),
   max_memory_restart: `${budget.processMemoryMB}M`,
+  // PM2's default unstable restart cap is 16. A prolonged upstream outage or
+  // temporary browser/Redis failure must not permanently remove crawl workers.
+  // Backoff limits restart pressure while keeping the process recoverable.
+  autorestart: true,
+  min_uptime: 10000,
+  max_restarts: 1000,
+  exp_backoff_restart_delay: 1000,
   env: {
     APP_INSTANCES: String(CLUSTER_INSTANCES),
     REQUEST_WORKERS: String(budget.requestWorkers),
@@ -123,6 +130,10 @@ _pm22.default.connect(false, (err) => {
         function (err) {
           if (err) {
             _ConsoleHandler2.default.error(err)
+            // The systemd unit supervises this launcher. Exit so it retries
+            // the PM2 reconciliation instead of remaining healthy with zero
+            // crawl workers.
+            selfProcess.exit(2)
             return
           }
 

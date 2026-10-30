@@ -4,7 +4,6 @@ import NormalSplitChunks from '../plugins/NormalSplitChunks'
 import splitChunkConstants from './utils/splitChunkConstants'
 import splitChunkContexts from './utils/splitChunkContexts'
 import splitChunkHooks from './utils/splitChunkHooks'
-import splitChunkNodeModules from './utils/splitChunkNodeModules'
 import splitChunkRoutes from './utils/splitChunkRoutes'
 import splitChunkSchemas from './utils/splitChunkSchemas'
 import splitChunkStore from './utils/splitChunkStore'
@@ -15,7 +14,6 @@ export default (): any => {
     // NOTE - If you want to use Regex please use /...\/([^/]+)/ to split chunks right way
     plugins: [
       NormalSplitChunks([
-        splitChunkNodeModules,
         splitChunkConstants,
         splitChunkContexts,
         splitChunkSchemas,

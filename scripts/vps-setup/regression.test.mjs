@@ -152,6 +152,55 @@ test('PM2 launcher rejects a missing scale API before connecting to the daemon',
   assert.match(errors.join('\n'), /PM2.*scale.*yarn install/i)
 })
 
+test('PM2 launcher exits on initial worker start failure so systemd can recover it', async () => {
+  const errors = []
+  let exitCode
+  const pm2 = {
+    scale() {},
+    connect: (_, callback) => callback(null),
+    list: (callback) => callback(null, []),
+    start: (_, callback) => callback(new Error('worker spawn failed')),
+  }
+  const source = fs.readFileSync(
+    `${root}/server/src/puppeteer-ssr/pm2.uws.worker.ts`,
+    'utf8'
+  )
+  vm.runInNewContext(
+    transform(source, { transforms: ['typescript', 'imports'] }).code,
+    {
+      require: (name) => {
+        if (name === 'pm2') return pm2
+        if (name === '../constants')
+          return { resourceDirectory: 'dist', resourceExtension: 'js' }
+        if (name === '../utils/InitEnv') return { PROCESS_ENV: {} }
+        if (name === '../utils/ResourceBudget')
+          return {
+            getResourceBudget: () => ({
+              instances: 1,
+              requestWorkers: 1,
+              nodeHeapMB: 256,
+              processMemoryMB: 512,
+            }),
+          }
+        if (name === './constants') return { PM2_PROCESS_NAME: 'puppeteer-ssr' }
+        if (name === '../utils/ConsoleHandler')
+          return { error: (error) => errors.push(error) }
+        return {}
+      },
+      exports: {},
+      process: {
+        execPath: process.execPath,
+        exit: (code) => {
+          exitCode = code
+        },
+      },
+    }
+  )
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(exitCode, 2)
+  assert.match(errors.join('\n'), /worker spawn failed/)
+})
+
 for (const existing of [0, 1, 2])
   test(`PM2 starts or reconciles ${existing} existing TypeScript workers with Node and Sucrase`, async () => {
     let options
@@ -226,6 +275,9 @@ for (const existing of [0, 1, 2])
     assert.ok(options, 'PM2 start was not called')
     assert.equal(options.interpreter, process.execPath)
     assert.equal(options.env.APP_INSTANCES, '1')
+    assert.equal(options.autorestart, true)
+    assert.equal(options.max_restarts, 1000)
+    assert.equal(options.exp_backoff_restart_delay, 1000)
     assert.equal(scales, existing > 1 ? 1 : 0)
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vps-worker-test-'))
     try {
