@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import PokeBallArt from './PokeBallArt'
 
 // Stars leaving the opened ball: angle (0° = right, 90° = down), distance,
 // size, delay after the flash, colour.
@@ -43,8 +44,9 @@ export default function EncounterThrow({
     >
       <span className="throw-flash" />
       <span className="throw-ball">
-        <span className="throw-half throw-half--top" />
-        <span className="throw-half throw-half--bottom" />
+        {/* cap under base: the centre button (on the base) stays whole */}
+        <PokeBallArt className="throw-half throw-half--cap" part="cap" />
+        <PokeBallArt className="throw-half throw-half--base" part="base" />
       </span>
       <span className="throw-stars">
         {STARS.map((star, index) => (

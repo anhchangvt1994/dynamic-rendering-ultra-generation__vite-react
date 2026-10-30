@@ -802,12 +802,12 @@ export const HeroStyle = styled.section`
   .reroll {
     position: absolute;
     z-index: 4;
-    top: -15px;
-    right: -11px;
+    top: -16px;
+    right: -12px;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     border: 0;
     border-radius: 50%;
@@ -821,56 +821,60 @@ export const HeroStyle = styled.section`
     inset: -6px;
     border-radius: 50%;
   }
-  .reroll-ball {
+  /* a die-cut sticker: white rim, the type stamp's hard offset shadow */
+  .reroll-sticker {
     position: relative;
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
-    border: 2.5px solid #1b1d22;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    /* red cap, black band, white base; a highlight up top-left */
-    background:
-      radial-gradient(
-        circle at 30% 24%,
-        rgba(255, 255, 255, 0.95) 0 9%,
-        rgba(255, 255, 255, 0) 24%
-      ),
-      linear-gradient(
-        to bottom,
-        #ff6b5a 0%,
-        #e3350d 44%,
-        #1b1d22 44% 56%,
-        #ffffff 56%,
-        #dfe5ee 100%
-      );
+    background: #fff;
     box-shadow:
-      inset -3px -4px 0 rgba(0, 0, 0, 0.16),
-      0 3px 0 rgba(23, 45, 69, 0.35),
-      0 6px 14px rgba(0, 0, 0, 0.28);
+      0 0 0 1px #172d4526,
+      3px 3px 0 #172d4524;
+    rotate: -14deg;
+    transition:
+      rotate 200ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      translate 200ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      box-shadow 200ms ease-out;
     animation: reroll-arrive 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
   }
-  .reroll-core {
-    display: grid;
-    place-items: center;
-    width: 15px;
-    height: 15px;
-    border: 2.5px solid #1b1d22;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff, #e6ebf2);
+  .reroll-ball {
+    width: 33px;
+    height: 33px;
   }
-  .reroll-core svg {
-    width: 9px;
-    height: 9px;
-    fill: #1b1d22;
+  /* the ribbon that says what the ball does */
+  .reroll-tag {
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    translate: -50% 0;
+    rotate: 10deg;
+    padding: 2px 4px 1px;
+    border-radius: 4px;
+    background: #172d45;
+    box-shadow: 0 0 0 1.5px #fff;
+    color: #ffda55;
+    font-family: var(--font-display);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    line-height: 1.1 !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  /* pointed at: the sticker lifts and straightens, the ball wiggles */
+  .reroll:hover .reroll-sticker,
+  .reroll:focus-visible .reroll-sticker {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow:
+      0 0 0 1px #172d4526,
+      5px 6px 0 #172d4524;
   }
   .reroll:hover .reroll-ball,
   .reroll:focus-visible .reroll-ball {
     animation: reroll-wiggle 600ms ease-in-out;
-  }
-  .reroll:hover .reroll-core svg,
-  .reroll:focus-visible .reroll-core svg {
-    animation: reroll-turn 900ms linear infinite;
   }
   .reroll:active {
     transform: translateY(2px) scale(0.92);
@@ -880,7 +884,7 @@ export const HeroStyle = styled.section`
     outline-offset: 2px;
   }
   /* thrown: the corner is empty until a fresh ball pops back */
-  .reroll[data-throwing='true'] .reroll-ball {
+  .reroll[data-throwing='true'] .reroll-sticker {
     visibility: hidden;
   }
   /* first visit: a speech bubble says what the ball does */
@@ -935,11 +939,6 @@ export const HeroStyle = styled.section`
       opacity: 0;
     }
   }
-  @keyframes reroll-turn {
-    to {
-      rotate: 1turn;
-    }
-  }
   @keyframes reroll-wiggle {
     25% {
       rotate: -16deg;
@@ -971,31 +970,15 @@ export const HeroStyle = styled.section`
   .throw-half {
     position: absolute;
     inset: 0;
-    border: 3px solid #1b1d22;
-    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 6px 8px rgba(23, 45, 69, 0.3));
   }
-  .throw-half--top {
-    background:
-      radial-gradient(
-        circle at 30% 24%,
-        rgba(255, 255, 255, 0.95) 0 9%,
-        rgba(255, 255, 255, 0) 24%
-      ),
-      linear-gradient(to bottom, #ff6b5a, #e3350d 47%, #1b1d22 47%);
-    clip-path: inset(0 0 50% 0);
-    transform-origin: 8% 50%;
+  /* the cap flips open on a hinge at its left end */
+  .throw-half--cap {
+    transform-origin: 6% 50%;
     animation: throw-open 260ms cubic-bezier(0.3, 1.4, 0.5, 1) var(--open) both;
-  }
-  .throw-half--bottom {
-    background:
-      radial-gradient(
-        circle at 50% 50%,
-        #fff 0 12%,
-        #1b1d22 12% 19%,
-        #0000 19%
-      ),
-      linear-gradient(to bottom, #1b1d22 53%, #fff 53%, #dfe5ee);
-    clip-path: inset(50% 0 0 0);
   }
   .throw-flash {
     position: absolute;
