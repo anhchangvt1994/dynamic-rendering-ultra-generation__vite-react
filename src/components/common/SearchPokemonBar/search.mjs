@@ -38,7 +38,7 @@ export function searchPokemon(list = [], query = '', limit = 30) {
   return scored
     .sort((a, b) => a.score - b.score || a.id - b.id)
     .slice(0, limit)
-    .map(({ score, ...entry }) => entry)
+    .map((entry) => ({ name: entry.name, url: entry.url, id: entry.id }))
 }
 
 // where the typed text sits inside the displayed (hyphenated) name
