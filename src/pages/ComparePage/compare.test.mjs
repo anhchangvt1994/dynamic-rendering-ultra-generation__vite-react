@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { compareStats, readComparePair, statsOf } from './compare.mjs'
+import {
+  bestHit,
+  compareStats,
+  formatMultiplier,
+  hitLabel,
+  readComparePair,
+  statsOf,
+} from './compare.mjs'
 
 const mon = (...values) => ({
   stats: [
@@ -47,4 +54,47 @@ test('only clean slugs are read from the URL', () => {
     b: 'mr-mime',
   })
   assert.deepEqual(readComparePair('?a=<script>&b='), { a: '', b: '' })
+})
+
+const typeOf = (weak = [], resist = [], immune = []) => ({
+  damage_relations: {
+    double_damage_from: weak.map((name) => ({ name })),
+    half_damage_from: resist.map((name) => ({ name })),
+    no_damage_from: immune.map((name) => ({ name })),
+  },
+})
+
+test('best hit takes the strongest of the attacker’s own types', () => {
+  // Salamence (dragon/flying) defending: ice ×4, ground ×0
+  const dragon = typeOf(
+    ['ice', 'dragon', 'fairy'],
+    ['fire', 'water', 'grass', 'electric']
+  )
+  const flying = typeOf(
+    ['electric', 'ice', 'rock'],
+    ['grass', 'fighting', 'bug'],
+    ['ground']
+  )
+  assert.deepEqual(bestHit(['dragon', 'ground'], [dragon, flying]), {
+    type: 'dragon',
+    multiplier: 2,
+  })
+  assert.deepEqual(bestHit(['ground'], [dragon, flying]), {
+    type: 'ground',
+    multiplier: 0,
+  })
+  assert.equal(bestHit(['ice'], [dragon, flying]).multiplier, 4)
+})
+
+test('best hit waits for the defender’s types', () => {
+  assert.equal(bestHit(['fire'], []), null)
+  assert.equal(bestHit([], [typeOf()]), null)
+})
+
+test('multipliers read as words and fractions', () => {
+  assert.equal(hitLabel(4), 'Cực kỳ hiệu quả')
+  assert.equal(hitLabel(0.25), 'Kém hiệu quả')
+  assert.equal(hitLabel(0), 'Không tác dụng')
+  assert.equal(formatMultiplier(0.5), '×½')
+  assert.equal(formatMultiplier(4), '×4')
 })

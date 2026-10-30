@@ -1,12 +1,14 @@
 import {
   useGetPokemonDetailQuery,
   useGetPokemonListQuery,
+  useGetPokemonTypeQuery,
 } from 'app/apis/pokemon'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import { searchPokemon } from 'components/common/SearchPokemonBar/search.mjs'
 import { pokemonLabel, statLabel } from 'components/pokemon-page/format.mjs'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import useDialog from 'hooks/useDialog'
+import { getRecent } from 'utils/recent.mjs'
 import {
   getPokemonImage,
   getPokemonSprite,
@@ -14,21 +16,90 @@ import {
 import { getPokemonPower } from 'pages/PokemonPage/power.mjs'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { compareStats, readComparePair } from './compare.mjs'
+import {
+  STAT_ORDER,
+  bestHit,
+  compareStats,
+  formatMultiplier,
+  hitLabel,
+  readComparePair,
+} from './compare.mjs'
 import { CompareStyle, SheetStyle } from './styles'
 
 type Side = 'a' | 'b'
 const SIDE_NAME: Record<Side, string> = { a: 'A', b: 'B' }
 
-// radar geometry (HP on top, clockwise), values past 200 sit on the rim
-const RADAR_AXES = [
-  'hp',
-  'attack',
-  'defense',
-  'speed',
-  'special-defense',
-  'special-attack',
+// classic match-ups offered while the arena is empty (slug, dex id)
+const RIVALRIES: [string, number, string, number][] = [
+  ['charizard', 6, 'blastoise', 9],
+  ['garchomp', 445, 'salamence', 373],
+  ['lucario', 448, 'zoroark', 571],
+  ['mewtwo', 150, 'mew', 151],
+  ['gengar', 94, 'alakazam', 65],
+  ['pikachu', 25, 'raichu', 26],
 ]
+
+const typeNames = (pokemon: any): string[] =>
+  (pokemon?.types ?? [])
+    .map((entry: any) => entry?.type?.name)
+    .filter(Boolean)
+    .slice(0, 2)
+
+/** PokéAPI /type payloads for a Pokémon's typing ([] until all loaded). */
+function useTypeDetails(pokemon: any) {
+  const names = typeNames(pokemon)
+  const first = useGetPokemonTypeQuery(names[0] || '', { skip: !names[0] })
+  const second = useGetPokemonTypeQuery(names[1] || '', { skip: !names[1] })
+  const details = [first.currentData, second.currentData].slice(0, names.length)
+  return details.every(Boolean) ? details : []
+}
+
+/** "Ai khắc ai?": each side's best same-type hit on the other. */
+function Matchup({ a, b }: { a: any; b: any }) {
+  const typesA = useTypeDetails(a)
+  const typesB = useTypeDetails(b)
+  const hits = [
+    { side: 'a' as Side, from: a, to: b, hit: bestHit(typeNames(a), typesB) },
+    { side: 'b' as Side, from: b, to: a, hit: bestHit(typeNames(b), typesA) },
+  ]
+  if (hits.some(({ hit }) => !hit)) return null
+  return (
+    <section className="matchup" aria-labelledby="matchup-heading">
+      <h2 id="matchup-heading">Ai khắc ai?</h2>
+      <div className="matchup-grid">
+        {hits.map(({ side, from, to, hit }) => {
+          const info = TYPE_DATA[hit!.type as keyof typeof TYPE_DATA]
+          const tone =
+            hit!.multiplier > 1 ? 'up' : hit!.multiplier < 1 ? 'down' : 'even'
+          return (
+            <div
+              key={side}
+              className={`hit hit--${side}`}
+              data-tone={tone}
+              style={{ '--type': info?.color } as CSSProperties}
+            >
+              <p className="hit-who">
+                {pokemonLabel(from.name)} <span aria-hidden="true">→</span>
+                <span className="sr-only"> đánh </span> {pokemonLabel(to.name)}
+              </p>
+              <p className="hit-power">{formatMultiplier(hit!.multiplier)}</p>
+              <p className="hit-how">
+                <span className="hit-type">{info?.label ?? hit!.type}</span>
+                {hitLabel(hit!.multiplier)}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+      <p className="matchup-note">
+        Chiêu cùng hệ với chính nó, chưa tính khả năng và vật phẩm.
+      </p>
+    </section>
+  )
+}
+
+// radar geometry (HP on top, clockwise), values past 200 sit on the rim
+const RADAR_AXES = STAT_ORDER
 const R = 92
 const point = (i: number, ratio: number) => {
   const angle = (i * Math.PI) / 3
@@ -70,6 +141,9 @@ function PickerSheet({
     () => searchPokemon(data?.results, query, 12),
     [data?.results, query]
   )
+  // an empty box offers the Pokémon read most recently
+  const recent: { id: number; name: string }[] = side ? getRecent() : []
+  const shown = query.trim() ? results : recent
   if (!side) return null
   const pick = (name: string) => {
     onPick(name)
@@ -97,16 +171,16 @@ function PickerSheet({
           type="search"
           autoFocus
           value={query}
-          placeholder="Tên hoặc số, ví dụ “gar” hay “445”"
+          placeholder="Tên hoặc số Pokédex"
           aria-label="Tìm Pokémon"
           autoComplete="off"
           spellCheck={false}
           enterKeyHint="go"
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && results[0]) {
+            if (event.key === 'Enter' && shown[0]) {
               event.preventDefault()
-              pick(results[0].name)
+              pick(shown[0].name)
             }
           }}
         />
@@ -117,28 +191,31 @@ function PickerSheet({
               Thử lại
             </button>
           </p>
-        ) : !query.trim() ? (
+        ) : !query.trim() && !recent.length ? (
           <p className="note">Gõ tên hoặc số để tìm đấu thủ.</p>
-        ) : results.length ? (
-          <ul className="results">
-            {results.map((result) => (
-              <li key={result.name}>
-                <button type="button" onClick={() => pick(result.name)}>
-                  <img
-                    src={getPokemonSprite(result.id)}
-                    alt=""
-                    width={48}
-                    height={48}
-                    loading="lazy"
-                  />
-                  <span>{pokemonLabel(result.name)}</span>
-                  {result.id <= 1025 && (
-                    <small>#{String(result.id).padStart(4, '0')}</small>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+        ) : shown.length ? (
+          <>
+            {!query.trim() && <h3 className="results-heading">Vừa xem</h3>}
+            <ul className="results">
+              {shown.map((result) => (
+                <li key={result.name}>
+                  <button type="button" onClick={() => pick(result.name)}>
+                    <img
+                      src={getPokemonSprite(result.id)}
+                      alt=""
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                    />
+                    <span>{pokemonLabel(result.name)}</span>
+                    {result.id <= 1025 && (
+                      <small>#{String(result.id).padStart(4, '0')}</small>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <p className="note">Không có Pokémon nào khớp “{query.trim()}”.</p>
         )}
@@ -165,17 +242,24 @@ function Fighter({
     <div
       className={`fighter fighter--${side}`}
       data-leader={leader}
-      style={power ? ({ '--tier': power.color.a } as CSSProperties) : undefined}
+      style={
+        {
+          '--tier': power?.color.a,
+          '--halo':
+            TYPE_DATA[typeNames(pokemon)[0] as keyof typeof TYPE_DATA]?.color ??
+            'transparent',
+        } as CSSProperties
+      }
     >
-      {leader && (
-        <span className="crown">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.6 9H4.6z" />
-          </svg>
-          Mạnh hơn
-        </span>
-      )}
       <div className="art">
+        {leader && (
+          <span className="crown">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.6 9H4.6z" />
+            </svg>
+            Mạnh hơn
+          </span>
+        )}
         {pokemon ? (
           <img
             key={pokemon.id}
@@ -234,8 +318,19 @@ function Fighter({
           })}
         </p>
       )}
-      <button type="button" className="change" onClick={onChange}>
-        {pokemon ? 'Đổi' : 'Chọn Pokémon'}
+      <button
+        type="button"
+        className="change"
+        onClick={onChange}
+        aria-label={`${pokemon ? 'Đổi' : 'Chọn'} đấu thủ ${SIDE_NAME[side]}`}
+      >
+        {pokemon ? (
+          'Đổi'
+        ) : (
+          <>
+            Chọn<span className="long"> Pokémon</span>
+          </>
+        )}
       </button>
     </div>
   )
@@ -248,6 +343,7 @@ export default function ComparePage() {
   const navigateInfo = useNavigateInfo()
   const pair = readComparePair(location.search)
   const [picking, setPicking] = useState<Side | null>(null)
+  const [shared, setShared] = useState(false)
   const setPair = (next: { a: string; b: string }) => {
     const params = new URLSearchParams()
     if (next.a) params.set('a', next.a)
@@ -301,6 +397,27 @@ export default function ComparePage() {
       : `Cùng ${result.totalA} điểm; ${name} thắng ${wins}/6 chỉ số.`
   })()
 
+  const share = async () => {
+    const url = window.location.href
+    const title = `${pokemonLabel(a.name)} vs ${pokemonLabel(b.name)}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: verdict, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShared(true)
+      window.setTimeout(() => setShared(false), 2000)
+    } catch {
+      // the reader closing the share sheet is not an error
+    }
+  }
+
+  const label = (side: Side) => {
+    const mon = side === 'a' ? a : b
+    return mon ? pokemonLabel(mon.name) : `Đấu thủ ${SIDE_NAME[side]}`
+  }
+
   return (
     <CompareStyle
       style={{ '--a': '#e3350d', '--b': '#2a6fdb' } as CSSProperties}
@@ -326,7 +443,15 @@ export default function ComparePage() {
         </button>
       </div>
 
-      <section className="versus" aria-label="Hai đấu thủ">
+      <section
+        className="versus"
+        aria-label="Hai đấu thủ"
+        data-ready={!!both}
+        // replay the clash whenever the line-up changes
+        key={`${pair.a}|${pair.b}`}
+      >
+        <span className="half" aria-hidden="true" />
+        <span className="seam" aria-hidden="true" />
         <Fighter
           pokemon={a}
           side="a"
@@ -348,54 +473,79 @@ export default function ComparePage() {
 
       {result && both ? (
         <>
-          <p className="verdict" role="status">
-            {verdict}
-          </p>
+          <div className="verdict-row">
+            <p className="verdict" role="status">
+              {verdict}
+            </p>
+            <button type="button" className="share" onClick={share}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+              </svg>
+              {shared ? 'Đã chép link' : 'Chia sẻ trận này'}
+            </button>
+          </div>
+
+          <Matchup a={a} b={b} />
 
           <div className="board">
-            <ol className="tug" aria-label="Từng chỉ số">
-              {result.rows.map((row, index) => {
-                const total = Math.max(row.a + row.b, 1)
-                return (
-                  <li
-                    key={row.name}
-                    data-lead={row.lead}
-                    style={
-                      {
-                        '--share': `${(row.a / total) * 100}%`,
-                        '--i': index,
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="num num--a">{row.a}</span>
-                    <span className="label">{statLabel(row.name)}</span>
-                    <span className="num num--b">{row.b}</span>
-                    <span
-                      className="rope"
-                      role="img"
-                      aria-label={`${statLabel(row.name)}: ${pokemonLabel(a.name)} ${row.a}, ${pokemonLabel(b.name)} ${row.b}`}
-                    />
-                  </li>
-                )
-              })}
-              <li
-                className="sum"
-                data-lead={leader ?? 'tie'}
-                style={
-                  {
-                    '--share': `${(result.totalA / Math.max(result.totalA + result.totalB, 1)) * 100}%`,
-                    '--i': 6,
-                  } as CSSProperties
-                }
-              >
-                <span className="num num--a">{result.totalA}</span>
-                <span className="label">Tổng</span>
-                <span className="num num--b">{result.totalB}</span>
-                <span className="rope" aria-hidden="true" />
-              </li>
-            </ol>
+            <div className="ropes">
+              {/* who is red, who is blue, kept in view while reading the ropes */}
+              <p className="legend">
+                <span className="legend-a">{label('a')}</span>
+                <span className="legend-b">{label('b')}</span>
+              </p>
 
-            <div className="radar">
+              <ol className="tug" aria-label="Từng chỉ số">
+                {result.rows.map((row, index) => {
+                  const total = Math.max(row.a + row.b, 1)
+                  const gap = Math.abs(row.diff)
+                  return (
+                    <li
+                      key={row.name}
+                      data-lead={row.lead}
+                      style={
+                        {
+                          '--share': `${(row.a / total) * 100}%`,
+                          '--i': index,
+                        } as CSSProperties
+                      }
+                    >
+                      <span className="num num--a">
+                        {row.a}
+                        {row.lead === 'a' && <small>+{gap}</small>}
+                      </span>
+                      <span className="label">{statLabel(row.name)}</span>
+                      <span className="num num--b">
+                        {row.lead === 'b' && <small>+{gap}</small>}
+                        {row.b}
+                      </span>
+                      <span
+                        className="rope"
+                        role="img"
+                        aria-label={`${statLabel(row.name)}: ${label('a')} ${row.a}, ${label('b')} ${row.b}`}
+                      />
+                    </li>
+                  )
+                })}
+                <li
+                  className="sum"
+                  data-lead={leader ?? 'tie'}
+                  style={
+                    {
+                      '--share': `${(result.totalA / Math.max(result.totalA + result.totalB, 1)) * 100}%`,
+                      '--i': 6,
+                    } as CSSProperties
+                  }
+                >
+                  <span className="num num--a">{result.totalA}</span>
+                  <span className="label">Tổng</span>
+                  <span className="num num--b">{result.totalB}</span>
+                  <span className="rope" aria-hidden="true" />
+                </li>
+              </ol>
+            </div>
+
+            <figure className="radar">
               <svg
                 viewBox="-20 -6 340 262"
                 role="img"
@@ -423,15 +573,51 @@ export default function ComparePage() {
                   )
                 })}
               </svg>
-            </div>
+              <figcaption>Hình dạng chỉ số</figcaption>
+            </figure>
           </div>
         </>
       ) : (
-        <p className="hint">
-          {pair.a || pair.b
-            ? 'Chọn thêm một đấu thủ để bắt đầu trận so tài.'
-            : 'Chọn hai Pokémon để xem ai mạnh hơn ở từng chỉ số.'}
-        </p>
+        <div className="empty">
+          <p className="hint">
+            {pair.a || pair.b
+              ? 'Chọn thêm một đấu thủ để bắt đầu trận so tài.'
+              : 'Chọn hai Pokémon để xem ai mạnh hơn ở từng chỉ số.'}
+          </p>
+          {!pair.a && !pair.b && (
+            <>
+              <h2 className="rivals-heading">Cặp đấu kinh điển</h2>
+              <ul className="rivals">
+                {RIVALRIES.map(([slugA, idA, slugB, idB]) => (
+                  <li key={slugA}>
+                    <button
+                      type="button"
+                      onClick={() => setPair({ a: slugA, b: slugB })}
+                    >
+                      <img
+                        src={getPokemonSprite(idA)}
+                        alt=""
+                        width={44}
+                        height={44}
+                        loading="lazy"
+                      />
+                      <span>
+                        {pokemonLabel(slugA)} <em>vs</em> {pokemonLabel(slugB)}
+                      </span>
+                      <img
+                        src={getPokemonSprite(idB)}
+                        alt=""
+                        width={44}
+                        height={44}
+                        loading="lazy"
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
 
       <PickerSheet
