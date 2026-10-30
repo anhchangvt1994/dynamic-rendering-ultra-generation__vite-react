@@ -114,7 +114,7 @@ export const BackButtonStyle = styled.button`
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px 0 10px;
   border: 1px solid #ffffff25;
   border-radius: 11px;

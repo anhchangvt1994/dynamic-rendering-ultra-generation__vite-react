@@ -101,7 +101,7 @@ export const MovesetStyle = styled.section`
   }
   .move-methods button {
     flex: none;
-    min-height: 34px;
+    min-height: 44px;
     padding: 0 10px;
     border: 1px solid var(--line);
     border-radius: 8px;
