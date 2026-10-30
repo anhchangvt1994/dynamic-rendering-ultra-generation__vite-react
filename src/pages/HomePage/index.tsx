@@ -238,7 +238,7 @@ function HomePage() {
       >
         <div className="catalog-heading">
           <div>
-            <span className="eyebrow">NATIONAL POKÉDEX</span>
+            <span className="eyebrow">POKÉDEX TOÀN QUỐC</span>
             <h2 id="catalog-heading">
               Tìm người bạn tiếp theo<span>.</span>
             </h2>

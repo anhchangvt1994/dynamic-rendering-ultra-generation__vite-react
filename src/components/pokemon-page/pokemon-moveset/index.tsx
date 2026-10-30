@@ -43,7 +43,7 @@ export default function PokemonMoveset({ moveset = [] }) {
     <MovesetStyle aria-label="Bộ chiêu thức">
       <div className="moves-heading">
         <div>
-          <span className="eyebrow">MOVE LIBRARY</span>
+          <span className="eyebrow">THƯ VIỆN CHIÊU THỨC</span>
           <h3>Bộ chiêu thức</h3>
         </div>
         <span className="moves-total" role="status">
