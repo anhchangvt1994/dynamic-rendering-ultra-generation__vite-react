@@ -285,3 +285,24 @@ test('rapid clicks accumulate destinations despite an interrupted animation', ()
   assert.equal(getClickMotion(motion, 1, 3000, 28).target, 29)
   assert.equal(getClickMotion(motion, -1, 3000, 1).target, 1)
 })
+
+test('form images: own art, own sprite, then the default form', () => {
+  const big = navigation.getFormImages(10264, 1007)
+  assert.match(big[0], /official-artwork\/10264\.png$/)
+  assert.match(big[1], /pokemon\/10264\.png$/)
+  assert.match(big[2], /official-artwork\/1007\.png$/)
+  const small = navigation.getFormImages(10264, 1007, { small: true })
+  assert.match(small[0], /pokemon\/10264\.png$/)
+  // the default form itself has nothing further to fall back to
+  assert.equal(navigation.getFormImages(1007, 1007).length, 2)
+})
+
+test('showNextImage walks the sources once, then stops', () => {
+  const image = { dataset: {}, src: 'a' }
+  assert.equal(navigation.showNextImage(image, ['a', 'b', 'c']), true)
+  assert.equal(image.src, 'b')
+  assert.equal(navigation.showNextImage(image, ['a', 'b', 'c']), true)
+  assert.equal(image.src, 'c')
+  assert.equal(navigation.showNextImage(image, ['a', 'b', 'c']), false)
+  assert.equal(image.src, 'c')
+})

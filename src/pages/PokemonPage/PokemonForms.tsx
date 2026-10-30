@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import styled from 'styled-components'
-import { getPokemonSprite } from './navigation.mjs'
+import { getFormImages, showNextImage } from './navigation.mjs'
 import { formsOf } from './species.mjs'
 
 const FormsStyle = styled.nav`
@@ -60,6 +60,11 @@ const FormsStyle = styled.nav`
     width: 36px;
     height: 36px;
     image-rendering: pixelated;
+    object-fit: contain;
+  }
+  /* past the pixel sprite: smooth artwork */
+  img[data-step] {
+    image-rendering: auto;
   }
 `
 
@@ -73,6 +78,7 @@ const PokemonForms = memo(
     const forms = formsOf(species)
     const [expanded, setExpanded] = useState(false)
     if (!forms.length) return null
+    const baseId = forms.find((form) => form.isDefault)?.id
     // long lists (Pikachu has 17) start folded, but always show the current
     const FOLD = 5
     const folded = !expanded && forms.length > FOLD + 1
@@ -88,8 +94,14 @@ const PokemonForms = memo(
             aria-current={form.name === current ? 'page' : undefined}
           >
             <img
-              src={getPokemonSprite(form.id)}
+              src={getFormImages(form.id, baseId, { small: true })[0]}
               alt=""
+              onError={(event) =>
+                showNextImage(
+                  event.currentTarget,
+                  getFormImages(form.id, baseId, { small: true })
+                )
+              }
               width={36}
               height={36}
               loading="lazy"

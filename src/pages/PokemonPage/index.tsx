@@ -27,6 +27,8 @@ import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
 import {
+  getFormImages,
+  showNextImage,
   getPokemonAltImage,
   getPokemonFallbackImage,
   getPokemonImage,
@@ -507,6 +509,9 @@ const PokemonPage = () => {
                       onError={(event) => {
                         const image = event.currentTarget
                         if (image.dataset.fallback) return
+                        // own sprite, then the default form's art
+                        const sources = getFormImages(curId, speciesId)
+                        if (showNextImage(image, sources)) return
                         image.dataset.fallback = 'placeholder'
                         image.src = '/images/pokemon-02.webp'
                       }}

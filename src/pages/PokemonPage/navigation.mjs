@@ -13,6 +13,29 @@ export const getPokemonAltImage = (id) =>
 export const getPokemonSprite = (id) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
 
+/**
+ * Image sources for a form, best first. A few recent forms (Koraidon's and
+ * Miraidon's ride builds) have no art or sprite anywhere on PokéAPI, so the
+ * last resort is the default form's art: the same Pokémon, never a hole.
+ * `small` puts the 2 KB sprite first, for chips and lists.
+ */
+export const getFormImages = (id, baseId, { small = false } = {}) => {
+  const own = small
+    ? [getPokemonSprite(id), getPokemonImage(id)]
+    : [getPokemonImage(id), getPokemonSprite(id)]
+  const base = baseId && baseId !== id ? [getPokemonImage(baseId)] : []
+  return [...own, ...base]
+}
+
+/** onError: moves an <img> to the next source; false once none is left. */
+export function showNextImage(image, sources) {
+  const step = Number(image.dataset.step || 0) + 1
+  if (step >= sources.length) return false
+  image.dataset.step = String(step)
+  image.src = sources[step]
+  return true
+}
+
 export const getPokemonFallbackImage = (id) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
 
