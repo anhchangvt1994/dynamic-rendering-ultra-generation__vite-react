@@ -12,6 +12,7 @@ const {
 } = require('../../server/sitemap/config.ts')
 const { crawlSite } = require('../../server/sitemap/generator.ts')
 const { SitemapWriter } = require('../../server/sitemap/writer.ts')
+const { parseRetryAfterMs } = require('../../server/sitemap/retry-after.ts')
 const host = 'https://example.com'
 
 test('URL normalization uses exact origin, resolves relatives, removes fragments and excludes assets', () => {
@@ -59,6 +60,13 @@ test('concurrency override stays RAM bounded and invalid CLI settings fail', () 
     /SITEMAP_TIMEOUT_MS/
   )
   assert.throws(() => getSitemapOptions({ HOST: 'bad' }), /HOST/)
+})
+
+test('Retry-After is parsed and bounded for sitemap retry scheduling', () => {
+  assert.equal(parseRetryAfterMs('10'), 10000)
+  assert.equal(parseRetryAfterMs('0.5'), 500)
+  assert.equal(parseRetryAfterMs('invalid'), 0)
+  assert.equal(parseRetryAfterMs('120'), 60000)
 })
 
 test('bounded queue handles cycles, relative links, duplicate redirects and skips bad/noindex pages', async () => {
@@ -147,6 +155,27 @@ test('transient errors are retried, permanent failures and URL limits abort inco
     }),
     /maxPages/
   )
+})
+
+test('503 retry waits for Retry-After before repeating the request', async () => {
+  const started = Date.now()
+  let calls = 0
+  const result = await crawlSite({
+    host,
+    concurrency: 1,
+    maxPages: 5,
+    retries: 1,
+    crawl: async (url) => ({
+      status: ++calls === 1 ? 503 : 200,
+      retryAfterMs: 40,
+      url,
+      data: [],
+    }),
+    onPage: () => {},
+  })
+  assert.equal(result.retries, 1)
+  assert.equal(calls, 2)
+  assert.ok(Date.now() - started >= 35)
 })
 
 test('writer publishes a real index and complete escaped grouped chunks; aborted run preserves old files', () => {

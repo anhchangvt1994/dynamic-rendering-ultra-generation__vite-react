@@ -52,6 +52,7 @@ export const crawlSite = async (options: {
     let result: CrawlResult | undefined
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        result = undefined
         result = await crawl(url, lane)
         if (result.status < 500 && result.status !== 429) break
         throw new Error(`HTTP ${result.status}`)
@@ -62,7 +63,22 @@ export const crawlSite = async (options: {
         }
         signal?.throwIfAborted()
         retryCount++
-        await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)))
+        const retryAfterMs = Math.min(60000, result?.retryAfterMs || 0)
+        const retryDelayMs = Math.max(200 * (attempt + 1), retryAfterMs)
+        await new Promise<void>((resolve, reject) => {
+          const finish = () => {
+            signal?.removeEventListener('abort', abort)
+            resolve()
+          }
+          const abort = () => {
+            clearTimeout(timeout)
+            signal?.removeEventListener('abort', abort)
+            reject(signal?.reason || new Error('Sitemap generation cancelled'))
+          }
+          const timeout = setTimeout(finish, retryDelayMs)
+          signal?.addEventListener('abort', abort, { once: true })
+          if (signal?.aborted) abort()
+        })
       }
     }
     signal?.throwIfAborted()

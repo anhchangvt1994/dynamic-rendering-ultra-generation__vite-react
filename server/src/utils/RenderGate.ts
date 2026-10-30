@@ -8,6 +8,7 @@ export class RenderBusyError extends Error {
 // the VPS render budget between processes before creating those workers.
 export const createRenderGate = (options: {
   limit: number
+  getLimit?: () => number
   queueLimit: number
   waitTimeoutMs: number
   sharedState?: SharedArrayBuffer
@@ -17,18 +18,20 @@ export const createRenderGate = (options: {
     options.sharedState ?? new SharedArrayBuffer(4)
   )
   let waiting = 0
+  const getLimit = () =>
+    Math.max(1, Math.min(options.limit, options.getLimit?.() ?? options.limit))
   const claim = () => {
     if (options.canStart && !options.canStart()) return false
     for (;;) {
       const count = Atomics.load(running, 0)
-      if (count >= options.limit) return false
+      if (count >= getLimit()) return false
       if (Atomics.compareExchange(running, 0, count, count + 1) === count)
         return true
     }
   }
   return {
     hasCapacity: () =>
-      Atomics.load(running, 0) < options.limit &&
+      Atomics.load(running, 0) < getLimit() &&
       (options.canStart?.() ?? true),
     run: async <T>(task: () => Promise<T>): Promise<T> => {
       if (!claim()) {

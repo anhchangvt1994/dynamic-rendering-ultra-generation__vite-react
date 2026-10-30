@@ -4,7 +4,10 @@ require('sucrase/register')
 const fs = require('fs'),
   path = require('path')
 const { encodeRequestInfo } = require('../../server/src/api/utils/StringHelper')
-if (!fs.existsSync('/.dockerenv'))
+if (
+  !fs.existsSync('/.dockerenv') &&
+  process.env.MIN_LAB_FIXTURE_INSTALL !== '1'
+)
   throw Error('Fixture installation requires the isolated Docker lab')
 const upstream = process.env.MIN_LAB_UPSTREAM || 'http://vps-min-client:8889'
 const requestInfo = (id) =>

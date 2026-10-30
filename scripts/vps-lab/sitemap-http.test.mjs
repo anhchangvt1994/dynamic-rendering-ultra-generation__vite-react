@@ -57,6 +57,11 @@ test('HTTP crawl validates redirects, body limit and script fallback without a b
       res.end('<html>' + 'x'.repeat(3000))
       return
     }
+    if (req.url === '/unavailable') {
+      res.writeHead(503, { 'retry-after': '2' })
+      res.end('busy')
+      return
+    }
     res.setHeader('content-type', 'text/html')
     if (req.url === '/dynamic') res.end('<script src="/app.js"></script>')
     else res.end('<html><a href="./next?a=1&amp;b=2">Next</a></html>')
@@ -78,6 +83,9 @@ test('HTTP crawl validates redirects, body limit and script fallback without a b
       true
     )
     assert.equal((await crawlHttp(host + '/external', options)).status, 400)
+    const unavailable = await crawlHttp(host + '/unavailable', options)
+    assert.equal(unavailable.status, 503)
+    assert.equal(unavailable.retryAfterMs, 2000)
     await assert.rejects(crawlHttp(host + '/big', options), /body limit/)
     assert.ok(!requests.includes('/app.js'))
   } finally {

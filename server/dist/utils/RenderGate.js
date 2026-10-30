@@ -12,24 +12,27 @@
 
 
 
+
 ) => {
   const running = new Int32Array(
     _nullishCoalesce(options.sharedState, () => ( new SharedArrayBuffer(4)))
   )
   let waiting = 0
+  const getLimit = () =>
+    Math.max(1, Math.min(options.limit, _nullishCoalesce(_optionalChain([options, 'access', _ => _.getLimit, 'optionalCall', _2 => _2()]), () => ( options.limit))))
   const claim = () => {
     if (options.canStart && !options.canStart()) return false
     for (;;) {
       const count = Atomics.load(running, 0)
-      if (count >= options.limit) return false
+      if (count >= getLimit()) return false
       if (Atomics.compareExchange(running, 0, count, count + 1) === count)
         return true
     }
   }
   return {
     hasCapacity: () =>
-      Atomics.load(running, 0) < options.limit &&
-      (_nullishCoalesce(_optionalChain([options, 'access', _ => _.canStart, 'optionalCall', _2 => _2()]), () => ( true))),
+      Atomics.load(running, 0) < getLimit() &&
+      (_nullishCoalesce(_optionalChain([options, 'access', _3 => _3.canStart, 'optionalCall', _4 => _4()]), () => ( true))),
     run: async ( task) => {
       if (!claim()) {
         if (waiting >= options.queueLimit) throw new RenderBusyError()

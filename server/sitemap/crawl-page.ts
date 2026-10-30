@@ -1,10 +1,12 @@
 import type { Page } from 'puppeteer-core'
 import { normalizeCrawlUrl } from './config'
+import { parseRetryAfterMs } from './retry-after'
 
 export interface CrawlResult {
   status: number
   url?: string
   data: string[]
+  retryAfterMs?: number
   noindex?: boolean
   timings?: {
     navigationMs: number
@@ -61,9 +63,16 @@ export const crawlPage = async (
   })
   if (!response) throw new Error(`No document response: ${url}`)
   const status = response.status()
+  const retryAfterMs = parseRetryAfterMs(response.headers()['retry-after'])
   const finalUrl = normalizeCrawlUrl(page.url(), url, host, crawlOrigin)
   if (!finalUrl) return { status: 400, data: [] }
-  if (status < 200 || status >= 300) return { status, url: finalUrl, data: [] }
+  if (status < 200 || status >= 300)
+    return {
+      status,
+      url: finalUrl,
+      data: [],
+      retryAfterMs,
+    }
   if (
     !/^(text\/html|application\/xhtml\+xml)\b/i.test(
       response.headers()['content-type'] || ''

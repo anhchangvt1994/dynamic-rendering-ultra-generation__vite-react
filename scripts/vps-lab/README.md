@@ -47,10 +47,24 @@ dependency của các workspace.
 | Hoàn tất burst 20/20 trang mới (s) | 5.809 | 20.605 | 11.388 |
 | OOM kills | 0 | 0 | 0 |
 
-Chọn **2 render** làm mặc định cho máy có từ hai CPU khi ngân sách RAM cho phép;
-máy một CPU hoặc RAM nhỏ vẫn hạ xuống một. Test xác nhận ngân sách mặc định trên
-2 CPU/4 GiB trùng cấu hình override `CRAWL_CONCURRENCY=2` đã đo. Trần mặc định vẫn
-là 4 render và chia giữa các PM2 instances.
+Ngân sách tối đa mặc định là 1 render trên 1 CPU, 2 render trên 2–3 CPU và tối đa
+4 render từ 4 CPU khi RAM cho phép. `CRAWL_CONCURRENCY` vẫn ghi đè trần này.
+Trên máy 4 CPU với 2 PM2 instances, mỗi instance được tối đa 2 render slot.
+
+Render gate tự giảm còn 1 slot mỗi instance nếu CPU PSI `avg10 >= 20%` hoặc
+`avg60 >= 25%`, hoặc RAM khả dụng thấp hơn hai lần ngưỡng dự trữ. Gate chỉ phục
+hồi về trần sau ít nhất 30 giây CPU PSI thấp (`avg10 <= 10%`, `avg60 <= 15%`) và
+RAM khả dụng đạt ít nhất ba lần ngưỡng dự trữ. PSI được lấy mẫu tối đa mỗi giây;
+slot đang chạy được hoàn tất, chỉ việc nhận render mới bị hãm. Nếu kernel không
+cung cấp PSI thì giới hạn RAM hiện có vẫn hoạt động, còn giới hạn CPU giữ nguyên
+trần đã tính.
+
+Lượt lab bổ sung ngày 2026-10-30 chạy 90 giây ở 4 CPU/4 GiB, 20 request/giây:
+1.800/1.800 request đúng, không rơi request; cache/API/HTML p95 lần lượt
+15/20/10 ms, URL mới p95 1.224 ms; sitemap ghi đủ 65 URL trong 11,7 giây.
+Working set đỉnh 1.406 MiB, CPU trung bình 0,341 core trong phase tải, không OOM
+hoặc PM2 restart. Không có log chuyển mức render trong lượt này. Đây là một lượt
+ngắn trên CentOS Docker lab, không phải soak hay phép đo production Ubuntu.
 
 Đánh đổi là render nhiều URL mới chậm hơn baseline để giữ request tương tác nhanh.
 Trong 150 lượt gọi URL mới ở phase load, baseline có 17 HTTP 200/133 HTTP 503;
@@ -75,6 +89,8 @@ Raw reports tại workspace (không commit file tải động/log riêng):
 - `.vps-lab/default-smoke.json`: bản cuối khởi động không override concurrency,
   trả HTTP 200 và tính đúng 1 PM2 process / 1 HTTP worker / 2 render trên 2 CPU/4 GiB.
 - `.vps-lab/diagnostics-lab.txt`: script chẩn đoán chỉ đọc đã chạy trong container.
+- `.vps-lab/minimum-vps/adaptive-4cpu-20261030/4cpu-4096m/report.json`:
+  lượt xác nhận adaptive concurrency 4 CPU/4 GiB ngày 2026-10-30.
 
 ## Chạy lại
 

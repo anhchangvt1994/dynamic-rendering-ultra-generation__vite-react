@@ -55,7 +55,7 @@ test('CPU/RAM budget includes the multiplication by PM2 instances and HTTP worke
     const budget = getResourceBudget({}, resources)
     assert.ok(
       budget.instances * budget.renderConcurrency <=
-        Math.max(1, resources.cpuCount - 1)
+        Math.max(1, Math.min(4, resources.cpuCount))
     )
     assert.ok(budget.requestWorkers <= budget.renderConcurrency)
     assert.ok(
@@ -64,7 +64,7 @@ test('CPU/RAM budget includes the multiplication by PM2 instances and HTTP worke
   }
 })
 
-test('multicore defaults match the measured two-render profile while low RAM stays capped', () => {
+test('resource-budget defaults preserve two slots on two CPUs and allow four on four CPUs', () => {
   const { getResourceBudget } = load('server/src/utils/ResourceBudget.ts')
   const resources = { cpuCount: 2, memoryMB: 4096 }
   const budget = getResourceBudget({}, resources)
@@ -83,14 +83,161 @@ test('multicore defaults match the measured two-render profile while low RAM sta
     getResourceBudget({}, { cpuCount: 2, memoryMB: 1024 }).renderConcurrency,
     1
   )
+  const fourCpu = getResourceBudget({}, { cpuCount: 4, memoryMB: 8192 })
+  assert.equal(fourCpu.instances, 2)
+  assert.equal(fourCpu.renderConcurrency, 2)
+  assert.equal(
+    getResourceBudget(
+      { CRAWL_CONCURRENCY: 2 },
+      { cpuCount: 4, memoryMB: 8192 }
+    ).renderConcurrency,
+    1
+  )
+})
+
+test('adaptive render concurrency sheds load immediately and only recovers after stable CPU pressure', () => {
+  const { createAdaptiveRenderLimit } = load(
+    'server/src/utils/AdaptiveRenderLimit.ts'
+  )
+  let now = 1000
+  let pressure = { avg10: 5, avg60: 8 }
+  const changes = []
+  const currentLimit = createAdaptiveRenderLimit({
+    maxConcurrency: 2,
+    readCpuPressure: () => pressure,
+    now: () => now,
+    onChange: (change) => changes.push(change),
+  })
+  assert.equal(currentLimit(), 2)
+
+  pressure = { avg10: 22, avg60: 26 }
+  assert.equal(currentLimit(), 1)
+  pressure = { avg10: 18, avg60: 20 }
+  assert.equal(currentLimit(), 1, 'hysteresis prevents oscillation')
+
+  pressure = { avg10: 7, avg60: 12 }
+  assert.equal(currentLimit(), 1)
+  now += 29999
+  assert.equal(currentLimit(), 1)
+  now += 1
+  assert.equal(currentLimit(), 2)
+
+  pressure = { avg10: 21, avg60: 18 }
+  assert.equal(currentLimit(), 1, 'CPU stress sheds a slot without waiting')
+  pressure = undefined
+  assert.equal(currentLimit(), 1, 'missing PSI data must not trigger a scale-up')
+  assert.deepEqual(
+    changes.map(({ from, to, reason }) => [from, to, reason]),
+    [
+      [2, 1, 'cpu-pressure'],
+      [1, 2, 'recovered'],
+      [2, 1, 'cpu-pressure'],
+    ]
+  )
+})
+
+test('adaptive render concurrency sheds a slot near the memory reserve', () => {
+  const { createAdaptiveRenderLimit } = load(
+    'server/src/utils/AdaptiveRenderLimit.ts'
+  )
+  let now = 1000
+  let availableMemoryMB = 1023
+  const changes = []
+  const currentLimit = createAdaptiveRenderLimit({
+    maxConcurrency: 2,
+    minAvailableMemoryMB: 512,
+    readCpuPressure: () => ({ avg10: 1, avg60: 1 }),
+    readAvailableMemoryMB: () => availableMemoryMB,
+    now: () => now,
+    onChange: (change) => changes.push(change),
+  })
+  assert.equal(currentLimit(), 1)
+  availableMemoryMB = 1536
+  assert.equal(currentLimit(), 1, 'memory recovery waits for a stable window')
+  now += 30000
+  assert.equal(currentLimit(), 2)
+  assert.deepEqual(
+    changes.map(({ from, to, reason }) => [from, to, reason]),
+    [
+      [2, 1, 'memory-pressure'],
+      [1, 2, 'recovered'],
+    ]
+  )
+})
+
+test('available-memory checks reuse a short-lived cgroup sample under render pressure', () => {
+  const contents = new Map([
+    ['/sys/fs/cgroup/memory.max', '1048576000'],
+    ['/sys/fs/cgroup/memory.current', '524288000'],
+    ['/sys/fs/cgroup/memory.stat', 'inactive_file 104857600'],
+  ])
+  let reads = 0
+  const { getAvailableMemoryMB } = load(
+    'server/src/utils/ResourceBudget.ts',
+    {
+      fs: {
+        readFileSync: (file) => {
+          reads++
+          if (!contents.has(file)) throw new Error('not found')
+          return contents.get(file)
+        },
+      },
+      os: { totalmem: () => 2 * 1024 ** 3, freemem: () => 0 },
+    },
+    '',
+    { process: { ...process, platform: 'linux' } }
+  )
+  assert.equal(getAvailableMemoryMB(), 600)
+  assert.equal(getAvailableMemoryMB(), 600)
+  contents.set('/sys/fs/cgroup/memory.current', '943718400')
+  assert.equal(reads, 3, 'the second check should reuse the fresh sample')
+})
+
+test('CPU pressure checks parse and cache Linux PSI samples', () => {
+  let now = 10
+  let reads = 0
+  let source = 'some avg10=7.15 avg60=12.02 avg300=8.36 total=42\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0'
+  const { getCpuPressure } = load(
+    'server/src/utils/ResourceBudget.ts',
+    {
+      fs: {
+        readFileSync: () => {
+          reads++
+          return source
+        },
+      },
+      os: {},
+    },
+    '',
+    { Date: { now: () => now } }
+  )
+  const firstSample = getCpuPressure()
+  assert.equal(firstSample.avg10, 7.15)
+  assert.equal(firstSample.avg60, 12.02)
+  const cachedSample = getCpuPressure()
+  assert.equal(cachedSample.avg10, 7.15)
+  assert.equal(cachedSample.avg60, 12.02)
+  assert.equal(reads, 1)
+  source = 'some avg10=22.00 avg60=26.00 avg300=18.00 total=84'
+  now += 1000
+  const refreshedSample = getCpuPressure()
+  assert.equal(refreshedSample.avg10, 22)
+  assert.equal(refreshedSample.avg60, 26)
+  assert.equal(reads, 2)
 })
 
 test('Lightpanda endpoints isolate sitemap and PM2 processes while workers share their owner PID', () => {
-  const endpoint = (pid) => load('server/src/puppeteer-ssr/constants.ts', {
-    '../constants': { SERVER_LESS: false },
-    '../utils/InitEnv': { PROCESS_ENV: { PLATFORM: 'linux' } },
-    '../utils/PathHandler': { getUserDataPath: () => '/tmp/browsers' },
-  }, '', { process: { ...process, pid } }).getWsEndpointFilePath('lightpanda')
+  const endpoint = (pid) =>
+    load(
+      'server/src/puppeteer-ssr/constants.ts',
+      {
+        '../constants': { SERVER_LESS: false },
+        '../utils/InitEnv': { PROCESS_ENV: { PLATFORM: 'linux' } },
+        '../utils/PathHandler': { getUserDataPath: () => '/tmp/browsers' },
+      },
+      '',
+      { process: { ...process, pid } }
+    ).getWsEndpointFilePath('lightpanda')
   const app = endpoint(100)
   const appWorker = endpoint(100)
   const sitemap = endpoint(200)
@@ -191,6 +338,35 @@ test('all render admission waits for memory headroom and resumes when it recover
   assert.equal(started, true)
 })
 
+test('render gate observes a changing concurrency limit and drains active work safely', async () => {
+  const { createRenderGate } = load('server/src/utils/RenderGate.ts')
+  let limit = 2
+  const releases = []
+  const gate = createRenderGate({
+    limit: 2,
+    getLimit: () => limit,
+    queueLimit: 2,
+    waitTimeoutMs: 500,
+  })
+  const active = Array.from({ length: 2 }, () =>
+    gate.run(() => new Promise((resolve) => releases.push(resolve)))
+  )
+  await delay(10)
+  limit = 1
+  assert.equal(gate.hasCapacity(), false)
+
+  let thirdStarted = false
+  const third = gate.run(async () => {
+    thirdStarted = true
+  })
+  releases.shift()()
+  await delay(40)
+  assert.equal(thirdStarted, false, 'one active render is still at the new limit')
+  releases.shift()()
+  await Promise.all([...active, third])
+  assert.equal(thirdStarted, true)
+})
+
 test('hot cache evicts by bytes and refuses a single oversized body', () => {
   const { default: MemoryCache } = load('server/src/utils/MemoryCache.ts')
   const cache = MemoryCache({
@@ -274,6 +450,67 @@ test('a queued ISR page cached by another worker releases its admission slot', a
     assert.equal(api.inspect().waiting, 0)
     assert.equal(api.inspect().queued, 0)
   }
+})
+
+test('successful ISR renders clear their response-wait timers immediately', async () => {
+  let nextTimer = 0
+  const timers = new Map()
+  const api = load(
+    'server/src/puppeteer-ssr/utils/ISRGenerator.next/index.ts',
+    {
+      '../../../constants': {
+        BANDWIDTH_LEVEL: 1,
+        BANDWIDTH_LEVEL_LIST: { ONE: 1, TWO: 2 },
+        SERVER_LESS: false,
+      },
+      '../../../server.config': { crawl: { routes: {}, speed: 0 } },
+      '../../../utils/ConsoleHandler': { log() {}, error() {} },
+      '../../../utils/InitEnv': { PROCESS_ENV: { BASE_URL: 'http://local' } },
+      '../../../utils/PathHandler': { getPagesPath: () => '/tmp' },
+      '../../../utils/CrawlQueue': load('server/src/utils/CrawlQueue.ts'),
+      '../../constants': {
+        regexQueryStringSpecialInfoWithoutDeviceInfo: /botInfo=.*$/,
+      },
+      '../CrawlProfile': {
+        CRAWL_LIMIT: 1,
+        CRAWL_WAITING_LIMIT: 1,
+        CRAWL_WAIT_OPTIONS: { firstResponseWaitMs: 50 },
+        RESOURCE_BUDGET: { queueLimit: 32, queueTimeoutMs: 15000 },
+        hasCrawlCapacity: () => true,
+        IS_FAST_CRAWL: true,
+      },
+      '../ISRHandler.worker': async () => ({
+        status: 200,
+        html: '<html>rendered</html>',
+      }),
+      '../SSRGenerator.next/utils': { isPointsToRoute: () => false },
+      '../Cache.worker/utils': { getKey: (url) => url },
+      './CacheManager.worker/utils': () => ({
+        achieve: async () => undefined,
+        get: async () => ({
+          status: 503,
+          response: '/tmp/maintenance',
+          available: false,
+          isInit: true,
+          updatedAt: new Date(),
+        }),
+        isExist: () => false,
+      }),
+    },
+    '',
+    {
+      setInterval: () => ({ unref() {} }),
+      setTimeout: (callback, delay) => {
+        const id = ++nextTimer
+        timers.set(id, { callback, delay })
+        return id
+      },
+      clearTimeout: (id) => timers.delete(id),
+    }
+  )
+  const result = await api.default({ url: 'http://local/cold-page' })
+  assert.equal(result.status, 200)
+  assert.equal(timers.size, 0)
 })
 
 test('an unadmitted ISR request does not create a 53-second empty cache lock', async () => {

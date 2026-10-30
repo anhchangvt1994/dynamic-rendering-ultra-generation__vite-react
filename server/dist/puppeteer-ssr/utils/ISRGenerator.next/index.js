@@ -410,6 +410,12 @@ const ISRGenerator = async ({
 
         // const tmpResult: ISSRResult = await new Promise(async (res) => {
         const resultPromise = new Promise(async (res) => {
+          let responseTimeout
+          const settle = (value) => {
+            if (responseTimeout) clearTimeout(responseTimeout)
+            responseTimeout = undefined
+            res(value)
+          }
           const handle = (() => {
             if (_constants.SERVER_LESS)
               return fetchData(
@@ -462,10 +468,10 @@ const ISRGenerator = async ({
               })
           })()
 
-          if (isSkipWaiting) return res(undefined)
+          if (isSkipWaiting) return settle(undefined)
           else
-            setTimeout(
-              res,
+            responseTimeout = setTimeout(
+              () => settle(undefined),
               _constants.SERVER_LESS
                 ? 5000
                 : _constants.BANDWIDTH_LEVEL > _constants.BANDWIDTH_LEVEL_LIST.ONE
@@ -477,7 +483,7 @@ const ISRGenerator = async ({
             return await handle
           })()
 
-          res(result)
+          settle(result)
         })
 
         const botInfo = specialInfo.botInfo
@@ -494,12 +500,24 @@ const ISRGenerator = async ({
         } else if (_CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs > 0) {
           // NOTE - A render usually ends within a few seconds, answer with the
           // page instead of a 503 when it does
-          const tmpResult = await Promise.race([
-            resultPromise,
-            new Promise((res) =>
-              setTimeout(res, _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs)
-            ),
-          ])
+          const tmpResult = await new Promise(
+            (resolve, reject) => {
+              const timeout = setTimeout(
+                () => resolve(undefined),
+                _CrawlProfile.CRAWL_WAIT_OPTIONS.firstResponseWaitMs
+              )
+              resultPromise.then(
+                (value) => {
+                  clearTimeout(timeout)
+                  resolve(value)
+                },
+                (error) => {
+                  clearTimeout(timeout)
+                  reject(error)
+                }
+              )
+            }
+          )
           if (tmpResult && tmpResult.status === 200) result = tmpResult
         }
       }

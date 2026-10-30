@@ -1,9 +1,11 @@
 import { workerData } from 'worker_threads'
 import {
   getAvailableMemoryMB,
+  getCpuPressure,
   getResourceBudget,
   getResources,
 } from '../../utils/ResourceBudget'
+import { createAdaptiveRenderLimit } from '../../utils/AdaptiveRenderLimit'
 import { createRenderGate } from '../../utils/RenderGate'
 import { PROCESS_ENV } from '../../utils/InitEnv'
 import { BROWSER_ENGINE } from '../constants'
@@ -40,8 +42,23 @@ export const FAST_CONCURRENCY = RESOURCE_BUDGET.renderConcurrency
 export const CRAWL_LIMIT = FAST_CONCURRENCY
 export const CRAWL_WAITING_LIMIT = FAST_CONCURRENCY
 export const CRAWL_WORKERS = FAST_CONCURRENCY
+const adaptiveRenderLimit = createAdaptiveRenderLimit({
+  maxConcurrency: FAST_CONCURRENCY,
+  minAvailableMemoryMB:
+    Number(PROCESS_ENV.CRAWL_MIN_FREE_MEMORY_MB) ||
+    Math.max(128, Math.min(512, RESOURCE_BUDGET.memoryMB * 0.1)),
+  readCpuPressure: getCpuPressure,
+  readAvailableMemoryMB: getAvailableMemoryMB,
+  onChange: ({ from, to, reason }) =>
+    console.info(
+      '[render-budget]',
+      JSON.stringify({ from, to, max: FAST_CONCURRENCY, reason })
+    ),
+})
+export const getCurrentCrawlLimit = adaptiveRenderLimit
 export const crawlGate = createRenderGate({
   limit: FAST_CONCURRENCY,
+  getLimit: getCurrentCrawlLimit,
   queueLimit: RESOURCE_BUDGET.queueLimit,
   waitTimeoutMs: RESOURCE_BUDGET.queueTimeoutMs,
   sharedState: workerData?.renderSlots,
@@ -78,6 +95,6 @@ export const CRAWL_WAIT_OPTIONS = {
 
 // Memory pressure delays new heavy work; HTTP/API requests continue normally.
 export const hasCrawlCapacity = (runningCrawls: number) =>
-  runningCrawls < CRAWL_LIMIT &&
+  runningCrawls < getCurrentCrawlLimit() &&
   crawlGate.hasCapacity() &&
   getAvailableMemoryMB() >= FAST_CRAWL_OPTIONS.minAvailableMemoryMB

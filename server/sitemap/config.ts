@@ -127,7 +127,7 @@ export const getSitemapOptions = (
     timeoutMs: integer(env, 'SITEMAP_TIMEOUT_MS', 30000, 100, 300000),
     idleMs: integer(env, 'SITEMAP_IDLE_MS', 300, 50, 10000),
     settleMs: integer(env, 'SITEMAP_SETTLE_MS', 100, 0, 30000),
-    retries: integer(env, 'SITEMAP_RETRIES', 1, 0, 3),
+    retries: integer(env, 'SITEMAP_RETRIES', 2, 0, 3),
     readySelector: String(env.SITEMAP_READY_SELECTOR || ''),
     engine: String(
       env.SITEMAP_BROWSER_ENGINE || env.BROWSER_ENGINE || 'chromium'

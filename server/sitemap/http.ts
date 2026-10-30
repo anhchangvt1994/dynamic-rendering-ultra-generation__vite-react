@@ -1,5 +1,6 @@
 import { parse, type DefaultTreeAdapterMap } from 'parse5'
 import { getCrawlUrl, normalizeCrawlUrl } from './config'
+import { parseRetryAfterMs } from './retry-after'
 import type { CrawlPageOptions, CrawlResult } from './crawl-page'
 
 type Node = DefaultTreeAdapterMap['node']
@@ -137,6 +138,7 @@ export const crawlHttp = async (
         url: current,
         data: [],
         needsRender: false,
+        retryAfterMs: parseRetryAfterMs(response.headers.get('retry-after')),
       }
       if (response.status < 200 || response.status >= 300) {
         await response.body?.cancel()

@@ -35,14 +35,14 @@ export const getResourceBudget = (
   const { cpuCount, memoryMB } = resources
   const reserveMB = Math.max(384, Math.floor(memoryMB * 0.25))
   const memoryCapacity = Math.max(1, Math.floor((memoryMB - reserveMB) / 384))
-  // Avoid pool fanout while overlapping network/page waits. The two-render
-  // multicore floor was measured with mixed HTTP/API load; small RAM still
-  // reduces it to one. An explicit override remains RAM bounded.
+  // This is the host-wide maximum, not a promise to keep every slot active.
+  // The render gate can shed instance-local permits under CPU/RAM pressure.
+  // Small RAM still caps the maximum; an explicit override remains RAM bounded.
   const renderTotal = Math.min(
     memoryCapacity,
     positive(
       env.CRAWL_CONCURRENCY,
-      Math.min(4, cpuCount >= 2 ? Math.max(2, cpuCount - 1) : 1)
+      cpuCount >= 4 ? 4 : cpuCount >= 2 ? 2 : 1
     )
   )
   const requestedInstances =
@@ -94,19 +94,65 @@ export const getResourceBudget = (
   }
 }
 
+const AVAILABLE_MEMORY_SAMPLE_TTL_MS = 100
+let availableMemorySample: { sampledAt: number; memoryMB: number } | undefined
+
 export const getAvailableMemoryMB = () => {
+  const now = Date.now()
+  if (
+    availableMemorySample &&
+    now - availableMemorySample.sampledAt < AVAILABLE_MEMORY_SAMPLE_TTL_MS
+  )
+    return availableMemorySample.memoryMB
+
   const limit = Number(read('/sys/fs/cgroup/memory.max'))
+  let memoryMB: number
   if (limit > 0) {
     const current = Number(read('/sys/fs/cgroup/memory.current'))
     const inactive = Number(
       /^inactive_file (\d+)$/m.exec(read('/sys/fs/cgroup/memory.stat'))?.[1] ??
         0
     )
-    return Math.max(0, (limit - current + inactive) / 1048576)
+    memoryMB = Math.max(0, (limit - current + inactive) / 1048576)
+  } else if (process.platform === 'darwin') memoryMB = Infinity
+  else {
+    const availableKiB = Number(
+      /^MemAvailable:\s+(\d+)/m.exec(read('/proc/meminfo'))?.[1]
+    )
+    memoryMB = availableKiB > 0 ? availableKiB / 1024 : os.freemem() / 1048576
   }
-  if (process.platform === 'darwin') return Infinity
-  const availableKiB = Number(
-    /^MemAvailable:\s+(\d+)/m.exec(read('/proc/meminfo'))?.[1]
+
+  availableMemorySample = { sampledAt: now, memoryMB }
+  return memoryMB
+}
+
+export interface ICpuPressure {
+  avg10: number
+  avg60: number
+}
+
+const CPU_PRESSURE_SAMPLE_TTL_MS = 1000
+let cpuPressureSample:
+  | { sampledAt: number; pressure: ICpuPressure | undefined }
+  | undefined
+
+/** Read host-wide CPU stall pressure; unsupported platforms fail open. */
+export const getCpuPressure = (): ICpuPressure | undefined => {
+  const now = Date.now()
+  if (
+    cpuPressureSample &&
+    now - cpuPressureSample.sampledAt < CPU_PRESSURE_SAMPLE_TTL_MS
   )
-  return availableKiB > 0 ? availableKiB / 1024 : os.freemem() / 1048576
+    return cpuPressureSample.pressure
+
+  const line = /^some\s+([^\n]+)$/m.exec(read('/proc/pressure/cpu'))?.[1] ?? ''
+  const avg10 = Number(/(?:^|\s)avg10=([\d.]+)/.exec(line)?.[1])
+  const avg60 = Number(/(?:^|\s)avg60=([\d.]+)/.exec(line)?.[1])
+  const pressure =
+    Number.isFinite(avg10) && avg10 >= 0 && Number.isFinite(avg60) && avg60 >= 0
+      ? { avg10, avg60 }
+      : undefined
+
+  cpuPressureSample = { sampledAt: now, pressure }
+  return pressure
 }

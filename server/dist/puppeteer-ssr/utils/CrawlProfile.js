@@ -3,7 +3,9 @@
 
 
 
+
 var _ResourceBudget = require('../../utils/ResourceBudget');
+var _AdaptiveRenderLimit = require('../../utils/AdaptiveRenderLimit');
 var _RenderGate = require('../../utils/RenderGate');
 var _InitEnv = require('../../utils/InitEnv');
 var _constants = require('../constants');
@@ -40,8 +42,23 @@ exports.getAvailableMemoryMB = _ResourceBudget.getAvailableMemoryMB;
  const CRAWL_LIMIT = exports.FAST_CONCURRENCY; exports.CRAWL_LIMIT = CRAWL_LIMIT
  const CRAWL_WAITING_LIMIT = exports.FAST_CONCURRENCY; exports.CRAWL_WAITING_LIMIT = CRAWL_WAITING_LIMIT
  const CRAWL_WORKERS = exports.FAST_CONCURRENCY; exports.CRAWL_WORKERS = CRAWL_WORKERS
+const adaptiveRenderLimit = _AdaptiveRenderLimit.createAdaptiveRenderLimit.call(void 0, {
+  maxConcurrency: exports.FAST_CONCURRENCY,
+  minAvailableMemoryMB:
+    Number(_InitEnv.PROCESS_ENV.CRAWL_MIN_FREE_MEMORY_MB) ||
+    Math.max(128, Math.min(512, exports.RESOURCE_BUDGET.memoryMB * 0.1)),
+  readCpuPressure: _ResourceBudget.getCpuPressure,
+  readAvailableMemoryMB: _ResourceBudget.getAvailableMemoryMB,
+  onChange: ({ from, to, reason }) =>
+    console.info(
+      '[render-budget]',
+      JSON.stringify({ from, to, max: exports.FAST_CONCURRENCY, reason })
+    ),
+})
+ const getCurrentCrawlLimit = adaptiveRenderLimit; exports.getCurrentCrawlLimit = getCurrentCrawlLimit
  const crawlGate = _RenderGate.createRenderGate.call(void 0, {
   limit: exports.FAST_CONCURRENCY,
+  getLimit: exports.getCurrentCrawlLimit,
   queueLimit: exports.RESOURCE_BUDGET.queueLimit,
   waitTimeoutMs: exports.RESOURCE_BUDGET.queueTimeoutMs,
   sharedState: _optionalChain([_worker_threads.workerData, 'optionalAccess', _ => _.renderSlots]),
@@ -78,6 +95,6 @@ exports.getAvailableMemoryMB = _ResourceBudget.getAvailableMemoryMB;
 
 // Memory pressure delays new heavy work; HTTP/API requests continue normally.
  const hasCrawlCapacity = (runningCrawls) =>
-  runningCrawls < exports.CRAWL_LIMIT &&
+  runningCrawls < exports.getCurrentCrawlLimit.call(void 0, ) &&
   exports.crawlGate.hasCapacity() &&
   _ResourceBudget.getAvailableMemoryMB.call(void 0, ) >= exports.FAST_CRAWL_OPTIONS.minAvailableMemoryMB; exports.hasCrawlCapacity = hasCrawlCapacity

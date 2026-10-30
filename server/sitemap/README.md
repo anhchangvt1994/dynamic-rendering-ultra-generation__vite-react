@@ -226,7 +226,7 @@ yarn start:sgen \
 | `--idle-ms` | `SITEMAP_IDLE_MS` | mạng rảnh 300 ms sau navigation |
 | `--settle-ms` | `SITEMAP_SETTLE_MS` | đợi React thêm 100 ms |
 | `--ready-selector` | `SITEMAP_READY_SELECTOR` | không dùng |
-| `--retries` | `SITEMAP_RETRIES` | 1 lần cho lỗi mạng, 429, 5xx |
+| `--retries` | `SITEMAP_RETRIES` | 2 lần cho lỗi mạng, 429, 5xx; tôn trọng `Retry-After` tối đa 60 giây |
 | `--browser-engine` | `SITEMAP_BROWSER_ENGINE` | `BROWSER_ENGINE`, hoặc `chromium` |
 | `--browser-ws-endpoint` | `SITEMAP_BROWSER_WS_ENDPOINT` | không dùng |
 | `--executable-path` | `SITEMAP_EXECUTABLE_PATH` | launcher hiện có; flag này dùng Chromium |
