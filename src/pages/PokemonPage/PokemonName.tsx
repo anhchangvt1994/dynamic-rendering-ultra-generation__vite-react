@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useLayoutEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import styled from 'styled-components'
 
@@ -38,8 +38,9 @@ const NameStyle = styled.div`
     margin: 0;
     font-family: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
     font-weight: 400;
-    /* long names shrink to fit one line; Dela runs ~0.85em per letter */
-    font-size: clamp(20px, calc(96cqi / (var(--len) * 0.85)), 40px);
+    /* first paint: an estimate (Dela runs ~0.85em a letter); fitName()
+       then measures the real width and shrinks further when needed */
+    font-size: clamp(12px, calc(96cqi / (var(--len) * 0.85)), 40px);
     line-height: 1.1 !important;
     letter-spacing: 0.01em;
     text-transform: uppercase;
@@ -325,6 +326,33 @@ const slump = (i: number) => ({
   '--sag': `${(i * 13) % 3}px`,
 })
 
+// never under the site's 11px floor, never over the design's 40px
+const MIN_SIZE = 11
+const MAX_SIZE = 40
+
+/**
+ * Sizes the name to fill its row on one line: the CSS estimate is only a
+ * first paint, this measures the letters' layout widths (which ignore
+ * their slam/tilt transforms) and scales to the exact room.
+ */
+function fitName(title: HTMLElement) {
+  const box = title.parentElement
+  if (!box) return
+  const style = getComputedStyle(box)
+  const room =
+    box.clientWidth -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight)
+  let width = 0
+  title
+    .querySelectorAll<HTMLElement>('.l')
+    .forEach((letter) => (width += letter.offsetWidth))
+  if (!room || !width) return
+  const size = parseFloat(getComputedStyle(title).fontSize)
+  const fitted = Math.floor(((size * room) / width) * 0.98 * 10) / 10
+  title.style.fontSize = `${Math.min(MAX_SIZE, Math.max(MIN_SIZE, fitted))}px`
+}
+
 const PokemonName = memo(
   ({
     name,
@@ -340,6 +368,19 @@ const PokemonName = memo(
   }) => {
     const text = label || display(name)
     const letters = [...text]
+    const titleRef = useRef<HTMLHeadingElement>(null)
+    useLayoutEffect(() => {
+      const title = titleRef.current
+      const box = title?.parentElement
+      if (!title || !box) return
+      const fit = () => fitName(title)
+      fit()
+      // web fonts land later than the first layout; rotation resizes the row
+      document.fonts?.ready.then(fit)
+      const observer = new ResizeObserver(fit)
+      observer.observe(box)
+      return () => observer.disconnect()
+    }, [text])
     return (
       <NameStyle
         data-group={GROUPS[level] ?? 'solid'}
@@ -351,7 +392,7 @@ const PokemonName = memo(
           } as CSSProperties
         }
       >
-        <h1 key={name} className="name" data-text={text}>
+        <h1 key={name} ref={titleRef} className="name" data-text={text}>
           <span className="sr">{text}</span>
           {letters.map((letter, i) => (
             <span
