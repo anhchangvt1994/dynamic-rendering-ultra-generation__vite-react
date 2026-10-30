@@ -1,6 +1,6 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
-import { useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, MouseEvent } from 'react'
 import FieldIcon from 'components/common/FieldIcon'
 import {
   POKEMON_COUNT,
@@ -9,8 +9,12 @@ import {
   getPokemonSprite,
 } from 'pages/PokemonPage/navigation.mjs'
 import { buildEncounter, pickEncounterIds, wordLength } from './encounter.mjs'
+import EncounterThrow, { THROW_MS, THROW_OPEN_MS } from './EncounterThrow'
 import RerollArt from './RerollArt'
 import { HeroStyle } from './styles'
+
+// set once the visitor has seen (or used) the reroll ball's hint
+const HINT_KEY = 'pokedex:reroll-hint'
 
 export default function FeaturedEncounter({
   onExplore,
@@ -23,13 +27,66 @@ export default function FeaturedEncounter({
   // (encounter.mjs); the app renders on the client, so no markup to match
   const [ids, setIds] = useState(() => pickEncounterIds(new Date()))
   const [selected, setSelected] = useState(0)
-  // the Poké Ball button draws a new trio: this moment plus the roll count
-  const [roll, setRoll] = useState(0)
-  const reroll = () => {
-    const next = roll + 1
-    setIds(pickEncounterIds(new Date(), 3, POKEMON_COUNT, next))
-    setSelected(0)
-    setRoll(next)
+  // the Poké Ball button draws a new trio: this moment plus the roll count.
+  // It is thrown at the art and the new Pokémon pops out as it opens.
+  const roll = useRef(0)
+  const artRef = useRef<HTMLDivElement>(null)
+  const [throwFx, setThrowFx] = useState<{
+    key: number
+    from: { x: number; y: number }
+  } | null>(null)
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+  const [hint, setHint] = useState(false)
+  // first visit: a speech bubble says what the ball does, once
+  const hideHint = () => {
+    setHint(false)
+    try {
+      localStorage.setItem(HINT_KEY, '1')
+    } catch {
+      // blocked storage: the hint may show again, nothing breaks
+    }
+  }
+  useEffect(() => {
+    let seen = true
+    try {
+      seen = !!localStorage.getItem(HINT_KEY)
+    } catch {
+      // no storage, no hint
+    }
+    if (seen) return
+    const show = setTimeout(() => setHint(true), 1200)
+    const hide = setTimeout(hideHint, 5200)
+    return () => {
+      clearTimeout(show)
+      clearTimeout(hide)
+    }
+  }, [])
+  const reroll = (event: MouseEvent<HTMLButtonElement>) => {
+    if (throwFx) return
+    hideHint()
+    roll.current += 1
+    const draw = () => {
+      setIds(pickEncounterIds(new Date(), 3, POKEMON_COUNT, roll.current))
+      setSelected(0)
+    }
+    const art = artRef.current?.getBoundingClientRect()
+    if (!art || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      draw()
+      return
+    }
+    const ball = event.currentTarget.getBoundingClientRect()
+    setThrowFx({
+      key: roll.current,
+      from: {
+        x: ball.left + ball.width / 2 - (art.left + art.width / 2),
+        y: ball.top + ball.height / 2 - (art.top + art.height / 2),
+      },
+    })
+    timers.current.push(
+      setTimeout(draw, THROW_OPEN_MS),
+      setTimeout(() => setThrowFx(null), THROW_MS)
+    )
   }
   // the same request as the catalogue below: names come from its cache
   const { data } = useGetPokemonListQuery({ limit: POKEMON_COUNT, offset: 0 })
@@ -83,9 +140,16 @@ export default function FeaturedEncounter({
           className="reroll"
           aria-label="Gặp ba Pokémon khác"
           title="Gặp ba Pokémon khác"
+          data-throwing={!!throwFx}
           onClick={reroll}
         >
-          <RerollArt roll={roll} />
+          {/* keyed: once thrown, a fresh ball pops back onto the corner */}
+          <RerollArt key={throwFx ? 'away' : 'home'} />
+          {hint && (
+            <span className="reroll-hint" aria-hidden="true">
+              Đổi bạn khác!
+            </span>
+          )}
         </button>
         <div className="encounter-top">
           <span>
@@ -93,7 +157,8 @@ export default function FeaturedEncounter({
           </span>
           <span>{dex}</span>
         </div>
-        <div className="encounter-art">
+        <div className="encounter-art" ref={artRef}>
+          {throwFx && <EncounterThrow key={throwFx.key} from={throwFx.from} />}
           <span
             className="encounter-word"
             aria-hidden="true"

@@ -795,14 +795,13 @@ export const HeroStyle = styled.section`
     align-items: center;
     gap: 6px;
   }
-  /* reroll: a Poké Ball inside a refresh arrow, pinned on the card's
-     corner like a sticker, out of the header row (it would wrap on a 320px
-     phone). The hero keeps 14px+ around the card; ::after makes the touch
-     target 48px. */
+  /* reroll: a glossy toy Poké Ball pinned on the card's corner like a
+     sticker; its centre button carries a refresh mark. Out of the header
+     row (it would wrap on a 320px phone); the hero keeps 14px+ around the
+     card; ::after makes the touch target 48px. */
   .reroll {
     position: absolute;
     z-index: 4;
-    /* up and out far enough to clear the Pokédex number */
     top: -15px;
     right: -11px;
     display: grid;
@@ -813,7 +812,6 @@ export const HeroStyle = styled.section`
     border: 0;
     border-radius: 50%;
     background: none;
-    color: var(--ink);
     cursor: pointer;
     transition: transform 140ms ease-out;
   }
@@ -823,52 +821,56 @@ export const HeroStyle = styled.section`
     inset: -6px;
     border-radius: 50%;
   }
-  .reroll > * {
-    grid-area: 1 / 1;
-  }
-  .reroll-arrow {
-    width: 36px;
-    height: 36px;
-    overflow: visible;
-  }
-  .reroll-arc {
-    fill: none;
-    stroke: #ffda55;
-    stroke-width: 4;
-    stroke-linecap: round;
-    paint-order: stroke;
-    filter: drop-shadow(0 0 0.6px #172d45) drop-shadow(0 0 0.6px #172d45)
-      drop-shadow(0 0 0.6px #172d45);
-  }
-  .reroll-head {
-    fill: #ffda55;
-    stroke: #172d45;
-    stroke-width: 1.4;
-    stroke-linejoin: round;
-  }
   .reroll-ball {
+    position: relative;
     display: grid;
     place-items: center;
-    width: 23px;
-    height: 23px;
+    width: 34px;
+    height: 34px;
+    border: 2.5px solid #1b1d22;
     border-radius: 50%;
-    background: #fff;
+    /* red cap, black band, white base; a highlight up top-left */
+    background:
+      radial-gradient(
+        circle at 30% 24%,
+        rgba(255, 255, 255, 0.95) 0 9%,
+        rgba(255, 255, 255, 0) 24%
+      ),
+      linear-gradient(
+        to bottom,
+        #ff6b5a 0%,
+        #e3350d 44%,
+        #1b1d22 44% 56%,
+        #ffffff 56%,
+        #dfe5ee 100%
+      );
     box-shadow:
-      0 0 0 1.5px #172d4540,
-      0 2px 0 #172d4526;
+      inset -3px -4px 0 rgba(0, 0, 0, 0.16),
+      0 3px 0 rgba(23, 45, 69, 0.35),
+      0 6px 14px rgba(0, 0, 0, 0.28);
+    animation: reroll-arrive 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
   }
-  .reroll-ball svg {
-    width: 19px;
-    height: 19px;
+  .reroll-core {
+    display: grid;
+    place-items: center;
+    width: 15px;
+    height: 15px;
+    border: 2.5px solid #1b1d22;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #e6ebf2);
   }
-  /* at rest: the arrow drifts round when pointed at, the ball wiggles */
-  .reroll:hover .reroll-arrow,
-  .reroll:focus-visible .reroll-arrow {
-    animation: reroll-turn 1.4s linear infinite;
+  .reroll-core svg {
+    width: 9px;
+    height: 9px;
+    fill: #1b1d22;
   }
-  .reroll:hover .reroll-ball svg,
-  .reroll:focus-visible .reroll-ball svg {
+  .reroll:hover .reroll-ball,
+  .reroll:focus-visible .reroll-ball {
     animation: reroll-wiggle 600ms ease-in-out;
+  }
+  .reroll:hover .reroll-core svg,
+  .reroll:focus-visible .reroll-core svg {
+    animation: reroll-turn 900ms linear infinite;
   }
   .reroll:active {
     transform: translateY(2px) scale(0.92);
@@ -877,44 +879,65 @@ export const HeroStyle = styled.section`
     outline: 2px solid #ffda55;
     outline-offset: 2px;
   }
-  /* pressed: the arrow whips round, the ball spins with a catch wobble */
-  .reroll .reroll-arrow.is-rolling {
-    animation: reroll-whip 620ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  /* thrown: the corner is empty until a fresh ball pops back */
+  .reroll[data-throwing='true'] .reroll-ball {
+    visibility: hidden;
   }
-  .reroll .reroll-ball svg.is-rolling {
-    animation: reroll-spin 720ms cubic-bezier(0.3, 1.4, 0.5, 1);
-  }
-  /* how far a star may rise: on wide screens the card sits 10-13px under
-     the hero's top edge, which would clip it; phones have the copy above */
-  .reroll-sparks {
-    --rise: -6px;
-    position: relative;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-  }
-  .reroll-sparks i {
+  /* first visit: a speech bubble says what the ball does */
+  .reroll-hint {
     position: absolute;
-    left: 0;
-    top: 0;
-    font-size: calc(14px * var(--s, 1));
-    font-style: normal;
-    line-height: 1 !important;
-    text-shadow:
-      0 0 1px #172d45,
-      0 0 1px #172d45;
-    translate: -50% -50%;
-    opacity: 0;
-    animation: reroll-burst 760ms cubic-bezier(0.2, 0.7, 0.3, 1) var(--t) both;
+    top: 50%;
+    right: calc(100% + 8px);
+    translate: 0 -50%;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow:
+      0 0 0 1.5px #172d45,
+      0 4px 0 rgba(23, 45, 69, 0.25);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: reroll-hint 4s ease-in-out both;
+  }
+  .reroll-hint::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -6px;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    box-shadow: 1.5px -1.5px 0 #172d45;
+    translate: 0 -50%;
+    rotate: 45deg;
+  }
+  @keyframes reroll-hint {
+    0% {
+      opacity: 0;
+      scale: 0.6;
+    }
+    8%,
+    88% {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 0.9;
+    }
+  }
+  @keyframes reroll-arrive {
+    from {
+      scale: 0.2;
+      opacity: 0;
+    }
   }
   @keyframes reroll-turn {
     to {
       rotate: 1turn;
-    }
-  }
-  @keyframes reroll-whip {
-    to {
-      rotate: 720deg;
     }
   }
   @keyframes reroll-wiggle {
@@ -928,19 +951,134 @@ export const HeroStyle = styled.section`
       rotate: -6deg;
     }
   }
-  @keyframes reroll-spin {
-    60% {
-      rotate: 400deg;
+
+  /* the throw: corner to the art's centre in an arc, spinning and growing;
+     it opens with a flash and stars as the new Pokémon pops out */
+  .throw {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    margin: auto;
+    width: 64px;
+    height: 64px;
+    pointer-events: none;
+  }
+  .throw-ball {
+    position: absolute;
+    inset: 0;
+    animation: throw-fly var(--throw) linear both;
+  }
+  .throw-half {
+    position: absolute;
+    inset: 0;
+    border: 3px solid #1b1d22;
+    border-radius: 50%;
+  }
+  .throw-half--top {
+    background:
+      radial-gradient(
+        circle at 30% 24%,
+        rgba(255, 255, 255, 0.95) 0 9%,
+        rgba(255, 255, 255, 0) 24%
+      ),
+      linear-gradient(to bottom, #ff6b5a, #e3350d 47%, #1b1d22 47%);
+    clip-path: inset(0 0 50% 0);
+    transform-origin: 8% 50%;
+    animation: throw-open 260ms cubic-bezier(0.3, 1.4, 0.5, 1) var(--open) both;
+  }
+  .throw-half--bottom {
+    background:
+      radial-gradient(
+        circle at 50% 50%,
+        #fff 0 12%,
+        #1b1d22 12% 19%,
+        #0000 19%
+      ),
+      linear-gradient(to bottom, #1b1d22 53%, #fff 53%, #dfe5ee);
+    clip-path: inset(50% 0 0 0);
+  }
+  .throw-flash {
+    position: absolute;
+    inset: -30%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      #fff 0 30%,
+      rgba(255, 246, 200, 0.85) 45%,
+      rgba(255, 255, 255, 0) 70%
+    );
+    opacity: 0;
+    animation: throw-flash 520ms ease-out var(--open) both;
+  }
+  .throw-stars {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+  }
+  .throw-stars i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: calc(18px * var(--s, 1));
+    font-style: normal;
+    line-height: 1 !important;
+    text-shadow:
+      0 0 1px #172d45,
+      0 0 1px #172d45;
+    translate: -50% -50%;
+    opacity: 0;
+    animation: throw-star 640ms cubic-bezier(0.2, 0.7, 0.3, 1)
+      calc(var(--open) + var(--t)) both;
+  }
+  @keyframes throw-fly {
+    0% {
+      translate: var(--fx) var(--fy);
+      scale: 0.5;
+      rotate: 0deg;
+      opacity: 1;
     }
-    78% {
-      rotate: 345deg;
+    22% {
+      translate: calc(var(--fx) * 0.55) calc(var(--fy) * 0.55 - 44px);
+      scale: 0.8;
+    }
+    45% {
+      translate: 0 0;
+      scale: 1;
+      rotate: -720deg;
+    }
+    50% {
+      scale: 1.12 0.9;
+    }
+    56% {
+      scale: 1;
+      opacity: 1;
     }
     to {
-      rotate: 360deg;
+      translate: 0 0;
+      rotate: -720deg;
+      scale: 0.7;
+      opacity: 0;
     }
   }
-  /* each star flies out along its angle, flares, twirls and fades */
-  @keyframes reroll-burst {
+  @keyframes throw-open {
+    to {
+      rotate: -115deg;
+    }
+  }
+  @keyframes throw-flash {
+    0% {
+      opacity: 0;
+      scale: 0.2;
+    }
+    25% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 1.8;
+    }
+  }
+  @keyframes throw-star {
     0% {
       opacity: 0;
       scale: 0.2;
@@ -948,14 +1086,14 @@ export const HeroStyle = styled.section`
     }
     30% {
       opacity: 1;
-      scale: 1.25;
+      scale: 1.3;
     }
     to {
       opacity: 0;
       scale: 0.7;
-      rotate: 140deg;
+      rotate: 160deg;
       translate: calc(-50% + cos(var(--a)) * var(--d))
-        calc(-50% + max(sin(var(--a)) * var(--d), var(--rise)));
+        calc(-50% + sin(var(--a)) * var(--d));
     }
   }
   /* each new Pokémon pops out of the ball */
@@ -973,7 +1111,7 @@ export const HeroStyle = styled.section`
     .encounter-art img {
       animation: none !important;
     }
-    .reroll-sparks {
+    .throw {
       display: none;
     }
   }
@@ -1215,9 +1353,6 @@ export const HeroStyle = styled.section`
     }
     .encounter-word {
       font-size: min(78px, var(--fit));
-    }
-    .reroll-sparks {
-      --rise: -40px;
     }
     .orbit {
       height: 154px;
