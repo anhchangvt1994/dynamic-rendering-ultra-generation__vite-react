@@ -17,14 +17,29 @@ export const SearchItemStyle = styled.li`
   }
 `
 
+// NOTE - Items share the sheet's surface (the search box's tint and hairline):
+// the liquid-glass mixin's white veil turned them grey-blue, its green glow
+// bled between them as a teal band, and its backdrop blur cost a GPU pass per
+// row while scrolling, over a background that is a flat colour anyway
+const ITEM_SURFACE = `
+  background: #ffffff0b;
+  box-shadow: inset 0 0 0 1px #ffffff14;
+`
+
 export const SearchItemInnerStyle = styled(LinkCustom)`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 6px 14px 6px 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  ${ITEM_SURFACE}
   border-radius: 12px;
   transition: background 120ms ease-out;
+
+  @media (hover: hover) {
+    &:hover {
+      background: #ffffff14;
+    }
+  }
 
   [aria-selected='true'] > & {
     background: rgba(255, 203, 5, 0.22);
@@ -36,7 +51,7 @@ export const SearchItemInnerLoadingStyle = styled.div`
   display: flex;
   gap: 8px;
   padding: 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  ${ITEM_SURFACE}
   border-radius: 10px;
 `
 
@@ -66,7 +81,7 @@ export const ImageLoadingStyle = styled.div`
   width: 100%;
   height: 100%;
   min-width: 0;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  background: #ffffff14;
   border-radius: 8px;
 `
 
@@ -104,6 +119,6 @@ export const NameStyle = styled.div`
 export const NameLoadingStyle = styled.div`
   width: 100%;
   height: 20px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  background: #ffffff14;
   border-radius: 4px;
 `

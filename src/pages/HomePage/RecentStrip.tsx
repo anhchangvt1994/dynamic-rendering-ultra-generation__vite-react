@@ -20,7 +20,17 @@ const RecentStyle = styled.section`
     padding: 2px 2px 6px;
     list-style: none;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
+  }
+  /* the row runs under the page gutter to the screen edges while the page
+     is screen-wide (it is a centred column on wide screens) */
+  @media (max-width: 899px) {
+    ol {
+      margin-inline: calc(var(--gutter, 0px) * -1);
+      padding-inline: var(--gutter, 0px);
+      scroll-padding-inline: var(--gutter, 0px);
+    }
   }
   ol::-webkit-scrollbar {
     display: none;
@@ -46,8 +56,10 @@ const RecentStyle = styled.section`
     text-decoration: none;
     transition: transform 120ms ease-out;
   }
-  a:hover {
-    transform: translateY(-2px);
+  @media (hover: hover) {
+    a:hover {
+      transform: translateY(-2px);
+    }
   }
   a:focus-visible {
     outline: 3px solid var(--focus);

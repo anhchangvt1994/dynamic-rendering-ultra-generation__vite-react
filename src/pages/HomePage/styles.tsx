@@ -1,7 +1,9 @@
 export const HomePageStyle = styled.div`
+  /* the side gutter, for strips that scroll under it to the screen edge */
+  --gutter: 40px;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 28px 40px 0;
+  padding: 28px var(--gutter) 0;
   color: var(--ink);
   .eyebrow {
     font-size: 12px;
@@ -484,7 +486,8 @@ export const HomePageStyle = styled.div`
     }
   }
   @media (max-width: 680px) {
-    padding: 16px 18px 0;
+    --gutter: 18px;
+    padding: 16px var(--gutter) 0;
     .field-strip {
       padding: 15px 0;
       font-size: 11px;

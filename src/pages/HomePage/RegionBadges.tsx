@@ -17,13 +17,19 @@ const BadgesStyle = styled.ol`
   padding: 2px 2px 6px;
   list-style: none;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  /* free momentum: proximity snapping tugged each fling back to a badge's
+     edge as it slowed, which read as a stutter. The edge never hands the
+     swipe to the browser's back gesture */
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
   }
-  li {
-    scroll-snap-align: start;
+  /* while it scrolls, it runs under the page gutter to the screen edges */
+  @media (max-width: 899px) {
+    margin-inline: calc(var(--gutter, 0px) * -1);
+    padding-inline: var(--gutter, 0px);
+    scroll-padding-inline: var(--gutter, 0px);
   }
   @media (min-width: 900px) {
     grid-auto-flow: row;
@@ -48,9 +54,12 @@ const BadgesStyle = styled.ol`
       transform 140ms ease-out,
       box-shadow 140ms ease-out;
   }
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(23, 45, 69, 0.12);
+  /* a pointer that hovers: on touch, :hover sticks after a tap */
+  @media (hover: hover) {
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(23, 45, 69, 0.12);
+    }
   }
   button[aria-pressed='true'] {
     border-color: var(--ink);
