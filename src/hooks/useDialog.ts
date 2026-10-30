@@ -29,6 +29,12 @@ export default function useDialog<T extends HTMLElement>(
   onClose: () => void
 ) {
   const ref = useRef<T>(null)
+  // callers pass inline handlers; re-running the effect on each new one
+  // would bounce focus to the opener and back on every parent render
+  const closeRef = useRef(onClose)
+  useEffect(() => {
+    closeRef.current = onClose
+  })
 
   useEffect(() => {
     if (!isOpen) return
@@ -59,7 +65,7 @@ export default function useDialog<T extends HTMLElement>(
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        closeRef.current()
         return
       }
       if (event.key !== 'Tab') return
@@ -81,7 +87,7 @@ export default function useDialog<T extends HTMLElement>(
       document.removeEventListener('keydown', onKeyDown)
       if (opener?.isConnected) opener.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   return ref
 }
