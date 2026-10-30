@@ -1,99 +1,76 @@
+import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
+import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
+import { GENERATIONS } from 'pages/HomePage/catalog.mjs'
+import { HeroStyle } from 'pages/HomePage/styles'
+import type { CSSProperties } from 'react'
 import styled from 'styled-components'
 import { boneCss } from './bone'
+import DexNumber from './DexNumber'
 
-// Mirrors HomePageStyle / HeroStyle / PokemonListStyle: same gutters,
-// breakpoints and block heights, so the page does not jump when it lands.
+// What never changes is drawn for real: the hero copy (with the hero's own
+// styles), the strip, the catalogue heading, region names, type chips. Only
+// the data waits: today's encounter ("#0000" searching, a Poké Ball
+// mid-catch), the collection count and the Pokémon cards, whose balls
+// shake one after another like a wave. Gutters and heights mirror
+// HomePageStyle / PokemonListStyle so nothing jumps when the page lands.
 const HomeSkeletonStyle = styled.div`
   ${boneCss}
   max-width: 1240px;
   margin: 0 auto;
   padding: 28px 40px 0;
+  color: var(--ink);
 
-  .hero {
-    display: grid;
-    grid-template-columns: 1.08fr 1fr;
-    min-height: 410px;
-    border-radius: 26px;
-    background: var(--ink);
-    overflow: hidden;
+  /* buttons the app wires up: drawn, not pressable yet */
+  .hero-actions button:disabled {
+    opacity: 1;
+    cursor: progress;
   }
-  .hero-copy {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 40px 0 30px 40px;
+  .encounter .bone {
+    --bone: rgba(23, 45, 69, 0.1);
+    --shine: rgba(255, 255, 255, 0.45);
   }
-  .eyebrow {
-    width: 190px;
-    height: 11px;
+  .encounter-top .dex {
+    font-weight: 700;
   }
-  .title {
-    width: 62%;
-    height: 44px;
-    margin-top: 22px;
-  }
-  .title + .title {
-    width: 78%;
-    margin-top: 10px;
-    margin-bottom: 18px;
-    --bone: rgba(255, 218, 85, 0.22);
-    --shine: rgba(255, 218, 85, 0.38);
-  }
-  .line {
-    width: 56%;
-    height: 11px;
-    margin-top: 9px;
-  }
-  .line--narrow {
-    display: none;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 18px;
-    margin-top: 26px;
-  }
-  .hero .explore {
-    width: 135px;
-    height: 44px;
-    border-radius: 10px;
-    --bone: rgba(255, 218, 85, 0.45);
-    --shine: rgba(255, 218, 85, 0.7);
-  }
-  .action {
-    width: 104px;
-    height: 16px;
-  }
-  .encounter {
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 16px;
-    margin: 11px 14px 11px 18px;
-    padding: 22px 24px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.06);
-  }
-  .encounter-art {
-    width: min(64%, 230px);
-    aspect-ratio: 1;
+  /* out of flow and centred, like the real artwork's link */
+  .encounter-art .encounter-ball {
+    position: absolute;
+    inset: 0;
     margin: auto;
+    z-index: 2;
+    width: 112px;
+    rotate: -7deg;
   }
+  /* fluid: a fixed width here would widen the hero grid on a phone */
   .encounter-name {
-    width: 130px;
-    height: 22px;
+    flex: 1;
+    max-width: 150px;
+  }
+  .encounter-picker span {
+    width: 35px;
+    height: 35px;
+    border: 1px solid #172d452a;
+    border-radius: 50%;
+    background: #ffffff35;
   }
 
   .strip {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    height: 54px;
-    padding: 0 4px;
+    gap: 16px;
+    padding: 18px 4px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 1px;
   }
-  .strip .bone {
-    width: 200px;
-    height: 12px;
+  .strip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .strip span:first-child {
+    font-weight: 700;
+    color: var(--ink);
   }
   .collection {
     display: flex;
@@ -101,6 +78,7 @@ const HomeSkeletonStyle = styled.div`
     gap: 18px;
     height: 96px;
     padding: 0 26px;
+    border: 1px solid #c9e2d6;
     border-radius: var(--radius-card);
     background: var(--mint);
   }
@@ -108,14 +86,26 @@ const HomeSkeletonStyle = styled.div`
     --bone: rgba(23, 45, 69, 0.08);
     --shine: rgba(255, 255, 255, 0.6);
   }
-  .collection .mark {
+  .collection-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
     width: 50px;
     height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
   }
-  .collection .copy {
+  .collection-mark svg {
+    width: 32px;
+  }
+  .collection-copy {
     display: grid;
     gap: 8px;
     flex: 1;
+  }
+  .collection-copy strong {
+    font-size: 14px;
+    font-weight: 700;
   }
   .regions {
     display: flex;
@@ -124,10 +114,25 @@ const HomeSkeletonStyle = styled.div`
     padding: 2px;
     overflow: hidden;
   }
-  .regions .bone {
+  .region {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 6px;
     flex: 1 0 92px;
     height: 113px;
-    border-radius: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .ring {
+    width: 46px;
+    height: 46px;
+    border: 4px solid var(--line);
+    border-radius: 50%;
   }
 
   .catalog {
@@ -135,15 +140,27 @@ const HomeSkeletonStyle = styled.div`
   }
   .heading {
     display: flex;
-    align-items: flex-end;
     justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
   }
-  .heading-title {
-    width: 344px;
-    height: 45px;
-    margin-top: 14px;
+  .heading small {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    color: var(--muted);
   }
-  .random {
+  .heading h2 {
+    margin-top: 5px;
+    font-size: clamp(23px, 2.4vw, 30px);
+    font-weight: 800;
+    letter-spacing: -1.1px;
+  }
+  .heading h2 span {
+    color: var(--red);
+  }
+  .shuffle {
     width: 44px;
     height: 44px;
     border-radius: 13px;
@@ -152,7 +169,6 @@ const HomeSkeletonStyle = styled.div`
     display: grid;
     grid-template-columns: 1fr 165px 165px;
     gap: 12px 10px;
-    margin-top: 24px;
   }
   .tools .bone {
     height: 50px;
@@ -165,13 +181,35 @@ const HomeSkeletonStyle = styled.div`
     padding: 3px 2px;
     overflow: hidden;
   }
-  .chips .bone {
-    height: 37px;
+  .chips span {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 7px;
+    min-height: 37px;
+    padding: 0 13px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .chips span:first-child {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+  .chips i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--type);
   }
   .tabs {
     display: flex;
     gap: 5px;
-    margin: 72px 0 18px;
+    margin: 20px 0 18px;
   }
   .tabs .bone {
     height: 39px;
@@ -192,9 +230,13 @@ const HomeSkeletonStyle = styled.div`
     background: var(--surface);
     box-shadow: inset 0 0 0 1px var(--line);
   }
-  .card .art {
-    width: 60%;
-    aspect-ratio: 1;
+  .card .dex {
+    font-size: 12px;
+    font-weight: 700;
+    color: #a3b1c0;
+  }
+  .card .catch-ball {
+    width: 52px;
     margin: auto;
   }
   .card .name {
@@ -209,49 +251,21 @@ const HomeSkeletonStyle = styled.div`
   }
   @media (max-width: 680px) {
     padding: 16px 18px 0;
-    .hero {
-      grid-template-columns: 1fr;
-      border-radius: 21px;
+    .encounter-art .encounter-ball {
+      width: 88px;
     }
-    .hero-copy {
-      padding: 25px 23px 0;
-    }
-    .hero-copy .eyebrow {
-      margin-block: 3px;
-    }
-    .title {
-      width: 58%;
-      height: 32px;
-      margin-top: 15px;
-    }
-    .title + .title {
-      width: 84%;
-      margin-top: 6px;
-      margin-bottom: 11px;
-    }
-    .line {
-      width: 90%;
-    }
-    /* two rows on phones: the buttons, then the quiz link */
-    .actions {
-      align-content: flex-start;
-      gap: 15px;
-      min-height: 100px;
-      margin-top: 19px;
-    }
-    .hero .explore {
-      width: 126px;
-      height: 41px;
-    }
-    .encounter {
-      height: 288px;
-      margin: 18px 14px 17px;
+    /* the real note wraps to two lines on a phone */
+    .encounter-name {
+      display: grid;
+      align-content: center;
+      min-height: 65px;
     }
     .strip {
       justify-content: center;
-      height: 47px;
+      padding: 15px 0;
+      font-size: 11px;
     }
-    .strip .bone:last-child {
+    .strip span:last-child {
       display: none;
     }
     .collection {
@@ -260,28 +274,38 @@ const HomeSkeletonStyle = styled.div`
       padding: 0 16px;
       border-radius: 17px;
     }
-    .collection .mark {
+    .collection-mark {
       width: 35px;
       height: 35px;
     }
-    .regions {
-      margin-top: 12px;
+    .collection-mark svg {
+      width: 25px;
+    }
+    .collection-copy strong {
+      font-size: 12px;
     }
     .catalog {
       padding-top: 28px;
     }
-    .heading-title {
-      width: 240px;
-      height: 32px;
+    .heading {
+      margin-bottom: 17px;
     }
-    .random {
+    .heading small {
+      letter-spacing: 1.6px;
+    }
+    .heading h2 {
+      margin-top: 4px;
+      font-size: 21px;
+      letter-spacing: -0.8px;
+    }
+    .shuffle {
       width: 36px;
       height: 39px;
+      border-radius: 10px;
     }
     .tools {
       grid-template-columns: 1fr 1fr;
       gap: 9px;
-      margin-top: 16px;
     }
     .tools .search {
       grid-column: 1 / -1;
@@ -294,8 +318,10 @@ const HomeSkeletonStyle = styled.div`
       margin: 11px -18px 0;
       padding: 4px 18px;
     }
-    .chips .bone {
-      height: 35px;
+    .chips span {
+      min-height: 35px;
+      padding: 0 12px;
+      font-size: 12px;
     }
     .tabs {
       margin: 12px 0;
@@ -304,76 +330,130 @@ const HomeSkeletonStyle = styled.div`
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 11px;
     }
-  }
-  /* 320-360px: the eyebrow and the intro wrap one more line */
-  @media (max-width: 360px) {
-    .hero-copy .eyebrow {
-      margin-bottom: 19px;
-    }
-    .line--narrow {
-      display: block;
-    }
-    .collection {
-      height: 118px;
-    }
     .card {
       height: 211px;
       padding: 11px 13px 14px;
       border-radius: 14px;
     }
+    .card .catch-ball {
+      width: 44px;
+    }
+  }
+  @media (max-width: 360px) {
+    .collection {
+      height: 118px;
+    }
   }
 `
 
-const CHIP_WIDTHS = [80, 58, 63, 71, 66, 60, 74, 62, 70, 58, 66]
+const TYPES = Object.values(TYPE_DATA)
 
 export default function HomeSkeleton() {
   return (
     <HomeSkeletonStyle className="home-skeleton" role="status" aria-busy="true">
       <span className="sr-only">Đang mở Pokédex…</span>
-      <div aria-hidden="true">
-        <section className="hero" data-tone="dark">
-          <div className="hero-copy">
-            <span className="bone eyebrow" />
-            <span className="bone title" />
-            <span className="bone title" />
-            <span className="bone line" />
-            <span className="bone line" />
-            <span className="bone line line--narrow" />
-            <div className="actions">
-              <span className="bone explore" />
-              <span className="bone action" />
-              <span className="bone action" />
+      <HeroStyle style={{ '--encounter': '#dde4ee' } as CSSProperties}>
+        <div className="hero-copy">
+          <span className="eyebrow">
+            <i /> NHẬT KÝ CỦA MỘT NHÀ HUẤN LUYỆN
+          </span>
+          <h1>
+            Một thế giới.
+            <br />
+            <span>Ngàn người bạn.</span>
+          </h1>
+          <p>
+            Khám phá Pokémon. Tìm người bạn đồng hành.
+            <br />
+            Viết tiếp hành trình của riêng bạn.
+          </p>
+          <div className="hero-actions" aria-hidden="true">
+            <button className="explore" type="button" disabled>
+              Mở Pokédex <FieldIcon name="arrow" size={18} />
+            </button>
+            <button className="random" type="button" disabled>
+              <FieldIcon name="shuffle" size={17} /> Gặp ngẫu nhiên
+            </button>
+            <LinkCustom className="random quiz-link" to="/ai-day" tabIndex={-1}>
+              <span className="quiz-badge">?</span>
+              Chơi “Ai đây?”
+            </LinkCustom>
+          </div>
+          <div className="hero-footnote">
+            <span>1.025 Pokémon</span>
+            <i />
+            <span>9 thế hệ</span>
+            <i />
+            <span>Vô vàn câu chuyện</span>
+          </div>
+        </div>
+        <div className="encounter" aria-hidden="true">
+          <div className="encounter-top">
+            <span>
+              <i /> CUỘC GẶP HÔM NAY
+            </span>
+            <DexNumber rolling />
+          </div>
+          <div className="encounter-art">
+            <span className="encounter-word">???</span>
+            <span className="orbit orbit-one" />
+            <span className="orbit orbit-two" />
+            <span className="spark spark-one">✦</span>
+            <span className="spark spark-two">✧</span>
+            <span className="catch-ball encounter-ball" />
+          </div>
+          <div className="encounter-bottom">
+            <div className="encounter-name">
+              <span className="bone" style={{ width: '70%', height: 22 }} />
+              <span
+                className="bone"
+                style={{ width: '100%', height: 11, marginTop: 6 }}
+              />
+            </div>
+            <div className="encounter-picker">
+              <span />
+              <span />
+              <span />
             </div>
           </div>
-          <div className="encounter">
-            <span className="bone eyebrow" />
-            <span className="bone bone--round encounter-art" />
-            <span className="bone encounter-name" />
-          </div>
-        </section>
+        </div>
+      </HeroStyle>
+      <div aria-hidden="true">
         <div className="strip">
-          <span className="bone" />
-          <span className="bone" />
+          <span>
+            <FieldIcon name="spark" size={15} /> MỖI POKÉMON, MỘT CÂU CHUYỆN.
+          </span>
+          <span>
+            Hành trình của bạn bắt đầu ở đây <FieldIcon name="arrow" size={16} />
+          </span>
         </div>
         <section className="collection">
-          <span className="bone bone--round mark" />
-          <div className="copy">
-            <span className="bone" style={{ width: 150, height: 15 }} />
+          <span className="collection-mark">
+            <Pokeball />
+          </span>
+          <div className="collection-copy">
+            <strong>Bộ sưu tập của bạn</strong>
             <span className="bone" style={{ width: '60%', height: 11 }} />
           </div>
         </section>
         <div className="regions">
-          {Array.from({ length: 9 }, (_, index) => (
-            <span key={index} className="bone" />
+          {GENERATIONS.map((gen) => (
+            <span key={gen.id} className="region">
+              <span className="ring" />
+              {gen.name}
+              <span className="bone" style={{ width: 40, height: 10 }} />
+            </span>
           ))}
         </div>
         <section className="catalog">
           <div className="heading">
             <div>
-              <span className="bone eyebrow" />
-              <span className="bone heading-title" />
+              <small>POKÉDEX TOÀN QUỐC</small>
+              <h2>
+                Tìm người bạn tiếp theo<span>.</span>
+              </h2>
             </div>
-            <span className="bone random" />
+            <span className="bone shuffle" />
           </div>
           <div className="tools">
             <span className="bone search" />
@@ -381,12 +461,15 @@ export default function HomeSkeleton() {
             <span className="bone" />
           </div>
           <div className="chips">
-            {CHIP_WIDTHS.map((width, index) => (
+            <span>Tất cả hệ</span>
+            {TYPES.map((type) => (
               <span
-                key={index}
-                className="bone bone--pill"
-                style={{ width }}
-              />
+                key={type.label}
+                style={{ '--type': type.color } as CSSProperties}
+              >
+                <i />
+                {type.label}
+              </span>
             ))}
           </div>
           <div className="tabs">
@@ -396,8 +479,11 @@ export default function HomeSkeleton() {
           <div className="grid">
             {Array.from({ length: 8 }, (_, index) => (
               <div key={index} className="card">
-                <span className="bone" style={{ width: 44, height: 12 }} />
-                <span className="bone bone--round art" />
+                <DexNumber />
+                <span
+                  className="catch-ball"
+                  style={{ '--i': index } as CSSProperties}
+                />
                 <span className="bone name" />
               </div>
             ))}

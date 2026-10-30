@@ -2,7 +2,9 @@ import styled from 'styled-components'
 import { boneCss } from './bone'
 
 // Mirrors CompareStyle: top bar, the versus card (tilted arena over two
-// level plates), the verdict and the match-up cards.
+// level plates), the verdict and the match-up cards. The title, the buttons'
+// faces, the VS badge and the headings are drawn for real; the two
+// fighters are Poké Balls squaring up, shaking in turn.
 const CompareSkeletonStyle = styled.section`
   ${boneCss}
   max-width: 760px;
@@ -16,15 +18,42 @@ const CompareSkeletonStyle = styled.section`
     gap: 10px;
     margin-bottom: 14px;
   }
-  .topbar .bone {
-    height: 44px;
+  .back,
+  .swap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    border: 1px solid var(--line);
     border-radius: 12px;
+    background: var(--surface);
+    font-size: 13px;
+    font-weight: 700;
   }
-  .topbar .title {
-    justify-self: center;
-    width: 150px;
-    height: 26px;
-    border-radius: 8px;
+  .back {
+    padding: 0 14px 0 10px;
+  }
+  .swap {
+    width: 44px;
+    opacity: 0.4;
+  }
+  .topbar svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(20px, 6vw, 32px);
+    line-height: 1.1 !important;
+    text-align: center;
+    text-transform: uppercase;
   }
   .versus {
     container-type: inline-size;
@@ -63,10 +92,14 @@ const CompareSkeletonStyle = styled.section`
   .portrait {
     position: absolute;
     top: 50%;
-    width: 30%;
-    max-width: 170px;
-    aspect-ratio: 1;
+    width: 21%;
+    max-width: 104px;
     translate: -50% -50%;
+  }
+  /* B answers A: the same shake, half a beat later, mirrored */
+  .portrait--b {
+    --i: 6;
+    scale: -1 1;
   }
   .portrait--a {
     left: 25%;
@@ -76,14 +109,52 @@ const CompareSkeletonStyle = styled.section`
   }
   .vs {
     position: absolute;
+    z-index: 3;
     left: 50%;
     top: 50%;
-    width: 56px;
-    height: 56px;
     translate: -50% -50%;
-    border: 3px solid rgba(255, 218, 85, 0.55);
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
-    background: #0b1626;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #fff2b0,
+      #ffda55 55%,
+      #f2b600
+    );
+    box-shadow:
+      0 0 0 3px #0b1626,
+      0 6px 18px rgba(0, 0, 0, 0.45);
+    color: #0b1626;
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1 !important;
+  }
+  /* a shockwave every beat, in time with the balls */
+  .vs::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid #ffda55;
+    border-radius: 50%;
+    animation: vs-wave 1.6s ease-out infinite;
+  }
+  @keyframes vs-wave {
+    from {
+      opacity: 0.9;
+    }
+    to {
+      opacity: 0;
+      scale: 2.2;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vs::after {
+      animation: none;
+      opacity: 0;
+    }
   }
   .plates {
     display: grid;
@@ -154,10 +225,13 @@ const CompareSkeletonStyle = styled.section`
   .matchup {
     margin-top: 22px;
   }
-  .matchup .heading {
-    width: 150px;
-    height: 24px;
-    margin: 0 auto 12px;
+  .matchup h2 {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 400;
+    text-align: center;
+    text-transform: uppercase;
   }
   .matchup-grid {
     display: grid;
@@ -189,17 +263,26 @@ export default function CompareSkeleton() {
       <span className="sr-only">Đang dựng sàn đấu…</span>
       <div aria-hidden="true">
         <div className="topbar">
-          <span className="bone" style={{ width: 106 }} />
-          <span className="bone title" />
-          <span className="bone" style={{ width: 44 }} />
+          <span className="back">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 12H5M11 5l-7 7 7 7" />
+            </svg>
+            Quay lại
+          </span>
+          <p className="title">So sánh</p>
+          <span className="swap">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
+            </svg>
+          </span>
         </div>
         <div className="versus" data-tone="dark">
           <div className="arena">
             <span className="half" />
             <span className="seam" />
-            <span className="bone bone--round portrait portrait--a" />
-            <span className="bone bone--round portrait portrait--b" />
-            <span className="vs" />
+            <span className="catch-ball portrait portrait--a" />
+            <span className="catch-ball portrait portrait--b" />
+            <span className="vs">VS</span>
           </div>
           <div className="plates">
             <PlateBones />
@@ -214,7 +297,7 @@ export default function CompareSkeleton() {
           <span className="bone bone--pill share" />
         </div>
         <div className="matchup">
-          <span className="bone heading" />
+          <h2>Ai khắc ai?</h2>
           <div className="matchup-grid">
             <span className="bone" />
             <span className="bone" />

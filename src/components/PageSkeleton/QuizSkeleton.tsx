@@ -1,40 +1,56 @@
 import styled from 'styled-components'
 import { boneCss } from './bone'
 
-// Mirrors QuizStyle. The stage is drawn for real (it never depends on
-// data): the blue spotlight with a "?" shadow breathing in it.
+// Mirrors QuizStyle. The title, the score labels, the mode switch and the
+// stage never depend on data, so they are drawn for real: the spotlight
+// turns its rays and a "?" shadow waits in it. Only the generation picker,
+// the scores and the four answers wait.
 const QuizSkeletonStyle = styled.section`
   ${boneCss}
   max-width: 720px;
   margin: 0 auto;
   padding: 16px 16px 32px;
+  color: var(--ink);
 
   .intro {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
-    /* the real title's tilt and shadow make the row 1.5× the font */
+    /* the title's tilt and shadow make the row 1.5× the font */
     min-height: calc(clamp(34px, 9vw, 56px) * 1.5);
     margin-bottom: 14px;
   }
   .title {
-    width: clamp(180px, 50vw, 300px);
-    height: clamp(34px, 9vw, 56px);
-    border-radius: 12px;
-    rotate: -3deg;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(34px, 9vw, 56px);
+    line-height: 1 !important;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--yellow, #ffda55);
+    -webkit-text-stroke: 2px #2a4c8f;
+    paint-order: stroke fill;
+    text-shadow:
+      0 4px 0 #2a4c8f,
+      0 10px 18px rgba(23, 45, 69, 0.25);
+    transform: rotate(-3deg);
     transform-origin: left bottom;
-    --bone: rgba(255, 218, 85, 0.4);
-    --shine: rgba(255, 218, 85, 0.7);
+  }
+  .title span {
+    color: #fff;
   }
   .score {
     display: flex;
     gap: 14px;
   }
-  .score > div {
+  .score > span {
     display: grid;
     justify-items: end;
-    gap: 6px;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
   }
   .settings {
     display: flex;
@@ -48,32 +64,71 @@ const QuizSkeletonStyle = styled.section`
     border-radius: 12px;
   }
   .mode {
-    width: 251px;
-    height: 50px;
+    display: inline-flex;
+    padding: 3px;
     border-radius: 14px;
+    background: var(--surface, #fff);
+    box-shadow: inset 0 0 0 1px var(--line, #dfe6ed);
   }
+  .mode span {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 11px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .mode span:first-child {
+    background: var(--ink, #172d45);
+    color: #fff;
+  }
+
   .stage {
+    position: relative;
     display: grid;
     place-items: center;
     aspect-ratio: 4 / 3;
     max-width: 560px;
     max-height: 420px;
+    overflow: hidden;
     border-radius: var(--radius-card, 20px);
     background: radial-gradient(circle at 50% 46%, #6fd0ff 0, #1e5bb8 70%);
     box-shadow:
       inset 0 0 0 4px #ffda55,
       0 18px 34px rgba(23, 45, 69, 0.25);
+    isolation: isolate;
+  }
+  /* the anime's spotlight rays, turning slowly */
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    z-index: -1;
+    background: repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255, 255, 255, 0.13) 0 7deg,
+      transparent 7deg 20deg
+    );
+    animation: quiz-rays 18s linear infinite;
+  }
+  @keyframes quiz-rays {
+    to {
+      rotate: 1turn;
+    }
   }
   .stage svg {
-    width: 38%;
+    width: 34%;
     fill: #0b1626;
-    opacity: 0.85;
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
+      drop-shadow(0 0 18px rgba(120, 200, 255, 0.6));
     animation: quiz-shadow 1.6s ease-in-out infinite alternate;
   }
   @keyframes quiz-shadow {
     to {
-      opacity: 0.55;
-      scale: 0.96;
+      scale: 0.94;
+      rotate: -6deg;
     }
   }
   .options {
@@ -82,9 +137,32 @@ const QuizSkeletonStyle = styled.section`
     gap: 10px;
     margin-top: 14px;
   }
-  .options .bone {
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     height: 56px;
+    padding: 0 10px;
     border-radius: 12px;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 3px 0 var(--line);
+  }
+  .option b {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #eef2f7;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .option .bone {
+    width: 55%;
+    height: 14px;
   }
   @media (max-width: 680px) {
     .select {
@@ -92,6 +170,7 @@ const QuizSkeletonStyle = styled.section`
     }
   }
   @media (prefers-reduced-motion: reduce) {
+    .stage::before,
     .stage svg {
       animation: none;
     }
@@ -104,19 +183,24 @@ export default function QuizSkeleton() {
       <span className="sr-only">Đang chuẩn bị câu đố…</span>
       <div aria-hidden="true">
         <div className="intro">
-          <span className="bone title" />
+          <p className="title">
+            <span>Ai</span> đây?
+          </p>
           <div className="score">
-            {[0, 1].map((index) => (
-              <div key={index}>
-                <span className="bone" style={{ width: 36, height: 12 }} />
-                <span className="bone" style={{ width: 24, height: 28 }} />
-              </div>
+            {['Chuỗi', 'Kỷ lục'].map((label) => (
+              <span key={label}>
+                {label}
+                <span className="bone" style={{ width: 22, height: 26 }} />
+              </span>
             ))}
           </div>
         </div>
         <div className="settings">
           <span className="bone select" />
-          <span className="bone mode" />
+          <span className="mode">
+            <span>Dễ · 4 lựa chọn</span>
+            <span>Khó · tự gõ tên</span>
+          </span>
         </div>
         <div className="stage">
           <svg viewBox="0 0 24 24">
@@ -124,8 +208,11 @@ export default function QuizSkeleton() {
           </svg>
         </div>
         <div className="options">
-          {Array.from({ length: 4 }, (_, index) => (
-            <span key={index} className="bone" />
+          {[1, 2, 3, 4].map((number) => (
+            <span key={number} className="option">
+              <b>{number}</b>
+              <span className="bone" />
+            </span>
           ))}
         </div>
       </div>
