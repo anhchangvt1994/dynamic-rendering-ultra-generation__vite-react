@@ -70,11 +70,14 @@ const Image = (props) => {
           height={height}
           loading={undefined}
           onLoad={async (e) => {
+            // the element, before any await: a native event (Preact in
+            // production) no longer points at it once the handler resumes
+            const image = e.currentTarget
             try {
-              await e.currentTarget.decode?.()
+              await image.decode?.()
               await new Promise((res) => setTimeout(res, 50))
             } catch {}
-            handleLoad(e.target as HTMLImageElement)
+            handleLoad(image)
           }}
           onError={(e) => handleError(e.target as HTMLImageElement)}
         />

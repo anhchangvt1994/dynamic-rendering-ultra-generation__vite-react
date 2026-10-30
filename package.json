@@ -48,6 +48,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "blurhash": "^2.0.5",
     "polished": "^4.2.2",
+    "preact": "10.29.8",
     "react": "19.2.0",
     "react-blurhash": "^0.3.0",
     "react-dom": "19.2.0",

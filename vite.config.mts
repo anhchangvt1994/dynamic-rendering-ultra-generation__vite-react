@@ -19,6 +19,15 @@ import vitePrepareConfig from './config/vite.prepare.config'
 const resolve = resolveTsconfigPathsToAlias()
 
 // https://vitejs.dev/config/
+// exact module names: "react" must not catch "react-redux" or "react-router"
+const PREACT_ALIASES = [
+  { find: /^react$/, replacement: 'preact/compat' },
+  { find: /^react-dom$/, replacement: 'preact/compat' },
+  { find: /^react-dom\/client$/, replacement: 'preact/compat/client' },
+  { find: /^react\/jsx-runtime$/, replacement: 'preact/jsx-runtime' },
+  { find: /^react\/jsx-dev-runtime$/, replacement: 'preact/jsx-dev-runtime' },
+]
+
 export default defineConfig(({ mode, command }) => {
   const ViteConfigWithMode = getViteConfigWithMode(mode)
   const config = ViteConfigWithMode?.() ?? {}
@@ -56,10 +65,16 @@ export default defineConfig(({ mode, command }) => {
       },
     },
     resolve: {
-      alias: {
-        ...resolve.alias,
-        ...aliasExternal.entries,
-      },
+      alias: [
+        ...Object.entries({
+          ...resolve.alias,
+          ...aliasExternal.entries,
+        }).map(([find, replacement]) => ({ find, replacement })),
+        // NOTE - Production runs on Preact (preact/compat): React DOM's
+        // client is one ~180 kB module, over the 150 kB-per-file budget;
+        // Preact is ~10 kB. Development keeps React for Fast Refresh.
+        ...(command === 'build' ? PREACT_ALIASES : []),
+      ],
     },
     optimizeDeps: {
       include: [
@@ -93,9 +108,8 @@ export default defineConfig(({ mode, command }) => {
       },
       minify: 'esbuild',
       reportCompressedSize: false,
-      // NOTE - Budget per file (KB): every chunk fits it but React DOM's
-      // client, one ~180 KB module no bundler can split (see
-      // config/vite.production.config/utils/splitChunkVendors.ts)
+      // NOTE - Budget per file (kB): a chunk over it is reported on every
+      // build (React runs as Preact in production to fit, see PREACT_ALIASES)
       chunkSizeWarningLimit: 150,
     },
     server: {

@@ -3,12 +3,12 @@
 // that work together stay together; React, React DOM and Scheduler share
 // one chunk so no chunk cycle can run Scheduler's CommonJS exports before
 // they exist. Anything not listed stays with the code that imports it.
-// React DOM's client is the one file over budget: it ships as a single
-// ~250 KB module, which no bundler can split.
+// Production builds alias React to Preact (vite.config.mts): React DOM's
+// client is a single ~180 kB module, over budget and impossible to split.
 const VENDOR_GROUPS: [name: string, packages: RegExp][] = [
   [
     'react-runtime',
-    /node_modules\/(react|react-dom|scheduler|react-is|use-sync-external-store)\//,
+    /node_modules\/(react|react-dom|scheduler|react-is|use-sync-external-store|preact)\//,
   ],
   ['router', /node_modules\/(react-router|cookie|set-cookie-parser)\//],
   [
