@@ -65,29 +65,32 @@ export const CompareStyle = styled.section`
     text-transform: uppercase;
   }
 
-  /* ── the face-off card ──
-     Both halves and the seam pivot on one point, the centre of the VS
-     badge, so the badge always sits on the seam. The art is square and
-     scales with the card's width, hence cqi rather than %. */
+  /* ── the face-off card: a diagonal arena over level name plates ── */
   .versus {
-    --art: min(50cqi - 20px, 210px);
-    --vs-y: calc(14px + var(--art) / 2);
-    --tilt: 8deg;
     container-type: inline-size;
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     overflow: hidden;
     border-radius: var(--radius-card, 20px);
-    background: color-mix(in srgb, var(--b) 62%, #0b1626);
+    background: #0b1626;
     box-shadow: 0 18px 34px rgba(23, 45, 69, 0.25);
     color: #fff;
     isolation: isolate;
   }
+
+  /* the arena: both halves and the seam pivot on the VS badge, which sits
+     dead centre, so the badge is always on the seam */
+  .arena {
+    --tilt: 14deg;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: clamp(150px, 46cqi, 250px);
+    overflow: hidden;
+    background: color-mix(in srgb, var(--b) 62%, #0b1626);
+  }
   .half,
   .seam {
     position: absolute;
-    top: var(--vs-y);
+    top: 50%;
     pointer-events: none;
   }
   .half {
@@ -99,7 +102,6 @@ export const CompareStyle = styled.section`
     transform-origin: 100% 50%;
     rotate: var(--tilt);
     background: color-mix(in srgb, var(--a) 62%, #0b1626);
-    animation: compare-half 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .seam {
     z-index: 1;
@@ -114,71 +116,227 @@ export const CompareStyle = styled.section`
       0 0 40px 10px rgba(255, 218, 85, 0.25);
     animation: compare-seam 520ms cubic-bezier(0.7, 0, 0.2, 1) 120ms both;
   }
-  /* each side is its own query container: names scale to the column */
-  .fighter {
-    container-type: inline-size;
+
+  /* each half of the arena is one big control */
+  .portrait {
     position: relative;
     z-index: 2;
     display: grid;
-    grid-template-rows: auto auto auto auto 1fr;
-    justify-items: center;
-    gap: 6px;
+    place-items: center;
     min-width: 0;
-    padding: 14px 10px 14px;
-    text-align: center;
-    animation: compare-in 520ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+    padding: 12px 18px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .fighter--b {
+  /* the fighter's first type, glowing behind it */
+  .portrait::before {
+    content: '';
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--halo) 75%, transparent) 0,
+      color-mix(in srgb, var(--halo) 25%, transparent) 45%,
+      transparent 70%
+    );
+    transition: scale 200ms ease-out;
+  }
+  /* pinned to the portrait box: the art always fits the arena's height */
+  .portrait img {
+    position: absolute;
+    inset: 12px 18px;
+    width: calc(100% - 36px);
+    height: calc(100% - 24px);
+    object-fit: contain;
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45));
+    transition: scale 200ms cubic-bezier(0.3, 1.4, 0.5, 1);
+    animation: compare-in 560ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
+  }
+  .portrait--b img {
+    transform: scaleX(-1);
     animation-name: compare-in-b;
   }
-  .art {
+  .portrait:hover img {
+    scale: 1.06;
+  }
+  .portrait:hover::before {
+    scale: 1.12;
+  }
+  .portrait:active img {
+    scale: 0.95;
+  }
+  .portrait:focus-visible {
+    outline: 3px solid #ffda55;
+    outline-offset: -6px;
+    border-radius: 18px;
+  }
+  /* swap hint in the outer top corner */
+  .edit {
+    position: absolute;
+    top: 10px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(11, 22, 38, 0.45);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+    transition:
+      background 160ms ease-out,
+      rotate 300ms ease-out;
+  }
+  .portrait--a .edit {
+    left: 10px;
+  }
+  .portrait--b .edit {
+    right: 10px;
+  }
+  .edit svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .portrait:hover .edit {
+    background: #ffda55;
+    rotate: 180deg;
+  }
+  .portrait:hover .edit svg {
+    stroke: #0b1626;
+  }
+  /* an empty corner: a ring that breathes until it is tapped */
+  .slot {
     position: relative;
     display: grid;
     place-items: center;
-    width: 100%;
+    width: min(70%, 120px);
     aspect-ratio: 1;
-    max-width: 210px;
-    /* the fighter's first type, glowing behind it */
-    background: radial-gradient(
-      circle at 50% 55%,
-      color-mix(in srgb, var(--halo) 75%, transparent) 0,
-      color-mix(in srgb, var(--halo) 30%, transparent) 38%,
-      transparent 68%
-    );
+    border: 2.5px dashed rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.22);
+    font-family: var(--font-display);
+    font-size: clamp(30px, 10cqi, 46px);
+    line-height: 1;
+    color: #ffda55;
+    animation: compare-breathe 1.8s ease-in-out infinite;
   }
-  .art img {
-    width: 92%;
-    height: 92%;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45));
+  .portrait:hover .slot {
+    border-color: #ffda55;
   }
-  .fighter--b .art img {
-    transform: scaleX(-1);
-  }
-  .fighter[data-leader='true'] .art img {
-    animation: compare-flex 1.6s ease-in-out 900ms infinite alternate;
-  }
-  .placeholder {
+
+  .vs {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
     display: grid;
     place-items: center;
-    width: 54%;
-    aspect-ratio: 1;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.28);
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.18);
+    background: radial-gradient(
+      circle at 35% 30%,
+      #fff2b0,
+      #ffda55 55%,
+      #f2b600
+    );
+    box-shadow:
+      0 0 0 4px #0b1626,
+      0 8px 18px rgba(0, 0, 0, 0.4);
+    color: #0b1626;
     font-family: var(--font-display);
-    font-size: 40px;
-    color: #ffda55;
+    font-size: 19px;
+    pointer-events: none;
+    animation: compare-vs 600ms cubic-bezier(0.3, 1.6, 0.5, 1) 520ms both;
+  }
+  /* the shockwave when the badge lands */
+  .vs::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 3px solid #ffda55;
+    border-radius: 50%;
+    opacity: 0;
+    animation: compare-shock 800ms ease-out 760ms;
+  }
+
+  /* ── name plates: one shared row grid, so both sides stay level ── */
+  .plates {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    border-top: 4px solid #ffda55;
+  }
+  .plates::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    background: rgba(255, 255, 255, 0.14);
+  }
+  /* no container-type here: containment would stop the subgrid, so the
+     sizes below read the whole card (.versus), two plates wide */
+  .plate {
+    grid-row: span 3;
+    display: grid;
+    grid-template-rows: subgrid;
+    justify-items: center;
+    align-items: start;
+    row-gap: 8px;
+    min-width: 0;
+    padding: 14px 10px 16px;
+    background: color-mix(in srgb, var(--a) 34%, #0b1626);
+    text-align: center;
+  }
+  .plate--b {
+    background: color-mix(in srgb, var(--b) 34%, #0b1626);
+  }
+  .plate[data-leader='true'] {
+    background:
+      radial-gradient(
+        120% 90% at 50% 0,
+        rgba(255, 218, 85, 0.28),
+        transparent 70%
+      ),
+      color-mix(in srgb, var(--a) 34%, #0b1626);
+  }
+  .plate--b[data-leader='true'] {
+    background:
+      radial-gradient(
+        120% 90% at 50% 0,
+        rgba(255, 218, 85, 0.28),
+        transparent 70%
+      ),
+      color-mix(in srgb, var(--b) 34%, #0b1626);
   }
   .fighter-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px 6px;
     margin: 0;
     max-width: 100%;
     font-family: var(--font-display);
-    /* the longest word must fit the column (Dela runs ~0.86em a letter) */
+    /* the longest word must fit its plate (Dela runs ~0.86em a letter) */
     font-size: clamp(
       11px,
-      min(11cqi, calc(78cqi / (var(--word, 8) * 0.86))),
-      26px
+      min(5cqi, calc(43cqi / (var(--word, 8) * 0.86))),
+      24px
     );
     font-weight: 400;
     line-height: 1.1 !important;
@@ -201,6 +359,14 @@ export const CompareStyle = styled.section`
     outline: 2px solid #ffda55;
     outline-offset: 2px;
   }
+  .crown {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    fill: #ffda55;
+    filter: drop-shadow(0 0 6px rgba(255, 218, 85, 0.7));
+    animation: compare-crown 560ms cubic-bezier(0.3, 1.6, 0.5, 1) 1000ms both;
+  }
   .tier {
     display: inline-flex;
     align-items: center;
@@ -222,11 +388,17 @@ export const CompareStyle = styled.section`
     font-family: var(--font-display);
     font-weight: 400;
   }
+  .tier--empty {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: normal;
+  }
   .types {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 4px;
+    min-height: 22px;
     margin: 0;
   }
   .types span {
@@ -237,107 +409,11 @@ export const CompareStyle = styled.section`
     font-weight: 700;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   }
-  /* below the badge the seam leans left, and so do the lines under it:
-     each row keeps clear of the seam in both halves */
-  .fighter-name {
-    translate: -4px 0;
-  }
-  .tier,
-  .types {
-    translate: -9px 0;
-  }
-  .change {
-    translate: -16px 0;
-  }
-  @container (max-width: 170px) {
-    .change .long {
-      display: none;
-    }
+  @container (max-width: 340px) {
     .types span {
       padding: 2px 7px;
       font-size: 11px;
     }
-  }
-  .change {
-    align-self: end;
-    min-height: 44px;
-    min-width: 76px;
-    max-width: 100%;
-    padding: 0 14px;
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.18);
-    color: #fff;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .change:hover {
-    background: rgba(0, 0, 0, 0.32);
-  }
-  .change:focus-visible {
-    outline: 2px solid #ffda55;
-    outline-offset: 2px;
-  }
-  .crown {
-    position: absolute;
-    z-index: 2;
-    bottom: 2px;
-    left: 50%;
-    translate: -50% 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px 3px 7px;
-    border-radius: 999px;
-    background: #ffda55;
-    color: #2a1b00;
-    font-size: 12px;
-    font-weight: 800;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    animation: compare-crown 560ms cubic-bezier(0.3, 1.6, 0.5, 1) 1000ms both;
-  }
-  .crown svg {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-  }
-  .vs {
-    position: absolute;
-    z-index: 3;
-    left: 50%;
-    top: var(--vs-y);
-    translate: -50% -50%;
-    display: grid;
-    place-items: center;
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at 35% 30%,
-      #fff2b0,
-      #ffda55 55%,
-      #f2b600
-    );
-    box-shadow:
-      0 0 0 4px #0b1626,
-      0 8px 18px rgba(0, 0, 0, 0.4);
-    color: #0b1626;
-    font-family: var(--font-display);
-    font-size: 19px;
-    animation: compare-vs 600ms cubic-bezier(0.3, 1.6, 0.5, 1) 520ms both;
-  }
-  /* the shockwave when the badge lands */
-  .vs::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border: 3px solid #ffda55;
-    border-radius: 50%;
-    opacity: 0;
-    animation: compare-shock 800ms ease-out 760ms;
   }
 
   .sr-only {
@@ -735,13 +811,13 @@ export const CompareStyle = styled.section`
   @keyframes compare-in {
     from {
       opacity: 0;
-      transform: translateX(-30px);
+      translate: -40px 0;
     }
   }
   @keyframes compare-in-b {
     from {
       opacity: 0;
-      transform: translateX(30px);
+      translate: 40px 0;
     }
   }
   @keyframes compare-vs {
@@ -765,21 +841,16 @@ export const CompareStyle = styled.section`
       scale: 1 0;
     }
   }
-  @keyframes compare-half {
-    from {
-      translate: -40% -50%;
+  @keyframes compare-breathe {
+    50% {
+      scale: 1.06;
+      box-shadow: 0 0 0 8px rgba(255, 218, 85, 0.12);
     }
   }
   @keyframes compare-crown {
     from {
       transform: translateY(-14px) scale(0.6);
       opacity: 0;
-    }
-  }
-  @keyframes compare-flex {
-    to {
-      translate: 0 -6px;
-      scale: 1.04;
     }
   }
   @keyframes compare-pull {
@@ -794,16 +865,18 @@ export const CompareStyle = styled.section`
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .fighter,
-    .half,
+    .slot,
     .seam,
     .vs,
     .vs::after,
     .crown,
     .shape,
     .rope::before,
-    .fighter[data-leader='true'] .art img {
+    .portrait img,
+    .portrait::before,
+    .edit {
       animation: none;
+      transition: none;
     }
   }
 `

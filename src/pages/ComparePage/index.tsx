@@ -224,114 +224,128 @@ function PickerSheet({
   )
 }
 
-function Fighter({
+const haloOf = (pokemon: any) =>
+  TYPE_DATA[typeNames(pokemon)[0] as keyof typeof TYPE_DATA]?.color ??
+  'transparent'
+
+/**
+ * One half of the arena. The whole portrait is the control: tap the
+ * Pokémon to swap it, tap the empty ring to pick one.
+ */
+function Portrait({
   pokemon,
   side,
-  leader,
   loading,
   onChange,
 }: {
   pokemon: any
   side: Side
-  leader: boolean
   loading: boolean
   onChange: () => void
 }) {
+  const label = pokemon
+    ? `Đổi ${pokemonLabel(pokemon.name)} (đấu thủ ${SIDE_NAME[side]})`
+    : `Chọn đấu thủ ${SIDE_NAME[side]}`
+  return (
+    <button
+      type="button"
+      className={`portrait portrait--${side}`}
+      data-empty={!pokemon}
+      aria-label={label}
+      onClick={onChange}
+      style={{ '--halo': haloOf(pokemon) } as CSSProperties}
+    >
+      {pokemon ? (
+        <img
+          key={pokemon.id}
+          src={getPokemonImage(pokemon.id)}
+          alt=""
+          width={200}
+          height={200}
+          decoding="async"
+        />
+      ) : (
+        <span className="slot" aria-hidden="true">
+          {loading ? '…' : '+'}
+        </span>
+      )}
+      {pokemon && (
+        <span className="edit" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5" />
+          </svg>
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** Name plate under the arena; rows line up with the other side's. */
+function Plate({
+  pokemon,
+  side,
+  leader,
+  loading,
+}: {
+  pokemon: any
+  side: Side
+  leader: boolean
+  loading: boolean
+}) {
   const power = pokemon ? getPokemonPower(pokemon.stats ?? []) : null
+  const name = pokemon
+    ? pokemonLabel(pokemon.name)
+    : `Đấu thủ ${SIDE_NAME[side]}`
   return (
     <div
-      className={`fighter fighter--${side}`}
+      className={`plate plate--${side}`}
       data-leader={leader}
-      style={
-        {
-          '--tier': power?.color.a,
-          '--halo':
-            TYPE_DATA[typeNames(pokemon)[0] as keyof typeof TYPE_DATA]?.color ??
-            'transparent',
-        } as CSSProperties
-      }
+      style={{ '--tier': power?.color.a } as CSSProperties}
     >
-      <div className="art">
-        {leader && (
-          <span className="crown">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.6 9H4.6z" />
-            </svg>
-            Mạnh hơn
-          </span>
-        )}
-        {pokemon ? (
-          <img
-            key={pokemon.id}
-            src={getPokemonImage(pokemon.id)}
-            alt=""
-            width={200}
-            height={200}
-            decoding="async"
-          />
-        ) : (
-          <span className="placeholder" aria-hidden="true">
-            {loading ? '…' : '?'}
-          </span>
-        )}
-      </div>
       <h2
         className="fighter-name"
         style={
           {
             '--word': Math.max(
-              ...(pokemon ? pokemonLabel(pokemon.name) : 'Đấu thủ')
-                .split(/\s+/)
-                .map((word: string) => word.length)
+              ...name.split(/\s+/).map((word: string) => word.length)
             ),
           } as CSSProperties
         }
       >
+        {leader && (
+          <svg className="crown" viewBox="0 0 24 24" aria-label="Mạnh hơn">
+            <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-1.6 9H4.6z" />
+          </svg>
+        )}
         {pokemon ? (
-          <LinkCustom to={`/pokemon/${pokemon.name}`}>
-            {pokemonLabel(pokemon.name)}
-          </LinkCustom>
+          <LinkCustom to={`/pokemon/${pokemon.name}`}>{name}</LinkCustom>
         ) : loading ? (
           'Đang tải…'
         ) : (
-          `Đấu thủ ${SIDE_NAME[side]}`
+          name
         )}
       </h2>
-      {power && (
+      {power ? (
         <p className="tier">
           <b>{power.rank}</b>
           <span>{power.bst} BST</span>
         </p>
+      ) : (
+        <p className="tier tier--empty">Chạm ô trên để chọn</p>
       )}
-      {pokemon && (
-        <p className="types">
-          {(pokemon.types ?? []).map(({ type }: { type: { name: string } }) => {
-            const info = TYPE_DATA[type.name as keyof typeof TYPE_DATA]
-            return (
-              <span
-                key={type.name}
-                style={{ '--type': info?.color } as CSSProperties}
-              >
-                {info?.label ?? type.name}
-              </span>
-            )
-          })}
-        </p>
-      )}
-      <button
-        type="button"
-        className="change"
-        onClick={onChange}
-        aria-label={`${pokemon ? 'Đổi' : 'Chọn'} đấu thủ ${SIDE_NAME[side]}`}
-      >
-        {pokemon ? (
-          'Đổi'
-        ) : (
-          <>
-            Chọn<span className="long"> Pokémon</span>
-          </>
-        )}
-      </button>
+      <p className="types">
+        {(pokemon?.types ?? []).map(({ type }: { type: { name: string } }) => {
+          const info = TYPE_DATA[type.name as keyof typeof TYPE_DATA]
+          return (
+            <span
+              key={type.name}
+              style={{ '--type': info?.color } as CSSProperties}
+            >
+              {info?.label ?? type.name}
+            </span>
+          )
+        })}
+      </p>
     </div>
   )
 }
@@ -450,25 +464,39 @@ export default function ComparePage() {
         // replay the clash whenever the line-up changes
         key={`${pair.a}|${pair.b}`}
       >
-        <span className="half" aria-hidden="true" />
-        <span className="seam" aria-hidden="true" />
-        <Fighter
-          pokemon={a}
-          side="a"
-          leader={leader === 'a'}
-          loading={!!pair.a && loadingA && !a}
-          onChange={() => setPicking('a')}
-        />
-        <span className="vs" aria-hidden="true">
-          VS
-        </span>
-        <Fighter
-          pokemon={b}
-          side="b"
-          leader={leader === 'b'}
-          loading={!!pair.b && loadingB && !b}
-          onChange={() => setPicking('b')}
-        />
+        <div className="arena">
+          <span className="half" aria-hidden="true" />
+          <span className="seam" aria-hidden="true" />
+          <Portrait
+            pokemon={a}
+            side="a"
+            loading={!!pair.a && loadingA && !a}
+            onChange={() => setPicking('a')}
+          />
+          <span className="vs" aria-hidden="true">
+            VS
+          </span>
+          <Portrait
+            pokemon={b}
+            side="b"
+            loading={!!pair.b && loadingB && !b}
+            onChange={() => setPicking('b')}
+          />
+        </div>
+        <div className="plates">
+          <Plate
+            pokemon={a}
+            side="a"
+            leader={leader === 'a'}
+            loading={!!pair.a && loadingA && !a}
+          />
+          <Plate
+            pokemon={b}
+            side="b"
+            leader={leader === 'b'}
+            loading={!!pair.b && loadingB && !b}
+          />
+        </div>
       </section>
 
       {result && both ? (
