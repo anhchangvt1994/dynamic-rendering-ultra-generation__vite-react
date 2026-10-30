@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import styled from 'styled-components'
 import { pokemonLabel } from 'components/pokemon-page/format.mjs'
-import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
+import { getFormImages, showNextImage } from 'pages/PokemonPage/navigation.mjs'
 import { getRecent, subscribeRecent } from 'utils/recent.mjs'
 
 const RecentStyle = styled.section`
@@ -24,6 +24,11 @@ const RecentStyle = styled.section`
   }
   ol::-webkit-scrollbar {
     display: none;
+  }
+  /* the row scrolls: chips keep their width instead of being squeezed
+     until their names spill into the next one */
+  li {
+    flex: none;
   }
   a {
     display: inline-flex;
@@ -53,6 +58,10 @@ const RecentStyle = styled.section`
     height: 38px;
     image-rendering: pixelated;
   }
+  /* a fallback artwork is a large image scaled down: smooth it */
+  img[data-step] {
+    image-rendering: auto;
+  }
 `
 
 // JSON snapshot: a stable string for useSyncExternalStore
@@ -61,7 +70,8 @@ const snapshot = () => JSON.stringify(getRecent())
 /** "Vừa xem": the last Pokémon opened, newest first. Hidden when empty. */
 export default function RecentStrip() {
   const json = useSyncExternalStore(subscribeRecent, snapshot, () => '[]')
-  const recent: { id: number; name: string }[] = JSON.parse(json)
+  const recent: { id: number; name: string; baseId?: number }[] =
+    JSON.parse(json)
   if (!recent.length) return null
   return (
     <RecentStyle aria-labelledby="recent-heading">
@@ -71,7 +81,17 @@ export default function RecentStrip() {
           <li key={mon.name}>
             <LinkCustom to={`/pokemon/${mon.name}`}>
               <img
-                src={getPokemonSprite(mon.id)}
+                src={getFormImages(mon.id, mon.baseId, { small: true })[0]}
+                onError={(event) => {
+                  // forms without a sprite (Koraidon's builds) fall back to
+                  // their artwork, then the default form's; never a hole
+                  const image = event.currentTarget
+                  const sources = getFormImages(mon.id, mon.baseId, {
+                    small: true,
+                  })
+                  if (!showNextImage(image, sources))
+                    image.style.visibility = 'hidden'
+                }}
                 alt=""
                 width={38}
                 height={38}

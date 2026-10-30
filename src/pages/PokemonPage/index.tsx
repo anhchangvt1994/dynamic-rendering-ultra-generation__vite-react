@@ -244,8 +244,15 @@ const PokemonPage = () => {
   // ones swiped past mid-gesture
   useEffect(() => {
     if (!isShowLoading && pokemonState?.id)
-      pushRecent({ id: pokemonState.id, name: pokemonState.name })
-  }, [isShowLoading, pokemonState?.id, pokemonState?.name])
+      pushRecent({
+        id: pokemonState.id,
+        name: pokemonState.name,
+        // a form's own images can be missing: the strip falls back to these
+        ...(speciesId && speciesId !== pokemonState.id
+          ? { baseId: speciesId }
+          : {}),
+      })
+  }, [isShowLoading, pokemonState?.id, pokemonState?.name, speciesId])
 
   useEffect(() => {
     if (
