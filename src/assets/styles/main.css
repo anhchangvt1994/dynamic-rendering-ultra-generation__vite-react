@@ -62,6 +62,22 @@ input:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
+/* Ink reveal (utils/inkReveal.ts): opening a Pokémon, its dark world grows
+   out of the tapped card as a circle over the page you leave. */
+html[data-ink]::view-transition-old(root) {
+  animation: none;
+}
+html[data-ink]::view-transition-new(root) {
+  animation: ink-reveal 620ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@keyframes ink-reveal {
+  from {
+    clip-path: circle(0 at var(--ink-x, 50%) var(--ink-y, 50%));
+  }
+  to {
+    clip-path: circle(150vmax at var(--ink-x, 50%) var(--ink-y, 50%));
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

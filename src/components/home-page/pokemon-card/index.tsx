@@ -6,6 +6,7 @@ import {
 import { pokemonLabel } from 'components/pokemon-page/format.mjs'
 import { useState, useSyncExternalStore } from 'react'
 import { isCaught, subscribeCaught } from 'utils/caught.mjs'
+import { prepareInkReveal } from 'utils/inkReveal'
 import { pokemonId, GENERATIONS } from 'pages/HomePage/catalog.mjs'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import { typesOf } from 'components/pokemon-page/type-index.mjs'
@@ -29,6 +30,8 @@ const PokemonCard = ({ pokemon }) => {
   return (
     <PokemonCardStyle
       to={`/pokemon/${getSlug(pokemon.name)}`}
+      viewTransition
+      onClick={(event) => prepareInkReveal(event)}
       data-caught={caught}
       style={{ '--t1': first, '--t2': second } as CSSProperties}
       aria-label={`${pokemonLabel(pokemon.name)}, số ${id}${caught ? ', đã bắt' : ''}`}
