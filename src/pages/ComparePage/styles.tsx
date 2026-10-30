@@ -324,11 +324,8 @@ export const CompareStyle = styled.section`
       color-mix(in srgb, var(--b) 34%, #0b1626);
   }
   .fighter-name {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 2px 6px;
+    /* plain inline text: the crown rides the first line instead of
+       claiming a line of its own; fitPlateName() caps it at two lines */
     margin: 0;
     max-width: 100%;
     font-family: var(--font-display);
@@ -344,9 +341,10 @@ export const CompareStyle = styled.section`
     text-wrap: balance;
   }
   .fighter-name a {
-    display: inline-block;
+    /* inline padding widens the tap target without moving the lines */
     padding: 14px 0;
-    margin: -14px 0;
+    /* the global reset forces 1.5; the name's lines must stay 1.1 */
+    line-height: inherit !important;
     color: #fff;
     text-decoration: none;
   }
@@ -360,9 +358,11 @@ export const CompareStyle = styled.section`
     outline-offset: 2px;
   }
   .crown {
-    flex: none;
+    display: inline-block;
     width: 1.1em;
     height: 1.1em;
+    margin-right: 0.3em;
+    vertical-align: -0.2em;
     fill: #ffda55;
     filter: drop-shadow(0 0 6px rgba(255, 218, 85, 0.7));
     animation: compare-crown 560ms cubic-bezier(0.3, 1.6, 0.5, 1) 1000ms both;

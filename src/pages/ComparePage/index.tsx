@@ -14,7 +14,7 @@ import {
   getPokemonSprite,
 } from 'pages/PokemonPage/navigation.mjs'
 import { getPokemonPower } from 'pages/PokemonPage/power.mjs'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   STAT_ORDER,
@@ -280,6 +280,56 @@ function Portrait({
   )
 }
 
+const NAME_MIN = 11
+const NAME_LINES = 2
+
+/**
+ * Shrinks a plate name until it fits in two lines without any word
+ * overflowing. Starts from the CSS size each time, so it grows back
+ * when the plate gets wider.
+ */
+function fitPlateName(title: HTMLElement) {
+  title.style.fontSize = ''
+  let size = parseFloat(getComputedStyle(title).fontSize)
+  // offsetHeight, not scrollHeight: the link's tap padding overflows on purpose
+  const fits = () =>
+    title.scrollWidth <= title.clientWidth + 1 &&
+    title.offsetHeight <= size * 1.1 * NAME_LINES + 2
+  while (!fits() && size > NAME_MIN) {
+    size = Math.max(NAME_MIN, size - 1)
+    title.style.fontSize = `${size}px`
+  }
+}
+
+function useFitPlateName(text: string) {
+  const ref = useRef<HTMLHeadingElement>(null)
+  useLayoutEffect(() => {
+    const title = ref.current
+    if (!title) return
+    let width = 0
+    const fit = () => {
+      // only width changes matter; our own height changes must not loop
+      if (title.clientWidth === width) return
+      width = title.clientWidth
+      fitPlateName(title)
+    }
+    fit()
+    let alive = true
+    document.fonts?.ready.then(() => {
+      if (!alive) return
+      width = 0
+      fit()
+    })
+    const observer = new ResizeObserver(fit)
+    observer.observe(title)
+    return () => {
+      alive = false
+      observer.disconnect()
+    }
+  }, [text])
+  return ref
+}
+
 /** Name plate under the arena; rows line up with the other side's. */
 function Plate({
   pokemon,
@@ -296,6 +346,7 @@ function Plate({
   const name = pokemon
     ? pokemonLabel(pokemon.name)
     : `Đấu thủ ${SIDE_NAME[side]}`
+  const nameRef = useFitPlateName(loading && !pokemon ? 'loading' : name)
   return (
     <div
       className={`plate plate--${side}`}
@@ -303,6 +354,7 @@ function Plate({
       style={{ '--tier': power?.color.a } as CSSProperties}
     >
       <h2
+        ref={nameRef}
         className="fighter-name"
         style={
           {
