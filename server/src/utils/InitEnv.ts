@@ -27,12 +27,18 @@ const envModeList = {
   production_production: 'production',
 }
 export const ENV_MODE = envModeList[`${ENV}_${MODE}`] as
-  | 'development'
-  | 'staging'
-  | 'uat'
-  | 'production'
+  'development' | 'staging' | 'uat' | 'production'
 
 interface IProcessENV {
+  // NOTE - Share cards (server/src/og), set in server/.env
+  /** PokéAPI REST API, ex: https://pokeapi.co/api/v2 */
+  POKEAPI_BASE_URL?: string
+  /** PokéAPI sprite store: <base>/<id>.png, <base>/other/official-artwork/... */
+  POKEAPI_SPRITES_BASE_URL?: string
+  /** give up on a PokéAPI / sprite request after this long (default 8000) */
+  SHARE_CARD_FETCH_TIMEOUT_MS?: string
+  /** share cards rendered at the same time (default 2) */
+  SHARE_CARD_MAX_RENDERS?: string
   HOST: string
   PLATFORM: string
   HOSTNAME: string

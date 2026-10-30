@@ -3,6 +3,7 @@ import path from 'path'
 import { TemplatedApp } from 'uWebSockets.js'
 import ServerConfig from '../server.config'
 import Console from '../utils/ConsoleHandler'
+import { PROCESS_ENV } from '../utils/InitEnv'
 import {
   CARD_HEIGHT,
   CARD_WIDTH,
@@ -20,11 +21,22 @@ import {
 
 // bump with SHARE_CARD_VERSION (src/pages/ComparePage) when the card changes
 const CARD_VERSION = 1
-const POKEAPI = 'https://pokeapi.co/api/v2'
-const SPRITES =
-  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon'
-const FETCH_TIMEOUT_MS = 8000
-const MAX_RENDERS = 2
+
+// NOTE - Where the data comes from, per project: server/.env
+// (POKEAPI_BASE_URL, POKEAPI_SPRITES_BASE_URL; see InitEnv's IProcessENV)
+const baseUrl = (name: 'POKEAPI_BASE_URL' | 'POKEAPI_SPRITES_BASE_URL') => {
+  const value = String(PROCESS_ENV[name] || '').trim()
+  try {
+    return new URL(value).href.replace(/\/+$/, '')
+  } catch {
+    Console.error(`Share cards are off: ${name} is not a URL in server/.env`)
+    return ''
+  }
+}
+const POKEAPI = baseUrl('POKEAPI_BASE_URL')
+const SPRITES = baseUrl('POKEAPI_SPRITES_BASE_URL')
+const FETCH_TIMEOUT_MS = Number(PROCESS_ENV.SHARE_CARD_FETCH_TIMEOUT_MS) || 8000
+const MAX_RENDERS = Number(PROCESS_ENV.SHARE_CARD_MAX_RENDERS) || 2
 
 const cacheDir = (() => {
   const root =
@@ -187,6 +199,12 @@ const OgRouter = (() => {
     res.onAborted(() => {
       aborted = true
     })
+    if (!POKEAPI || !SPRITES) {
+      res.cork(() =>
+        res.writeStatus('503 Service Unavailable').end('Share cards are off')
+      )
+      return
+    }
     const pair = readCardPath(req.getUrl())
     if (!pair) {
       res.cork(() => res.writeStatus('404 Not Found').end('Not found'))
