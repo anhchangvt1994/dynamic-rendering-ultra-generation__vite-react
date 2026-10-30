@@ -5,6 +5,7 @@ import {
   pickEncounterIds,
   seedFromDate,
   tint,
+  wordLength,
 } from './encounter.mjs'
 
 const at = (s) => new Date(2026, 9, 30, 17, 52, s)
@@ -41,6 +42,11 @@ test('cards from the type index; curated ones keep their copy', () => {
   assert.equal(pikachu.coin, '/images/pokemon/25.webp')
 
   assert.equal(buildEncounter(132).name, '')
+})
+
+test('an ellipsis counts as two letters of the sound word', () => {
+  assert.equal(wordLength('ZAP!'), 4)
+  assert.equal(wordLength('HMM…'), 5)
 })
 
 test('tint mixes toward white', () => {

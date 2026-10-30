@@ -8,7 +8,11 @@ import {
   getPokemonImage,
   getPokemonSprite,
 } from 'pages/PokemonPage/navigation.mjs'
-import { buildEncounter, pickEncounterIds } from './encounter.mjs'
+import {
+  buildEncounter,
+  pickEncounterIds,
+  wordLength,
+} from './encounter.mjs'
 import { HeroStyle } from './styles'
 
 export default function FeaturedEncounter({
@@ -76,7 +80,11 @@ export default function FeaturedEncounter({
           <span>{dex}</span>
         </div>
         <div className="encounter-art">
-          <span className="encounter-word" aria-hidden="true">
+          <span
+            className="encounter-word"
+            aria-hidden="true"
+            style={{ '--len': wordLength(pokemon.word) } as CSSProperties}
+          >
             {pokemon.word}
           </span>
           <span className="orbit orbit-one" aria-hidden="true" />

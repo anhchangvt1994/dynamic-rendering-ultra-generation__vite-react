@@ -641,7 +641,8 @@ export const BottomLineStyle = styled.div``
 
 export const HeroStyle = styled.section`
   display: grid;
-  grid-template-columns: 1.08fr 1fr;
+  /* minmax(0, …): a long word in the encounter must not widen the hero */
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
   min-height: 410px;
   border-radius: 26px;
   background: var(--ink);
@@ -802,6 +803,8 @@ export const HeroStyle = styled.section`
     min-height: 255px;
     display: grid;
     place-items: center;
+    /* the word behind sizes itself to this width (cqi) */
+    container-type: inline-size;
   }
   .encounter-art > a {
     width: 100%;
@@ -822,9 +825,13 @@ export const HeroStyle = styled.section`
   .encounter-art a:hover img {
     transform: rotate(-3deg) translateY(-5px) scale(1.035);
   }
+  /* any type's sound word ("TWINKLE!") fits the card: Dela runs ~0.86em
+     a capital, the letter-spacing gives 6px back per letter */
   .encounter-word {
+    --fit: calc((86cqi / var(--len, 5) + 6px) / 0.86);
     font-family: var(--font-display);
-    font-size: clamp(66px, 7.5vw, 100px);
+    font-size: min(clamp(66px, 7.5vw, 100px), var(--fit));
+    white-space: nowrap;
     letter-spacing: -6px;
     color: transparent;
     -webkit-text-stroke: 1px #172d4535;
@@ -943,7 +950,7 @@ export const HeroStyle = styled.section`
     object-fit: contain;
   }
   @media (max-width: 900px) and (min-width: 681px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     .hero-copy {
       padding-left: 25px;
     }
@@ -962,7 +969,7 @@ export const HeroStyle = styled.section`
     }
   }
   @media (max-width: 680px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     border-radius: 21px;
     .hero-copy {
       padding: 25px 23px 0;
@@ -1021,7 +1028,7 @@ export const HeroStyle = styled.section`
       width: 220px;
     }
     .encounter-word {
-      font-size: 78px;
+      font-size: min(78px, var(--fit));
     }
     .orbit {
       height: 154px;

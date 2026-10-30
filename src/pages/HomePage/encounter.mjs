@@ -53,6 +53,10 @@ const FLAVOR = {
   fairy: { word: 'TWINKLE!', note: 'Một chút phép màu cho ngày của bạn.' },
 }
 
+/** Letters the sound word takes up: "…" is about two capitals wide. */
+export const wordLength = (word) =>
+  [...word].reduce((length, char) => length + (char === '…' ? 2 : 1), 0)
+
 /** Hash of the local date and time, to the second (xmur3). */
 export function seedFromDate(date) {
   const pad = (n) => String(n).padStart(2, '0')
