@@ -1,6 +1,7 @@
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import { GENERATIONS } from 'pages/HomePage/catalog.mjs'
+import RerollArt from 'pages/HomePage/RerollArt'
 import { HeroStyle } from 'pages/HomePage/styles'
 import type { CSSProperties } from 'react'
 import styled from 'styled-components'
@@ -350,7 +351,12 @@ const TYPES = Object.values(TYPE_DATA)
 
 export default function HomeSkeleton() {
   return (
-    <HomeSkeletonStyle className="home-skeleton" role="status" aria-busy="true" data-page-skeleton>
+    <HomeSkeletonStyle
+      className="home-skeleton"
+      role="status"
+      aria-busy="true"
+      data-page-skeleton
+    >
       <span className="sr-only">Đang mở Pokédex…</span>
       <HeroStyle style={{ '--encounter': '#dde4ee' } as CSSProperties}>
         <div className="hero-copy">
@@ -389,7 +395,7 @@ export default function HomeSkeleton() {
         </div>
         <div className="encounter" aria-hidden="true">
           <span className="reroll">
-            <Pokeball />
+            <RerollArt />
           </span>
           <div className="encounter-top">
             <span>
@@ -427,7 +433,8 @@ export default function HomeSkeleton() {
             <FieldIcon name="spark" size={15} /> MỖI POKÉMON, MỘT CÂU CHUYỆN.
           </span>
           <span>
-            Hành trình của bạn bắt đầu ở đây <FieldIcon name="arrow" size={16} />
+            Hành trình của bạn bắt đầu ở đây{' '}
+            <FieldIcon name="arrow" size={16} />
           </span>
         </div>
         <section className="collection">

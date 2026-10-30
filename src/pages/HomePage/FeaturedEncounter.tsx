@@ -1,18 +1,15 @@
 import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
-import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
+import FieldIcon from 'components/common/FieldIcon'
 import {
   POKEMON_COUNT,
   getPokemonFallbackImage,
   getPokemonImage,
   getPokemonSprite,
 } from 'pages/PokemonPage/navigation.mjs'
-import {
-  buildEncounter,
-  pickEncounterIds,
-  wordLength,
-} from './encounter.mjs'
+import { buildEncounter, pickEncounterIds, wordLength } from './encounter.mjs'
+import RerollArt from './RerollArt'
 import { HeroStyle } from './styles'
 
 export default function FeaturedEncounter({
@@ -88,11 +85,7 @@ export default function FeaturedEncounter({
           title="Gặp ba Pokémon khác"
           onClick={reroll}
         >
-          {/* keyed by the roll: each tap replays the spin and sparkle */}
-          <Pokeball key={roll} className={roll ? 'is-rolling' : ''} />
-          <i key={`spark-${roll}`} className={roll ? 'is-rolling' : ''}>
-            ✦
-          </i>
+          <RerollArt roll={roll} />
         </button>
         <div className="encounter-top">
           <span>

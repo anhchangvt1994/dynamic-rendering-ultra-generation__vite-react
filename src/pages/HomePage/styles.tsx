@@ -786,30 +786,33 @@ export const HeroStyle = styled.section`
     font-weight: 700;
     letter-spacing: 1px;
   }
+  /* room for the reroll badge on the corner (13px still spare at 320px) */
+  .encounter-top > span:last-child {
+    margin-right: 10px;
+  }
   .encounter-top > span:first-child {
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  /* reroll: a little Poké Ball pinned on the card's corner like a sticker,
-     out of the header row (it would wrap on a 320px phone). The hero keeps
-     14px+ around the card; ::after gives a 44px touch target. */
+  /* reroll: a Poké Ball inside a refresh arrow, pinned on the card's
+     corner like a sticker, out of the header row (it would wrap on a 320px
+     phone). The hero keeps 14px+ around the card; ::after makes the touch
+     target 48px. */
   .reroll {
     position: absolute;
     z-index: 4;
-    top: -11px;
+    /* up and out far enough to clear the Pokédex number */
+    top: -15px;
     right: -11px;
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: #fff;
-    box-shadow:
-      0 0 0 1.5px #172d4540,
-      0 3px 0 #172d4526;
+    background: none;
     color: var(--ink);
     cursor: pointer;
     transition: transform 140ms ease-out;
@@ -817,48 +820,102 @@ export const HeroStyle = styled.section`
   .reroll::after {
     content: '';
     position: absolute;
-    inset: -8px;
+    inset: -6px;
+    border-radius: 50%;
   }
-  .reroll svg {
-    width: 25px;
-    height: 25px;
+  .reroll > * {
+    grid-area: 1 / 1;
   }
-  .reroll:hover svg,
-  .reroll:focus-visible svg {
+  .reroll-arrow {
+    width: 36px;
+    height: 36px;
+    overflow: visible;
+  }
+  .reroll-arc {
+    fill: none;
+    stroke: #ffda55;
+    stroke-width: 4;
+    stroke-linecap: round;
+    paint-order: stroke;
+    filter: drop-shadow(0 0 0.6px #172d45) drop-shadow(0 0 0.6px #172d45)
+      drop-shadow(0 0 0.6px #172d45);
+  }
+  .reroll-head {
+    fill: #ffda55;
+    stroke: #172d45;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+  }
+  .reroll-ball {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      0 0 0 1.5px #172d4540,
+      0 2px 0 #172d4526;
+  }
+  .reroll-ball svg {
+    width: 19px;
+    height: 19px;
+  }
+  /* at rest: the arrow drifts round when pointed at, the ball wiggles */
+  .reroll:hover .reroll-arrow,
+  .reroll:focus-visible .reroll-arrow {
+    animation: reroll-turn 1.4s linear infinite;
+  }
+  .reroll:hover .reroll-ball svg,
+  .reroll:focus-visible .reroll-ball svg {
     animation: reroll-wiggle 600ms ease-in-out;
   }
   .reroll:active {
     transform: translateY(2px) scale(0.92);
-    box-shadow:
-      0 0 0 1.5px #172d4540,
-      0 1px 0 #172d4526;
   }
   .reroll:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 3px;
+    outline: 2px solid #ffda55;
+    outline-offset: 2px;
   }
-  .reroll svg.is-rolling {
+  /* pressed: the arrow whips round, the ball spins with a catch wobble */
+  .reroll .reroll-arrow.is-rolling {
+    animation: reroll-whip 620ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .reroll .reroll-ball svg.is-rolling {
     animation: reroll-spin 720ms cubic-bezier(0.3, 1.4, 0.5, 1);
   }
-  .reroll i {
-    /* toward the card: on the right the hero's edge would clip it */
+  /* how far a star may rise: on wide screens the card sits 10-13px under
+     the hero's top edge, which would clip it; phones have the copy above */
+  .reroll-sparks {
+    --rise: -6px;
+    position: relative;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .reroll-sparks i {
     position: absolute;
-    top: -11px;
-    left: -9px;
-    width: auto;
-    height: auto;
-    background: none;
-    font-size: 13px;
+    left: 0;
+    top: 0;
+    font-size: calc(14px * var(--s, 1));
     font-style: normal;
-    color: #ffda55;
+    line-height: 1 !important;
     text-shadow:
       0 0 1px #172d45,
       0 0 1px #172d45;
+    translate: -50% -50%;
     opacity: 0;
-    pointer-events: none;
+    animation: reroll-burst 760ms cubic-bezier(0.2, 0.7, 0.3, 1) var(--t) both;
   }
-  .reroll i.is-rolling {
-    animation: reroll-spark 720ms ease-out;
+  @keyframes reroll-turn {
+    to {
+      rotate: 1turn;
+    }
+  }
+  @keyframes reroll-whip {
+    to {
+      rotate: 720deg;
+    }
   }
   @keyframes reroll-wiggle {
     25% {
@@ -882,20 +939,23 @@ export const HeroStyle = styled.section`
       rotate: 360deg;
     }
   }
-  @keyframes reroll-spark {
+  /* each star flies out along its angle, flares, twirls and fades */
+  @keyframes reroll-burst {
     0% {
       opacity: 0;
-      scale: 0.3;
-      translate: 4px 6px;
+      scale: 0.2;
+      rotate: 0deg;
     }
-    35% {
+    30% {
       opacity: 1;
-      scale: 1.35;
+      scale: 1.25;
     }
     to {
       opacity: 0;
-      scale: 0.8;
-      translate: -5px -10px;
+      scale: 0.7;
+      rotate: 140deg;
+      translate: calc(-50% + cos(var(--a)) * var(--d))
+        calc(-50% + max(sin(var(--a)) * var(--d), var(--rise)));
     }
   }
   /* each new Pokémon pops out of the ball */
@@ -909,10 +969,12 @@ export const HeroStyle = styled.section`
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .reroll svg,
-    .reroll i,
+    .reroll *,
     .encounter-art img {
       animation: none !important;
+    }
+    .reroll-sparks {
+      display: none;
     }
   }
   .encounter-top i {
@@ -1153,6 +1215,9 @@ export const HeroStyle = styled.section`
     }
     .encounter-word {
       font-size: min(78px, var(--fit));
+    }
+    .reroll-sparks {
+      --rise: -40px;
     }
     .orbit {
       height: 154px;
