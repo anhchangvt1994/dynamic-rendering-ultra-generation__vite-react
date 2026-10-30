@@ -93,6 +93,10 @@ export default defineConfig(({ mode, command }) => {
       },
       minify: 'esbuild',
       reportCompressedSize: false,
+      // NOTE - Budget per file (KB): every chunk fits it but React DOM's
+      // client, one ~180 KB module no bundler can split (see
+      // config/vite.production.config/utils/splitChunkVendors.ts)
+      chunkSizeWarningLimit: 150,
     },
     server: {
       host: '0.0.0.0',

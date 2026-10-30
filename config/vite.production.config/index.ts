@@ -8,12 +8,16 @@ import splitChunkRoutes from './utils/splitChunkRoutes'
 import splitChunkSchemas from './utils/splitChunkSchemas'
 import splitChunkStore from './utils/splitChunkStore'
 import splitChunkUtils from './utils/splitChunkUtils'
+import splitChunkPageParts from './utils/splitChunkPageParts'
+import splitChunkVendors from './utils/splitChunkVendors'
 
 export default (): any => {
   return {
     // NOTE - If you want to use Regex please use /...\/([^/]+)/ to split chunks right way
     plugins: [
       NormalSplitChunks([
+        splitChunkVendors,
+        splitChunkPageParts,
         splitChunkConstants,
         splitChunkContexts,
         splitChunkSchemas,
