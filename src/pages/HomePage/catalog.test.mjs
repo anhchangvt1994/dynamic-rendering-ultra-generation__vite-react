@@ -71,6 +71,7 @@ test('untrusted URL filters fall back safely and page size is bounded', () => {
       query: '',
       generation: '',
       type: '',
+      types: [],
       sort: 'number',
       caughtOnly: false,
       shown: 1025,
@@ -84,6 +85,7 @@ test('untrusted URL filters fall back safely and page size is bounded', () => {
       query: 'pika',
       generation: '1',
       type: 'electric',
+      types: ['electric'],
       sort: 'name',
       caughtOnly: true,
       shown: 48,
@@ -91,4 +93,22 @@ test('untrusted URL filters fall back safely and page size is bounded', () => {
   )
   assert.equal(readCatalogParams('?shown=-3').shown, 24)
   assert.equal(readCatalogParams('?shown=oops').shown, 24)
+})
+
+test('two types filter to species that have both', async () => {
+  const { readCatalogParams, idsWithTypes, toggleType } =
+    await import('./catalog.mjs')
+  const params = readCatalogParams('?type=dragon,ground,fire,nope')
+  assert.deepEqual(params.types, ['dragon', 'ground'])
+  assert.equal(params.type, 'dragon,ground')
+  assert.deepEqual(readCatalogParams('?type=nope').types, [])
+  const ids = idsWithTypes(['dragon', 'ground'])
+  assert.ok(ids.has(445)) // Garchomp
+  assert.ok(!ids.has(149)) // Dragonite is dragon/flying
+  assert.ok(idsWithTypes(['fire']).has(6))
+  assert.equal(idsWithTypes([]), undefined)
+  assert.deepEqual(toggleType([], 'fire'), ['fire'])
+  assert.deepEqual(toggleType(['fire'], 'flying'), ['fire', 'flying'])
+  assert.deepEqual(toggleType(['fire', 'flying'], 'water'), ['fire', 'water'])
+  assert.deepEqual(toggleType(['fire', 'flying'], 'fire'), ['flying'])
 })

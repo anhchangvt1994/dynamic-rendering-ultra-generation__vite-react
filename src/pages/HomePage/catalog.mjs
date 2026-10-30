@@ -1,3 +1,4 @@
+import { typesOf } from '../../components/pokemon-page/type-index.mjs'
 import { searchPokemon } from '../../components/common/SearchPokemonBar/search.mjs'
 import { POKEMON_COUNT } from '../PokemonPage/navigation.mjs'
 
@@ -40,14 +41,19 @@ export const pokemonId = (pokemon) =>
 export function readCatalogParams(search = '') {
   const params = new URLSearchParams(search)
   const shown = Number(params.get('shown'))
-  return {
+  const result = {
     query: params.get('q') || '',
     generation: GENERATIONS.some((x) => x.id === params.get('gen'))
       ? params.get('gen')
       : '',
-    type: TYPES.some((x) => x[0] === params.get('type'))
-      ? params.get('type')
-      : '',
+    // one or two types, "dragon" or "dragon,ground" (unknown ones dropped)
+    types: [
+      ...new Set(
+        (params.get('type') || '')
+          .split(',')
+          .filter((key) => TYPES.some((x) => x[0] === key))
+      ),
+    ].slice(0, 2),
     sort: ['number-desc', 'name'].includes(params.get('sort'))
       ? params.get('sort')
       : 'number',
@@ -57,6 +63,25 @@ export function readCatalogParams(search = '') {
         ? Math.min(POKEMON_COUNT, Math.floor(shown))
         : 24,
   }
+  // the URL value, normalised ('' when no valid type)
+  return { ...result, type: result.types.join(',') }
+}
+
+/** Ids of species that have every one of `types` (local type index). */
+export function idsWithTypes(types = []) {
+  if (!types.length) return undefined
+  const ids = new Set()
+  for (let id = 1; id <= POKEMON_COUNT; id++) {
+    const own = typesOf(id)
+    if (types.every((type) => own.includes(type))) ids.add(id)
+  }
+  return ids
+}
+
+/** Chip toggle: add (max two, the newest replaces the second), or remove. */
+export function toggleType(types = [], key) {
+  if (types.includes(key)) return types.filter((type) => type !== key)
+  return types.length < 2 ? [...types, key] : [types[0], key]
 }
 
 export function filterCatalog(list = [], options = {}) {

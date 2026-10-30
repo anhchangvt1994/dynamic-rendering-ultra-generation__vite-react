@@ -1,7 +1,4 @@
-import {
-  useGetPokemonListQuery,
-  useGetPokemonTypeQuery,
-} from 'app/apis/pokemon'
+import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import AppSelect from 'components/common/Select'
 import PokemonCard from 'components/home-page/pokemon-card'
@@ -20,8 +17,10 @@ import { POKEMON_COUNT } from 'pages/PokemonPage/navigation.mjs'
 import {
   filterCatalog,
   GENERATIONS,
+  idsWithTypes,
   pokemonId,
   readCatalogParams,
+  toggleType,
   TYPES,
 } from './catalog.mjs'
 import FeaturedEncounter from './FeaturedEncounter'
@@ -95,21 +94,12 @@ function HomePage() {
     limit: POKEMON_COUNT,
     offset: 0,
   })
-  // currentData prevents a previous type from flashing while another loads.
-  const {
-    currentData: typeData,
-    isFetching: fetchingType,
-    isError: typeError,
-    refetch: retryType,
-  } = useGetPokemonTypeQuery(filters.type, { skip: !filters.type })
+  // types come from the local type index: instant, and two can combine
   const typeIds = useMemo(
-    () =>
-      filters.type
-        ? new Set<number>(
-            (typeData?.pokemon ?? []).map((item) => pokemonId(item.pokemon))
-          )
-        : undefined,
-    [typeData, filters.type]
+    () => idsWithTypes(filters.types),
+    // filters.type is the normalised string form of filters.types
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters.type]
   )
   const entries = useMemo(
     () =>
@@ -124,10 +114,8 @@ function HomePage() {
       typeIds,
     ]
   )
-  const waiting =
-    (!data && isFetching) || (!!filters.type && !typeData && fetchingType)
-  const failed =
-    (!data && isError) || (!!filters.type && !typeData && typeError)
+  const waiting = !data && isFetching
+  const failed = !data && isError
   const activeFilters = !!(
     query ||
     filters.generation ||
@@ -319,7 +307,7 @@ function HomePage() {
         >
           <button
             type="button"
-            aria-pressed={!filters.type}
+            aria-pressed={!filters.types.length}
             onClick={() => update('type', '')}
           >
             Tất cả hệ
@@ -328,8 +316,10 @@ function HomePage() {
             <button
               key={key}
               type="button"
-              aria-pressed={filters.type === key}
-              onClick={() => update('type', filters.type === key ? '' : key)}
+              aria-pressed={filters.types.includes(key)}
+              onClick={() =>
+                update('type', toggleType(filters.types, key).join(','))
+              }
             >
               <span style={{ background: color }} />
               {label}
@@ -367,8 +357,10 @@ function HomePage() {
                 filters.generation &&
                   GENERATIONS.find((gen) => gen.id === filters.generation)
                     ?.name,
-                filters.type &&
-                  `Hệ ${TYPES.find((type) => type[0] === filters.type)?.[1]}`,
+                filters.types.length &&
+                  `Hệ ${filters.types
+                    .map((key) => TYPES.find((type) => type[0] === key)?.[1])
+                    .join(' + ')}`,
                 filters.caughtOnly && 'Đã bắt',
               ]
                 .filter(Boolean)
@@ -393,7 +385,6 @@ function HomePage() {
               type="button"
               onClick={() => {
                 if (!data) refetch()
-                if (filters.type) retryType()
               }}
             >
               Thử lại
