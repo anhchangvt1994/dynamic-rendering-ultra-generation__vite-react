@@ -1,3 +1,9 @@
+// NOTE - Still a placeholder: the page's chunk has not rendered yet. The
+// server's HTML (a full page or the loader snapshot) stays until it has.
+const isPlaceholder = (html: string) =>
+  html.includes('id="loading-page-component--global"') ||
+  html.includes('data-page-skeleton')
+
 export const getRoot = () => {
   const elRoot = document.getElementById('root')
   if (!elRoot) return
@@ -9,18 +15,12 @@ export const getRoot = () => {
         clearInterval(interval)
 
         setTimeout(() => {
-          if (
-            !elRootTmp.innerHTML.includes('id="loading-page-component--global"')
-          ) {
+          if (!isPlaceholder(elRootTmp.innerHTML)) {
             return elRoot.replaceWith(elRootTmp)
           }
 
           interval = setInterval(() => {
-            if (
-              !elRootTmp.innerHTML.includes(
-                'id="loading-page-component--global"'
-              )
-            ) {
+            if (!isPlaceholder(elRootTmp.innerHTML)) {
               elRoot.replaceWith(elRootTmp)
               clearInterval(interval)
             }

@@ -330,6 +330,7 @@ export default function PokemonSkeleton() {
       data-tone="dark"
       role="status"
       aria-busy="true"
+      data-page-skeleton
     >
       <span className="sr-only">Đang mở trang Pokémon…</span>
       <div className="column" aria-hidden="true">

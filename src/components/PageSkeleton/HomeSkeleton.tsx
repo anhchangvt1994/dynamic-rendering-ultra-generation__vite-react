@@ -350,7 +350,7 @@ const TYPES = Object.values(TYPE_DATA)
 
 export default function HomeSkeleton() {
   return (
-    <HomeSkeletonStyle className="home-skeleton" role="status" aria-busy="true">
+    <HomeSkeletonStyle className="home-skeleton" role="status" aria-busy="true" data-page-skeleton>
       <span className="sr-only">Đang mở Pokédex…</span>
       <HeroStyle style={{ '--encounter': '#dde4ee' } as CSSProperties}>
         <div className="hero-copy">

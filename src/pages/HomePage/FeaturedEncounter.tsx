@@ -1,41 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useGetPokemonListQuery } from 'app/apis/pokemon'
+import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import FieldIcon from 'components/common/FieldIcon'
-import { getPokemonFallbackImage } from 'pages/PokemonPage/navigation.mjs'
+import {
+  POKEMON_COUNT,
+  getPokemonFallbackImage,
+  getPokemonImage,
+  getPokemonSprite,
+} from 'pages/PokemonPage/navigation.mjs'
+import { buildEncounter, pickEncounterIds } from './encounter.mjs'
 import { HeroStyle } from './styles'
-
-const encounters = [
-  {
-    id: 25,
-    name: 'Pikachu',
-    type: 'Điện',
-    code: 'ELECTRIC',
-    color: '#ffda55',
-    note: 'Nhỏ bé. Năng lượng thì không.',
-    word: 'PIKA!',
-    path: 'pikachu',
-  },
-  {
-    id: 6,
-    name: 'Charizard',
-    type: 'Lửa · Bay',
-    code: 'FIRE / FLYING',
-    color: '#f7b78b',
-    note: 'Một cuộc gặp. Cả bầu trời rực lửa.',
-    word: 'ROAR!',
-    path: 'charizard',
-  },
-  {
-    id: 94,
-    name: 'Gengar',
-    type: 'Ma · Độc',
-    code: 'GHOST / POISON',
-    color: '#c9b7ee',
-    note: 'Có gì đó đang cười trong bóng tối.',
-    word: 'BOO!',
-    path: 'gengar',
-  },
-]
 
 export default function FeaturedEncounter({
   onExplore,
@@ -44,17 +18,18 @@ export default function FeaturedEncounter({
   onExplore: () => void
   onRandom: () => void
 }) {
-  // "today's encounter" rotates daily (visitor's local date) through the
-  // curated three; picked after mount so server and client markup agree
+  // three Pokémon from the whole Pokédex, drawn from this very second
+  // (encounter.mjs); the app renders on the client, so no markup to match
+  const [ids] = useState(() => pickEncounterIds(new Date()))
   const [selected, setSelected] = useState(0)
-  useEffect(() => {
-    const now = new Date()
-    const day = Math.floor(
-      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000
-    )
-    setSelected(day % encounters.length)
-  }, [])
+  // the same request as the catalogue below: names come from its cache
+  const { data } = useGetPokemonListQuery({ limit: POKEMON_COUNT, offset: 0 })
+  const encounters = useMemo(
+    () => ids.map((id) => buildEncounter(id, data?.results?.[id - 1]?.name)),
+    [ids, data]
+  )
   const pokemon = encounters[selected]
+  const dex = `#${String(pokemon.id).padStart(4, '0')}`
   return (
     <HeroStyle style={{ '--encounter': pokemon.color } as CSSProperties}>
       <div className="hero-copy">
@@ -98,7 +73,7 @@ export default function FeaturedEncounter({
           <span>
             <i /> CUỘC GẶP HÔM NAY
           </span>
-          <span>#{String(pokemon.id).padStart(4, '0')}</span>
+          <span>{dex}</span>
         </div>
         <div className="encounter-art">
           <span className="encounter-word" aria-hidden="true">
@@ -114,14 +89,14 @@ export default function FeaturedEncounter({
           </span>
           <LinkCustom
             to={`/pokemon/${pokemon.path}`}
-            aria-label={`Khám phá ${pokemon.name}`}
+            aria-label={`Khám phá ${pokemon.name || dex}`}
           >
             <img
               key={pokemon.id}
-              src={`/images/pokemon/hero-${pokemon.id}.webp`}
+              src={pokemon.art ?? getPokemonImage(pokemon.id)}
               width="360"
               height="360"
-              alt={pokemon.name}
+              alt={pokemon.name || dex}
               fetchPriority="high"
               onError={(event) => {
                 if (!event.currentTarget.dataset.fallback) {
@@ -139,7 +114,7 @@ export default function FeaturedEncounter({
         <div className="encounter-bottom">
           <div aria-live="polite">
             <LinkCustom to={`/pokemon/${pokemon.path}`}>
-              {pokemon.name} <span>↗</span>
+              {pokemon.name || dex} <span>↗</span>
             </LinkCustom>
             <p>{pokemon.note}</p>
           </div>
@@ -148,12 +123,12 @@ export default function FeaturedEncounter({
               <button
                 key={item.id}
                 type="button"
-                aria-label={`Xem ${item.name}`}
+                aria-label={`Xem ${item.name || `#${item.id}`}`}
                 aria-pressed={index === selected}
                 onClick={() => setSelected(index)}
               >
                 <img
-                  src={`/images/pokemon/${item.id}.webp`}
+                  src={item.coin ?? getPokemonSprite(item.id)}
                   alt=""
                   width="32"
                   height="32"

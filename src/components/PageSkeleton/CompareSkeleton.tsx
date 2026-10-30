@@ -259,7 +259,7 @@ function PlateBones() {
 
 export default function CompareSkeleton() {
   return (
-    <CompareSkeletonStyle role="status" aria-busy="true">
+    <CompareSkeletonStyle role="status" aria-busy="true" data-page-skeleton>
       <span className="sr-only">Đang dựng sàn đấu…</span>
       <div aria-hidden="true">
         <div className="topbar">

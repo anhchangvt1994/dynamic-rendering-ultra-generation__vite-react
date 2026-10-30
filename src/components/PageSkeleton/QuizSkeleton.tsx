@@ -179,7 +179,7 @@ const QuizSkeletonStyle = styled.section`
 
 export default function QuizSkeleton() {
   return (
-    <QuizSkeletonStyle role="status" aria-busy="true">
+    <QuizSkeletonStyle role="status" aria-busy="true" data-page-skeleton>
       <span className="sr-only">Đang chuẩn bị câu đố…</span>
       <div aria-hidden="true">
         <div className="intro">
