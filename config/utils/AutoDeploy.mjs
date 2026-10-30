@@ -167,6 +167,11 @@ function walkFiles(directory, base = directory) {
   })
 }
 
+// Runtime entries of server/resources that no build produces: the crawler's
+// browser. Without it no page is rendered, so no ISR view (or skeleton) is
+// ever written again after a deployment.
+export const RUNTIME_RESOURCES = ['lightpanda']
+
 // Build outputs are staged first. Merge compiled server files without moving
 // or deleting its runtime cache/browser directories. Every file replacement
 // uses rename; rollback restores only files this deployment changed.
@@ -174,7 +179,9 @@ export function publishArtifacts(root, stage) {
   const backup = path.join(stage, 'previous')
   fs.mkdirSync(backup)
   const undo = []
-  const replaceDirectory = (source, target, label) => {
+  // `keep`: entries of the old directory moved into the new one (rename, so
+  // instant) and moved back on rollback
+  const replaceDirectory = (source, target, label, keep = []) => {
     const old = path.join(backup, label)
     const existed = fs.existsSync(target)
     if (existed) fs.renameSync(target, old)
@@ -184,10 +191,22 @@ export function publishArtifacts(root, stage) {
       if (existed) fs.renameSync(old, target)
       throw error
     }
+    const kept = existed
+      ? keep.filter(
+          (name) =>
+            fs.existsSync(path.join(old, name)) &&
+            !fs.existsSync(path.join(target, name))
+        )
+      : []
     undo.push(() => {
+      for (const name of kept)
+        if (fs.existsSync(path.join(target, name)))
+          fs.renameSync(path.join(target, name), path.join(old, name))
       fs.rmSync(target, { recursive: true, force: true })
       if (existed) fs.renameSync(old, target)
     })
+    for (const name of kept)
+      fs.renameSync(path.join(old, name), path.join(target, name))
   }
   const rollback = () => {
     const errors = []
@@ -214,7 +233,8 @@ export function publishArtifacts(root, stage) {
     replaceDirectory(
       resources,
       path.join(root, 'server/resources'),
-      'resources'
+      'resources',
+      RUNTIME_RESOURCES
     )
     const compiled = path.join(stage, 'server-dist')
     for (const relative of walkFiles(compiled)) {

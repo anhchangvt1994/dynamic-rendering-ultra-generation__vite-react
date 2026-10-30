@@ -113,6 +113,8 @@ function fixture(t) {
   write(path.join(root, 'server/dist/index.uws.worker.js'), 'old-server')
   write(path.join(root, 'server/dist/runtime/cache.dat'), 'keep-runtime-cache')
   write(path.join(root, 'server/resources/index.html'), 'older-client-fallback')
+  // the crawler's browser lives in resources but is no build output
+  write(path.join(root, 'server/resources/lightpanda/lightpanda'), 'browser')
   fs.mkdirSync(path.join(root, 'node_modules'))
   command(root, ['init', '-q', '-b', 'main'])
   command(root, ['config', 'user.name', 'Deployment test'])
@@ -195,6 +197,14 @@ test('builds both outputs before publishing/reloading and preserves runtime file
     fs.readFileSync(path.join(f.root, 'server/resources/index.html'), 'utf8'),
     'old-client'
   )
+  // without it the crawler renders nothing: no ISR views, no skeletons
+  assert.equal(
+    fs.readFileSync(
+      path.join(f.root, 'server/resources/lightpanda/lightpanda'),
+      'utf8'
+    ),
+    'browser'
+  )
   assert.equal(
     JSON.parse(
       fs.readFileSync(path.join(f.root, '.cache/auto-deploy/state.json'))
@@ -262,6 +272,13 @@ test('failed PM2 reload restores prior artifacts and reloads the restored code',
   assert.equal(
     fs.readFileSync(path.join(f.root, 'server/resources/index.html'), 'utf8'),
     'older-client-fallback'
+  )
+  assert.equal(
+    fs.readFileSync(
+      path.join(f.root, 'server/resources/lightpanda/lightpanda'),
+      'utf8'
+    ),
+    'browser'
   )
   assert.equal(
     fs.existsSync(path.join(f.root, 'server/dist/workers/new.js')),
