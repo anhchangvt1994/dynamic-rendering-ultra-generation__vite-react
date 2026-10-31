@@ -1,4 +1,5 @@
 import LoadingPageComponent from 'components/LoadingPageComponent'
+import AccountSkeleton from './AccountSkeleton'
 import CompareSkeleton from './CompareSkeleton'
 import HomeSkeleton from './HomeSkeleton'
 import PokemonSkeleton from './PokemonSkeleton'
@@ -21,6 +22,8 @@ export default function PageSkeleton({ routeId }: { routeId?: string }) {
       return <QuizSkeleton />
     case 'ComparePage':
       return <CompareSkeleton />
+    case 'AccountPage':
+      return <AccountSkeleton />
     default:
       return <LoadingPageComponent />
   }

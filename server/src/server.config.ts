@@ -36,6 +36,12 @@ const ServerConfig = defineServerConfig({
             name: 'so-sanh-page',
           },
         }
+      else if (pathSlitted[1] === 'dang-nhap')
+        return {
+          loader: {
+            name: 'dang-nhap-page',
+          },
+        }
       else if (pathSlitted[1] === 'blogs') {
         if (pathSlitted[2])
           return {
