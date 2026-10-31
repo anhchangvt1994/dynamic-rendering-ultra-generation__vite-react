@@ -85,7 +85,7 @@ services:
       GOTRUE_MAILER_TEMPLATES_RECOVERY: http://templates:8080/recovery.html
       GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Xác minh email cho tài khoản Pokédex
       GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: Mã đăng nhập Pokédex của bạn
-      GOTRUE_MAILER_SUBJECTS_RECOVERY: Mã đặt lại mật khẩu Pokédex
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: Xác thực tài khoản Pokédex
       GOTRUE_SMTP_HOST: mail
       GOTRUE_SMTP_PORT: 25
       GOTRUE_SMTP_ADMIN_EMAIL: ${MAIL_FROM:?}
