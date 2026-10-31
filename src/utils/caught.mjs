@@ -28,11 +28,7 @@ export function getCaught(storage = store()) {
 export function isCaught(id, storage = store()) {
   return read(storage).has(id)
 }
-export function toggleCaught(id, storage = store()) {
-  if (!supported(id)) return false
-  const ids = read(storage)
-  const caught = !ids.has(id)
-  caught ? ids.add(id) : ids.delete(id)
+const write = (ids, storage) => {
   try {
     if (!storage) throw new Error('Storage unavailable')
     storage.setItem(KEY, JSON.stringify([...ids].sort((a, b) => a - b)))
@@ -41,7 +37,18 @@ export function toggleCaught(id, storage = store()) {
     fallbacks.set(storage || unavailable, ids)
   }
   listeners.forEach((listener) => listener())
+}
+export function toggleCaught(id, storage = store()) {
+  if (!supported(id)) return false
+  const ids = read(storage)
+  const caught = !ids.has(id)
+  caught ? ids.add(id) : ids.delete(id)
+  write(ids, storage)
   return caught
+}
+// the whole collection at once (an account's, after signing in or out)
+export function replaceCaught(ids, storage = store()) {
+  write(new Set([...ids].filter(supported)), storage)
 }
 export function subscribeCaught(listener) {
   listeners.add(listener)

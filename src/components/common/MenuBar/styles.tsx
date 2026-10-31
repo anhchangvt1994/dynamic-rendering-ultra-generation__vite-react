@@ -95,7 +95,14 @@ export const MenuItemStyle = styled(LinkCustom)`
   font-weight: 600;
   transition: background 150ms;
   .icon {
+    flex: none;
     font-size: 22px;
+  }
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   &:hover {
     background: #ffffff10;

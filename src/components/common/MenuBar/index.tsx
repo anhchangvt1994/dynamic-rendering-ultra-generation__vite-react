@@ -1,3 +1,4 @@
+import { useAccount } from 'app/supabase/account'
 import Icon from 'components/common/Icon'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import useDialog from 'hooks/useDialog'
@@ -22,6 +23,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
     new URLSearchParams(location.search).get('view') === 'caught'
 
   const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose)
+  const account = useAccount()
 
   const menuList = [
     {
@@ -54,6 +56,17 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       icon: import.meta.env.ROUTER_BLOGS_ICON,
       path: import.meta.env.ROUTER_BLOGS_PATH,
     },
+    // ENABLE_SUPABASE: the header's account button lives here on phones
+    ...(account.status === 'off'
+      ? []
+      : [
+          {
+            title: account.user?.email ?? 'Đăng nhập',
+            id: 'AccountPage',
+            icon: 'user',
+            path: '/dang-nhap',
+          },
+        ]),
   ].map((menu) => {
     const active =
       menu.id === 'collection'
@@ -69,7 +82,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
         onClick={onClose}
       >
         <Icon name={menu.icon} className="icon" />
-        <span>{menu.title}</span>
+        <span className="label">{menu.title}</span>
       </MenuItemStyle>
     )
   })

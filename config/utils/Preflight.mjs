@@ -5,59 +5,26 @@
  * - BROWSER_ENGINE=lightpanda -> the lightpanda binary (pinned version)
  * - REDIS=true                -> a reachable redis server (install + start a
  *                                local one when REDIS_HOST is local)
+ * - ENABLE_SUPABASE=true      -> the self-hosted Supabase stack and its mail
+ *                                server (Docker is required, never installed)
  * Env is resolved the same way as server/src/utils/InitEnv.ts.
  */
 import { execSync, spawnSync } from 'child_process'
-import dotenv from 'dotenv'
 import fs from 'fs'
 import net from 'net'
-import path from 'path'
 import {
   getLightpandaPath,
   getLightpandaVersion,
   installLightpanda,
   LIGHTPANDA_VERSION,
 } from './LightpandaInstaller.mjs'
+import { isEnabled, loadEnv } from './ServerEnv.mjs'
+import { ensureSelfHostedSupabase } from './Supabase.mjs'
 
 const LOCAL_HOSTS = ['', '127.0.0.1', 'localhost', '::1', '0.0.0.0']
 const REDIS_READY_TIMEOUT = 15000
 
 const log = (...args) => console.log('[preflight]', ...args)
-
-const loadEnv = (env) => {
-  const mode = ['development', 'preview', 'production'].includes(
-    process.env.MODE
-  )
-    ? process.env.MODE
-    : env === 'development'
-      ? 'development'
-      : 'production'
-  const envMode = {
-    development_development: 'development',
-    development_preview: 'staging',
-    development_production: 'production',
-    production_development: 'staging',
-    production_preview: 'uat',
-    production_production: 'production',
-  }[`${env}_${mode}`]
-
-  const result = { ...process.env }
-  const serverEnv = (file) => {
-    const filePath = path.resolve('server', file)
-    return fs.existsSync(filePath)
-      ? dotenv.parse(fs.readFileSync(filePath))
-      : {}
-  }
-
-  // NOTE - server/.env does not override process.env, server/.env.<mode> does
-  for (const [key, value] of Object.entries(serverEnv('.env')))
-    if (result[key] === undefined) result[key] = value
-
-  if (envMode !== 'development')
-    Object.assign(result, serverEnv(`.env.${envMode}`))
-
-  return result
-} // loadEnv
 
 const hasCommand = (command) =>
   spawnSync('sh', ['-c', `command -v ${command}`], { stdio: 'ignore' })
@@ -352,8 +319,6 @@ export default async function preflight({
 } = {}) {
   const resolvedEnv = loadEnv(env)
 
-  const isEnabled = (value) =>
-    ['true', '1'].includes(String(value).toLowerCase())
   const isLightpanda =
     String(resolvedEnv.BROWSER_ENGINE || '').toLowerCase() === 'lightpanda'
 
@@ -364,4 +329,7 @@ export default async function preflight({
     ensureChromiumLibraries()
 
   if (redis || isEnabled(resolvedEnv.REDIS)) await ensureRedis(resolvedEnv)
+
+  if (isEnabled(resolvedEnv.ENABLE_SUPABASE))
+    await ensureSelfHostedSupabase(resolvedEnv)
 }

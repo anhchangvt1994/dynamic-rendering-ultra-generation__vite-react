@@ -39,6 +39,24 @@ interface IProcessENV {
   SHARE_CARD_FETCH_TIMEOUT_MS?: string
   /** share cards rendered at the same time (default 2) */
   SHARE_CARD_MAX_RENDERS?: string
+  /**
+   * Accounts (Supabase Auth + Data API). Off: the app runs without them.
+   * The browser gets SUPABASE_PUBLIC_URL and the publishable key only
+   * (config/utils/Supabase.mjs); yarn dev fills both from the local stack
+   */
+  ENABLE_SUPABASE: boolean
+  SUPABASE_PUBLIC_URL?: string
+  SUPABASE_PUBLISHABLE_KEY?: string
+  /** Auth's redirect allowlist (comma separated), self-hosted stack */
+  SUPABASE_REDIRECT_URLS?: string
+  /**
+   * Send-only mail of the self-hosted stack (infra/supabase): the server's
+   * name (its PTR), the DKIM signed domain, the From address (@MAIL_DOMAIN)
+   */
+  MAIL_HOSTNAME?: string
+  MAIL_DOMAIN?: string
+  MAIL_FROM?: string
+  MAIL_SENDER_NAME?: string
   HOST: string
   PLATFORM: string
   HOSTNAME: string
@@ -125,6 +143,10 @@ export const PROCESS_ENV = (() => {
       : ['true', '1'].includes(
           (process.env.ENABLE_URL_TESTING || '').toLowerCase()
         )
+
+  tmpProcessEnv.ENABLE_SUPABASE = ['true', '1'].includes(
+    (process.env.ENABLE_SUPABASE || '').toLowerCase()
+  )
 
   tmpProcessEnv.REDIS =
     process.env.REDIS === undefined

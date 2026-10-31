@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   getCaught,
   isCaught,
+  replaceCaught,
   subscribeCaught,
   toggleCaught,
 } from './caught.mjs'
@@ -73,4 +74,15 @@ test('only supported national species can enter the collection', () => {
   assert.deepEqual([...getCaught(storage)], [1])
   assert.equal(toggleCaught(10001, storage), false)
   assert.deepEqual([...getCaught(storage)], [1])
+})
+
+test('replacing the collection keeps valid ids only and notifies', () => {
+  const storage = memory(JSON.stringify([1, 2]))
+  let calls = 0
+  const stop = subscribeCaught(() => calls++)
+  replaceCaught([25, 3, 0, 2000, 25], storage)
+  stop()
+  assert.deepEqual([...getCaught(storage)], [3, 25])
+  assert.equal(storage.getItem(), '[3,25]')
+  assert.equal(calls, 1)
 })

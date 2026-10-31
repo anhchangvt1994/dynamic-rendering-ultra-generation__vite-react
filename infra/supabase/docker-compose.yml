@@ -1,0 +1,161 @@
+# NOTE - Self-hosted Supabase for yarn start (ENABLE_SUPABASE=true), started by
+# config/utils/Supabase.mjs: only Auth, the Data API, their database and a
+# send-only mail server. No Studio, Realtime, Storage, Edge Functions,
+# Analytics or Kong: the host's nginx (scripts/vps-setup/setup.sh --site-only)
+# routes <SUPABASE_PUBLIC_URL>/auth/v1/ and /rest/v1/ to the two loopback
+# ports below.
+#
+# Images are the versions the pinned Supabase CLI (config/build-tool-packages) runs locally.
+# Secrets come from infra/supabase/.env (generated, never committed); the
+# other values from server/.env(.production), passed by Supabase.mjs.
+# Every port is bound to 127.0.0.1: Docker publishes ports past the firewall.
+name: pokedex-supabase
+
+services:
+  db:
+    image: public.ecr.aws/supabase/postgres:17.11.0.004
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_USER: supabase_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?generated in infra/supabase/.env}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?generated in infra/supabase/.env}
+      JWT_EXP: 3600
+      POSTGRES_INITDB_ARGS: --allow-group-access --locale-provider=icu --encoding=UTF-8 --icu-locale=en_US.UTF-8
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/etc/postgresql.schema.sql:ro
+    # migrations (supabase migration up) and an SSH tunnel for maintenance
+    ports:
+      - 127.0.0.1:${SUPABASE_DB_PORT:-54322}:5432
+    healthcheck:
+      test: [CMD, pg_isready, -U, postgres, -h, 127.0.0.1]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  auth:
+    image: public.ecr.aws/supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    ports:
+      - 127.0.0.1:${SUPABASE_AUTH_PORT:-54331}:9999
+    environment:
+      API_EXTERNAL_URL: ${SUPABASE_PUBLIC_URL:?}/auth/v1
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SUPABASE_SITE_URL:?}
+      GOTRUE_URI_ALLOW_LIST: ${SUPABASE_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: 'false'
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ISSUER: ${SUPABASE_PUBLIC_URL}/auth/v1
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      GOTRUE_EXTERNAL_PHONE_ENABLED: 'false'
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: 'false'
+      # same rules as supabase/config.toml
+      GOTRUE_PASSWORD_MIN_LENGTH: 8
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: 'true'
+      GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: 10
+      GOTRUE_MAILER_AUTOCONFIRM: 'false'
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: 'true'
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      GOTRUE_MAILER_OTP_EXP: 600
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${SUPABASE_PUBLIC_URL}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${SUPABASE_PUBLIC_URL}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: ${SUPABASE_PUBLIC_URL}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${SUPABASE_PUBLIC_URL}/auth/v1/verify
+      # the 6-digit code emails of supabase/templates, served by "templates"
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://templates:8080/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://templates:8080/magic_link.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://templates:8080/recovery.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Mã xác nhận Pokédex của bạn
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: Mã đăng nhập Pokédex của bạn
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: Mã đặt lại mật khẩu Pokédex
+      GOTRUE_SMTP_HOST: mail
+      GOTRUE_SMTP_PORT: 25
+      GOTRUE_SMTP_ADMIN_EMAIL: ${MAIL_FROM:?}
+      GOTRUE_SMTP_SENDER_NAME: ${MAIL_SENDER_NAME:-Pokédex}
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      # emails per hour, for the whole server
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 60
+      GOTRUE_RATE_LIMIT_VERIFY: 30
+      GOTRUE_RATE_LIMIT_OTP: 30
+      GOTRUE_RATE_LIMIT_TOKEN_REFRESH: 150
+      # nginx (snippets/proxy.conf) sets it; this port is loopback only
+      GOTRUE_RATE_LIMIT_HEADER: X-Real-IP
+      # NOTE - supabase-js sends apikey to Auth too: without it in the CORS
+      # list the browser's preflight fails (Kong answered it in the CLI stack)
+      GOTRUE_CORS_ALLOWED_HEADERS: apikey
+
+  rest:
+    image: public.ecr.aws/supabase/postgrest:v16.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:${SUPABASE_REST_PORT:-54332}:3000
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+
+  # the email templates, for Auth (it reads them over HTTP)
+  templates:
+    image: busybox:1.37.0
+    restart: unless-stopped
+    command: [httpd, -f, -p, '8080', -h, /www]
+    volumes:
+      - ../../supabase/templates:/www:ro
+
+  # NOTE - Send-only mail (docker-mailserver, Postfix + OpenDKIM): Auth hands
+  # it mail on the internal network, it signs with DKIM and delivers on port
+  # 25. Nothing is published: it receives no mail and relays for nobody else.
+  # IPv4 only: the PTR record (reverse DNS) is set for the IPv4 address.
+  mail:
+    image: mailserver/docker-mailserver:16.0.1
+    restart: unless-stopped
+    hostname: ${MAIL_HOSTNAME:?}
+    environment:
+      SMTP_ONLY: 1
+      PERMIT_DOCKER: connected-networks
+      POSTFIX_INET_PROTOCOLS: ipv4
+      ENABLE_OPENDKIM: 1
+      ENABLE_OPENDMARC: 0
+      ENABLE_POLICYD_SPF: 0
+      ENABLE_AMAVIS: 0
+      ENABLE_CLAMAV: 0
+      ENABLE_SPAMASSASSIN: 0
+      ENABLE_RSPAMD: 0
+      ENABLE_POSTGREY: 0
+      ENABLE_FAIL2BAN: 0
+      ENABLE_UPDATE_CHECK: 0
+      LOG_LEVEL: warn
+      # local test only (yarn start on a laptop can not deliver on port 25)
+      DEFAULT_RELAY_HOST: ${MAIL_RELAY_HOST:-}
+    volumes:
+      - mail-config:/tmp/docker-mailserver
+      - mail-state:/var/mail-state
+    mem_limit: 256m
+
+volumes:
+  db-data:
+  mail-config:
+  mail-state:

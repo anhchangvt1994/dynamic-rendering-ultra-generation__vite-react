@@ -62,6 +62,9 @@ interface Env {
     INFO_POKEMON_STATS_LEVEL:                      InfoPokemonStatsLevel;
     INFO_POKEMON_STATS_COLOR:                      InfoPokemonStatsColor;
     INFO_POKEMON_MAX_BASE_STATS:                   number;
+    SUPABASE_CLIENT_ENABLED:                       boolean;
+    SUPABASE_CLIENT_URL:                           string;
+    SUPABASE_CLIENT_PUBLISHABLE_KEY:               string;
 }
 
 interface InfoPokemonStatsColor {

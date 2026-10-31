@@ -77,6 +77,16 @@ const routes: RouteObjectCustomize[] = defineRoute([
         element: <ROUTE_MODULES.compare.Route />,
         id: 'ComparePage',
       }, // Compare Page
+      ...(ROUTE_MODULES.account
+        ? [
+            {
+              // sign in / account (ENABLE_SUPABASE)
+              path: 'dang-nhap',
+              element: <ROUTE_MODULES.account.Route />,
+              id: 'AccountPage',
+            },
+          ]
+        : []), // Account Page
       {
         path: import.meta.env.ROUTER_NOT_FOUND_PATH,
         element: <NotFoundPage />,

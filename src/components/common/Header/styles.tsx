@@ -75,7 +75,8 @@ export const HeaderStyle = styled.header`
     display: flex;
     gap: 8px;
   }
-  button {
+  button,
+  .account-trigger {
     min-width: 44px;
     height: 44px;
     display: inline-flex;
@@ -91,8 +92,26 @@ export const HeaderStyle = styled.header`
     font-weight: 600;
     transition: background 160ms;
   }
-  button:hover {
+  button:hover,
+  .account-trigger:hover {
     background: var(--mint);
+  }
+  .account-trigger[aria-current='page'] {
+    border-color: var(--ink);
+  }
+  .account-trigger .avatar {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .account-trigger:has(.avatar) {
+    padding: 0 7px;
   }
   .menu-trigger {
     display: none;
@@ -118,12 +137,14 @@ export const HeaderStyle = styled.header`
   body:has(.pokemon-page) & nav a {
     color: rgba(255, 255, 255, 0.72);
   }
-  body:has(.pokemon-page) & button {
+  body:has(.pokemon-page) & button,
+  body:has(.pokemon-page) & .account-trigger {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.16);
     color: #fff;
   }
-  body:has(.pokemon-page) & button:hover {
+  body:has(.pokemon-page) & button:hover,
+  body:has(.pokemon-page) & .account-trigger:hover {
     background: rgba(255, 255, 255, 0.16);
   }
   @media (max-width: 680px) {
@@ -143,6 +164,10 @@ export const HeaderStyle = styled.header`
       display: none;
     }
     .search-trigger span {
+      display: none;
+    }
+    /* the menu carries the account on phones: no room at 320px */
+    .account-trigger {
       display: none;
     }
     button {

@@ -67,3 +67,6 @@ DEPLOYMENT.md
 # Browser engine comparison output
 .compare-engines
 .vps-lab
+
+# Supabase self-host: generated secrets and keys (config/utils/Supabase.mjs)
+infra/supabase/.env

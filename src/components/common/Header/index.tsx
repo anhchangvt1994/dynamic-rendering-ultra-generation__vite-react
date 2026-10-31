@@ -1,3 +1,4 @@
+import { useAccount } from 'app/supabase/account'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import { useLocation } from 'react-router'
 import { HeaderStyle } from './styles'
@@ -9,6 +10,7 @@ const Header = ({
   isSearchOpen = false,
 }) => {
   const location = useLocation()
+  const account = useAccount()
   const collection =
     location.pathname === '/' &&
     new URLSearchParams(location.search).get('view') === 'caught'
@@ -64,6 +66,30 @@ const Header = ({
             <FieldIcon name="search" />
             <span>Tìm kiếm</span>
           </button>
+          {account.status !== 'off' && (
+            <LinkCustom
+              className="account-trigger"
+              to="/dang-nhap"
+              state={{ from: location.pathname + location.search }}
+              aria-current={
+                location.pathname === '/dang-nhap' ? 'page' : undefined
+              }
+              aria-label={
+                account.user ? `Tài khoản ${account.user.email}` : 'Đăng nhập'
+              }
+            >
+              {account.user ? (
+                <span className="avatar" aria-hidden="true">
+                  {(account.user.email || '?').charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <>
+                  <FieldIcon name="user" />
+                  <span>Đăng nhập</span>
+                </>
+              )}
+            </LinkCustom>
+          )}
           <button
             className="menu-trigger"
             type="button"

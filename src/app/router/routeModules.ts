@@ -1,3 +1,4 @@
+import { ACCOUNTS_ENABLED } from 'app/supabase/client'
 import { lazyRoute } from './utils/LazyComponentHandler'
 
 /** Each page's code, loaded on demand and fetched ahead when idle. */
@@ -8,6 +9,10 @@ export const ROUTE_MODULES = {
   blogDetail: lazyRoute(() => import('pages/BlogDetailPage')),
   quiz: lazyRoute(() => import('pages/QuizPage')),
   compare: lazyRoute(() => import('pages/ComparePage')),
+  // ENABLE_SUPABASE off: no page, nothing in the bundle
+  account: ACCOUNTS_ENABLED
+    ? lazyRoute(() => import('pages/AccountPage'))
+    : undefined,
 }
 
 /** The page module a path leads to (a locale prefix is not used here). */
@@ -24,6 +29,8 @@ export function routeModuleFor(pathname: string) {
       return ROUTE_MODULES.quiz
     case 'so-sanh':
       return ROUTE_MODULES.compare
+    case 'dang-nhap':
+      return ROUTE_MODULES.account
     default:
       return undefined
   }

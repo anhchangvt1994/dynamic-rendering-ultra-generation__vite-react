@@ -44,6 +44,7 @@ DRY_RUN=0
 APP_SOURCE='' # existing repository on the VPS (resolved below)
 APP_DIR=''    # defaults to the repository containing this script
 SKIP_APP=0
+SITE_ONLY=0
 APP_USER=deploy
 APP_SERVICE=vps-app
 
@@ -121,6 +122,9 @@ App (install Node.js, build and run the existing project behind nginx)
   --app-dir <DIR>            Existing project directory on the VPS (needed with --host)
                                $(eg --app-dir)
   --skip-app                 Only configure web infrastructure and security
+  --site-only                Only add (or update) this domain's site + certificate on a VPS
+                             already set up by this script: no package, global nginx,
+                             fail2ban, sysctl, SSH or app change (e.g. a subdomain)
   --app-user <NAME>          Linux user that owns and runs the app, no sudo (default deploy)
                                $(eg --app-user)
                              Installs Node.js 22 + yarn + pm2, runs yarn build and
@@ -192,6 +196,7 @@ parse_args() {
       --user) need "$@"; NEW_USER=$2; shift ;;
       --app-dir) need "$@"; APP_DIR=$2; shift ;;
       --skip-app) SKIP_APP=1 ;;
+      --site-only) SITE_ONLY=1; SKIP_APP=1 ;;
       --app-user) need "$@"; APP_USER=$2; shift ;;
       --rate) need "$@"; RATE=$2; shift ;;
       --burst) need "$@"; BURST=$2; shift ;;
@@ -1639,6 +1644,41 @@ summary() {
   echo
 }
 
+# NOTE - --site-only: one more site on a VPS this script already set up (its
+# nginx.conf and snippets carry MARKER). Global files, packages, fail2ban,
+# sysctl, SSH and the app are left as they are.
+site_only() {
+  [[ $PLATFORM == linux ]] || die "--site-only runs on the VPS (or with --host)"
+  [[ $EUID -eq 0 ]] || die "Run as root: sudo bash $0 $*"
+  prompt_missing
+  validate_args
+  local file
+  for file in /etc/nginx/nginx.conf /etc/nginx/snippets/proxy.conf /etc/nginx/snippets/security-headers.conf /etc/nginx/snippets/block-exploits.conf; do
+    grep -qF "$MARKER" "$file" 2>/dev/null ||
+      die "$file is not managed by this script: run it once without --site-only first"
+  done
+  file=/etc/nginx/conf.d/$DOMAIN.conf
+  [[ ! -e $file ]] || grep -qF "$MARKER" "$file" ||
+    die "$file exists and is not managed by this script: move it away first"
+  touch "$LOG_FILE" && chmod 600 "$LOG_FILE"
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  echo "===== vps-setup --site-only $(date -Is) $*"
+
+  detect_os
+  detect_firewall
+  prepare_routes
+  check_dns
+  issue_cert
+  configure_site
+  verify
+  if ((${#WARNINGS[@]})); then
+    printf '\n\033[1;33mSite added with warnings:\033[0m https://%s\n' "$DOMAIN"
+    printf '   - %s\n' "${WARNINGS[@]}"
+  else
+    printf '\n\033[1;32m✔ Site added.\033[0m  https://%s  (/etc/nginx/conf.d/%s.conf)\n' "$DOMAIN" "$DOMAIN"
+  fi
+}
+
 main() {
   split_args "$@"
   parse_args ${FORWARD_ARGS[@]+"${FORWARD_ARGS[@]}"}
@@ -1661,6 +1701,10 @@ main() {
     return 0
   fi
   [[ -z $REMOTE_HOST ]] || run_remote
+  if ((SITE_ONLY)); then
+    site_only "$@"
+    return 0
+  fi
   case $PLATFORM in
     linux) ;;
     macos | windows | wsl)

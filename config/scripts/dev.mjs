@@ -4,6 +4,8 @@ import { createRequire } from 'node:module'
 import net from 'node:net'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { isEnabled, loadEnv } from '../utils/ServerEnv.mjs'
+import { ensureLocalSupabase } from '../utils/Supabase.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const require = createRequire(import.meta.url)
@@ -78,6 +80,17 @@ try {
     )
   process.env.DEV_API_PORT = String(apiPort)
   process.env.DEV_PORT = String(webPort)
+
+  // NOTE - ENABLE_SUPABASE=true (server/.env or the shell): the local stack
+  // must be healthy before the app starts; its public URL and publishable
+  // key reach the browser through env/env.supabase.mjs
+  if (isEnabled(loadEnv('development').ENABLE_SUPABASE)) {
+    const supabase = await ensureLocalSupabase()
+    process.env.ENABLE_SUPABASE = 'true'
+    process.env.SUPABASE_PUBLIC_URL = supabase.url
+    process.env.SUPABASE_PUBLISHABLE_KEY = supabase.publishableKey
+  }
+
   backend = fork(
     fileURLToPath(new URL('../../server/src/index.ts', import.meta.url)),
     [],

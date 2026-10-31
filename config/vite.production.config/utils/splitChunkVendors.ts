@@ -20,6 +20,10 @@ const VENDOR_GROUPS: [name: string, packages: RegExp][] = [
     /node_modules\/(styled-components|stylis|@emotion|shallowequal|tslib|postcss-value-parser|css-to-react-native|camelize|css-color-keywords)\//,
   ],
   ['swiper', /node_modules\/(swiper|ssr-window|dom7)\//],
+  // accounts (ENABLE_SUPABASE), loaded only on sign-in or a stored session:
+  // Auth on its own, the Data API client and the rest of supabase-js beside it
+  ['supabase-auth', /node_modules\/@supabase\/auth-js\//],
+  ['supabase', /node_modules\/(@supabase|iceberg-js)\//],
 ]
 
 const splitChunkVendors = (pathName: string): boolean | string => {
