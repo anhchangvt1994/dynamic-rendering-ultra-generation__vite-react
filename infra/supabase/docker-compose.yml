@@ -90,6 +90,7 @@ services:
       GOTRUE_SMTP_PORT: 25
       GOTRUE_SMTP_ADMIN_EMAIL: ${MAIL_FROM:?}
       GOTRUE_SMTP_SENDER_NAME: ${MAIL_SENDER_NAME:-Pokédex}
+      GOTRUE_SMTP_HEADERS: ${SMTP_HEADERS_JSON:?}
       GOTRUE_SMTP_MAX_FREQUENCY: 60s
       # emails per hour, for the whole server
       GOTRUE_RATE_LIMIT_EMAIL_SENT: 60

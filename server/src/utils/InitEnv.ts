@@ -57,6 +57,8 @@ interface IProcessENV {
   MAIL_HOSTNAME?: string
   MAIL_DOMAIN?: string
   MAIL_FROM?: string
+  /** Optional reply address for auth emails (configured privately per host) */
+  MAIL_REPLY_TO?: string
   MAIL_SENDER_NAME?: string
   /** Optional authenticated outbound SMTP relay (keep credentials server-only) */
   MAIL_RELAY_HOST?: string

@@ -341,9 +341,12 @@ const stackEnv = (env) => {
   const publicUrl = required('SUPABASE_PUBLIC_URL').replace(/\/+$/, '')
   const mailDomain = required('MAIL_DOMAIN')
   const mailFrom = required('MAIL_FROM')
+  const mailReplyTo = String(env.MAIL_REPLY_TO || '').trim()
   // NOTE - DMARC passes only when the From domain is the DKIM signed one
   if (!mailFrom.toLowerCase().endsWith(`@${mailDomain.toLowerCase()}`))
     throw new Error(`MAIL_FROM (${mailFrom}) must be an address @${mailDomain}`)
+  if (mailReplyTo && !/^[^\s@<>]+@[^\s@<>]+$/.test(mailReplyTo))
+    throw new Error('MAIL_REPLY_TO must be a valid email address')
   const relayHost = String(env.MAIL_RELAY_HOST || '').trim()
   const relayPort = String(env.MAIL_RELAY_PORT || '587').trim()
   const relayUser = String(env.MAIL_RELAY_USER || '').trim()
@@ -371,6 +374,9 @@ const stackEnv = (env) => {
     MAIL_HOSTNAME: required('MAIL_HOSTNAME'),
     MAIL_DOMAIN: mailDomain,
     MAIL_FROM: mailFrom,
+    SMTP_HEADERS_JSON: JSON.stringify(
+      mailReplyTo ? { 'Reply-To': [mailReplyTo] } : {}
+    ),
     MAIL_SENDER_NAME: String(env.MAIL_SENDER_NAME || 'Pokédex'),
     MAIL_RELAY_HOST: relayHost,
     MAIL_RELAY_PORT: relayPort,
