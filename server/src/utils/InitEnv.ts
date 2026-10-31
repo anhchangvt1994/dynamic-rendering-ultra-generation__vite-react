@@ -1,4 +1,5 @@
 import path from 'path'
+import fs from 'fs'
 
 const dotenv = require('dotenv')
 
@@ -57,6 +58,14 @@ interface IProcessENV {
   MAIL_DOMAIN?: string
   MAIL_FROM?: string
   MAIL_SENDER_NAME?: string
+  /** Optional authenticated outbound SMTP relay (keep credentials server-only) */
+  MAIL_RELAY_HOST?: string
+  MAIL_RELAY_PORT?: string
+  MAIL_RELAY_USER?: string
+  MAIL_RELAY_PASSWORD?: string
+  MAIL_RELAY_SPF_DOMAIN?: string
+  MAIL_RELAY_SPF_INCLUDE?: string
+  MAIL_RELAY_DKIM_HOST?: string
   HOST: string
   PLATFORM: string
   HOSTNAME: string
@@ -106,7 +115,16 @@ export const PROCESS_ENV = (() => {
       break
   }
 
-  const tmpProcessEnv = { ...(process.env as IProcessENV) }
+  // Add private per-machine settings to the app config only. In particular,
+  // do not place an SMTP API key on process.env, which child processes inherit.
+  const localEnvPath = path.resolve(__dirname, '../../.env.local')
+  const localEnv = fs.existsSync(localEnvPath)
+    ? dotenv.parse(fs.readFileSync(localEnvPath))
+    : {}
+  const tmpProcessEnv = {
+    ...(process.env as IProcessENV),
+    ...localEnv,
+  } as IProcessENV
 
   tmpProcessEnv.BUILD_TOOL = 'vite'
   tmpProcessEnv.RESET_RESOURCE = true

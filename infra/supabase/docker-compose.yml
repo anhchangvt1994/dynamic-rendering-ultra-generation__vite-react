@@ -7,7 +7,8 @@
 #
 # Images are the versions the pinned Supabase CLI (config/build-tool-packages) runs locally.
 # Secrets come from infra/supabase/.env (generated, never committed); the
-# other values from server/.env(.production), passed by Supabase.mjs.
+# other values from server/.env(.production) and private server/.env.local,
+# passed by Supabase.mjs (SMTP credentials are excluded from container env).
 # Every port is bound to 127.0.0.1: Docker publishes ports past the firewall.
 name: pokedex-supabase
 
@@ -126,8 +127,8 @@ services:
       - ../../supabase/templates:/www:ro
 
   # NOTE - Send-only mail (docker-mailserver, Postfix + OpenDKIM): Auth hands
-  # it mail on the internal network, it signs with DKIM and delivers on port
-  # 25. Nothing is published: it receives no mail and relays for nobody else.
+  # it mail on the internal network; it signs with DKIM and either delivers
+  # directly or uses the configured authenticated relay. Nothing is published.
   # IPv4 only: the PTR record (reverse DNS) is set for the IPv4 address.
   mail:
     image: mailserver/docker-mailserver:16.0.1
@@ -148,11 +149,12 @@ services:
       ENABLE_FAIL2BAN: 0
       ENABLE_UPDATE_CHECK: 0
       LOG_LEVEL: warn
-      # local test only (yarn start on a laptop can not deliver on port 25)
-      DEFAULT_RELAY_HOST: ${MAIL_RELAY_HOST:-}
+      # Optional authenticated SMTP relay (e.g. Resend over STARTTLS/587).
+      DEFAULT_RELAY_HOST: ${DEFAULT_RELAY_HOST:-}
     volumes:
       - mail-config:/tmp/docker-mailserver
       - mail-state:/var/mail-state
+      - ./postfix-sasl-password.cf:/tmp/docker-mailserver/postfix-sasl-password.cf:ro
     mem_limit: 256m
 
 volumes:

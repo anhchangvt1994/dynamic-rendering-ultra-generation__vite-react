@@ -344,6 +344,23 @@ const stackEnv = (env) => {
   // NOTE - DMARC passes only when the From domain is the DKIM signed one
   if (!mailFrom.toLowerCase().endsWith(`@${mailDomain.toLowerCase()}`))
     throw new Error(`MAIL_FROM (${mailFrom}) must be an address @${mailDomain}`)
+  const relayHost = String(env.MAIL_RELAY_HOST || '').trim()
+  const relayPort = String(env.MAIL_RELAY_PORT || '587').trim()
+  const relayUser = String(env.MAIL_RELAY_USER || '').trim()
+  const relayPassword = String(env.MAIL_RELAY_PASSWORD || '')
+  if (relayHost) {
+    if (!/^[a-zA-Z0-9.-]+$/.test(relayHost))
+      throw new Error('MAIL_RELAY_HOST must be a hostname (no URL or port)')
+    if (!/^\d{1,5}$/.test(relayPort) || Number(relayPort) < 1 || Number(relayPort) > 65535)
+      throw new Error('MAIL_RELAY_PORT must be an integer from 1 to 65535')
+    if (!relayUser || !relayPassword)
+      throw new Error('MAIL_RELAY_HOST requires MAIL_RELAY_USER and MAIL_RELAY_PASSWORD')
+    // Postfix map syntax uses whitespace and a colon as delimiters.
+    if (/[\s:]/.test(relayUser) || /[\r\n]/.test(relayPassword))
+      throw new Error('SMTP relay credentials contain unsupported Postfix map delimiters')
+  } else if (relayUser || relayPassword) {
+    throw new Error('MAIL_RELAY_USER/PASSWORD require MAIL_RELAY_HOST')
+  }
   return {
     SUPABASE_PUBLIC_URL: publicUrl,
     SUPABASE_SITE_URL: required('HOST').replace(/\/+$/, ''),
@@ -355,21 +372,50 @@ const stackEnv = (env) => {
     MAIL_DOMAIN: mailDomain,
     MAIL_FROM: mailFrom,
     MAIL_SENDER_NAME: String(env.MAIL_SENDER_NAME || 'Pokédex'),
-    MAIL_RELAY_HOST: String(env.MAIL_RELAY_HOST || ''),
+    MAIL_RELAY_HOST: relayHost,
+    MAIL_RELAY_PORT: relayPort,
+    MAIL_RELAY_USER: relayUser,
+    MAIL_RELAY_PASSWORD: relayPassword,
+    MAIL_RELAY_SPF_DOMAIN: String(env.MAIL_RELAY_SPF_DOMAIN || `send.${mailDomain}`),
+    MAIL_RELAY_SPF_INCLUDE: String(env.MAIL_RELAY_SPF_INCLUDE || 'amazonses.com'),
+    MAIL_RELAY_DKIM_HOST: String(env.MAIL_RELAY_DKIM_HOST || `resend._domainkey.${mailDomain}`),
+    DEFAULT_RELAY_HOST: relayHost ? `[${relayHost}]:${relayPort}` : '',
   }
 } // stackEnv
 
-const compose = (args, stack, options = {}) =>
-  spawnSync(
+/** Keep relay credentials out of Compose/container environment metadata. */
+const RELAY_CREDENTIALS_FILE = `${ROOT}infra/supabase/postfix-sasl-password.cf`
+const ensureRelayCredentials = (stack) => {
+  const contents = stack.MAIL_RELAY_HOST
+    ? `[${stack.MAIL_RELAY_HOST}]:${stack.MAIL_RELAY_PORT} ${stack.MAIL_RELAY_USER}:${stack.MAIL_RELAY_PASSWORD}\n`
+    : ''
+  const previous = fs.existsSync(RELAY_CREDENTIALS_FILE)
+    ? fs.readFileSync(RELAY_CREDENTIALS_FILE, 'utf8')
+    : null
+  const changed = previous !== contents
+  if (changed)
+    fs.writeFileSync(RELAY_CREDENTIALS_FILE, contents, { mode: 0o600 })
+  fs.chmodSync(RELAY_CREDENTIALS_FILE, 0o600)
+  return changed
+}
+
+const compose = (args, stack, options = {}) => {
+  const childEnv = { ...process.env, ...stack }
+  // SMTP credentials only belong in the root-only SASL map file. Strip
+  // them from the child environment even if dotenv loaded them globally.
+  delete childEnv.MAIL_RELAY_USER
+  delete childEnv.MAIL_RELAY_PASSWORD
+  return spawnSync(
     'docker',
     ['compose', '-f', COMPOSE_FILE, '--env-file', SECRETS_FILE, ...args],
     {
       cwd: ROOT,
       encoding: 'utf8',
-      env: { ...process.env, ...stack },
+      env: childEnv,
       ...options,
     }
   )
+}
 
 const composeOrThrow = (args, stack, what) => {
   const result = compose(args, stack, { stdio: 'inherit' })
@@ -480,6 +526,44 @@ const checkMail = async (stack, dkim) => {
     if (!ok && fix) todo.push(fix)
   }
 
+  if (stack.MAIL_RELAY_HOST) {
+    const reachable = await canReach(stack.MAIL_RELAY_HOST, Number(stack.MAIL_RELAY_PORT))
+    check(
+      reachable,
+      `SMTP relay ${stack.MAIL_RELAY_HOST}:${stack.MAIL_RELAY_PORT}`,
+      `Allow outbound TCP ${stack.MAIL_RELAY_PORT} from this VPS to ${stack.MAIL_RELAY_HOST}`
+    )
+    check(
+      fs.existsSync(RELAY_CREDENTIALS_FILE) && (fs.statSync(RELAY_CREDENTIALS_FILE).mode & 0o777) === 0o600,
+      'SMTP relay credentials file exists with mode 0600',
+      'Re-run the Supabase startup command to regenerate the private relay credentials file'
+    )
+
+    const spf = (await txt(stack.MAIL_RELAY_SPF_DOMAIN)).find((value) => value.startsWith('v=spf1'))
+    check(
+      Boolean(spf && (!stack.MAIL_RELAY_SPF_INCLUDE || spf.includes(stack.MAIL_RELAY_SPF_INCLUDE))),
+      `SPF ${stack.MAIL_RELAY_SPF_DOMAIN}: ${spf || 'missing'}`,
+      `Add/merge the Resend-provided SPF record at ${stack.MAIL_RELAY_SPF_DOMAIN}; do not publish multiple SPF records at the same DNS name`
+    )
+    const dkimTxt = (await txt(stack.MAIL_RELAY_DKIM_HOST)).join('')
+    const dkimCname = await lookup('resolveCname', stack.MAIL_RELAY_DKIM_HOST)
+    check(
+      Boolean(dkimTxt || dkimCname.length),
+      `DKIM ${stack.MAIL_RELAY_DKIM_HOST}`,
+      `Add the exact DKIM record (TXT or CNAME) shown by Resend at ${stack.MAIL_RELAY_DKIM_HOST}`
+    )
+    const dmarc = (await txt(`_dmarc.${domain}`)).find((value) => value.startsWith('v=DMARC1'))
+    check(
+      Boolean(dmarc),
+      `DMARC _dmarc.${domain}: ${dmarc || 'missing'}`,
+      `TXT   _dmarc.${domain}  =  "v=DMARC1; p=none; adkim=s; rua=mailto:<your email>"`
+    )
+    log(`Mail (${stack.MAIL_FROM} via ${stack.MAIL_RELAY_HOST}:${stack.MAIL_RELAY_PORT}):\n${lines.join('\n')}`)
+    if (todo.length)
+      log(`Until these are in place, mail may go to spam or be refused:\n${todo.map((line) => `    ${line}`).join('\n')}`)
+    return
+  }
+
   // the server's IP: the mail host's A record, else the site's
   const hostIps = await lookup('resolve4', host)
   const [ip] = hostIps.length
@@ -553,9 +637,25 @@ export async function ensureSelfHostedSupabase(env) {
   await ensureDocker()
   const secrets = ensureSupabaseSecrets()
   const stack = stackEnv(env)
+  const relayCredentialsChanged = ensureRelayCredentials(stack)
+  const previousMailContainer = compose(['ps', '-q', 'mail'], stack).stdout?.trim()
 
   log('Starting the self-hosted stack (the first run downloads its images)...')
   composeOrThrow(['up', '-d', '--wait'], stack, 'Starting the stack')
+  const currentMailContainer = compose(['ps', '-q', 'mail'], stack).stdout?.trim()
+  // Compose cannot detect changes to a bind-mounted file's contents. If the
+  // mail container stayed running across the normal `up`, recreate just it so
+  // Docker Mailserver reloads the SASL map (key rotation / relay toggle).
+  if (
+    relayCredentialsChanged &&
+    previousMailContainer &&
+    currentMailContainer === previousMailContainer
+  )
+    composeOrThrow(
+      ['up', '-d', '--wait', '--force-recreate', 'mail'],
+      stack,
+      'Applying SMTP relay credentials'
+    )
 
   const dkim = ensureDkim(stack)
 

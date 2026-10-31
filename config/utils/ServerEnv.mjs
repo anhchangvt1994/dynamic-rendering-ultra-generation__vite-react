@@ -45,5 +45,9 @@ export const loadEnv = (env) => {
   if (envMode !== 'development')
     Object.assign(result, serverEnv(`.env.${envMode}`))
 
+  // Private per-machine overrides (SMTP API keys, deployment credentials).
+  // This file is gitignored and deliberately wins over tracked mode files.
+  Object.assign(result, serverEnv('.env.local'))
+
   return result
 } // loadEnv

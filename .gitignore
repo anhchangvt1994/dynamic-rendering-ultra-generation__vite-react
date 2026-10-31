@@ -45,6 +45,7 @@ server/**/utils/Cache.worker/pages/*
 server/**/api/utils/CacheManager/data/*
 server/**/api/utils/CacheManager/store/*
 server/.env
+server/.env.local
 admin
 tsconfig.tsbuildinfo
 .kilocodemodes
@@ -70,3 +71,4 @@ DEPLOYMENT.md
 
 # Supabase self-host: generated secrets and keys (config/utils/Supabase.mjs)
 infra/supabase/.env
+infra/supabase/postfix-sasl-password.cf
