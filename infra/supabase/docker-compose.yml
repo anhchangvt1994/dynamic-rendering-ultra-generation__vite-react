@@ -83,7 +83,7 @@ services:
       GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://templates:8080/confirmation.html
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://templates:8080/magic_link.html
       GOTRUE_MAILER_TEMPLATES_RECOVERY: http://templates:8080/recovery.html
-      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Mã xác nhận Pokédex của bạn
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Xác minh email cho tài khoản Pokédex
       GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: Mã đăng nhập Pokédex của bạn
       GOTRUE_MAILER_SUBJECTS_RECOVERY: Mã đặt lại mật khẩu Pokédex
       GOTRUE_SMTP_HOST: mail
