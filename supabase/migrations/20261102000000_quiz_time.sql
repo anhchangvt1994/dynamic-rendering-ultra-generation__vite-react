@@ -1,6 +1,6 @@
 -- "Who's That Pokémon?": the Roar of Time (docs/superpowers/specs/2026-11-01-quiz-time-power-design.md)
--- 5 charges, full again 2 hours after the first use. A charge stops a
--- round's clock for 15 s (its gift holds, its deadline moves), or opens a
+-- 10 charges, full again 1 hour after the first use. A charge stops a
+-- round's clock for 30 s (its gift holds, its deadline moves), or opens a
 -- new 3-hour window of turns when none is left. FREEZE_MS, TIME_CHARGES and
 -- TIME_WINDOW_MS in src/pages/QuizPage/engine/rules.mjs mirror this file.
 
@@ -10,7 +10,7 @@ alter table public.quiz_players
 
 alter table public.quiz_rounds add column frozen_at timestamptz;
 
--- a round's clock (ms): the time since it started, less its 15 s stop
+-- a round's clock (ms): the time since it started, less its 30 s stop
 create function public.quiz_clock(p_round public.quiz_rounds)
 returns numeric
 language sql
@@ -19,11 +19,11 @@ set search_path = ''
 as $$
   select extract(epoch from now() - p_round.started_at) * 1000
     - case when p_round.frozen_at is null then 0
-      else least(15000, greatest(0, extract(epoch from now() - p_round.frozen_at) * 1000)) end
+      else least(30000, greatest(0, extract(epoch from now() - p_round.frozen_at) * 1000)) end
 $$;
 
 -- the player's row, locked (quiz_window), its charges full again once their
--- 2 hours are over
+-- hour is over
 create function public.quiz_time_window(p_user uuid)
 returns public.quiz_players
 language plpgsql
@@ -32,7 +32,7 @@ as $$
 declare
   v_player public.quiz_players := public.quiz_window(p_user);
 begin
-  if v_player.time_start is not null and now() >= v_player.time_start + interval '2 hours' then
+  if v_player.time_start is not null and now() >= v_player.time_start + interval '1 hours' then
     update public.quiz_players set time_start = null, time_used = 0
     where user_id = p_user
     returning * into v_player;
@@ -87,8 +87,8 @@ begin
     'records', v_player.records,
     'records_total', v_player.records_total,
     'rerolls_left', greatest(0, 3 - v_player.rerolls),
-    'time_left', 5 - v_player.time_used,
-    'time_refill_at', v_player.time_start + interval '2 hours',
+    'time_left', 10 - v_player.time_used,
+    'time_refill_at', v_player.time_start + interval '1 hours',
     'pending', case when v_pending.id is null then null else public.quiz_public(v_pending) end
   );
 end;
@@ -212,13 +212,13 @@ begin
     'used', v_player.used,
     'bonus', v_player.bonus,
     'rerolls_left', greatest(0, 3 - v_player.rerolls),
-    'time_left', 5 - v_player.time_used,
-    'time_refill_at', v_player.time_start + interval '2 hours'
+    'time_left', 10 - v_player.time_used,
+    'time_refill_at', v_player.time_start + interval '1 hours'
   );
 end;
 $$;
 
--- stop a round's clock for 15 s: one charge, once per round, before its
+-- stop a round's clock for 30 s: one charge, once per round, before its
 -- veil is gone
 create function public.quiz_time_stop(p_round uuid)
 returns jsonb
@@ -248,7 +248,7 @@ begin
   if public.quiz_clock(v_round) >= v_round.duration_ms then
     raise exception 'time_over' using errcode = 'P0001';
   end if;
-  if v_player.time_used >= 5 then
+  if v_player.time_used >= 10 then
     raise exception 'no_time' using errcode = 'P0001';
   end if;
   update public.quiz_players
@@ -275,7 +275,7 @@ begin
   if public.quiz_left(v_player) > 0 then
     raise exception 'has_turns' using errcode = 'P0001';
   end if;
-  if v_player.time_used >= 5 then
+  if v_player.time_used >= 10 then
     raise exception 'no_time' using errcode = 'P0001';
   end if;
   update public.quiz_players set

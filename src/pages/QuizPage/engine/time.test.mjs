@@ -1,10 +1,12 @@
-// The Roar of Time: a round's clock stopped for 15 s, the 5 charges
+// The Roar of Time: a round's clock stopped for 30 s, the 10 charges
 // (the same numbers as supabase/tests/database/quiz_time.test.sql)
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   FREEZE_MS,
+  TIME_CHARGES,
   TIME_WINDOW_MS,
+  silhouetteLit,
   freezeLeft,
   roundClock,
   spendTime,
@@ -22,47 +24,62 @@ const ROUND = {
   bonus: -1,
 }
 
-test("a round's clock leaves out its 15 s stop", () => {
+test('the numbers: 30 s stops, 10 charges, full again after 1 hour', () => {
+  assert.equal(FREEZE_MS, 30000)
+  assert.equal(TIME_CHARGES, 10)
+  assert.equal(TIME_WINDOW_MS, 60 * 60 * 1000)
+})
+
+test("a round's clock leaves out its 30 s stop", () => {
   assert.equal(roundClock(5000, null), 5000)
   assert.equal(roundClock(10000, 3000), 3000)
-  assert.equal(roundClock(15000, 3000), 3000)
-  assert.equal(roundClock(25000, 3000), 10000)
+  assert.equal(roundClock(33000, 3000), 3000)
+  assert.equal(roundClock(40000, 3000), 10000)
   assert.equal(roundClock(2000, 3000), 2000)
 })
 
 test('the freeze still to run', () => {
-  assert.equal(freezeLeft(10000, 3000), 8000)
-  assert.equal(freezeLeft(25000, 3000), 0)
+  assert.equal(freezeLeft(10000, 3000), 23000)
+  assert.equal(freezeLeft(40000, 3000), 0)
   assert.equal(freezeLeft(5000, null), 0)
   assert.equal(freezeLeft(3000, 3000), FREEZE_MS)
 })
 
-test('stopped at 3 s and answered 25 s after the start: the last gift, not too late', () => {
-  const stopped = verdictOf(ROUND, 25, roundClock(25000, 3000))
+test('stopped at 3 s and answered 40 s after the start: the last gift, not too late', () => {
+  const stopped = verdictOf(ROUND, 25, roundClock(40000, 3000))
   assert.equal(stopped.outcome, 'right')
   assert.equal(stopped.slot, 3)
-  assert.equal(verdictOf(ROUND, 25, roundClock(25000, null)).outcome, 'time')
-  assert.equal(verdictOf(ROUND, 25, roundClock(15000, 3000)).slot, 0)
+  assert.equal(verdictOf(ROUND, 25, roundClock(40000, null)).outcome, 'time')
+  assert.equal(verdictOf(ROUND, 25, roundClock(30000, 3000)).slot, 0)
 })
 
-test('the veil halves over a second once time is stopped', () => {
+test('the veil drops to a fifth over a second once time is stopped', () => {
   assert.equal(veilScale(null), 1)
   assert.equal(veilScale(0), 1)
-  assert.equal(veilScale(1000), 0.5)
-  assert.equal(veilScale(60000), 0.5)
-  const half = veilScale(500)
-  assert.ok(half < 1 && half > 0.5)
+  assert.equal(veilScale(1000), 0.2)
+  assert.equal(veilScale(60000), 0.2)
+  const part = veilScale(500)
+  assert.ok(part < 1 && part > 0.2)
 })
 
-test('5 charges; the window starts with the first use and refills 2 hours later', () => {
+test('the silhouette lights up to 35 % over the same second', () => {
+  assert.equal(silhouetteLit(null), 0)
+  assert.equal(silhouetteLit(0), 0)
+  assert.equal(silhouetteLit(1000), 0.35)
+  assert.equal(silhouetteLit(60000), 0.35)
+  const part = silhouetteLit(500)
+  assert.ok(part > 0 && part < 0.35)
+})
+
+test('10 charges; the window starts with the first use and refills 1 hour later', () => {
   let state = timeState({}, 1000)
-  assert.equal(timeLeft(state), 5)
+  assert.equal(timeLeft(state), 10)
   assert.equal(timeRefillAt(state), 0)
   state = spendTime(state, 1000)
   state = spendTime(state, 5000)
-  assert.equal(timeLeft(state), 3)
+  assert.equal(timeLeft(state), 8)
   assert.equal(timeRefillAt(state), 1000 + TIME_WINDOW_MS)
-  assert.equal(timeLeft(timeState(state, 1000 + TIME_WINDOW_MS - 1)), 3)
+  assert.equal(timeLeft(timeState(state, 1000 + TIME_WINDOW_MS - 1)), 8)
   assert.deepEqual(timeState(state, 1000 + TIME_WINDOW_MS), {
     start: 0,
     used: 0,
@@ -118,7 +135,7 @@ test("the server's stopped round: its clock without the stop, the stop still to 
   assert.deepEqual(supabase.calls, [['quiz_time_stop', { p_round: 'r-1' }]])
   assert.equal(round.frozenAtMs, 3000)
   assert.equal(round.elapsedMs, 3000)
-  assert.equal(round.freezeLeftMs, 8000)
+  assert.equal(round.freezeLeftMs, 23000)
 })
 
 test("the server's refill and charges", async () => {
@@ -164,11 +181,12 @@ const noLuck = (storage) => {
   storage.setItem(KEYS.round, JSON.stringify({ ...round, bonus: -1 }))
 }
 
-test('local: 5 stops, then none until 2 hours after the first', async () => {
+test('local: 10 stops, then none until 1 hour after the first', async () => {
   const storage = memory()
   const t = { now: 1_000_000 }
   const engine = local(storage, t)
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
+    storage.setItem(KEYS.turns, '{}')
     const round = await engine.start(KANTO)
     await engine.timeStop(round)
     noLuck(storage)
@@ -181,7 +199,7 @@ test('local: 5 stops, then none until 2 hours after the first', async () => {
   const round = await engine.start(KANTO)
   await assert.rejects(engine.timeStop(round), /no_time/)
   t.now = 1_000_000 + TIME_WINDOW_MS
-  assert.equal((await engine.status()).timeLeft, 5)
+  assert.equal((await engine.status()).timeLeft, 10)
 })
 
 test('local: one stop per round, none once the round is over', async () => {
@@ -197,7 +215,7 @@ test('local: one stop per round, none once the round is over', async () => {
   await assert.rejects(engine.timeStop({ id: 'nope' }), /no_round/)
 })
 
-test('local: stopped at 3 s, answered 25 s after the start: the last gift', async () => {
+test('local: stopped at 3 s, answered 40 s after the start: the last gift', async () => {
   const t = { now: 1_000_000 }
   const engine = local(memory(), t)
   const round = await engine.start(KANTO)
@@ -205,7 +223,7 @@ test('local: stopped at 3 s, answered 25 s after the start: the last gift', asyn
   const stopped = await engine.timeStop(round)
   assert.equal(stopped.frozenAtMs, 3000)
   assert.equal(stopped.freezeLeftMs, FREEZE_MS)
-  t.now += 22000
+  t.now += 37000
   const verdict = await engine.answer(stopped, round.answerId)
   assert.equal(verdict.outcome, 'right')
   assert.equal(verdict.slot, 3)
@@ -220,7 +238,7 @@ test('local: a reload in the middle of the stop resumes it', async () => {
   t.now += 4000
   const status = await local(storage, t).status()
   assert.equal(status.pending.frozenAtMs, 3000)
-  assert.equal(status.pending.freezeLeftMs, 11000)
+  assert.equal(status.pending.freezeLeftMs, 26000)
   assert.equal(status.pending.elapsedMs, 3000)
 })
 
@@ -233,7 +251,7 @@ test('local: out of turns, a charge opens a new window; the streak stays', async
   storage.setItem(KEYS.turns, JSON.stringify({ start: t.now, used: 5 }))
   const status = await engine.timeRefill()
   assert.equal(status.left, 5)
-  assert.equal(status.timeLeft, 4)
+  assert.equal(status.timeLeft, 9)
   assert.equal(status.streak, 4)
 })
 

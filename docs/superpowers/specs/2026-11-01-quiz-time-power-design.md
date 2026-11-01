@@ -2,7 +2,26 @@
 
 Date: 2026-11-01 · Status: approved (recharge C, reveal B, loading A)
 
-## Why
+## Revision after play (same day)
+
+The owner played it: 15 s went by too fast, half a veil still hid the
+Pokémon, 5 charges were too few. These numbers replace the ones below:
+
+- **30 s** stop (`FREEZE_MS = 30000`, `quiz_clock`'s `least(30000, …)`).
+- **10 charges**, full again **1 hour** after the first use
+  (`TIME_CHARGES = 10`, `TIME_WINDOW_MS = 3600000`, `interval '1 hours'`).
+- **The veil drops to a fifth** (`VEIL_AFTER_STOP = 0.2`), not a half. The
+  veils distort in proportion to k: at 0.5 the ripple is still 55 px of a
+  280 px artwork, the pieces turned up to 60°, the beam over 68 %; at 0.2 a
+  22 px ripple, 24°, a beam over the whole Pokémon.
+- **The silhouette lights up to 35 %** (`SILHOUETTE_LIT = 0.35`, the
+  `--silhouette` filter's `brightness(var(--lit))`): even with no veil the
+  Pokémon is a black shape, and its colours are the best hint. The frozen
+  stage stays cold (a soft-light tint) without greying them out.
+- The refill still costs **1 charge** (5 was weighed and dropped by the
+  owner).
+- The stop's ticks: 15 along the top, one every 2 s.
+
 
 1. While a round's artwork comes from the server, the stage is empty and the
    prize orb reads "Quà đang tới…": flat, and it feels like waiting on a bug.

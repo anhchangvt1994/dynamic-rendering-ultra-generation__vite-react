@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { FREEZE_MS } from './engine/rules.mjs'
+import { FREEZE_MS, TIME_CHARGES } from './engine/rules.mjs'
 import { readFlag, saveFlag } from './quiz.mjs'
 import { clock } from './Recharge'
 import Watch from './Watch'
@@ -24,6 +24,9 @@ const ROMAN = [
 // the last seconds of a stop blink and crack
 const LATE_MS = 3000
 const SHATTER_MS = 700
+// the stop's seconds along the stage's top, a tick for every 2
+const TICKS = 15
+const TICK_MS = FREEZE_MS / TICKS
 
 type Props = {
   left: number
@@ -60,7 +63,7 @@ export default function TimePower({
         aria-label={
           resting
             ? `Dialga đang nghỉ, hồi đầy sau ${wait}`
-            : `Gầm Thời Gian: giữ quà 15 giây, ảnh rõ hơn (còn ${left} lượt, phím T)`
+            : `Gầm Thời Gian: giữ quà ${FREEZE_MS / 1000} giây, bóng đen hiện rõ (còn ${left} lượt, phím T)`
         }
         onClick={() => {
           coach()
@@ -73,8 +76,9 @@ export default function TimePower({
       </button>
       {!coached && !resting && !disabled && (
         <p className="time-coach" role="note">
-          <b>Mới: Gầm Thời Gian!</b> Giữ quà đứng yên 15 giây và làm bóng đen
-          tan bớt một nửa. 5 lượt, hồi đầy sau 2 giờ. Phím T.
+          <b>Mới: Gầm Thời Gian!</b> Giữ quà đứng yên {FREEZE_MS / 1000} giây,
+          bóng đen gần như hiện nguyên hình và lộ màu. {TIME_CHARGES} lượt, hồi
+          đầy sau 1 giờ. Phím T.
           <button type="button" onClick={coach}>
             Đã hiểu
           </button>
@@ -95,8 +99,9 @@ type FxProps = {
 
 /**
  * The world holding still: a shockwave from the watch, the stage gone cold, a
- * giant clock face racing while the veil halves, 15 ticks going out one per
- * second along the stage's top (the last 3 blink), then everything shatters.
+ * giant clock face racing while the veil thins out and the silhouette lights,
+ * 15 ticks going out one every 2 s along the stage's top (the last ones blink
+ * red), then everything shatters.
  */
 export function TimeStopFx({ until, fresh, onPhase, onEnd }: FxProps) {
   const [left, setLeft] = useState(() => until - performance.now())
@@ -126,6 +131,7 @@ export function TimeStopFx({ until, fresh, onPhase, onEnd }: FxProps) {
   }, [until])
 
   const seconds = Math.max(0, Math.ceil(left / 1000))
+  const ticks = Math.max(0, Math.ceil(left / TICK_MS))
   const thaw = left <= 0
   return (
     <TimeStopStyle
@@ -167,11 +173,11 @@ export function TimeStopFx({ until, fresh, onPhase, onEnd }: FxProps) {
         </span>
       )}
       <span className="ts-ticks">
-        {Array.from({ length: FREEZE_MS / 1000 }, (_, i) => (
+        {Array.from({ length: TICKS }, (_, i) => (
           <i
             key={i}
-            data-off={i >= seconds || undefined}
-            data-late={(seconds <= 3 && i < seconds) || undefined}
+            data-off={i >= ticks || undefined}
+            data-late={(left <= LATE_MS && i < ticks) || undefined}
           />
         ))}
       </span>
@@ -363,7 +369,8 @@ const TimeStopStyle = styled.div`
       rgba(200, 240, 255, 0.28),
       rgba(30, 70, 150, 0.55)
     );
-    mix-blend-mode: color;
+    /* cold, not grey: a colour blend would wash out the lit silhouette */
+    mix-blend-mode: soft-light;
     animation: ts-in 200ms ease-out both;
   }
   &[data-phase='thaw'] .ts-tint {

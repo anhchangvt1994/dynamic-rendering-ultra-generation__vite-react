@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import type { CSSProperties, MutableRefObject, RefObject } from 'react'
 import { seeded } from './quiz.mjs'
 import { slotFor } from './items.mjs'
-import { stopped, veilScale } from './engine/rules.mjs'
+import { silhouetteLit, stopped, veilScale } from './engine/rules.mjs'
 
 /** The Roar of Time on a round, in page times (performance.now). */
 export type TimeStop = { at: number; until: number }
@@ -110,10 +110,13 @@ export default function Veil({
     // veil's (--k, what the CSS draws), the same until time is stopped
     const paint = (gift: number, now: number) => {
       const stop = stopRef?.current
-      const k = gift * veilScale(stop ? now - stop.at : null)
+      const since = stop ? now - stop.at : null
+      const k = gift * veilScale(since)
       remainingRef.current = gift
       stage.style.setProperty('--g', gift.toFixed(3))
       stage.style.setProperty('--k', k.toFixed(3))
+      // the silhouette's black gives way to its colours (styles.tsx --lit)
+      stage.style.setProperty('--lit', silhouetteLit(since).toFixed(3))
       // the gift the fuse is burning (the stage's CSS lights it)
       const slot = String(slotFor(gift))
       if (stage.dataset.slot !== slot) stage.dataset.slot = slot
@@ -142,8 +145,10 @@ export default function Veil({
       // no motion: a veil that stays put, light enough to play, on the
       // second gift, and no clock to run out; the torch shines on the middle
       steer.current = { x: 50, y: 50, until: Infinity }
-      paint(0.6, 0)
-      return
+      paint(0.6, performance.now())
+      // time stopped still drops the veil and lights the silhouette, in steps
+      const timer = window.setInterval(() => paint(0.6, performance.now()), 250)
+      return () => window.clearInterval(timer)
     }
     // NOTE - The clock adds up frame times. Capped, a hidden tab (no frames)
     // makes the veil wait for the player; on the wall clock (a timed round)

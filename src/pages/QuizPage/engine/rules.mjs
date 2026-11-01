@@ -95,13 +95,18 @@ export function veilSeed(round) {
 }
 
 // NOTE - The Roar of Time (supabase/migrations/20261102000000_quiz_time.sql):
-// a charge stops a round's clock for 15 s, so its gift holds and its end
-// moves; 5 charges, full again 2 hours after the first use
-export const FREEZE_MS = 15000
-export const TIME_CHARGES = 5
-export const TIME_WINDOW_MS = 2 * 60 * 60 * 1000
-// what is left of the veil once time is stopped, and how fast it gets there
-export const VEIL_AFTER_STOP = 0.5
+// a charge stops a round's clock for 30 s, so its gift holds and its end
+// moves; 10 charges, full again 1 hour after the first use
+export const FREEZE_MS = 30000
+export const TIME_CHARGES = 10
+export const TIME_WINDOW_MS = 60 * 60 * 1000
+// NOTE - What is left of the veil once time is stopped, and how fast it
+// gets there. The veils distort in proportion: half of one still hides the
+// shape, a fifth leaves it readable (a 22 px ripple, pieces turned 24° at
+// most, a beam over the whole Pokémon)
+export const VEIL_AFTER_STOP = 0.2
+// the silhouette lit up meanwhile: its colours show through the black
+export const SILHOUETTE_LIT = 0.35
 const VEIL_STOP_MS = 1000
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
@@ -119,11 +124,18 @@ export function freezeLeft(elapsedMs, frozenAtMs) {
   return clamp(frozenAtMs + FREEZE_MS - elapsedMs, 0, FREEZE_MS)
 }
 
+// how far the stop's change has gone, `stoppedForMs` after it (0 → 1)
+const stopEase = (stoppedForMs) =>
+  stoppedForMs == null ? 0 : ease(clamp(stoppedForMs / VEIL_STOP_MS, 0, 1))
+
 /** The share of the veil shown, `stoppedForMs` after time was stopped. */
 export function veilScale(stoppedForMs) {
-  if (stoppedForMs == null) return 1
-  const t = clamp(stoppedForMs / VEIL_STOP_MS, 0, 1)
-  return 1 - (1 - VEIL_AFTER_STOP) * ease(t)
+  return VEIL_AFTER_STOP + (1 - VEIL_AFTER_STOP) * (1 - stopEase(stoppedForMs))
+}
+
+/** How lit the silhouette is, `stoppedForMs` after time was stopped. */
+export function silhouetteLit(stoppedForMs) {
+  return SILHOUETTE_LIT * stopEase(stoppedForMs)
 }
 
 /** The charges at `now`: full again once their window is over. */

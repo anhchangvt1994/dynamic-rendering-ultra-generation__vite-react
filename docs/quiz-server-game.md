@@ -12,7 +12,7 @@ Design: `docs/superpowers/specs/2026-11-01-quiz-server-game-design.md`.
 | Where | What |
 |---|---|
 | `supabase/migrations/20261101000000_quiz_game.sql` | tables (`quiz_items`, `quiz_players`, `quiz_rounds`, `bag`) and the RPCs (`quiz_status`, `quiz_start`, `quiz_answer`, `quiz_reroll`; `quiz_art` for the service role) |
-| `supabase/migrations/20261102000000_quiz_time.sql` | the Roar of Time: 5 charges, full again 2 h after the first use (`quiz_time_stop` stops a round's clock for 15 s; `quiz_time_refill` opens a new window of turns); `quiz_clock` is the round's clock without its stop |
+| `supabase/migrations/20261102000000_quiz_time.sql` | the Roar of Time: 10 charges, full again 1 h after the first use (`quiz_time_stop` stops a round's clock for 30 s, the veil drops to a fifth and the silhouette lights up; `quiz_time_refill` opens a new window of turns); `quiz_clock` is the round's clock without its stop |
 | `supabase/tests/database/quiz.test.sql`, `quiz_time.test.sql` | the rules, the timing and the permissions (`yarn db:test`) |
 | `server/src/api/routes/quiz/` | `GET /api/quiz-art/<round>` and `/api/quiz-cry/<round>`: the artwork and cry of a round, looked up with the service role, for the express, fastify and uWS servers |
 | `src/pages/QuizPage/engine/` | the page's game: `server` (RPCs), `local` (yarn dev), `guest`; `rules.mjs` mirrors the SQL rules (the round's clock and the charges too) |
@@ -67,7 +67,7 @@ the user that owns the repo and runs PM2 (`deploy` by default; find it with
 4. Check: signed in, `/whos-that-pokemon` shows the artwork from
    `/api/quiz-art/<round>` (the uWS route's first live run), a right answer
    fills `/tui-do`, `/ai-day` lands on `/whos-that-pokemon`; the watch
-   (top left of the stage) shows 5 charges and T stops the round.
+   (top left of the stage) shows 10 charges and T stops the round.
 
 ## Costs and limits
 

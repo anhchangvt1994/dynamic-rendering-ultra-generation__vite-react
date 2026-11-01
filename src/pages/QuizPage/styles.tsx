@@ -600,9 +600,11 @@ export const QuizStyle = styled.section`
       0 -18px 46px rgba(183, 124, 255, 0.55);
   }
 
-  /* the silhouette and what hides it (Veil.tsx), tilted as one */
+  /* the silhouette and what hides it (Veil.tsx), tilted as one; time
+     stopped lights it (--lit, set by Veil.tsx) so its colours show */
   .veil {
-    --silhouette: brightness(0) drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
+    --silhouette: brightness(var(--lit, 0))
+      drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
       drop-shadow(0 0 22px rgba(160, 230, 255, 0.55));
     position: relative;
     width: min(70%, calc(var(--stage-h) * 0.76));
@@ -966,8 +968,9 @@ export const QuizStyle = styled.section`
   .veil {
     transition: filter 400ms ease-out;
   }
+  /* the Pokémon keeps its colours: they are the stop's best hint */
   .stage[data-frozen] .veil {
-    filter: saturate(0.35) brightness(1.08) contrast(1.05);
+    filter: brightness(1.08) contrast(1.05);
     transition-duration: 200ms;
   }
   .time-note {
