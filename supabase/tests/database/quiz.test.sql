@@ -30,6 +30,12 @@ language sql security definer as $$
   update public.quiz_rounds set started_at = now() - make_interval(secs => seconds)
   where id = pg_temp.round_id(name)
 $$;
+-- no lucky gift on the round: its turn back would leave a turn when the
+-- test spends them all (1 run in 4 drew it)
+create function pg_temp.no_luck(name text) returns void
+language sql security definer as $$
+  update public.quiz_rounds set bonus_slot = -1 where id = pg_temp.round_id(name)
+$$;
 -- what the Node proxy does when the artwork does not come
 create function pg_temp.break_art(name text) returns void
 language sql security definer as $$
@@ -78,6 +84,7 @@ select ok((select bool_and(o::int between 1 and 151) from r, jsonb_array_element
 select ok((select (v->'options') @> to_jsonb(pg_temp.answer_of('a')) from r where k = 'a'), 'the answer is one of the options');
 select is((select jsonb_array_length(v->'gifts') from r where k = 'a'), 4, 'four gifts on the round');
 
+select pg_temp.no_luck('a');
 insert into r values ('a!', public.quiz_answer(pg_temp.round_id('a'), pg_temp.answer_of('a')));
 select is((select v->>'outcome' from r where k = 'a!'), 'right', 'the right answer at once is right');
 select is((select (v->>'slot')::int from r where k = 'a!'), 0, 'answering at once wins the first gift');
@@ -100,6 +107,7 @@ select is((public.quiz_status()->>'streak')::int, 0, 'time breaks the streak');
 -- half way: a later gift
 insert into r values ('h', public.quiz_start(1::smallint, 151::smallint, false));
 select pg_temp.backdate('h', 9);
+select pg_temp.no_luck('h');
 insert into r values ('h!', public.quiz_answer(pg_temp.round_id('h'), pg_temp.answer_of('h')));
 select is((select (v->>'slot')::int from r where k = 'h!'), 2, '9 of 14 s (veil a third left): the third gift');
 
@@ -108,7 +116,7 @@ insert into r values ('c', public.quiz_start(1::smallint, 151::smallint, false))
 insert into r values ('c!', public.quiz_answer(pg_temp.round_id('c'), pg_temp.wrong_of('c')));
 select is((select v->>'outcome' from r where k = 'c!'), 'wrong', 'a wrong name is wrong');
 select is((select v->>'missed' from r where k = 'c!'), (select v->'gifts'->>0 from r where k = 'c'), 'a wrong answer tells the gift it missed');
-select is((select count(*)::int from public.bag), 2, 'only the right answers filled the bag');
+select is((select sum(count)::int from public.bag), 2, 'only the right answers filled the bag');
 
 -- the veil ran out on the page: -2 is time, whatever the server's grace
 insert into r values ('t', public.quiz_start(1::smallint, 151::smallint, false));
