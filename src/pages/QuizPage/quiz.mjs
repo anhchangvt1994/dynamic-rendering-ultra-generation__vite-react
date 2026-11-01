@@ -103,14 +103,14 @@ export function pickVeil(random = Math.random, previous) {
   return choices[Math.floor(random() * choices.length)]
 }
 
-/** The stage's frame for a streak: 0 plain, 1 gold (3+), 2 fire (5+), 3 rainbow (10+). */
+/** The stage's frame for a streak: 0 plain, 1 gold (2+), 2 fire (3+), 3 rainbow (5, the chest). */
 export function tierOf(streak) {
-  return streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1 : 0
+  return streak >= 5 ? 3 : streak >= 3 ? 2 : streak >= 2 ? 1 : 0
 }
 
 const MILESTONES = {
-  5: '🔥 Chuỗi 5: nửa đường tới rương quà!',
-  10: '🌟 Chuỗi 10: Bậc thầy bóng đen! Mở rương nào!',
+  3: '🔥 Chuỗi 3: sắp tới rương quà!',
+  5: '🌟 Chuỗi 5: Bậc thầy bóng đen! Mở rương nào!',
 }
 
 /** The title a streak earns when it reaches a milestone, else ''. */

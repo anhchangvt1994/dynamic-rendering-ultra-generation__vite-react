@@ -13,6 +13,7 @@ import {
   specialGifts,
 } from './items.mjs'
 import {
+  COMBO_AT,
   TURNS,
   WINDOW_MS,
   addToBag,
@@ -117,20 +118,21 @@ test('a bonus turn gives one back, never above five', () => {
   assert.equal(turnsLeft(giveTurn(turns)), TURNS - 1)
 })
 
-test('streak 10 pays a chest and starts over; 10 records pay the special', () => {
-  assert.deepEqual(addWin({ streak: 3, records: 0 }), {
-    streak: 4,
+test('streak 5 pays a chest and starts over; 10 records pay the special', () => {
+  assert.equal(COMBO_AT, 5)
+  assert.deepEqual(addWin({ streak: 2, records: 0 }), {
+    streak: 3,
     records: 0,
     combo: false,
     special: false,
   })
-  assert.deepEqual(addWin({ streak: 9, records: 2 }), {
+  assert.deepEqual(addWin({ streak: 4, records: 2 }), {
     streak: 0,
     records: 3,
     combo: true,
     special: false,
   })
-  assert.deepEqual(addWin({ streak: 9, records: 9 }), {
+  assert.deepEqual(addWin({ streak: 4, records: 9 }), {
     streak: 0,
     records: 0,
     combo: true,

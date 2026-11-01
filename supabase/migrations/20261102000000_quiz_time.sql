@@ -3,6 +3,8 @@
 -- round's clock for 30 s (its gift holds, its deadline moves), or opens a
 -- new 3-hour window of turns when none is left. FREEZE_MS, TIME_CHARGES and
 -- TIME_WINDOW_MS in src/pages/QuizPage/engine/rules.mjs mirror this file.
+-- Its quiz_answer also pays the streak's chest at 5 in a row, not 10
+-- (COMBO_AT, src/pages/QuizPage/progress.mjs).
 
 alter table public.quiz_players
   add column time_start timestamptz,
@@ -145,7 +147,8 @@ begin
     v_gifts := array[v_gift];
     v_streak := v_player.streak + 1;
     v_records := v_player.records;
-    if v_streak >= 10 then
+    -- 5 in a row pays the chest (10 in the first migration): COMBO_AT
+    if v_streak >= 5 then
       v_streak := 0;
       v_records := v_records + 1;
       v_chests := v_chests || jsonb_build_array(jsonb_build_object(

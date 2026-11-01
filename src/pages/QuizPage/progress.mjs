@@ -84,11 +84,14 @@ export const badgeCount = (n) => (n > 999 ? '999+' : String(Math.max(0, n)))
 export const fullCount = (n) => Math.max(0, n).toLocaleString('vi-VN')
 
 // ── streaks and records ──
-export const COMBO_AT = 10
+// NOTE - 5 in a row pays a chest (10 at first): more items for the players,
+// to raise their Pokémon with later. The database's quiz_answer
+// (20261102000000_quiz_time.sql) pays at the same streak
+export const COMBO_AT = 5
 export const SPECIAL_AT = 10
 
 /**
- * A right answer: the streak grows; at 10 it pays a chest and starts over,
+ * A right answer: the streak grows; at 5 it pays a chest and starts over,
  * and the record it adds may complete the 10 that pay the special chest.
  */
 export function addWin({ streak, records }) {

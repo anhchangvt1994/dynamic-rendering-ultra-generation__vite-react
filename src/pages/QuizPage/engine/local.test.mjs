@@ -206,9 +206,9 @@ test('five rounds, then no turns until the window ends', async () => {
   assert.equal((await engine.status()).left, 5)
 })
 
-test('streak 9 and a right answer: a combo chest, the streak starts over', async () => {
+test('streak 4 and a right answer: a combo chest, the streak starts over', async () => {
   const storage = memory()
-  storage.setItem('pokedex:quiz-streak', '9')
+  storage.setItem('pokedex:quiz-streak', '4')
   const engine = createLocalEngine({
     storage,
     random: seeded(6),

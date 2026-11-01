@@ -710,7 +710,7 @@ export default function QuizPage() {
 
   const [shared, setShared] = useState('')
   const shareStreak = async () => {
-    const text = `Mình đã đạt chuỗi 10 Pokémon đoán đúng ${recordsTotal} lần trong “Who’s That Pokémon?”. Thử xem bạn được mấy?`
+    const text = `Mình đã đạt chuỗi ${COMBO_AT} Pokémon đoán đúng ${recordsTotal} lần trong “Who’s That Pokémon?”. Thử xem bạn được mấy?`
     const url = location.pathname + location.search
     try {
       if (navigator.share) {
@@ -1221,7 +1221,7 @@ export default function QuizPage() {
                   `Đó là ${answerName}.`
                 ) : correct ? (
                   chests.length ? (
-                    <b>Chuỗi 10! Mở quà ngay.</b>
+                    <b>Chuỗi {COMBO_AT}! Mở quà ngay.</b>
                   ) : (
                     <>
                       Chuỗi <b>{streak}</b>/{COMBO_AT}
@@ -1330,7 +1330,7 @@ export default function QuizPage() {
               </LinkCustom>
               {recordsTotal > 0 && (
                 <button type="button" onClick={shareStreak}>
-                  Thách bạn bè · {recordsTotal} lần chuỗi 10
+                  Thách bạn bè · {recordsTotal} lần chuỗi {COMBO_AT}
                 </button>
               )}
             </div>
@@ -1407,8 +1407,8 @@ export default function QuizPage() {
               <p className="coach">
                 Quả cầu dưới khung giữ một món quà: hết vòng sáng là quà tụt
                 hạng. <b>Đoán càng sớm, quà càng quý</b>, hết giờ là mất quà!
-                Đúng 10 câu liền nối đủ sợi xích để nhận Premier Ball; gom 10
-                Premier Ball đổi lấy Master Ball.
+                Đúng {COMBO_AT} câu liền nối đủ sợi xích để nhận Premier Ball;
+                gom {SPECIAL_AT} Premier Ball đổi lấy Master Ball.
               </p>
             )}
           </>

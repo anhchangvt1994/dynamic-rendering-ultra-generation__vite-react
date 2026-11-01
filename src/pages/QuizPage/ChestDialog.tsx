@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { TIERS, isValuable, itemById, itemSprite } from './items.mjs'
 import { dialogCss, useModal } from './useModal'
+import { COMBO_AT, SPECIAL_AT } from './progress.mjs'
 
 export type Chest = { kind: 'combo' | 'special'; gifts: string[] }
 
@@ -15,12 +16,12 @@ type Props = {
 
 const COPY = {
   combo: {
-    kicker: 'Chuỗi 10!',
+    kicker: `Chuỗi ${COMBO_AT}!`,
     title: 'Premier Ball quà tặng',
     hint: 'Chạm vào quả bóng để mở',
   },
   special: {
-    kicker: '10 kỷ lục!',
+    kicker: `${SPECIAL_AT} kỷ lục!`,
     title: 'Master Ball đặc biệt',
     hint: 'Phần thưởng lớn nhất. Chạm để mở!',
   },

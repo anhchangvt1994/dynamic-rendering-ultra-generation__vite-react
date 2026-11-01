@@ -100,12 +100,11 @@ test('every round gets a veil, never the same one twice in a row', () => {
 })
 
 test('streaks light the frame and earn titles at milestones', () => {
-  assert.deepEqual(
-    [0, 2, 3, 4, 5, 9, 10, 40].map(tierOf),
-    [0, 0, 1, 1, 2, 2, 3, 3]
-  )
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 40].map(tierOf), [0, 0, 1, 2, 2, 3, 3])
   assert.equal(milestoneOf(4), '')
-  assert.match(milestoneOf(10), /Bậc thầy/)
+  assert.match(milestoneOf(3), /sắp tới rương/)
+  assert.match(milestoneOf(5), /Bậc thầy/)
+  assert.equal(milestoneOf(10), '')
 })
 
 test('flags survive a storage that throws', () => {

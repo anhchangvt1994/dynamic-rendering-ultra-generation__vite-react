@@ -31,6 +31,10 @@ migration's `quiz_items` seed; `catalogue.test.mjs` fails when they differ.
 Odds and timings live in both `rules.mjs`/`items.mjs` and the SQL functions:
 change them together.
 
+A streak of **5** pays the chest (`COMBO_AT`, `progress.mjs`; the second
+migration's `quiz_answer`); it was 10 at first. `catalogue.test.mjs` fails
+when the two differ. 10 records still pay the special chest.
+
 ## Running it
 
 Local (`ENABLE_SUPABASE=true yarn dev`): the dev script starts the local

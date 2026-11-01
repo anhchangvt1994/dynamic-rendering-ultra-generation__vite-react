@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import { ITEMS } from './items.mjs'
 import { GENERATIONS } from '../HomePage/catalog.mjs'
 import { FREEZE_MS, TIME_CHARGES, TIME_WINDOW_MS } from './engine/rules.mjs'
+import { COMBO_AT } from './progress.mjs'
 
 const MIGRATION = new URL(
   '../../../supabase/migrations/20261101000000_quiz_game.sql',
@@ -58,4 +59,11 @@ test('the Roar of Time keeps the numbers of its migration', () => {
     assert.equal(Number(n), TIME_CHARGES)
   for (const [, n] of sql.matchAll(/v_player\.time_used >= (\d+)/g))
     assert.equal(Number(n), TIME_CHARGES)
+})
+
+test("the streak's chest comes at COMBO_AT, as in the latest quiz_answer", () => {
+  const sql = readFileSync(TIME_MIGRATION, 'utf8')
+  const combo = sql.match(/if v_streak >= (\d+) then/)
+  assert.ok(combo, 'the latest quiz_answer pays the streak chest')
+  assert.equal(Number(combo[1]), COMBO_AT)
 })

@@ -157,13 +157,13 @@ select pg_temp.break_art('f3');
 select is((public.quiz_status()->>'left')::int, 4, 'swapping a Pokémon costs no turn');
 select throws_ok($$ select public.quiz_reroll(pg_temp.round_id('f3')) $$, 'P0001', 'no_rerolls', 'a fourth swap is refused');
 
--- the chests: streak 10 and the tenth record
+-- the chests: streak 5 and the tenth record
 reset role;
-update public.quiz_players set streak = 9, records = 9
+update public.quiz_players set streak = 4, records = 9
 where user_id = '11111111-1111-1111-1111-111111111111';
 set local role authenticated;
 insert into r values ('f3!', public.quiz_answer(pg_temp.round_id('f3'), pg_temp.answer_of('f3')));
-select is((select jsonb_array_length(v->'chests') from r where k = 'f3!'), 2, 'a streak of 10 that is the tenth record pays two chests');
+select is((select jsonb_array_length(v->'chests') from r where k = 'f3!'), 2, 'a streak of 5 that is the tenth record pays two chests');
 select ok(
   (select jsonb_array_length(v->'chests'->0->'gifts') between 3 and 5 and v->'chests'->0->>'kind' = 'combo' from r where k = 'f3!'),
   'the streak chest holds 3 to 5 gifts'

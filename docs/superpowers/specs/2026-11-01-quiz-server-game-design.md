@@ -43,7 +43,7 @@ the bag's links (header, menu) are hidden.
   (catalogue rank); TM/HM only when typed; one round in four has a bonus
   turn behind one gift.
 - Right: the slot's gift goes to the bag. Wrong or time: streak 0, nothing.
-- Streak 10 → a chest (3–5 gifts, 1 sure rare: `COMBO_SURE`/`COMBO_WEIGHTS`),
+- Streak 10 (5 since 2026-11-01, `COMBO_AT`) → a chest (3–5 gifts, 1 sure rare: `COMBO_SURE`/`COMBO_WEIGHTS`),
   streak back to 0, records + 1. Records 10 → the special chest (10 gifts, 3
   sure: `SPECIAL_SURE`/`SPECIAL_WEIGHTS`), records back to 0.
 - Weights are the current ones in `src/pages/QuizPage/items.mjs`

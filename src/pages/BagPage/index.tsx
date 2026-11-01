@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { TIERS, itemSprite } from 'pages/QuizPage/items.mjs'
-import { badgeCount, fullCount } from 'pages/QuizPage/progress.mjs'
+import { COMBO_AT, badgeCount, fullCount } from 'pages/QuizPage/progress.mjs'
 import { useAccount } from 'app/supabase/account'
 import { useBagStore } from './bagStore'
 import ItemDialog, { ItemCard } from 'pages/QuizPage/ItemDialog'
@@ -448,7 +448,7 @@ export default function BagPage() {
           <strong>{empty ? 'Túi còn trống' : 'Ngăn này còn trống'}</strong>
           <p>
             Quà đến từ Who’s That Pokémon?: đoán đúng thật sớm để giữ quà quý,
-            đủ chuỗi 10 để mở Premier Ball.
+            đủ chuỗi {COMBO_AT} để mở Premier Ball.
           </p>
           <LinkCustom className="play" to="/whos-that-pokemon">
             Chơi ngay ►
