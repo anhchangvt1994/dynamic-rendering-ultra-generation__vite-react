@@ -160,7 +160,8 @@ announced through `aria-live`. CSS and SVG only: no new images or sounds.
 - **Database** (`supabase/tests/database/quiz_time.test.sql`): 5 charges,
   `no_time`, refill 2 h after the first use; one stop per round
   (`time_used`), `answered`, `no_round`, `time_over`; stopped at 3 s and
-  answered at 15 s wins the first gift, answered at 30 s is judged at 15 s;
+  answered at 15 s wins the first gift; stopped at 3 s and answered 25 s
+  after the start is judged at 10 s (slot 3, not a time-out);
   a stopped easy round is not timed out at 20 s; `has_turns`; a refill gives
   5 turns and 3 swaps, keeps streak and records; anon can not call them;
   `time_*` columns not writable by users.
