@@ -39,19 +39,22 @@ yarn db:reset   # rebuilds the LOCAL database from the migrations (wipes local d
 yarn db:test
 ```
 
-VPS (self-hosted stack, `infra/supabase`):
+VPS (self-hosted stack, `infra/supabase`, accounts already running):
 
-1. Pull, then run `sudo bash scripts/vps-setup/supabase.sh`: it rebuilds and
-   restarts the app, whose `yarn start` preflight applies the pending
-   migrations (`supabase migration up`). The post-merge auto-deploy only
-   reloads PM2 without the preflight: on its own it leaves the migration
-   unapplied, and the quiz's RPCs missing.
-2. The Node server reads `SERVICE_ROLE_KEY` from `infra/supabase/.env` when
-   `SUPABASE_SERVICE_ROLE_KEY` is unset; nothing to add for the default
-   layout. Set `SUPABASE_INTERNAL_URL` in `server/.env.local` if the server
-   should reach the API on a private address instead of
+1. `git pull` as the app user. With the post-merge hook installed, the pull
+   builds (`yarn build`, `yarn server-build`) and reloads PM2 on its own;
+   without it: `yarn install --frozen-lockfile && yarn build && yarn
+   server-build`.
+2. `sudo systemctl restart vps-app`: its launcher's preflight applies the
+   pending migrations (`supabase migration up`). The hook's PM2 reload does
+   not run the preflight, so until this restart the quiz's RPCs are missing
+   (signed-in players get an error; guests play). `scripts/vps-setup/
+   supabase.sh` does not help here: it skips the build once the site has
+   accounts.
+3. Nothing to add to the env for the default layout: the route reads
+   `SERVICE_ROLE_KEY` from `infra/supabase/.env` (written by the preflight)
+   when `SUPABASE_SERVICE_ROLE_KEY` is unset, and calls the API at
    `SUPABASE_PUBLIC_URL`.
-3. Rebuild and reload as usual.
 
 ## Costs and limits
 
