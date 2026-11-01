@@ -1183,8 +1183,8 @@ export const QuizStyle = styled.section`
   .options button:disabled {
     cursor: default;
   }
-  /* ── Palkia took it: twisted away into torn space, inside its own cell
-     (transforms only: the grid never moves) ── */
+  /* ── Palkia took it: pulled into a black hole like spaghetti, inside its
+     own cell (transforms only: the grid never moves), then nothing ── */
   .options li {
     position: relative;
   }
@@ -1192,81 +1192,44 @@ export const QuizStyle = styled.section`
     pointer-events: none;
   }
   .options li[data-removed='fresh'] button {
-    animation: palkia-warp 1100ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+    animation: palkia-spaghetti 1150ms cubic-bezier(0.6, 0, 0.8, 0.3) 240ms both;
+  }
+  /* the options left ripple like heat haze around the holes (PalkiaRift) */
+  .options[data-bending] li:not([data-removed]) button {
+    filter: url(#palkia-twist);
   }
   .options li[data-removed='gone'] button {
     opacity: 0;
     visibility: hidden;
   }
-  .options li[data-removed]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px dashed rgba(255, 190, 230, 0.55);
-    border-radius: 16px;
-    background:
-      linear-gradient(
-        100deg,
-        transparent 30%,
-        rgba(255, 230, 245, 0.18) 45%,
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse at 50% 50%,
-        rgba(255, 124, 207, 0.22),
-        rgba(176, 124, 255, 0.1) 60%,
-        transparent 78%
-      );
-    background-size:
-      240% 100%,
-      100% 100%;
-    pointer-events: none;
-    animation:
-      palkia-scar 600ms ease-out both,
-      palkia-shimmer 3.2s linear infinite;
+  /* the silhouette bends as if seen through the hole's lens */
+  .stage[data-lensing] .veil {
+    filter: url(#palkia-lens) brightness(1.08);
   }
-  .options li[data-removed='fresh']::after {
-    animation-delay: 900ms, 900ms;
-  }
-  @keyframes palkia-warp {
+  @keyframes palkia-spaghetti {
     0% {
       transform: none;
       filter: none;
       opacity: 1;
     }
-    20% {
-      transform: skewX(-16deg) scaleX(1.06);
-      filter: hue-rotate(-40deg) saturate(1.7);
+    /* tidal pull: stretched toward the hole, squeezed across it */
+    25% {
+      transform: scale(1.1, 0.78) skewX(-12deg);
     }
-    /* small first, then the whirl: it never swings out of its cell */
     50% {
-      transform: scale(0.5, 0.3) rotate(-30deg) skewX(20deg);
-      filter: blur(1px) hue-rotate(-90deg);
-      opacity: 0.9;
+      transform: scale(1.45, 0.14) rotate(-25deg);
+      filter: blur(0.5px) brightness(1.2);
+    }
+    78% {
+      transform: scale(0.5, 0.05) rotate(-200deg);
+      filter: blur(1.5px) brightness(1.8);
+      opacity: 0.85;
     }
     100% {
-      transform: scale(0) rotate(-360deg);
-      filter: blur(3px);
+      transform: scale(0) rotate(-420deg);
+      filter: blur(3px) brightness(3);
       opacity: 0;
       visibility: hidden;
-    }
-  }
-  @keyframes palkia-scar {
-    from {
-      opacity: 0;
-      transform: scaleX(0.2);
-    }
-  }
-  @keyframes palkia-shimmer {
-    from {
-      background-position:
-        120% 0,
-        0 0;
-    }
-    to {
-      background-position:
-        -120% 0,
-        0 0;
     }
   }
   /* bottom left: the image and the prize orb stay clear */
@@ -1347,7 +1310,6 @@ export const QuizStyle = styled.section`
     .options li[data-removed='fresh'] button {
       animation: palkia-fade 600ms ease-out both;
     }
-    .options li[data-removed]::after,
     .palkia-letter,
     .palkia-note {
       animation: none;

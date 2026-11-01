@@ -50,7 +50,7 @@ import Veil, { VEIL_LABEL } from './Veil'
 import type { TimeStop } from './Veil'
 import TimePower, { TimeStopFx } from './TimePower'
 import WildGrass, { Encounter } from './WildGrass'
-import PalkiaRift, { PalkiaLetter, palkiaSays } from './PalkiaRift'
+import PalkiaRift, { BlackHole, PalkiaLetter, palkiaSays } from './PalkiaRift'
 import Prize, { PrizeSlot } from './Prize'
 import Loot from './Loot'
 import ItemDialog from './ItemDialog'
@@ -1090,6 +1090,7 @@ export default function QuizPage() {
               data-frozen={
                 (freeze && !revealed && freeze.phase !== 'thaw') || undefined
               }
+              data-lensing={(palkia?.fresh && !revealed) || undefined}
             >
               <span className="burst" aria-hidden="true" />
               <span className="ring" aria-hidden="true" />
@@ -1456,12 +1457,15 @@ export default function QuizPage() {
                 ref={optionsRef}
                 className="options"
                 aria-label="Chọn tên Pokémon"
+                data-bending={
+                  (palkia?.fresh && palkia.removed.length > 0) || undefined
+                }
               >
                 {(round?.options ?? Array.from({ length: 4 }, () => null)).map(
                   (option, index) => {
-                    // NOTE - Taken by Palkia: the button twists away inside
-                    // its own place, a scar of torn space stays; the grid
-                    // keeps its 4 cells, nothing moves
+                    // NOTE - Taken by Palkia: a black hole opens in the
+                    // cell and swallows the button, then the cell is left
+                    // empty; the grid keeps its 4 cells, nothing moves
                     const gone = !!option && !!palkia?.removed.includes(option)
                     return (
                       <li
@@ -1485,6 +1489,7 @@ export default function QuizPage() {
                           <kbd aria-hidden="true">{index + 1}</kbd>
                           <span>{option ? nameOf(option) : '…'}</span>
                         </button>
+                        {gone && palkia?.fresh && <BlackHole />}
                       </li>
                     )
                   }
