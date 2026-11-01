@@ -7,6 +7,12 @@ const PAGE_PARTS: [name: string, files: RegExp][] = [
     'pokemon-habitat',
     /src\/pages\/PokemonPage\/(PokemonHabitat|HabitatMotifs|habitat)\./,
   ],
+  // NOTE - The skeletons' shared pieces, on their own: the bag skeleton
+  // (below) and the other skeletons both import them, and the other
+  // skeletons import the bag one. Inside either chunk, the two chunks would
+  // import each other, and the one loaded first reads the other's variables
+  // before they exist ("Cannot access 'x' before initialization", every page)
+  ['skeleton-bone', /src\/components\/PageSkeleton\/bone\./],
   // the bag's skeleton and the page styles it reuses, apart from the other
   // skeletons so their chunk keeps room
   [

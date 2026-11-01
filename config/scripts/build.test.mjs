@@ -15,7 +15,7 @@ import test from 'node:test'
 
 const project = fileURLToPath(new URL('../../', import.meta.url))
 
-function buildFixture({ fail, staging = false, missing } = {}) {
+function buildFixture({ fail, staging = false, missing, cycle = false } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'build-pipeline-'))
   const write = (file, content, mode) => {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
@@ -25,6 +25,10 @@ function buildFixture({ fail, staging = false, missing } = {}) {
   write(
     'config/scripts/build.mjs',
     readFileSync(new URL('./build.mjs', import.meta.url))
+  )
+  write(
+    'config/utils/ChunkCycles.mjs',
+    readFileSync(new URL('../utils/ChunkCycles.mjs', import.meta.url))
   )
   mkdirSync(path.join(root, 'node_modules/.bin'), { recursive: true })
   symlinkSync(
@@ -45,7 +49,14 @@ function buildFixture({ fail, staging = false, missing } = {}) {
 const fs = require('node:fs');
 const name = ${JSON.stringify(name)};
 ${record};
-if (name === 'vite') process.exit(0);
+if (name === 'vite') {
+  if (process.env.CHUNK_CYCLE) {
+    fs.mkdirSync('dist', { recursive: true });
+    fs.writeFileSync('dist/a.js', 'import{b}from"./b.js";export const a=b');
+    fs.writeFileSync('dist/b.js', 'import{a}from"./a.js";export const b=1');
+  }
+  process.exit(0);
+}
 const other = name === 'tsc' ? 'eslint' : 'tsc';
 const started = Date.now();
 const timer = setInterval(() => {
@@ -59,7 +70,11 @@ const timer = setInterval(() => {
       0o755
     )
   }
-  const env = { ...process.env, FAIL_CHECK: fail ?? '' }
+  const env = {
+    ...process.env,
+    FAIL_CHECK: fail ?? '',
+    CHUNK_CYCLE: cycle ? '1' : '',
+  }
   delete env.DEPLOY_STAGING_DIR
   if (staging) env.DEPLOY_STAGING_DIR = path.join(root, 'stage with spaces')
   try {
@@ -109,5 +124,14 @@ test('staged build skips the live after-build handler', () => {
 test('missing executable reports a build failure without publishing', () => {
   const result = buildFixture({ missing: 'vite' })
   assert.equal(result.status, 1)
+  assert.equal(result.events.includes('AfterBuildHandler'), false)
+})
+
+test('chunks importing each other fail the build before after-build', () => {
+  // every page threw "Cannot access 'r' before initialization" on load
+  const result = buildFixture({ cycle: true })
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /a\.js → b\.js → a\.js/)
+  assert.equal(result.events.includes('vite'), true)
   assert.equal(result.events.includes('AfterBuildHandler'), false)
 })

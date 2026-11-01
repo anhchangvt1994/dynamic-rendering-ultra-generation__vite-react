@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { findChunkCycles } from '../utils/ChunkCycles.mjs'
 
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
@@ -45,6 +46,12 @@ async function runScript() {
       'build',
       ...(staging ? ['--outDir', `${staging}/dist`] : []),
     ])
+
+    const cycles = findChunkCycles(staging ? `${staging}/dist` : 'dist')
+    if (cycles.length)
+      throw new Error(
+        `Built chunks import each other (pages would fail to load):\n${cycles.join('\n')}\nMove the modules they share into their own chunk (config/vite.production.config/utils/splitChunkPageParts.ts).`
+      )
 
     if (!staging)
       await runCommand(process.execPath, [
