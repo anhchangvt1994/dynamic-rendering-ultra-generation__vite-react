@@ -3,9 +3,14 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { ITEMS } from './items.mjs'
 import { GENERATIONS } from '../HomePage/catalog.mjs'
+import { FREEZE_MS, TIME_CHARGES, TIME_WINDOW_MS } from './engine/rules.mjs'
 
 const MIGRATION = new URL(
   '../../../supabase/migrations/20261101000000_quiz_game.sql',
+  import.meta.url
+)
+const TIME_MIGRATION = new URL(
+  '../../../supabase/migrations/20261102000000_quiz_time.sql',
   import.meta.url
 )
 
@@ -40,4 +45,17 @@ test('the database plays the ranges the page offers: all, or a generation', () =
     [1, 1025],
     ...GENERATIONS.map((gen) => [gen.start, gen.end]),
   ])
+})
+
+test('the Roar of Time keeps the numbers of its migration', () => {
+  const sql = readFileSync(TIME_MIGRATION, 'utf8')
+  assert.match(sql, /least\((\d+), greatest/)
+  assert.equal(Number(sql.match(/least\((\d+), greatest/)[1]), FREEZE_MS)
+  const hours = [...sql.matchAll(/time_start \+ interval '(\d+) hours'/g)]
+  assert.ok(hours.length > 0)
+  for (const [, h] of hours) assert.equal(Number(h) * 3600000, TIME_WINDOW_MS)
+  for (const [, n] of sql.matchAll(/'time_left', (\d+) - v_player\.time_used/g))
+    assert.equal(Number(n), TIME_CHARGES)
+  for (const [, n] of sql.matchAll(/v_player\.time_used >= (\d+)/g))
+    assert.equal(Number(n), TIME_CHARGES)
 })
