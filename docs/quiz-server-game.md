@@ -12,9 +12,11 @@ Design: `docs/superpowers/specs/2026-11-01-quiz-server-game-design.md`.
 | Where | What |
 |---|---|
 | `supabase/migrations/20261101000000_quiz_game.sql` | tables (`quiz_items`, `quiz_players`, `quiz_rounds`, `bag`) and the RPCs (`quiz_status`, `quiz_start`, `quiz_answer`, `quiz_reroll`; `quiz_art` for the service role) |
-| `supabase/tests/database/quiz.test.sql` | the rules, the timing and the permissions (`yarn db:test`) |
+| `supabase/migrations/20261102000000_quiz_time.sql` | the Roar of Time: 5 charges, full again 2 h after the first use (`quiz_time_stop` stops a round's clock for 15 s; `quiz_time_refill` opens a new window of turns); `quiz_clock` is the round's clock without its stop |
+| `supabase/tests/database/quiz.test.sql`, `quiz_time.test.sql` | the rules, the timing and the permissions (`yarn db:test`) |
 | `server/src/api/routes/quiz/` | `GET /api/quiz-art/<round>` and `/api/quiz-cry/<round>`: the artwork and cry of a round, looked up with the service role, for the express, fastify and uWS servers |
-| `src/pages/QuizPage/engine/` | the page's game: `server` (RPCs), `local` (yarn dev), `guest`; `rules.mjs` mirrors the SQL rules |
+| `src/pages/QuizPage/engine/` | the page's game: `server` (RPCs), `local` (yarn dev), `guest`; `rules.mjs` mirrors the SQL rules (the round's clock and the charges too) |
+| `src/pages/QuizPage/TimePower.tsx`, `Watch.tsx`, `WildGrass.tsx` | the Roar of Time on the stage (key T) and on the out-of-turns screen; the tall-grass loading |
 | `src/pages/BagPage/bagStore.ts` | the bag from the account (or the browser in dev) |
 
 The media proxy is a custom API route like `api/routes/lighthouse`: one
@@ -48,12 +50,14 @@ the user that owns the repo and runs PM2 (`deploy` by default; find it with
    it: `yarn install --frozen-lockfile && yarn build && yarn server-build`.
    `yarn build` fails when two built chunks import each other
    (`config/utils/ChunkCycles.mjs`): such a build loads no page.
-2. Apply the migration: `yarn start:redis-api:pm2:worker` (with the same
+2. Apply the migrations (the quiz's, then the Roar of Time's
+   `20261102000000_quiz_time.sql`): `yarn start:redis-api:pm2:worker` (with the same
    `PM2_HOME` as the running daemon if it is not the default). Its preflight
    runs `supabase migration up`, then it updates the running PM2 group in
    place. A PM2 reload alone (the hook) skips the preflight: until this
    step the quiz's RPCs are missing (signed-in players get an error, guests
-   play). On a VPS set up with the `vps-app` systemd service,
+   play); without the second migration the Roar of Time's calls 404 and
+   the verdicts carry no charges. On a VPS set up with the `vps-app` systemd service,
    `sudo systemctl restart vps-app` does the same. `scripts/vps-setup/
    supabase.sh` does not: it skips the build once the site has accounts.
 3. Nothing to add to the env for the default layout: the route reads
@@ -62,7 +66,8 @@ the user that owns the repo and runs PM2 (`deploy` by default; find it with
    `SUPABASE_PUBLIC_URL`.
 4. Check: signed in, `/whos-that-pokemon` shows the artwork from
    `/api/quiz-art/<round>` (the uWS route's first live run), a right answer
-   fills `/tui-do`, `/ai-day` lands on `/whos-that-pokemon`.
+   fills `/tui-do`, `/ai-day` lands on `/whos-that-pokemon`; the watch
+   (top left of the stage) shows 5 charges and T stops the round.
 
 ## Costs and limits
 
