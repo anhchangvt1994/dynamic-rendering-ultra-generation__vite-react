@@ -68,10 +68,20 @@ export function drawRound(random, { from, to, hard, recent = [], lastVeil }) {
 /**
  * Where the veil stands when the artwork shows: the round's clock when it
  * reached the page, plus the time the artwork took to load (the server's
- * clock ran meanwhile).
+ * clock ran meanwhile), less what of it time was stopped (`stop`, page times).
  */
-export function veilElapsed(round, receivedAt, loadedAt) {
-  return round.elapsedMs + Math.max(0, loadedAt - receivedAt)
+export function veilElapsed(round, receivedAt, loadedAt, stop = null) {
+  return (
+    round.elapsedMs +
+    Math.max(0, loadedAt - receivedAt) -
+    stopped(stop, receivedAt, loadedAt)
+  )
+}
+
+/** How much of `from`..`to` time was stopped (`stop`: {at, until}). */
+export function stopped(stop, from, to) {
+  if (!stop) return 0
+  return Math.max(0, Math.min(to, stop.until) - Math.max(from, stop.at))
 }
 
 /** A number for the veil's pattern, from the round's id (FNV-1a). */

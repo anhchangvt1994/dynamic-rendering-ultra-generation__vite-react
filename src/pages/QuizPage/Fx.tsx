@@ -24,6 +24,8 @@ export type Burst = {
 export type FxHandle = {
   burst: (burst: Burst) => void
   clear: () => void
+  /** every particle holds still until then (performance.now; time stopped) */
+  hold: (until: number) => void
 }
 
 type Particle = {
@@ -62,13 +64,15 @@ const Fx = forwardRef<FxHandle>(function Fx(_, ref) {
   const particles = useRef<Particle[]>([])
   const frame = useRef(0)
   const last = useRef(0)
+  const held = useRef(0)
 
   const tick = (now: number) => {
     const canvas = canvasRef.current
     const context = canvas?.getContext('2d')
     if (!canvas || !context) return
     // a slow frame moves particles further instead of slowing them down
-    const step = Math.min(now - last.current, 40) / 16.67
+    const step =
+      now < held.current ? 0 : Math.min(now - last.current, 40) / 16.67
     last.current = now
     const ratio = canvas.width / canvas.clientWidth
     context.setTransform(1, 0, 0, 1, 0, 0)
@@ -165,6 +169,9 @@ const Fx = forwardRef<FxHandle>(function Fx(_, ref) {
     },
     clear() {
       particles.current = []
+    },
+    hold(until) {
+      held.current = until
     },
   }))
 

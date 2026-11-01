@@ -34,6 +34,7 @@ import {
   fullCount,
 } from './progress.mjs'
 import {
+  FREEZE_MS,
   TIME_UP,
   veilElapsed as elapsedAtLoad,
   veilSeed,
@@ -46,6 +47,8 @@ import { flyTo } from './flight'
 import Fx from './Fx'
 import type { FxHandle } from './Fx'
 import Veil, { VEIL_LABEL } from './Veil'
+import type { TimeStop } from './Veil'
+import TimePower, { TimeStopFx } from './TimePower'
 import Prize, { PrizeSlot } from './Prize'
 import Loot from './Loot'
 import ItemDialog from './ItemDialog'
@@ -166,6 +169,16 @@ export default function QuizPage() {
   const stageRef = useRef<HTMLDivElement>(null)
   const veilLeft = useRef(1)
   const veilElapsed = useRef(0)
+  // NOTE - The Roar of Time: the stop the veil reads every frame, and what
+  // the page draws of it (the round it was used on, the 15 s on screen)
+  const stopRef = useRef<TimeStop | null>(null)
+  const [stoppedId, setStoppedId] = useState<string | null>(null)
+  const [freeze, setFreeze] = useState<{
+    until: number
+    fresh: boolean
+    phase: 'hold' | 'late' | 'thaw'
+  } | null>(null)
+  const [timeNote, setTimeNote] = useState('')
   // when the round reached the page: its clock runs while the artwork loads
   const roundAt = useRef(0)
   const guessRef = useRef<HTMLInputElement>(null)
@@ -201,6 +214,24 @@ export default function QuizPage() {
     veilLeft.current = 1
     veilElapsed.current = playing.elapsedMs
     roundAt.current = performance.now()
+    // a round stopped before (another visit): the rest of its 15 s, its veil
+    // already halved
+    if (playing.frozenAtMs === null) stopRef.current = null
+    else {
+      const until = roundAt.current + playing.freezeLeftMs
+      stopRef.current = { at: until - FREEZE_MS, until }
+    }
+    setStoppedId(playing.frozenAtMs === null ? null : playing.id)
+    setFreeze(
+      playing.freezeLeftMs > 0
+        ? {
+            until: roundAt.current + playing.freezeLeftMs,
+            fresh: false,
+            phase: 'hold',
+          }
+        : null
+    )
+    setTimeNote('')
     // moving on from the result with the keyboard: keep the player in the
     // game instead of dropping focus back to the top of the page
     focusFirstOption.current = document.activeElement === nextRef.current
@@ -272,8 +303,10 @@ export default function QuizPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine])
 
+  const timeLeft = rewards ? (status?.timeLeft ?? 0) : 0
+  const timeRefillAt = rewards ? (status?.timeRefillAt ?? 0) : 0
   // the clock of the turns: once a second while a window is running
-  const ticking = refill > 0 || round === null
+  const ticking = refill > 0 || round === null || timeRefillAt > 0
   useEffect(() => {
     if (!ticking) return
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
@@ -305,7 +338,8 @@ export default function QuizPage() {
       veilElapsed.current = elapsedAtLoad(
         round,
         roundAt.current,
-        performance.now()
+        performance.now(),
+        stopRef.current
       )
     setLoaded(true)
   }, [round])
@@ -383,6 +417,55 @@ export default function QuizPage() {
   )
   const onVeilDone = useCallback(() => choose(TIME_UP), [choose])
 
+  // NOTE - The Roar of Time stops the round at once, then asks the engine:
+  // refused (no charge left on another device), the stop is taken back and
+  // the veil catches up with the time that went by
+  const stopTime = useCallback(() => {
+    if (!engine?.rewards || !round || !loaded || revealed || answering) return
+    if (stoppedId === round.id || timeLeft <= 0) return
+    const at = performance.now()
+    stopRef.current = { at, until: at + FREEZE_MS }
+    setStoppedId(round.id)
+    setFreeze({ until: at + FREEZE_MS, fresh: true, phase: 'hold' })
+    setTimeNote('')
+    fxRef.current?.hold(at + FREEZE_MS)
+    engine
+      .timeStop(round)
+      .then(() => engine.status())
+      .then(setStatus)
+      .catch((error: Error) => {
+        stopRef.current = null
+        fxRef.current?.hold(0)
+        setStoppedId(error.message === 'time_used' ? round.id : null)
+        setFreeze(null)
+        setTimeNote(
+          error.message === 'time_used'
+            ? 'Vòng này đã dừng rồi'
+            : 'Hết lượt Gầm Thời Gian'
+        )
+        engine
+          .status()
+          .then(setStatus)
+          .catch(() => {})
+      })
+  }, [engine, round, loaded, revealed, answering, stoppedId, timeLeft])
+
+  useEffect(() => {
+    if (!timeNote) return
+    const timer = window.setTimeout(() => setTimeNote(''), 3500)
+    return () => clearTimeout(timer)
+  }, [timeNote])
+
+  // the charges' 2 hours are over: the engine has them back
+  const timeBack = timeRefillAt > 0 && now >= timeRefillAt
+  useEffect(() => {
+    if (timeBack)
+      engine
+        ?.status()
+        .then(setStatus)
+        .catch(() => {})
+  }, [timeBack, engine])
+
   // the prize drops a notch: its gift breaks out of the orb's top edge
   const onDrop = useCallback((tier: number) => {
     if (reducedMotion()) return
@@ -420,6 +503,11 @@ export default function QuizPage() {
         )
       )
         return
+      if (event.key === 't' || event.key === 'T') {
+        event.preventDefault()
+        stopTime()
+        return
+      }
       const n = Number(event.key)
       if (!playHard && !revealed && n >= 1 && n <= round.options.length) {
         event.preventDefault()
@@ -428,7 +516,7 @@ export default function QuizPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [round, revealed, choose, playHard])
+  }, [round, revealed, choose, playHard, stopTime])
 
   useEffect(() => () => audio.current?.pause(), [])
 
@@ -898,7 +986,13 @@ export default function QuizPage() {
           <p className="settings-note">Thay đổi áp dụng từ lượt sau.</p>
         </div>
 
-        <div className="stage-wrap">
+        <div
+          className="stage-wrap"
+          data-frozen={
+            (freeze && !revealed && freeze.phase !== 'thaw' && freeze.phase) ||
+            undefined
+          }
+        >
           {locked ? (
             <Recharge
               refill={restUntil || refill}
@@ -916,6 +1010,9 @@ export default function QuizPage() {
               data-veil={round?.veil}
               data-veiled={(loaded && !revealed) || undefined}
               data-catch={catchPhase || undefined}
+              data-frozen={
+                (freeze && !revealed && freeze.phase !== 'thaw') || undefined
+              }
             >
               <span className="burst" aria-hidden="true" />
               <span className="ring" aria-hidden="true" />
@@ -982,6 +1079,7 @@ export default function QuizPage() {
                   stageRef={stageRef}
                   remainingRef={veilLeft}
                   elapsedRef={veilElapsed}
+                  stopRef={stopRef}
                 />
               )}
               {revealed && (
@@ -1025,6 +1123,33 @@ export default function QuizPage() {
                 </svg>
                 <span className="cry-label">Nghe tiếng kêu</span>
               </button>
+              {freeze && !revealed && (
+                <TimeStopFx
+                  key={freeze.until}
+                  until={freeze.until}
+                  fresh={freeze.fresh}
+                  onPhase={(phase) =>
+                    setFreeze((value) => value && { ...value, phase })
+                  }
+                  onEnd={() => setFreeze(null)}
+                />
+              )}
+              {rewards && round && (
+                <TimePower
+                  left={timeLeft}
+                  refillAt={timeRefillAt}
+                  now={now}
+                  disabled={
+                    !loaded || revealed || answering || stoppedId === round.id
+                  }
+                  onUse={stopTime}
+                />
+              )}
+              {timeNote && (
+                <p className="time-note" role="status">
+                  {timeNote}
+                </p>
+              )}
               {round && loaded && !revealed && round.gifts.length > 0 && (
                 <p className="sr-only">
                   Quà nếu đoán đúng ngay: {itemById(round.gifts[0]).name}. Quà

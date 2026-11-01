@@ -2,6 +2,10 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import type { CSSProperties, MutableRefObject, RefObject } from 'react'
 import { seeded } from './quiz.mjs'
 import { slotFor } from './items.mjs'
+import { stopped, veilScale } from './engine/rules.mjs'
+
+/** The Roar of Time on a round, in page times (performance.now). */
+export type TimeStop = { at: number; until: number }
 
 export type VeilKind = 'warp' | 'shards' | 'torch'
 
@@ -39,6 +43,12 @@ type Props = {
    * the server or by their start time): away from the tab, time still goes
    */
   wallClock?: boolean
+  /**
+   * Time stopped (the Roar of Time): no time passes on the clock from `at`
+   * to `until`, and the veil shows half of what the clock leaves. Read every
+   * frame; null again (a refused stop) gives the time back.
+   */
+  stopRef?: MutableRefObject<TimeStop | null>
 }
 
 /**
@@ -65,6 +75,7 @@ export default function Veil({
   elapsedRef,
   onDone,
   wallClock = false,
+  stopRef,
 }: Props) {
   const veilRef = useRef<HTMLDivElement>(null)
   const warpRef = useRef<SVGFEDisplacementMapElement>(null)
@@ -95,11 +106,16 @@ export default function Veil({
     if (!stage || !active) return
     delete stage.dataset.veilDone
     let lastNoise = -Infinity
-    const paint = (k: number, now: number) => {
-      remainingRef.current = k
+    // NOTE - Two values: the gift's (the clock's, the prize reads it) and the
+    // veil's (--k, what the CSS draws), the same until time is stopped
+    const paint = (gift: number, now: number) => {
+      const stop = stopRef?.current
+      const k = gift * veilScale(stop ? now - stop.at : null)
+      remainingRef.current = gift
+      stage.style.setProperty('--g', gift.toFixed(3))
       stage.style.setProperty('--k', k.toFixed(3))
       // the gift the fuse is burning (the stage's CSS lights it)
-      const slot = String(slotFor(k))
+      const slot = String(slotFor(gift))
       if (stage.dataset.slot !== slot) stage.dataset.slot = slot
       if (kind === 'warp') {
         warpRef.current?.setAttribute('scale', (110 * k).toFixed(1))
@@ -132,11 +148,15 @@ export default function Veil({
     // NOTE - The clock adds up frame times. Capped, a hidden tab (no frames)
     // makes the veil wait for the player; on the wall clock (a timed round)
     // the time away counts, as it does for the server
-    let elapsed = elapsedRef.current
+    // the time stopped since this clock started counts for nothing
+    let running = elapsedRef.current
     let last = performance.now()
+    const start = last
+    let elapsed = running
     paint(1 - smoothstep(Math.min(1, elapsed / (duration * 1000))), last)
     let frame = requestAnimationFrame(function tick(now) {
-      elapsed += wallClock ? now - last : Math.min(now - last, 100)
+      running += wallClock ? now - last : Math.min(now - last, 100)
+      elapsed = running - stopped(stopRef?.current ?? null, start, now)
       elapsedRef.current = elapsed
       last = now
       const progress = Math.min(1, elapsed / (duration * 1000))
@@ -148,7 +168,16 @@ export default function Veil({
       }
     })
     return () => cancelAnimationFrame(frame)
-  }, [active, kind, duration, stageRef, remainingRef, elapsedRef, wallClock])
+  }, [
+    active,
+    kind,
+    duration,
+    stageRef,
+    remainingRef,
+    elapsedRef,
+    wallClock,
+    stopRef,
+  ])
 
   // the torch follows a finger or the pointer for a moment, then roams again
   useLayoutEffect(() => {

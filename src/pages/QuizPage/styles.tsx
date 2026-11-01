@@ -954,6 +954,106 @@ export const QuizStyle = styled.section`
     }
   }
 
+  /* ── the Roar of Time: the world holds still ── */
+  .veil {
+    transition: filter 400ms ease-out;
+  }
+  .stage[data-frozen] .veil {
+    filter: saturate(0.35) brightness(1.08) contrast(1.05);
+    transition-duration: 200ms;
+  }
+  .time-note {
+    position: absolute;
+    left: 12px;
+    top: 64px;
+    z-index: 6;
+    margin: 0;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: rgba(5, 15, 28, 0.82);
+    color: #ffd2c9;
+    font-size: 13px;
+    font-weight: 700;
+    animation: quiz-note 3.5s ease both;
+  }
+  @keyframes quiz-note {
+    0% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    8%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  /* the gift sealed in a time crystal, cracking in the last 3 s */
+  .stage-wrap[data-frozen] .prize-orb {
+    box-shadow:
+      0 0 0 3px rgba(225, 246, 255, 0.9),
+      0 0 0 7px rgba(127, 211, 255, 0.35),
+      0 0 26px rgba(127, 211, 255, 0.85);
+    transition: box-shadow 200ms;
+  }
+  .stage-wrap[data-frozen] .prize-core::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e9fbff' d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E")
+        no-repeat 50% 82% / 30% auto,
+      linear-gradient(
+        125deg,
+        rgba(235, 250, 255, 0.55) 0 22%,
+        rgba(127, 211, 255, 0.12) 22% 48%,
+        rgba(255, 255, 255, 0.35) 48% 54%,
+        rgba(127, 211, 255, 0.2) 54%
+      );
+    animation: quiz-seal 260ms ease-out both;
+  }
+  .stage-wrap[data-frozen='late'] .prize-core::after {
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L44 30 58 46 40 62 52 100M44 30L20 22M58 46L86 38M40 62L14 76' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E")
+        no-repeat 50% 50% / 100% 100%,
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e9fbff' d='M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z'/%3E%3C/svg%3E")
+        no-repeat 50% 82% / 30% auto,
+      linear-gradient(
+        125deg,
+        rgba(235, 250, 255, 0.55) 0 22%,
+        rgba(127, 211, 255, 0.12) 22% 48%,
+        rgba(255, 255, 255, 0.35) 48% 54%,
+        rgba(127, 211, 255, 0.2) 54%
+      );
+  }
+  .stage-wrap[data-frozen='late'] .prize-orb {
+    animation: quiz-strain 180ms linear infinite;
+  }
+  @keyframes quiz-seal {
+    from {
+      opacity: 0;
+      transform: scale(1.3);
+    }
+  }
+  @keyframes quiz-strain {
+    25% {
+      transform: translateX(-1px) rotate(-1deg);
+    }
+    75% {
+      transform: translateX(1px) rotate(1deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stage-wrap[data-frozen] .prize-orb,
+    .stage-wrap[data-frozen] .prize-core::after,
+    .time-note {
+      animation: none;
+    }
+  }
+
   /* ── the reveal ── */
   .flash {
     position: absolute;

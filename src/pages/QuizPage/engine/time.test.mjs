@@ -244,3 +244,12 @@ test('guests have no charges', async () => {
   await assert.rejects(guest.timeStop(round), /no_time/)
   await assert.rejects(guest.timeRefill(), /no_time/)
 })
+
+test('the artwork loading while time is stopped does not move the veil', async () => {
+  const { veilElapsed } = await import('./rules.mjs')
+  const round = { elapsedMs: 3000 }
+  assert.equal(veilElapsed(round, 1000, 6000), 8000)
+  assert.equal(veilElapsed(round, 1000, 6000, null), 8000)
+  assert.equal(veilElapsed(round, 1000, 6000, { at: 0, until: 15000 }), 3000)
+  assert.equal(veilElapsed(round, 1000, 6000, { at: 2000, until: 4000 }), 6000)
+})
