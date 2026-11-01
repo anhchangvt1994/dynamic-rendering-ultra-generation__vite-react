@@ -5,13 +5,24 @@ import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import { TIERS, itemById, itemSprite } from './items.mjs'
 import { TURNS, WINDOW_MS } from './progress.mjs'
 import QuickLinks from './QuickLinks'
+import Watch from './Watch'
 
 type Props = {
   /** when the turns come back */
   refill: number
   now: number
   onPlay: () => void
+  /** the Roar of Time: charges left, when they are full again (0: unused) */
+  timeLeft?: number
+  timeRefillAt?: number
+  /** wakes Snorlax for a charge (a new window of turns); rejects with why */
+  onTimeRefill?: () => Promise<void>
 }
+
+// NOTE - Woken by the Roar of Time: the clock races to 0 (the hours fly by),
+// Snorlax wakes as it does when the time is up, then the game goes on
+const RACE_MS = 1200
+const WAKE_MS = 1500
 
 export const clock = (ms: number) => {
   const total = Math.max(0, Math.ceil(ms / 1000))
@@ -178,6 +189,98 @@ const RechargeStyle = styled.div`
   }
   .wake-at b {
     color: #fff;
+  }
+  /* the Roar of Time: wake up now */
+  .wake-power {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    margin-top: 8px;
+    padding: 6px 16px 6px 8px;
+    border: 1.5px solid rgba(160, 220, 255, 0.6);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #1e3f73, #0b1c38);
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 0 22px rgba(127, 211, 255, 0.35);
+    animation: wake-call 2.4s ease-in-out infinite;
+  }
+  .wake-power:disabled {
+    cursor: default;
+    opacity: 0.75;
+    animation: none;
+    box-shadow: none;
+  }
+  .wake-power b {
+    display: block;
+    font-size: 14px;
+  }
+  .wake-power small {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #bfe9ff;
+    font-variant-numeric: tabular-nums;
+  }
+  .wake-power .watch .tick {
+    stroke: rgba(255, 255, 255, 0.22);
+  }
+  .wake-power .watch .tick[data-lit] {
+    stroke: #8fe3ff;
+  }
+  .wake-power:disabled .gem {
+    opacity: 0.35;
+  }
+  .wake-note {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #ffd2c9;
+  }
+  /* the hours fly by: the moon races over, the stars whirl, the clock blurs */
+  &[data-racing] .sky-moon {
+    animation: sky-race 1200ms cubic-bezier(0.5, 0, 0.5, 1) both;
+  }
+  &[data-racing] .sky-stars {
+    animation: sky-whirl 1200ms linear both;
+  }
+  &[data-racing] .wake-clock {
+    color: #bfe9ff;
+    text-shadow:
+      0 4px 0 #241a52,
+      0 0 26px rgba(127, 211, 255, 0.8);
+  }
+  &[data-racing] .wake-power {
+    animation: none;
+    box-shadow: 0 0 40px rgba(127, 211, 255, 0.9);
+  }
+  &[data-racing] .zzz {
+    opacity: 0;
+  }
+  @keyframes wake-call {
+    0%,
+    70%,
+    100% {
+      box-shadow: 0 0 22px rgba(127, 211, 255, 0.35);
+    }
+    80% {
+      box-shadow: 0 0 34px rgba(127, 211, 255, 0.75);
+    }
+  }
+  @keyframes sky-race {
+    to {
+      transform: translate(-140%, 60%) rotate(-200deg);
+      opacity: 0;
+    }
+  }
+  @keyframes sky-whirl {
+    to {
+      transform: rotate(40deg) scale(1.15);
+      opacity: 0.3;
+    }
   }
   .wake-play {
     width: auto;
@@ -400,8 +503,18 @@ const RechargeStyle = styled.div`
   }
 `
 
-export default function Recharge({ refill, now, onPlay }: Props) {
-  const left = refill - now
+export default function Recharge({
+  refill,
+  now,
+  onPlay,
+  timeLeft = 0,
+  timeRefillAt = 0,
+  onTimeRefill,
+}: Props) {
+  const [race, setRace] = useState<{ from: number; t: number } | null>(null)
+  const [waking, setWaking] = useState(false)
+  const [wakeNote, setWakeNote] = useState('')
+  const left = race ? race.from * (1 - race.t) : refill - now
   const ready = left <= 0
   const progress = Math.min(1, Math.max(0, 1 - left / WINDOW_MS))
   const at = new Date(refill).toLocaleTimeString('vi-VN', {
@@ -411,6 +524,42 @@ export default function Recharge({ refill, now, onPlay }: Props) {
   const [mumble, setMumble] = useState('')
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
+  const play = useRef(onPlay)
+  play.current = onPlay
+
+  // the race: the clock to 0 in RACE_MS, then Snorlax wakes, then play
+  useEffect(() => {
+    if (!race || race.t >= 1) return
+    let frame = requestAnimationFrame(function tick(at) {
+      const t = Math.min(1, (at - started) / RACE_MS)
+      setRace((value) => value && { ...value, t: t * t * (3 - 2 * t) })
+      if (t < 1) frame = requestAnimationFrame(tick)
+      else timer.current = window.setTimeout(() => play.current(), WAKE_MS)
+    })
+    const started = performance.now()
+    return () => cancelAnimationFrame(frame)
+    // the race starts once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [race !== null])
+
+  const wake = () => {
+    if (!onTimeRefill || waking) return
+    setWaking(true)
+    setWakeNote('')
+    onTimeRefill()
+      .then(() => {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          play.current()
+          return
+        }
+        setRace({ from: Math.max(0, refill - Date.now()), t: 0 })
+      })
+      .catch((error: Error) => {
+        setWaking(false)
+        if (error.message === 'has_turns') play.current()
+        else setWakeNote('Hết lượt Gầm Thời Gian')
+      })
+  }
   const poke = () => {
     if (ready) return
     setMumble(MUMBLES[Math.floor(Math.random() * MUMBLES.length)])
@@ -422,6 +571,7 @@ export default function Recharge({ refill, now, onPlay }: Props) {
     <RechargeStyle
       className="stage recharge"
       data-ready={ready || undefined}
+      data-racing={(race && race.t < 1) || undefined}
       style={{ '--p': progress } as CSSProperties}
     >
       <span className="burst" aria-hidden="true" />
@@ -451,6 +601,29 @@ export default function Recharge({ refill, now, onPlay }: Props) {
             <p className="wake-at">
               Dậy lúc <b>{at}</b> · {TURNS} lượt mới
             </p>
+            {onTimeRefill && (
+              <button
+                type="button"
+                className="wake-power"
+                disabled={waking || timeLeft <= 0}
+                onClick={wake}
+              >
+                <Watch left={timeLeft} size={30} />
+                <span>
+                  <b>Gầm Thời Gian: chơi ngay</b>
+                  <small>
+                    {timeLeft > 0
+                      ? `tốn 1 trong ${timeLeft} lượt`
+                      : `Dialga hồi sau ${clock(timeRefillAt - now)}`}
+                  </small>
+                </span>
+              </button>
+            )}
+            {wakeNote && (
+              <p className="wake-note" role="status">
+                {wakeNote}
+              </p>
+            )}
           </>
         )}
       </div>

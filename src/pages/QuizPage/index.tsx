@@ -997,6 +997,13 @@ export default function QuizPage() {
             <Recharge
               refill={restUntil || refill}
               now={now}
+              timeLeft={timeLeft}
+              timeRefillAt={timeRefillAt}
+              onTimeRefill={
+                engine?.rewards
+                  ? async () => setStatus(await engine.timeRefill())
+                  : undefined
+              }
               onPlay={() => {
                 setRestUntil(0)
                 next()
