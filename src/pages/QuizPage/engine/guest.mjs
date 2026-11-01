@@ -47,7 +47,14 @@ export function createGuestEngine({
       from,
       to,
     }
-    return { ...current, elapsedMs: 0, frozenAtMs: null, freezeLeftMs: 0 }
+    return {
+      ...current,
+      elapsedMs: 0,
+      frozenAtMs: null,
+      freezeLeftMs: 0,
+      removed: [],
+      letter: null,
+    }
   }
   return {
     kind: 'guest',

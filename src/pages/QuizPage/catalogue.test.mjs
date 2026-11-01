@@ -67,3 +67,24 @@ test("the streak's chest comes at COMBO_AT, as in the latest quiz_answer", () =>
   assert.ok(combo, 'the latest quiz_answer pays the streak chest')
   assert.equal(Number(combo[1]), COMBO_AT)
 })
+
+test("Palkia's odds and letters are its migration's", async () => {
+  const { HINT_ODDS, PALKIA_ODDS } = await import('./engine/rules.mjs')
+  const { LETTERS } = await import('./engine/letters.mjs')
+  const sql = readFileSync(
+    new URL(
+      '../../../supabase/migrations/20261103000000_quiz_palkia.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+  assert.equal(
+    Number(sql.match(/random\(\) >= ([\d.]+) then null/)[1]),
+    PALKIA_ODDS
+  )
+  assert.equal(
+    Number(sql.match(/random\(\) < ([\d.]+) then substr/)[1]),
+    HINT_ODDS
+  )
+  assert.equal(sql.match(/'([A-Z]{1025})'/)[1], LETTERS)
+})

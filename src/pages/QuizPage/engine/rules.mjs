@@ -2,6 +2,7 @@
 // (supabase/migrations/20261101000000_quiz_game.sql): keep the two in step.
 import { SLOT_AT, roundGifts } from '../items.mjs'
 import { pickVeil } from '../quiz.mjs'
+import { LETTERS } from './letters.mjs'
 
 // the network's share of a server answer's time, granted to every answer
 export const GRACE_MS = 400
@@ -152,3 +153,22 @@ export const spendTime = (state, now) => ({
   start: state.start || now,
   used: state.used + 1,
 })
+
+// NOTE - Palkia's help (20261103000000_quiz_palkia.sql), drawn with each
+// stop: half of them take 2 wrong options away (typed rounds have none),
+// and on a draw of their own 1 in 5 tell the name's first letter
+export const PALKIA_ODDS = 0.5
+export const HINT_ODDS = 0.2
+
+/** The 2 wrong options Palkia takes away, or none. */
+export function palkiaRemoves(random, round) {
+  if (round.hard || random() >= PALKIA_ODDS) return []
+  const wrong = round.options.filter((id) => id !== round.answerId)
+  const first = wrong.splice(Math.floor(random() * wrong.length), 1)[0]
+  return [first, wrong[Math.floor(random() * wrong.length)]]
+}
+
+/** The first letter of the answer's name, or null. */
+export function palkiaHint(random, round) {
+  return random() < HINT_ODDS ? LETTERS[round.answerId - 1] : null
+}

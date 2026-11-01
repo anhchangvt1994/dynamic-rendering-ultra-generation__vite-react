@@ -50,6 +50,7 @@ import Veil, { VEIL_LABEL } from './Veil'
 import type { TimeStop } from './Veil'
 import TimePower, { TimeStopFx } from './TimePower'
 import WildGrass, { Encounter } from './WildGrass'
+import PalkiaRift, { PalkiaLetter, palkiaSays } from './PalkiaRift'
 import Prize, { PrizeSlot } from './Prize'
 import Loot from './Loot'
 import ItemDialog from './ItemDialog'
@@ -66,6 +67,8 @@ const MAX_IMAGE_ERRORS = 3
 // hold (--burst), a catch clicks shut at --click
 const REVEAL_AT = 120
 const CLICK_AT = 1250
+// Palkia's rift after a stop: once Dialga's clock face (1.2 s) is gone
+const PALKIA_AFTER = 1100
 // after the last turn's answer, how long its result holds the stage
 const REST_AFTER = 2600
 const PARTY = ['#ffda55', '#ffffff', '#ff6a4a', '#4fd18b', '#4aa8ff', '#b77cff']
@@ -180,6 +183,16 @@ export default function QuizPage() {
     phase: 'hold' | 'late' | 'thaw'
   } | null>(null)
   const [timeNote, setTimeNote] = useState('')
+  // NOTE - Palkia's help with a stop: the options it took away, the letter
+  // it told; fresh while its rift plays (after Dialga's clock face)
+  const [palkia, setPalkia] = useState<{
+    removed: number[]
+    letter: string | null
+    fresh: boolean
+  } | null>(null)
+  const [palkiaNote, setPalkiaNote] = useState('')
+  const palkiaTimer = useRef(0)
+  const roundId = useRef<string | null>(null)
   // the round whose artwork just landed: the battle transition plays over it
   const [encounter, setEncounter] = useState<string | null>(null)
   // when the round reached the page: its clock runs while the artwork loads
@@ -217,8 +230,8 @@ export default function QuizPage() {
     veilLeft.current = 1
     veilElapsed.current = playing.elapsedMs
     roundAt.current = performance.now()
-    // a round stopped before (another visit): the rest of its 15 s, its veil
-    // already halved
+    // a round stopped before (another visit): the rest of its 30 s, its veil
+    // already thinned, and whatever Palkia did for it
     if (playing.frozenAtMs === null) stopRef.current = null
     else {
       const until = roundAt.current + playing.freezeLeftMs
@@ -239,6 +252,14 @@ export default function QuizPage() {
         : null
     )
     setTimeNote('')
+    roundId.current = playing.id
+    clearTimeout(palkiaTimer.current)
+    setPalkia(
+      playing.removed.length || playing.letter
+        ? { removed: playing.removed, letter: playing.letter, fresh: false }
+        : null
+    )
+    setPalkiaNote('')
     // moving on from the result with the keyboard: keep the player in the
     // game instead of dropping focus back to the top of the page
     focusFirstOption.current = document.activeElement === nextRef.current
@@ -384,6 +405,8 @@ export default function QuizPage() {
     (id: number) => {
       // the veil has to be on screen: no blind guesses for the best gift
       if (!engine || !round || chosen !== null || answering || !loaded) return
+      // taken away by Palkia: not there to pick (a key press included)
+      if (palkia?.removed.includes(id)) return
       setChosen(id)
       setAnswering(true)
       if (!coached) {
@@ -421,7 +444,17 @@ export default function QuizPage() {
         })
         .finally(() => setAnswering(false))
     },
-    [engine, round, chosen, answering, loaded, coached, status, showRound]
+    [
+      engine,
+      round,
+      chosen,
+      answering,
+      loaded,
+      coached,
+      status,
+      showRound,
+      palkia,
+    ]
   )
   const onVeilDone = useCallback(() => choose(TIME_UP), [choose])
 
@@ -439,7 +472,23 @@ export default function QuizPage() {
     fxRef.current?.hold(at + FREEZE_MS)
     engine
       .timeStop(round)
-      .then(() => engine.status())
+      .then((stopped) => {
+        // Palkia's turn comes once Dialga's clock face is gone
+        if (stopped.removed.length || stopped.letter)
+          palkiaTimer.current = window.setTimeout(
+            () => {
+              if (roundId.current !== stopped.id) return
+              setPalkia({
+                removed: stopped.removed,
+                letter: stopped.letter,
+                fresh: true,
+              })
+              setPalkiaNote(palkiaSays(stopped.removed.length, stopped.letter))
+            },
+            Math.max(0, at + PALKIA_AFTER - performance.now())
+          )
+        return engine.status()
+      })
       .then(setStatus)
       .catch((error: Error) => {
         stopRef.current = null
@@ -462,6 +511,13 @@ export default function QuizPage() {
   useEffect(() => {
     if (revealed) fxRef.current?.hold(0)
   }, [revealed])
+
+  useEffect(() => {
+    if (!palkiaNote) return
+    const timer = window.setTimeout(() => setPalkiaNote(''), 3000)
+    return () => clearTimeout(timer)
+  }, [palkiaNote])
+  useEffect(() => () => clearTimeout(palkiaTimer.current), [])
 
   useEffect(() => {
     if (!timeNote) return
@@ -1175,6 +1231,22 @@ export default function QuizPage() {
                   {timeNote}
                 </p>
               )}
+              {palkia?.fresh && !revealed && (
+                <PalkiaRift
+                  key={`rift-${round?.id}`}
+                  onEnd={() =>
+                    setPalkia((value) => value && { ...value, fresh: false })
+                  }
+                />
+              )}
+              {palkia?.letter && !revealed && (
+                <PalkiaLetter letter={palkia.letter} />
+              )}
+              {palkiaNote && !revealed && (
+                <p className="palkia-note" role="status">
+                  {palkiaNote}
+                </p>
+              )}
               {round && loaded && !revealed && round.gifts.length > 0 && (
                 <p className="sr-only">
                   Quà nếu đoán đúng ngay: {itemById(round.gifts[0]).name}. Quà
@@ -1386,20 +1458,36 @@ export default function QuizPage() {
                 aria-label="Chọn tên Pokémon"
               >
                 {(round?.options ?? Array.from({ length: 4 }, () => null)).map(
-                  (option, index) => (
-                    <li key={option ?? index}>
-                      <button
-                        type="button"
-                        disabled={!option || !loaded || answering}
-                        aria-keyshortcuts={String(index + 1)}
-                        onClick={() => option && choose(option)}
-                        style={{ '--i': index } as CSSProperties}
+                  (option, index) => {
+                    // NOTE - Taken by Palkia: the button twists away inside
+                    // its own place, a scar of torn space stays; the grid
+                    // keeps its 4 cells, nothing moves
+                    const gone = !!option && !!palkia?.removed.includes(option)
+                    return (
+                      <li
+                        key={option ?? index}
+                        data-removed={
+                          gone ? (palkia?.fresh ? 'fresh' : 'gone') : undefined
+                        }
                       >
-                        <kbd aria-hidden="true">{index + 1}</kbd>
-                        <span>{option ? nameOf(option) : '…'}</span>
-                      </button>
-                    </li>
-                  )
+                        <button
+                          type="button"
+                          disabled={!option || !loaded || answering || gone}
+                          aria-label={
+                            gone
+                              ? `${nameOf(option)}: Palkia đã loại`
+                              : undefined
+                          }
+                          aria-keyshortcuts={String(index + 1)}
+                          onClick={() => option && choose(option)}
+                          style={{ '--i': index } as CSSProperties}
+                        >
+                          <kbd aria-hidden="true">{index + 1}</kbd>
+                          <span>{option ? nameOf(option) : '…'}</span>
+                        </button>
+                      </li>
+                    )
+                  }
                 )}
               </ol>
             )}

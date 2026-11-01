@@ -271,3 +271,99 @@ test('the artwork loading while time is stopped does not move the veil', async (
   assert.equal(veilElapsed(round, 1000, 6000, { at: 0, until: 15000 }), 3000)
   assert.equal(veilElapsed(round, 1000, 6000, { at: 2000, until: 4000 }), 6000)
 })
+
+// --- Palkia's help ------------------------------------------------------------
+import { HINT_ODDS, PALKIA_ODDS, palkiaHint, palkiaRemoves } from './rules.mjs'
+import { LETTERS } from './letters.mjs'
+
+const EASY = { answerId: 25, options: [4, 25, 7, 1], hard: false }
+const always = (value) => () => value
+
+test("Palkia's odds: half of the stops lose 2 options, 1 in 5 tells the letter", () => {
+  assert.equal(PALKIA_ODDS, 0.5)
+  assert.equal(HINT_ODDS, 0.2)
+  const runs = 4000
+  let removed = 0
+  let told = 0
+  for (let i = 0; i < runs; i++) {
+    if (palkiaRemoves(Math.random, EASY).length) removed++
+    if (palkiaHint(Math.random, EASY)) told++
+  }
+  assert.ok(Math.abs(removed / runs - 0.5) < 0.04, `removed ${removed}`)
+  assert.ok(Math.abs(told / runs - 0.2) < 0.03, `told ${told}`)
+})
+
+test('Palkia takes 2 wrong options away, never the answer, never on a typed round', () => {
+  for (let i = 0; i < 200; i++) {
+    const gone = palkiaRemoves(seededish(i), EASY)
+    if (!gone.length) continue
+    assert.equal(gone.length, 2)
+    assert.notEqual(gone[0], gone[1])
+    assert.ok(
+      !gone.includes(25) && gone.every((id) => EASY.options.includes(id))
+    )
+  }
+  assert.deepEqual(
+    palkiaRemoves(always(0), { ...EASY, hard: true, options: [] }),
+    []
+  )
+  assert.deepEqual(palkiaRemoves(always(0.9), EASY), [])
+})
+
+test("the letter is the first of the answer's name, typed rounds too", () => {
+  assert.equal(LETTERS.length, 1025)
+  assert.equal(palkiaHint(always(0), EASY), 'P')
+  assert.equal(palkiaHint(always(0), { answerId: 1, hard: true }), 'B')
+  assert.equal(palkiaHint(always(0.5), EASY), null)
+})
+
+// a different but repeatable random() per run
+function seededish(seed) {
+  let x = seed + 1
+  return () => {
+    x = (x * 16807) % 2147483647
+    return x / 2147483647
+  }
+}
+
+test("the server's round carries what Palkia did", async () => {
+  const supabase = client({
+    quiz_time_stop: { ...SERVER_ROUND, removed: [4, 7], letter: 'P' },
+    quiz_status: { ...SERVER_STATUS, pending: SERVER_ROUND },
+  })
+  const engine = createServerEngine(supabase)
+  const stopped = await engine.timeStop({ id: 'r-1' })
+  assert.deepEqual(stopped.removed, [4, 7])
+  assert.equal(stopped.letter, 'P')
+  const plain = (await engine.status()).pending
+  assert.deepEqual(plain.removed, [])
+  assert.equal(plain.letter, null)
+})
+
+test('local: the stop draws Palkia and keeps it across a reload', async () => {
+  const storage = memory()
+  const t = { now: 1_000_000 }
+  // the round drawn as usual, then every Palkia draw lucky
+  let lucky = false
+  const random = () => (lucky ? 0.1 : Math.random())
+  const engine = createLocalEngine({ storage, now: () => t.now, random })
+  const round = await engine.start(KANTO)
+  assert.deepEqual(round.removed, [])
+  assert.equal(round.letter, null)
+  lucky = true
+  const stopped = await engine.timeStop(round)
+  assert.equal(stopped.removed.length, 2)
+  assert.ok(!stopped.removed.includes(stopped.answerId))
+  assert.equal(stopped.letter, LETTERS[stopped.answerId - 1])
+  const again = (await local(storage, t).status()).pending
+  assert.deepEqual(again.removed, stopped.removed)
+  assert.equal(again.letter, stopped.letter)
+  const verdict = await engine.answer(stopped, stopped.removed[0])
+  assert.equal(verdict.outcome, 'wrong')
+})
+
+test('guests: no Palkia', async () => {
+  const round = await createGuestEngine().start(KANTO)
+  assert.deepEqual(round.removed, [])
+  assert.equal(round.letter, null)
+})

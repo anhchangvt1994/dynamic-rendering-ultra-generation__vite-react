@@ -17,6 +17,10 @@ export type PlayRound = {
   frozenAtMs: number | null
   /** how much of the stop was still to run when the round reached the page */
   freezeLeftMs: number
+  /** the wrong options Palkia took away when time was stopped (none: []) */
+  removed: number[]
+  /** the first letter of the name Palkia told, or null */
+  letter: string | null
   answerId?: number
 }
 

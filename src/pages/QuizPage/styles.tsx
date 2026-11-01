@@ -1183,6 +1183,182 @@ export const QuizStyle = styled.section`
   .options button:disabled {
     cursor: default;
   }
+  /* ── Palkia took it: twisted away into torn space, inside its own cell
+     (transforms only: the grid never moves) ── */
+  .options li {
+    position: relative;
+  }
+  .options li[data-removed] button {
+    pointer-events: none;
+  }
+  .options li[data-removed='fresh'] button {
+    animation: palkia-warp 1100ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+  }
+  .options li[data-removed='gone'] button {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .options li[data-removed]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed rgba(255, 190, 230, 0.55);
+    border-radius: 16px;
+    background:
+      linear-gradient(
+        100deg,
+        transparent 30%,
+        rgba(255, 230, 245, 0.18) 45%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse at 50% 50%,
+        rgba(255, 124, 207, 0.22),
+        rgba(176, 124, 255, 0.1) 60%,
+        transparent 78%
+      );
+    background-size:
+      240% 100%,
+      100% 100%;
+    pointer-events: none;
+    animation:
+      palkia-scar 600ms ease-out both,
+      palkia-shimmer 3.2s linear infinite;
+  }
+  .options li[data-removed='fresh']::after {
+    animation-delay: 900ms, 900ms;
+  }
+  @keyframes palkia-warp {
+    0% {
+      transform: none;
+      filter: none;
+      opacity: 1;
+    }
+    20% {
+      transform: skewX(-16deg) scaleX(1.06);
+      filter: hue-rotate(-40deg) saturate(1.7);
+    }
+    /* small first, then the whirl: it never swings out of its cell */
+    50% {
+      transform: scale(0.5, 0.3) rotate(-30deg) skewX(20deg);
+      filter: blur(1px) hue-rotate(-90deg);
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(0) rotate(-360deg);
+      filter: blur(3px);
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+  @keyframes palkia-scar {
+    from {
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+  }
+  @keyframes palkia-shimmer {
+    from {
+      background-position:
+        120% 0,
+        0 0;
+    }
+    to {
+      background-position:
+        -120% 0,
+        0 0;
+    }
+  }
+  /* bottom left: the image and the prize orb stay clear */
+  .palkia-letter {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 4px 12px 4px 6px;
+    border: 1.5px solid rgba(255, 190, 230, 0.7);
+    border-radius: 999px;
+    background: rgba(40, 10, 50, 0.75);
+    color: #ffe3f4;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 0 14px rgba(255, 124, 207, 0.45);
+    animation: palkia-pop 420ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+  .palkia-letter b {
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1 !important;
+  }
+  .pl-pearl {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, #ffb8e2 45%, #b07cff);
+  }
+  /* one line along the top edge, gone in 3 s: the Pokémon stays in view */
+  .palkia-note {
+    position: absolute;
+    left: 50%;
+    top: 54px;
+    z-index: 6;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    margin: 0;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffe3f4, #e6d8ff);
+    color: #4a1d5c;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 0 18px rgba(255, 124, 207, 0.6);
+    translate: -50% 0;
+    animation: palkia-note 3s ease both;
+  }
+  @keyframes palkia-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+  }
+  @keyframes palkia-note {
+    0% {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.92);
+    }
+    8%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .options li[data-removed='fresh'] button {
+      animation: palkia-fade 600ms ease-out both;
+    }
+    .options li[data-removed]::after,
+    .palkia-letter,
+    .palkia-note {
+      animation: none;
+    }
+    @keyframes palkia-fade {
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+  }
   .options kbd {
     display: grid;
     place-items: center;

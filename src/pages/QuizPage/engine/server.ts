@@ -28,6 +28,8 @@ const toRound = (round: any): PlayRound => {
     elapsedMs: Math.max(0, roundClock(real, frozenAtMs)),
     frozenAtMs,
     freezeLeftMs: freezeLeft(real, frozenAtMs),
+    removed: round.removed ?? [],
+    letter: round.letter ?? null,
   }
 }
 

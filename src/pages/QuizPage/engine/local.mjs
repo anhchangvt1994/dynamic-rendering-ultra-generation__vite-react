@@ -21,6 +21,8 @@ import {
   RECENT,
   drawRound,
   freezeLeft,
+  palkiaHint,
+  palkiaRemoves,
   roundClock,
   spendTime,
   timeLeft,
@@ -60,6 +62,8 @@ export function createLocalEngine({
       elapsedMs: Math.max(0, roundClock(real, frozenAtMs)),
       frozenAtMs,
       freezeLeftMs: freezeLeft(real, frozenAtMs),
+      removed: stored.removed ?? [],
+      letter: stored.letter ?? null,
     }
   }
   const status = (value = turns()) => {
@@ -138,7 +142,12 @@ export function createLocalEngine({
       const charges = time()
       if (!timeLeft(charges)) throw new Error('no_time')
       save(KEYS.time, spendTime(charges, now()))
-      const stopped = { ...pending, frozenAtMs: real }
+      const stopped = {
+        ...pending,
+        frozenAtMs: real,
+        removed: palkiaRemoves(random, pending),
+        letter: palkiaHint(random, pending),
+      }
       save(KEYS.round, stopped)
       return play(stopped)
     },
