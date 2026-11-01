@@ -225,6 +225,10 @@ export default function QuizPage() {
       stopRef.current = { at: until - FREEZE_MS, until }
     }
     setStoppedId(playing.frozenAtMs === null ? null : playing.id)
+    // the particles hold still only while this round's time is stopped
+    fxRef.current?.hold(
+      playing.freezeLeftMs > 0 ? roundAt.current + playing.freezeLeftMs : 0
+    )
     setFreeze(
       playing.freezeLeftMs > 0
         ? {
@@ -453,6 +457,11 @@ export default function QuizPage() {
           .catch(() => {})
       })
   }, [engine, round, loaded, revealed, answering, stoppedId, timeLeft])
+
+  // answered while time is stopped: the result's bursts fly at once
+  useEffect(() => {
+    if (revealed) fxRef.current?.hold(0)
+  }, [revealed])
 
   useEffect(() => {
     if (!timeNote) return

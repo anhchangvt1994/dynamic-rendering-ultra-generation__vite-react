@@ -228,11 +228,14 @@ set search_path = ''
 as $$
 declare
   v_user uuid := public.quiz_user();
-  v_player public.quiz_players := public.quiz_time_window(v_user);
+  v_player public.quiz_players;
   v_round public.quiz_rounds;
 begin
+  -- NOTE - The round first, then the player (quiz_time_window locks it):
+  -- quiz_answer's order, or an answer sent with the stop deadlocks
   select * into v_round from public.quiz_rounds
   where id = p_round and user_id = v_user for update;
+  v_player := public.quiz_time_window(v_user);
   if v_round.id is null then
     raise exception 'no_round' using errcode = 'P0001';
   end if;
