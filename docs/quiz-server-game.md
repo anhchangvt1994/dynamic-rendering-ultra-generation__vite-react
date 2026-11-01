@@ -39,22 +39,30 @@ yarn db:reset   # rebuilds the LOCAL database from the migrations (wipes local d
 yarn db:test
 ```
 
-VPS (self-hosted stack, `infra/supabase`, accounts already running):
+VPS (self-hosted stack, `infra/supabase`, accounts already running), as
+the user that owns the repo and runs PM2 (`deploy` by default; find it with
+`ps -eo user,cmd | grep -i "[p]m2"`):
 
-1. `git pull` as the app user. With the post-merge hook installed, the pull
-   builds (`yarn build`, `yarn server-build`) and reloads PM2 on its own;
-   without it: `yarn install --frozen-lockfile && yarn build && yarn
-   server-build`.
-2. `sudo systemctl restart vps-app`: its launcher's preflight applies the
-   pending migrations (`supabase migration up`). The hook's PM2 reload does
-   not run the preflight, so until this restart the quiz's RPCs are missing
-   (signed-in players get an error; guests play). `scripts/vps-setup/
-   supabase.sh` does not help here: it skips the build once the site has
-   accounts.
+1. `git pull`. With the post-merge hook installed, the pull builds
+   (`yarn build`, `yarn server-build`) and reloads PM2 on its own; without
+   it: `yarn install --frozen-lockfile && yarn build && yarn server-build`.
+   `yarn build` fails when two built chunks import each other
+   (`config/utils/ChunkCycles.mjs`): such a build loads no page.
+2. Apply the migration: `yarn start:redis-api:pm2:worker` (with the same
+   `PM2_HOME` as the running daemon if it is not the default). Its preflight
+   runs `supabase migration up`, then it updates the running PM2 group in
+   place. A PM2 reload alone (the hook) skips the preflight: until this
+   step the quiz's RPCs are missing (signed-in players get an error, guests
+   play). On a VPS set up with the `vps-app` systemd service,
+   `sudo systemctl restart vps-app` does the same. `scripts/vps-setup/
+   supabase.sh` does not: it skips the build once the site has accounts.
 3. Nothing to add to the env for the default layout: the route reads
    `SERVICE_ROLE_KEY` from `infra/supabase/.env` (written by the preflight)
    when `SUPABASE_SERVICE_ROLE_KEY` is unset, and calls the API at
    `SUPABASE_PUBLIC_URL`.
+4. Check: signed in, `/whos-that-pokemon` shows the artwork from
+   `/api/quiz-art/<round>` (the uWS route's first live run), a right answer
+   fills `/tui-do`, `/ai-day` lands on `/whos-that-pokemon`.
 
 ## Costs and limits
 
