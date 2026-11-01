@@ -546,6 +546,14 @@ export const QuizStyle = styled.section`
     text-align: center;
     font-weight: 700;
   }
+  /* over the meadow the Pokémon fled from */
+  .stage--empty > :not(.wild-grass) {
+    position: relative;
+    z-index: 3;
+  }
+  .stage--empty > p {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  }
   .burst {
     position: absolute;
     inset: -50%;

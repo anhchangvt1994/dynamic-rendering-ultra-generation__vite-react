@@ -1,7 +1,14 @@
 import styled from 'styled-components'
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, MutableRefObject } from 'react'
-import { SLOT_AT, TIERS, itemById, itemSprite, slotFor } from './items.mjs'
+import {
+  ITEMS,
+  SLOT_AT,
+  TIERS,
+  itemById,
+  itemSprite,
+  slotFor,
+} from './items.mjs'
 
 type Props = {
   gifts: string[]
@@ -253,6 +260,77 @@ const PrizeStyle = styled.div`
   &[data-result='idle'] .prize-label {
     color: rgba(255, 255, 255, 0.6);
   }
+  /* the reel: gifts whirling down, blurred by speed */
+  .prize-reel {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    display: grid;
+    gap: 14px;
+    justify-items: center;
+    transform: translateX(-50%);
+    filter: blur(1.2px) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+    animation: prize-reel 900ms linear infinite;
+  }
+  .prize-reel img {
+    width: 30px;
+    height: 30px;
+    image-rendering: pixelated;
+  }
+  .prize-dots-label {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+  }
+  .prize-dots-label i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    animation: prize-blink 900ms ease-in-out infinite;
+  }
+  .prize-dots-label i:nth-child(2) {
+    animation-delay: 150ms;
+  }
+  .prize-dots-label i:nth-child(3) {
+    animation-delay: 300ms;
+  }
+  .prize-dots-label i:nth-child(4) {
+    animation-delay: 450ms;
+  }
+  /* the reel stops on the round's first gift: a jolt, a flash of its tier
+     (on the orb: the core comes back with every gift dropped) */
+  &[data-result='live'] .prize-orb {
+    animation: prize-land 640ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  }
+  @keyframes prize-reel {
+    from {
+      transform: translate(-50%, -50%);
+    }
+    to {
+      transform: translate(-50%, 0);
+    }
+  }
+  @keyframes prize-blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  @keyframes prize-land {
+    0% {
+      transform: translateY(-6px) scale(0.92);
+      filter: brightness(2.2) drop-shadow(0 0 16px var(--tier));
+    }
+    45% {
+      transform: translateY(2px) scale(1.06);
+    }
+    70% {
+      transform: rotate(-3deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
 
   /* the round is over */
   &[data-result='won'] .prize-orb {
@@ -378,13 +456,42 @@ const PrizeStyle = styled.div`
 `
 
 /** The orb, empty, while a round loads (and in the page's skeleton). */
+// the reel's faces: the best of each tier, then commons
+const REEL = [4, 3, 2, 1, 1, 1].map(
+  (tier, i) => ITEMS.filter((item) => item.tier === tier)[i < 3 ? 0 : i - 3].id
+)
+
+/**
+ * While the round comes: a slot machine in the orb, gifts whirling past.
+ * The Prize that replaces it lands on the round's first gift (prize-land).
+ */
 export function PrizeSlot() {
   return (
     <PrizeStyle className="prize" data-result="idle" aria-hidden="true">
       <span className="prize-orb">
         <span className="prize-ring" />
+        <span className="prize-core">
+          <span className="prize-reel">
+            {[...REEL, ...REEL].map((id, i) => (
+              <img
+                key={i}
+                src={itemSprite(id)}
+                alt=""
+                width={30}
+                height={30}
+                decoding="async"
+                draggable={false}
+              />
+            ))}
+          </span>
+        </span>
       </span>
-      <p className="prize-label">Quà đang tới…</p>
+      <p className="prize-label prize-dots-label">
+        <i />
+        <i />
+        <i />
+        <i />
+      </p>
     </PrizeStyle>
   )
 }

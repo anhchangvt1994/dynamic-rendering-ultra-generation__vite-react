@@ -49,6 +49,7 @@ import type { FxHandle } from './Fx'
 import Veil, { VEIL_LABEL } from './Veil'
 import type { TimeStop } from './Veil'
 import TimePower, { TimeStopFx } from './TimePower'
+import WildGrass, { Encounter } from './WildGrass'
 import Prize, { PrizeSlot } from './Prize'
 import Loot from './Loot'
 import ItemDialog from './ItemDialog'
@@ -179,6 +180,8 @@ export default function QuizPage() {
     phase: 'hold' | 'late' | 'thaw'
   } | null>(null)
   const [timeNote, setTimeNote] = useState('')
+  // the round whose artwork just landed: the battle transition plays over it
+  const [encounter, setEncounter] = useState<string | null>(null)
   // when the round reached the page: its clock runs while the artwork loads
   const roundAt = useRef(0)
   const guessRef = useRef<HTMLInputElement>(null)
@@ -341,6 +344,7 @@ export default function QuizPage() {
         performance.now(),
         stopRef.current
       )
+    setEncounter(round?.id ?? null)
     setLoaded(true)
   }, [round])
   const onImageError = useCallback(() => {
@@ -723,12 +727,13 @@ export default function QuizPage() {
       <QuizStyle className="quiz-page">
         <div className="arena">
           <div className="stage stage--empty">
+            {!isError && !lost && <WildGrass fled />}
             <p>
               {isError
                 ? 'Không tải được danh sách Pokémon.'
                 : lost
                   ? 'Không nhận được kết quả lượt này. Quà nếu có đã vào túi đồ.'
-                  : 'Không tải được hình Pokémon.'}
+                  : 'Nó chạy mất rồi! Không tải được hình Pokémon.'}
             </p>
             <button
               type="button"
@@ -1024,6 +1029,10 @@ export default function QuizPage() {
               <span className="burst" aria-hidden="true" />
               <span className="ring" aria-hidden="true" />
               <span className="glare" aria-hidden="true" />
+              {(!round || !loaded) && <WildGrass />}
+              {round && loaded && encounter === round.id && (
+                <Encounter onEnd={() => setEncounter(null)} />
+              )}
               {catchPhase && (
                 // the turn's ball: thrown, swallows the Pokémon, shakes, clicks
                 <span className="capture" aria-hidden="true">
