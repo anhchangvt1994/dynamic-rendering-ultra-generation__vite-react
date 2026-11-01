@@ -13,6 +13,10 @@ export type PlayRound = {
   durationMs: number
   /** how long the veil has been wearing off when the round reaches the page */
   elapsedMs: number
+  /** when time was stopped (the round's real ms since it started), or null */
+  frozenAtMs: number | null
+  /** how much of the stop was still to run when the round reached the page */
+  freezeLeftMs: number
   answerId?: number
 }
 
@@ -28,6 +32,9 @@ export type Status = {
   bonus: number
   windowGifts: string[]
   rerollsLeft: number
+  /** charges of the Roar of Time left, and when they are full again (0: unused) */
+  timeLeft: number
+  timeRefillAt: number
   pending: PlayRound | null
 }
 
@@ -53,6 +60,10 @@ export interface QuizEngine {
   start(options: StartOptions): Promise<PlayRound>
   answer(round: PlayRound, choice: number): Promise<Verdict>
   reroll(round: PlayRound): Promise<PlayRound>
+  /** the Roar of Time on a round: its clock stops for 15 s */
+  timeStop(round: PlayRound): Promise<PlayRound>
+  /** the Roar of Time out of turns: a new window at once */
+  timeRefill(): Promise<Status>
   art(round: PlayRound): string
   cry(round: PlayRound): string
 }

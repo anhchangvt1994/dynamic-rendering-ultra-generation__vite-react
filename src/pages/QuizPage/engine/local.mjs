@@ -16,7 +16,18 @@ import {
   spendTurn,
   turnsLeft,
 } from '../progress.mjs'
-import { MAX_REROLLS, RECENT, drawRound, verdictOf } from './rules.mjs'
+import {
+  MAX_REROLLS,
+  RECENT,
+  drawRound,
+  freezeLeft,
+  roundClock,
+  spendTime,
+  timeLeft,
+  timeRefillAt,
+  timeState,
+  verdictOf,
+} from './rules.mjs'
 
 export const KEYS = {
   turns: 'pokedex:quiz-turns',
@@ -26,6 +37,7 @@ export const KEYS = {
   streak: 'pokedex:quiz-streak',
   records: 'pokedex:quiz-records',
   recordsTotal: 'pokedex:quiz-records-total',
+  time: 'pokedex:quiz-time',
 }
 
 export const cryOf = (id) =>
@@ -39,10 +51,17 @@ export function createLocalEngine({
   const read = (key, fallback) => readJSON(key, fallback, storage)
   const save = (key, value) => saveJSON(key, value, storage)
   const turns = () => currentTurns(read(KEYS.turns, {}), now())
-  const play = (stored) => ({
-    ...stored,
-    elapsedMs: Math.max(0, now() - stored.startedAt),
-  })
+  const time = () => timeState(read(KEYS.time, {}), now())
+  const play = (stored) => {
+    const real = now() - stored.startedAt
+    const frozenAtMs = stored.frozenAtMs ?? null
+    return {
+      ...stored,
+      elapsedMs: Math.max(0, roundClock(real, frozenAtMs)),
+      frozenAtMs,
+      freezeLeftMs: freezeLeft(real, frozenAtMs),
+    }
+  }
   const status = (value = turns()) => {
     const pending = read(KEYS.round, null)
     return {
@@ -56,6 +75,8 @@ export function createLocalEngine({
       bonus: value.bonus ?? 0,
       windowGifts: value.gifts ?? [],
       rerollsLeft: Math.max(0, MAX_REROLLS - (value.rerolls ?? 0)),
+      timeLeft: timeLeft(time()),
+      timeRefillAt: timeRefillAt(time()),
       pending: pending?.answerId ? play(pending) : null,
     }
   }
@@ -107,11 +128,38 @@ export function createLocalEngine({
       // the same gifts: a swap is no second draw at them
       return newRound(pending, { gifts: pending.gifts, bonus: pending.bonus })
     },
+    async timeStop(round) {
+      const pending = read(KEYS.round, null)
+      if (!pending?.answerId || pending.id !== round.id)
+        throw new Error('no_round')
+      if (pending.frozenAtMs != null) throw new Error('time_used')
+      const real = now() - pending.startedAt
+      if (real >= pending.durationMs) throw new Error('time_over')
+      const charges = time()
+      if (!timeLeft(charges)) throw new Error('no_time')
+      save(KEYS.time, spendTime(charges, now()))
+      const stopped = { ...pending, frozenAtMs: real }
+      save(KEYS.round, stopped)
+      return play(stopped)
+    },
+    async timeRefill() {
+      if (turnsLeft(turns())) throw new Error('has_turns')
+      const charges = time()
+      if (!timeLeft(charges)) throw new Error('no_time')
+      save(KEYS.time, spendTime(charges, now()))
+      // a new window, as if the old one had run out
+      save(KEYS.turns, {})
+      return status()
+    },
     async answer(round, choice) {
       const pending = read(KEYS.round, null)
       if (!pending || pending.id !== round.id) throw new Error('answered')
       save(KEYS.round, null)
-      const result = verdictOf(pending, choice, now() - pending.startedAt)
+      const result = verdictOf(
+        pending,
+        choice,
+        roundClock(now() - pending.startedAt, pending.frozenAtMs ?? null)
+      )
       let value = turns()
       const chests = []
       if (result.outcome === 'right') {

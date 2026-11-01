@@ -68,3 +68,179 @@ test('5 charges; the window starts with the first use and refills 2 hours later'
     used: 0,
   })
 })
+
+// --- the engines -------------------------------------------------------------
+import { createServerEngine } from './server.ts'
+import { createLocalEngine, KEYS } from './local.mjs'
+import { createGuestEngine } from './guest.mjs'
+
+const SERVER_ROUND = {
+  id: 'r-1',
+  options: [25, 4, 7, 1],
+  veil: 'torch',
+  hard: false,
+  gifts: ['protein', 'oran-berry', 'fresh-water', 'cheri-berry'],
+  bonus: 2,
+  duration_ms: 14000,
+  started_at: '2026-11-01T10:00:00.000Z',
+  frozen_at: '2026-11-01T10:00:03.000Z',
+  now: '2026-11-01T10:00:10.000Z',
+}
+const SERVER_STATUS = {
+  left: 0,
+  refill_at: '2026-11-01T13:00:00.000Z',
+  used: 5,
+  bonus: 0,
+  wins: 0,
+  window_gifts: [],
+  streak: 3,
+  records: 1,
+  records_total: 2,
+  rerolls_left: 3,
+  time_left: 4,
+  time_refill_at: '2026-11-01T12:00:00.000Z',
+  pending: null,
+}
+const client = (replies) => {
+  const calls = []
+  return {
+    calls,
+    rpc: async (name, args) => {
+      calls.push([name, args])
+      return { data: replies[name], error: null }
+    },
+  }
+}
+
+test("the server's stopped round: its clock without the stop, the stop still to run", async () => {
+  const supabase = client({ quiz_time_stop: SERVER_ROUND })
+  const round = await createServerEngine(supabase).timeStop({ id: 'r-1' })
+  assert.deepEqual(supabase.calls, [['quiz_time_stop', { p_round: 'r-1' }]])
+  assert.equal(round.frozenAtMs, 3000)
+  assert.equal(round.elapsedMs, 3000)
+  assert.equal(round.freezeLeftMs, 8000)
+})
+
+test("the server's refill and charges", async () => {
+  const supabase = client({
+    quiz_time_refill: { ...SERVER_STATUS, left: 5 },
+    quiz_status: {
+      ...SERVER_STATUS,
+      time_left: undefined,
+      time_refill_at: null,
+    },
+  })
+  const engine = createServerEngine(supabase)
+  const status = await engine.timeRefill()
+  assert.equal(status.left, 5)
+  assert.equal(status.timeLeft, 4)
+  assert.equal(status.timeRefillAt, Date.parse('2026-11-01T12:00:00.000Z'))
+  const plain = await engine.status()
+  assert.equal(plain.timeLeft, 0)
+  assert.equal(plain.timeRefillAt, 0)
+})
+
+test('a server verdict carries the charges', async () => {
+  const supabase = client({
+    quiz_answer: { ...SERVER_STATUS, outcome: 'right', answer_id: 25, slot: 0 },
+  })
+  const verdict = await createServerEngine(supabase).answer({ id: 'r-1' }, 25)
+  assert.equal(verdict.status.timeLeft, 4)
+})
+
+const memory = () => {
+  const data = new Map()
+  return {
+    getItem: (k) => (data.has(k) ? data.get(k) : null),
+    setItem: (k, v) => data.set(k, String(v)),
+    removeItem: (k) => data.delete(k),
+  }
+}
+const KANTO = { from: 1, to: 151, hard: false }
+const local = (storage, t) =>
+  createLocalEngine({ storage, now: () => t.now, random: Math.random })
+const noLuck = (storage) => {
+  const round = JSON.parse(storage.getItem(KEYS.round))
+  storage.setItem(KEYS.round, JSON.stringify({ ...round, bonus: -1 }))
+}
+
+test('local: 5 stops, then none until 2 hours after the first', async () => {
+  const storage = memory()
+  const t = { now: 1_000_000 }
+  const engine = local(storage, t)
+  for (let i = 0; i < 5; i++) {
+    const round = await engine.start(KANTO)
+    await engine.timeStop(round)
+    noLuck(storage)
+    await engine.answer(round, round.answerId)
+    t.now += 1000
+  }
+  assert.equal((await engine.status()).timeLeft, 0)
+  assert.equal((await engine.status()).timeRefillAt, 1_000_000 + TIME_WINDOW_MS)
+  storage.setItem(KEYS.turns, '{}')
+  const round = await engine.start(KANTO)
+  await assert.rejects(engine.timeStop(round), /no_time/)
+  t.now = 1_000_000 + TIME_WINDOW_MS
+  assert.equal((await engine.status()).timeLeft, 5)
+})
+
+test('local: one stop per round, none once the round is over', async () => {
+  const t = { now: 1_000_000 }
+  const engine = local(memory(), t)
+  const round = await engine.start(KANTO)
+  await engine.timeStop(round)
+  await assert.rejects(engine.timeStop(round), /time_used/)
+  await engine.answer(round, round.answerId)
+  const late = await engine.start(KANTO)
+  t.now += 14000
+  await assert.rejects(engine.timeStop(late), /time_over/)
+  await assert.rejects(engine.timeStop({ id: 'nope' }), /no_round/)
+})
+
+test('local: stopped at 3 s, answered 25 s after the start: the last gift', async () => {
+  const t = { now: 1_000_000 }
+  const engine = local(memory(), t)
+  const round = await engine.start(KANTO)
+  t.now += 3000
+  const stopped = await engine.timeStop(round)
+  assert.equal(stopped.frozenAtMs, 3000)
+  assert.equal(stopped.freezeLeftMs, FREEZE_MS)
+  t.now += 22000
+  const verdict = await engine.answer(stopped, round.answerId)
+  assert.equal(verdict.outcome, 'right')
+  assert.equal(verdict.slot, 3)
+})
+
+test('local: a reload in the middle of the stop resumes it', async () => {
+  const storage = memory()
+  const t = { now: 1_000_000 }
+  const round = await local(storage, t).start(KANTO)
+  t.now += 3000
+  await local(storage, t).timeStop(round)
+  t.now += 4000
+  const status = await local(storage, t).status()
+  assert.equal(status.pending.frozenAtMs, 3000)
+  assert.equal(status.pending.freezeLeftMs, 11000)
+  assert.equal(status.pending.elapsedMs, 3000)
+})
+
+test('local: out of turns, a charge opens a new window; the streak stays', async () => {
+  const storage = memory()
+  const t = { now: 1_000_000 }
+  const engine = local(storage, t)
+  await assert.rejects(engine.timeRefill(), /has_turns/)
+  storage.setItem(KEYS.streak, '4')
+  storage.setItem(KEYS.turns, JSON.stringify({ start: t.now, used: 5 }))
+  const status = await engine.timeRefill()
+  assert.equal(status.left, 5)
+  assert.equal(status.timeLeft, 4)
+  assert.equal(status.streak, 4)
+})
+
+test('guests have no charges', async () => {
+  const guest = createGuestEngine()
+  assert.equal((await guest.status()).timeLeft, 0)
+  const round = await guest.start(KANTO)
+  await assert.rejects(guest.timeStop(round), /no_time/)
+  await assert.rejects(guest.timeRefill(), /no_time/)
+})

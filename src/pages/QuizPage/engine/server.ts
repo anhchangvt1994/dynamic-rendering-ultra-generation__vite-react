@@ -1,24 +1,35 @@
 import type { PlayRound, QuizEngine, Status, Verdict } from './types'
+import { freezeLeft, roundClock } from './rules.mjs'
 
-// the RPCs of supabase/migrations/20261101000000_quiz_game.sql
+// the RPCs of supabase/migrations/20261101000000_quiz_game.sql and
+// 20261102000000_quiz_time.sql
 type Rpc = (
   name: string,
   args?: Record<string, unknown>
 ) => PromiseLike<{ data: any; error: { message: string } | null }>
 type Client = { rpc: Rpc }
 
-const toRound = (round: any): PlayRound => ({
-  id: round.id,
-  // none for a typed round: the name is typed, not picked
-  options: round.options ?? [],
-  veil: round.veil,
-  hard: round.hard,
-  gifts: round.gifts,
-  bonus: round.bonus,
-  durationMs: round.duration_ms,
+const toRound = (round: any): PlayRound => {
   // the server's own clock: started_at against its now, not this device's
-  elapsedMs: Math.max(0, Date.parse(round.now) - Date.parse(round.started_at)),
-})
+  const started = Date.parse(round.started_at)
+  const real = Date.parse(round.now) - started
+  const frozenAtMs = round.frozen_at
+    ? Date.parse(round.frozen_at) - started
+    : null
+  return {
+    id: round.id,
+    // none for a typed round: the name is typed, not picked
+    options: round.options ?? [],
+    veil: round.veil,
+    hard: round.hard,
+    gifts: round.gifts,
+    bonus: round.bonus,
+    durationMs: round.duration_ms,
+    elapsedMs: Math.max(0, roundClock(real, frozenAtMs)),
+    frozenAtMs,
+    freezeLeftMs: freezeLeft(real, frozenAtMs),
+  }
+}
 
 const toStatus = (data: any): Status => ({
   left: data.left,
@@ -31,6 +42,8 @@ const toStatus = (data: any): Status => ({
   bonus: data.bonus,
   windowGifts: data.window_gifts ?? [],
   rerollsLeft: data.rerolls_left,
+  timeLeft: data.time_left ?? 0,
+  timeRefillAt: data.time_refill_at ? Date.parse(data.time_refill_at) : 0,
   pending: data.pending ? toRound(data.pending) : null,
 })
 
@@ -58,6 +71,12 @@ export function createServerEngine(supabase: Client): QuizEngine {
     },
     async reroll(round) {
       return toRound(await call('quiz_reroll', { p_round: round.id }))
+    },
+    async timeStop(round) {
+      return toRound(await call('quiz_time_stop', { p_round: round.id }))
+    },
+    async timeRefill() {
+      return toStatus(await call('quiz_time_refill'))
     },
     async answer(round, choice): Promise<Verdict> {
       const data = await call('quiz_answer', {

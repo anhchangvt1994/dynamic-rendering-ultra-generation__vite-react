@@ -15,6 +15,8 @@ const NEUTRAL = {
   bonus: 0,
   windowGifts: [],
   rerollsLeft: Infinity,
+  timeLeft: 0,
+  timeRefillAt: 0,
   pending: null,
 }
 
@@ -45,7 +47,7 @@ export function createGuestEngine({
       from,
       to,
     }
-    return { ...current, elapsedMs: 0 }
+    return { ...current, elapsedMs: 0, frozenAtMs: null, freezeLeftMs: 0 }
   }
   return {
     kind: 'guest',
@@ -59,6 +61,13 @@ export function createGuestEngine({
     async reroll(round) {
       if (!current || current.id !== round.id) throw new Error('no_round')
       return newRound(current)
+    },
+    // the Roar of Time is for players with an account (or yarn dev)
+    async timeStop() {
+      throw new Error('no_time')
+    },
+    async timeRefill() {
+      throw new Error('no_time')
     },
     async answer(round, choice) {
       if (!current || current.id !== round.id) throw new Error('answered')
