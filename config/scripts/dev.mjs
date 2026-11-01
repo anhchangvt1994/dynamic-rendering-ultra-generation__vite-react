@@ -89,6 +89,7 @@ try {
     process.env.ENABLE_SUPABASE = 'true'
     process.env.SUPABASE_PUBLIC_URL = supabase.url
     process.env.SUPABASE_PUBLISHABLE_KEY = supabase.publishableKey
+    process.env.SUPABASE_SERVICE_ROLE_KEY = supabase.serviceRoleKey
   }
 
   backend = fork(

@@ -39,11 +39,15 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
       path: '/?view=caught',
     },
     {
-      title: 'Ai đây? – Đoán Pokémon',
+      title: 'Who’s That Pokémon?',
       id: 'QuizPage',
       icon: 'quiz',
-      path: '/ai-day',
+      path: '/whos-that-pokemon',
     },
+    // items live on accounts: no accounts, no bag (dev keeps one)
+    ...(account.status === 'off' && !import.meta.env.DEV
+      ? []
+      : [{ title: 'Túi đồ', id: 'BagPage', icon: 'bag', path: '/tui-do' }]),
     {
       title: 'So sánh Pokémon',
       id: 'ComparePage',

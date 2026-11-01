@@ -1,4 +1,4 @@
-// "Ai đây?" — Who's that Pokémon? rounds over the National Pokédex.
+// Who's That Pokémon? rounds over the National Pokédex.
 
 export const SPECIES_MAX = 1025
 
@@ -62,24 +62,6 @@ export function makeRound(
   return { answer, options }
 }
 
-const BEST_KEY = 'pokedex:quiz-best'
-
-export function readBest(storage = globalThis.localStorage) {
-  try {
-    return Math.max(0, Number(storage?.getItem(BEST_KEY)) || 0)
-  } catch {
-    return 0
-  }
-}
-
-export function saveBest(value, storage = globalThis.localStorage) {
-  try {
-    storage?.setItem(BEST_KEY, String(value))
-  } catch {
-    // private mode / quota: the streak still counts for this visit
-  }
-}
-
 /** Species of one generation ({ start, end }); everything when none. */
 export function inGeneration(species, generation) {
   if (!generation) return species
@@ -106,4 +88,48 @@ export function matchesGuess(guess, name) {
   const typed = fold(guess)
   if (!typed) return false
   return typed === fold(name) || typed === fold(quizLabel(name))
+}
+
+/** Typed mode: the Pokémon a typed name stands for, -1 when none. */
+export function findGuess(guess, species = []) {
+  return species.find((entry) => matchesGuess(guess, entry.name))?.id ?? -1
+}
+
+export const VEILS = ['warp', 'shards', 'torch']
+
+/** The veil of the next round: never the same one twice in a row. */
+export function pickVeil(random = Math.random, previous) {
+  const choices = VEILS.filter((veil) => veil !== previous)
+  return choices[Math.floor(random() * choices.length)]
+}
+
+/** The stage's frame for a streak: 0 plain, 1 gold (3+), 2 fire (5+), 3 rainbow (10+). */
+export function tierOf(streak) {
+  return streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1 : 0
+}
+
+const MILESTONES = {
+  5: '🔥 Chuỗi 5: nửa đường tới rương quà!',
+  10: '🌟 Chuỗi 10: Bậc thầy bóng đen! Mở rương nào!',
+}
+
+/** The title a streak earns when it reaches a milestone, else ''. */
+export function milestoneOf(streak) {
+  return MILESTONES[streak] ?? ''
+}
+
+export function readFlag(key, storage = globalThis.localStorage) {
+  try {
+    return storage?.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function saveFlag(key, storage = globalThis.localStorage) {
+  try {
+    storage?.setItem(key, '1')
+  } catch {
+    // private mode: the hint shows again next visit
+  }
 }

@@ -1,125 +1,17 @@
-import styled from 'styled-components'
+import type { CSSProperties } from 'react'
+import { QuizStyle } from 'pages/QuizPage/styles'
 import { boneCss } from './bone'
 
-// Mirrors QuizStyle. The title, the score labels, the mode switch and the
-// stage never depend on data, so they are drawn for real: the spotlight
-// turns its rays and a "?" shadow waits in it. Only the generation picker,
-// the scores and the four answers wait.
-const QuizSkeletonStyle = styled.section`
+// The page's own eyecatch layout (QuizStyle), so the two can not drift: the
+// title, the bag and settings buttons, the stage with its turning sunburst
+// and the four sticker slabs with their numbers are drawn for real; a "?"
+// shadow waits on the stage. Only the turns, streak, records, settings and
+// names wait.
+const QuizSkeletonStyle = styled(QuizStyle)`
   ${boneCss}
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 16px 16px 32px;
-  color: var(--ink);
 
-  .intro {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    /* the title's tilt and shadow make the row 1.5× the font */
-    min-height: calc(clamp(34px, 9vw, 56px) * 1.5);
-    margin-bottom: 14px;
-  }
-  .title {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(34px, 9vw, 56px);
-    line-height: 1 !important;
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
-    color: var(--yellow, #ffda55);
-    -webkit-text-stroke: 2px #2a4c8f;
-    paint-order: stroke fill;
-    text-shadow:
-      0 4px 0 #2a4c8f,
-      0 10px 18px rgba(23, 45, 69, 0.25);
-    transform: rotate(-3deg);
-    transform-origin: left bottom;
-  }
-  .title span {
-    color: #fff;
-  }
-  .score {
-    display: flex;
-    gap: 14px;
-  }
-  .score > span {
-    display: grid;
-    justify-items: end;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--muted);
-  }
-  .settings {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 12px;
-    margin-bottom: 14px;
-  }
-  .select {
-    flex: 1 1 200px;
-    height: 50px;
-    border-radius: 12px;
-  }
-  .mode {
-    display: inline-flex;
-    padding: 3px;
-    border-radius: 14px;
-    background: var(--surface, #fff);
-    box-shadow: inset 0 0 0 1px var(--line, #dfe6ed);
-  }
-  .mode span {
-    display: grid;
-    place-items: center;
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: 11px;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .mode span:first-child {
-    background: var(--ink, #172d45);
-    color: #fff;
-  }
-
-  .stage {
-    position: relative;
-    display: grid;
-    place-items: center;
-    aspect-ratio: 4 / 3;
-    max-width: 560px;
-    max-height: 420px;
-    overflow: hidden;
-    border-radius: var(--radius-card, 20px);
-    background: radial-gradient(circle at 50% 46%, #6fd0ff 0, #1e5bb8 70%);
-    box-shadow:
-      inset 0 0 0 4px #ffda55,
-      0 18px 34px rgba(23, 45, 69, 0.25);
-    isolation: isolate;
-  }
-  /* the anime's spotlight rays, turning slowly */
-  .stage::before {
-    content: '';
-    position: absolute;
-    inset: -50%;
-    z-index: -1;
-    background: repeating-conic-gradient(
-      from 0deg at 50% 50%,
-      rgba(255, 255, 255, 0.13) 0 7deg,
-      transparent 7deg 20deg
-    );
-    animation: quiz-rays 18s linear infinite;
-  }
-  @keyframes quiz-rays {
-    to {
-      rotate: 1turn;
-    }
-  }
-  .stage svg {
-    width: 34%;
+  .qmark {
+    width: min(34%, calc(var(--stage-h) * 0.4));
     fill: #0b1626;
     filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
       drop-shadow(0 0 18px rgba(120, 200, 255, 0.6));
@@ -131,89 +23,146 @@ const QuizSkeletonStyle = styled.section`
       rotate: -6deg;
     }
   }
-  .options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 14px;
+  .medal-num .bone {
+    width: 34px;
+    height: 16px;
+    border-radius: 999px;
   }
-  .option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 56px;
-    padding: 0 10px;
-    border-radius: 12px;
-    background: var(--surface);
+  /* the prize orb hanging from the stage, empty (Prize.tsx's geometry) */
+  .prize-slot {
+    --orb: clamp(76px, 22cqw, 104px);
+    position: relative;
+    z-index: 6;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    margin-top: calc(var(--orb) / -2);
+  }
+  .prize-orb {
+    width: var(--orb);
+    height: var(--orb);
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 30%, #1d3a66, #071225 75%);
     box-shadow:
-      inset 0 0 0 1px var(--line),
-      0 3px 0 var(--line);
+      0 0 0 4px #071225,
+      0 0 0 6px #5b7aa8;
   }
-  .option b {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: #eef2f7;
-    color: var(--muted);
-    font-size: 13px;
+  .prize-slot .bone {
+    width: 130px;
+    height: 29px;
+    border-radius: 999px;
   }
-  .option .bone {
+  .options .bone {
     width: 55%;
     height: 14px;
+    --bone: rgba(23, 45, 69, 0.18);
+    --shine: rgba(23, 45, 69, 0.08);
   }
-  @media (max-width: 680px) {
-    .select {
-      height: 44px;
+  .settings .bone {
+    height: 50px;
+    border-radius: 12px;
+  }
+  .settings .bone + .bone {
+    height: 50px;
+    border-radius: 14px;
+  }
+  @media (min-width: 900px) {
+    .medal-num .bone {
+      height: 22px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .stage::before,
-    .stage svg {
+    .qmark {
       animation: none;
     }
   }
 `
 
+const GEAR =
+  'M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z'
+
+const BAG =
+  'M9 6V5a3 3 0 0 1 6 0v1h2.5A2.5 2.5 0 0 1 20 8.5v10A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-10A2.5 2.5 0 0 1 6.5 6zm2 0h2V5a1 1 0 0 0-2 0zm-3 6v2h8v-2z'
+
 export default function QuizSkeleton() {
   return (
-    <QuizSkeletonStyle role="status" aria-busy="true" data-page-skeleton>
+    <QuizSkeletonStyle
+      className="quiz-page"
+      role="status"
+      aria-busy="true"
+      data-tone="dark"
+      data-page-skeleton
+    >
       <span className="sr-only">Đang chuẩn bị câu đố…</span>
-      <div aria-hidden="true">
-        <div className="intro">
+      <div className="arena" aria-hidden="true">
+        <header className="hud">
           <p className="title">
-            <span>Ai</span> đây?
+            <span>Who’s that</span> <span>Pokémon?</span>
           </p>
-          <div className="score">
-            {['Chuỗi', 'Kỷ lục'].map((label) => (
-              <span key={label}>
-                {label}
-                <span className="bone" style={{ width: 22, height: 26 }} />
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="settings">
-          <span className="bone select" />
-          <span className="mode">
-            <span>Dễ · 4 lựa chọn</span>
-            <span>Khó · tự gõ tên</span>
+          <span className="bag-toggle">
+            <svg viewBox="0 0 24 24">
+              <path d={BAG} />
+            </svg>
           </span>
-        </div>
-        <div className="stage">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2zm2.1-7.7-.9.9c-.7.7-1.2 1.3-1.2 2.8h-2v-.5c0-1.1.4-2.1 1.2-2.8l1.2-1.3a2 2 0 1 0-3.4-1.4H8a4 4 0 1 1 7.1 2.3z" />
-          </svg>
-        </div>
-        <div className="options">
-          {[1, 2, 3, 4].map((number) => (
-            <span key={number} className="option">
-              <b>{number}</b>
-              <span className="bone" />
+          <span className="settings-toggle">
+            <svg viewBox="0 0 24 24">
+              <path d={GEAR} />
+            </svg>
+          </span>
+        </header>
+        <div className="trainer">
+          {[
+            ['turns', 'Lượt', 5],
+            ['streak', 'Chuỗi', 10],
+            ['records', 'Kỷ lục', 10],
+          ].map(([kind, label, goal]) => (
+            <span
+              key={kind}
+              className="meter"
+              data-kind={kind}
+              style={{ '--p': 0, '--n': goal } as CSSProperties}
+            >
+              <span className="meter-ring">
+                <span className="meter-ball" />
+              </span>
+              <span className="meter-label">{label}</span>
             </span>
           ))}
+        </div>
+        <div className="settings">
+          <span className="bone" />
+          <span className="bone" />
+          <p className="settings-note">Thay đổi áp dụng từ lượt sau.</p>
+        </div>
+        <div className="stage-wrap">
+          <div className="stage">
+            <span className="burst" />
+            <span className="ring" />
+            <svg className="qmark" viewBox="0 0 24 24">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2zm2.1-7.7-.9.9c-.7.7-1.2 1.3-1.2 2.8h-2v-.5c0-1.1.4-2.1 1.2-2.8l1.2-1.3a2 2 0 1 0-3.4-1.4H8a4 4 0 1 1 7.1 2.3z" />
+            </svg>
+          </div>
+          <div className="prize-slot">
+            <span className="prize-orb" />
+            <span className="bone" />
+          </div>
+        </div>
+        <ol className="options">
+          {[1, 2, 3, 4].map((number, index) => (
+            <li key={number}>
+              <button
+                type="button"
+                tabIndex={-1}
+                style={{ '--i': index } as CSSProperties}
+              >
+                <kbd>{number}</kbd>
+                <span className="bone" />
+              </button>
+            </li>
+          ))}
+        </ol>
+        <div className="result">
+          <p className="result-line" />
         </div>
       </div>
     </QuizSkeletonStyle>

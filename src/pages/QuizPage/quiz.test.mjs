@@ -2,11 +2,15 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   makeRound,
+  milestoneOf,
+  readFlag,
+  saveFlag,
+  tierOf,
+  pickVeil,
   quizLabel,
-  readBest,
-  saveBest,
   seeded,
   speciesFromList,
+  VEILS,
 } from './quiz.mjs'
 
 const entry = (name, id) => ({
@@ -60,24 +64,6 @@ test('the same seed gives the same round; recent answers are avoided', () => {
   assert.equal(makeRound(species.slice(0, 3), seeded(1)), null)
 })
 
-test('best streak storage never throws', () => {
-  let value = null
-  const storage = { getItem: () => value, setItem: (_k, v) => (value = v) }
-  assert.equal(readBest(storage), 0)
-  saveBest(7, storage)
-  assert.equal(readBest(storage), 7)
-  const broken = {
-    getItem: () => {
-      throw new Error('blocked')
-    },
-    setItem: () => {
-      throw new Error('blocked')
-    },
-  }
-  assert.equal(readBest(broken), 0)
-  saveBest(3, broken)
-})
-
 test('generation filter keeps its id range', async () => {
   const { inGeneration } = await import('./quiz.mjs')
   const species = [1, 151, 152, 251, 1025].map((id) => ({ id, name: `p${id}` }))
@@ -97,4 +83,47 @@ test('typed guesses forgive case, accents and punctuation', async () => {
   assert.ok(matchesGuess('nidoran♀', 'nidoran-f'))
   assert.ok(!matchesGuess('mime', 'mr-mime'))
   assert.ok(!matchesGuess('  ', 'pikachu'))
+})
+
+test('every round gets a veil, never the same one twice in a row', () => {
+  const random = seeded(7)
+  let previous
+  const seen = new Set()
+  for (let round = 0; round < 60; round++) {
+    const veil = pickVeil(random, previous)
+    assert.ok(VEILS.includes(veil))
+    assert.notEqual(veil, previous)
+    seen.add(veil)
+    previous = veil
+  }
+  assert.equal(seen.size, VEILS.length)
+})
+
+test('streaks light the frame and earn titles at milestones', () => {
+  assert.deepEqual(
+    [0, 2, 3, 4, 5, 9, 10, 40].map(tierOf),
+    [0, 0, 1, 1, 2, 2, 3, 3]
+  )
+  assert.equal(milestoneOf(4), '')
+  assert.match(milestoneOf(10), /Bậc thầy/)
+})
+
+test('flags survive a storage that throws', () => {
+  const broken = {
+    getItem() {
+      throw new Error('denied')
+    },
+    setItem() {
+      throw new Error('denied')
+    },
+  }
+  assert.equal(readFlag('x', broken), false)
+  assert.doesNotThrow(() => saveFlag('x', broken))
+  const memory = new Map()
+  const store = {
+    getItem: (k) => memory.get(k) ?? null,
+    setItem: (k, v) => memory.set(k, v),
+  }
+  saveFlag('x', store)
+  assert.equal(readFlag('x', store), true)
 })

@@ -1,0 +1,71 @@
+# Who's That Pokémon? on the server
+
+Signed in, the quiz is played against the database: turns, the 3-hour
+window, the gifts, the streak, the records, the chests and the bag are
+decided and stored by Postgres functions, and the browser never sees a
+round's answer before answering. Guests (production, not signed in) play
+without rewards; `yarn dev` without a session plays the browser game.
+Design: `docs/superpowers/specs/2026-11-01-quiz-server-game-design.md`.
+
+## Pieces
+
+| Where | What |
+|---|---|
+| `supabase/migrations/20261101000000_quiz_game.sql` | tables (`quiz_items`, `quiz_players`, `quiz_rounds`, `bag`) and the RPCs (`quiz_status`, `quiz_start`, `quiz_answer`, `quiz_reroll`; `quiz_art` for the service role) |
+| `supabase/tests/database/quiz.test.sql` | the rules, the timing and the permissions (`yarn db:test`) |
+| `server/src/api/routes/quiz/` | `GET /api/quiz-art/<round>` and `/api/quiz-cry/<round>`: the artwork and cry of a round, looked up with the service role, for the express, fastify and uWS servers |
+| `src/pages/QuizPage/engine/` | the page's game: `server` (RPCs), `local` (yarn dev), `guest`; `rules.mjs` mirrors the SQL rules |
+| `src/pages/BagPage/bagStore.ts` | the bag from the account (or the browser in dev) |
+
+The media proxy is a custom API route like `api/routes/lighthouse`: one
+folder (`index.ts` express, `index.fastify.ts`, `index.uws.ts`, shared
+`art.ts`/`config.ts`) registered by one `apiQuiz.init(app)` line in each of
+`server/src/api/index{,.fastify,.uws}.ts`. It reads its own settings
+(`config.ts`), so the shared server code knows nothing of the quiz: to take
+it out, delete the folder and those three lines.
+
+The item catalogue lives in `src/pages/QuizPage/items.mjs` and in the
+migration's `quiz_items` seed; `catalogue.test.mjs` fails when they differ.
+Odds and timings live in both `rules.mjs`/`items.mjs` and the SQL functions:
+change them together.
+
+## Running it
+
+Local (`ENABLE_SUPABASE=true yarn dev`): the dev script starts the local
+stack and passes its service role key to the server. New migrations:
+
+```bash
+yarn db:reset   # rebuilds the LOCAL database from the migrations (wipes local data)
+yarn db:test
+```
+
+VPS (self-hosted stack, `infra/supabase`):
+
+1. Pull, then run `sudo bash scripts/vps-setup/supabase.sh`: it rebuilds and
+   restarts the app, whose `yarn start` preflight applies the pending
+   migrations (`supabase migration up`). The post-merge auto-deploy only
+   reloads PM2 without the preflight: on its own it leaves the migration
+   unapplied, and the quiz's RPCs missing.
+2. The Node server reads `SERVICE_ROLE_KEY` from `infra/supabase/.env` when
+   `SUPABASE_SERVICE_ROLE_KEY` is unset; nothing to add for the default
+   layout. Set `SUPABASE_INTERNAL_URL` in `server/.env.local` if the server
+   should reach the API on a private address instead of
+   `SUPABASE_PUBLIC_URL`.
+3. Rebuild and reload as usual.
+
+## Costs and limits
+
+- The media proxy downloads each round's artwork (about 150 kB) and cry from
+  GitHub and sends it on, with `Cache-Control: private, max-age=900`.
+- A round's clock is the server's: leaving the page does not pause it.
+  400 ms are granted to every answer for the network.
+- Rounds are drawn from the whole Pokédex or one generation only
+  (`quiz_start` lists them; `catalogue.test.mjs` keeps them equal to
+  `GENERATIONS`). None of the four options is among the player's last 30
+  answers, so a past verdict never rules an option out.
+- A typed round (`hard`) reaches the browser without its four options.
+- A free swap (`quiz_reroll`, 3 per window) needs the Node proxy to have
+  failed to fetch that round's artwork (`quiz_art_failed`) and keeps the
+  round's gifts and bonus turn.
+- Not covered: rate limits beyond the turn rules, a perceptual hash of the
+  proxied artwork, moving a dev browser bag into an account.

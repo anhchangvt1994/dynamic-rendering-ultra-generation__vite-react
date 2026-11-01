@@ -119,11 +119,11 @@ export default function FeaturedEncounter({
           <button className="random" type="button" onClick={onRandom}>
             <FieldIcon name="shuffle" size={17} /> Gặp ngẫu nhiên
           </button>
-          <LinkCustom className="random quiz-link" to="/ai-day">
+          <LinkCustom className="random quiz-link" to="/whos-that-pokemon">
             <span className="quiz-badge" aria-hidden="true">
               ?
             </span>
-            Chơi “Ai đây?”
+            Chơi “Who’s That Pokémon?”
           </LinkCustom>
         </div>
         <div className="hero-footnote">

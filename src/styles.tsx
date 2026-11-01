@@ -35,4 +35,12 @@ export const ContentStyle = styled.div`
     background: var(--ink);
     color: white;
   }
+  /* the quiz's night stage and the bag run edge to edge (QuizPage,
+     BagPage and their skeletons) */
+  &:has(.quiz-page),
+  &:has(.bag-page) {
+    background:
+      radial-gradient(120% 70% at 50% 0%, #1f4068 0%, transparent 70%), #0d1e33;
+    color: white;
+  }
 `

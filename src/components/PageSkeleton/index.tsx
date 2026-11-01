@@ -4,6 +4,7 @@ import CompareSkeleton from './CompareSkeleton'
 import HomeSkeleton from './HomeSkeleton'
 import PokemonSkeleton from './PokemonSkeleton'
 import QuizSkeleton from './QuizSkeleton'
+import BagSkeleton from './BagSkeleton'
 
 export { default as HeaderSkeleton } from './HeaderSkeleton'
 
@@ -20,6 +21,8 @@ export default function PageSkeleton({ routeId }: { routeId?: string }) {
       return <PokemonSkeleton />
     case 'QuizPage':
       return <QuizSkeleton />
+    case 'BagPage':
+      return <BagSkeleton />
     case 'ComparePage':
       return <CompareSkeleton />
     case 'AccountPage':

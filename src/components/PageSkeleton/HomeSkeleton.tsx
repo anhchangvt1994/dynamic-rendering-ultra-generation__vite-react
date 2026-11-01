@@ -380,9 +380,13 @@ export default function HomeSkeleton() {
             <button className="random" type="button" disabled>
               <FieldIcon name="shuffle" size={17} /> Gặp ngẫu nhiên
             </button>
-            <LinkCustom className="random quiz-link" to="/ai-day" tabIndex={-1}>
+            <LinkCustom
+              className="random quiz-link"
+              to="/whos-that-pokemon"
+              tabIndex={-1}
+            >
               <span className="quiz-badge">?</span>
-              Chơi “Ai đây?”
+              Chơi “Who’s That Pokémon?”
             </LinkCustom>
           </div>
           <div className="hero-footnote">

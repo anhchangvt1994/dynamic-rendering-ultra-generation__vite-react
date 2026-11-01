@@ -24,10 +24,19 @@ const ServerConfig = defineServerConfig({
             name: 'pokemon-page',
           },
         }
-      else if (pathSlitted[1] === 'ai-day')
+      else if (
+        pathSlitted[1] === 'whos-that-pokemon' ||
+        pathSlitted[1] === 'ai-day'
+      )
         return {
           loader: {
-            name: 'ai-day-page',
+            name: 'whos-that-pokemon-page',
+          },
+        }
+      else if (pathSlitted[1] === 'tui-do')
+        return {
+          loader: {
+            name: 'tui-do-page',
           },
         }
       else if (pathSlitted[1] === 'so-sanh')

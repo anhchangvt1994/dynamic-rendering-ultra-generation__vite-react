@@ -1,6 +1,6 @@
 import Layout from 'Layout'
 import NotFoundPage from 'pages/NotFoundPage'
-import { RouteObject } from 'react-router'
+import { Navigate, RouteObject, useLocation } from 'react-router'
 import { ServerStore } from 'store/ServerStore'
 import { LoadingInfoProvider } from './context/LoadingInfoContext'
 import { RouteObjectCustomize } from './types'
@@ -13,6 +13,12 @@ import RouterValidation from './utils/RouterValidation'
 import ServerRouterHandler from './utils/ServerRouterHandler'
 
 ServerStore.init()
+
+// the quiz's first address: shared links (?gen=1&mode=hard) keep working
+function QuizMoved() {
+  const location = useLocation()
+  return <Navigate to={`/whos-that-pokemon${location.search}`} replace />
+}
 
 // NOTE - Router Configuration
 const routes: RouteObjectCustomize[] = defineRoute([
@@ -66,11 +72,22 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: import.meta.env.ROUTER_BLOG_DETAIL_ID,
       }, // Blog Detail Page
       {
-        // "Ai đây?" — Who's that Pokémon? quiz
-        path: 'ai-day',
+        // Who's That Pokémon? quiz
+        path: 'whos-that-pokemon',
         element: <ROUTE_MODULES.quiz.Route />,
         id: 'QuizPage',
       }, // Quiz Page
+      {
+        path: 'ai-day',
+        element: <QuizMoved />,
+        id: 'QuizMoved',
+      }, // the quiz's first address
+      {
+        // the trainer's bag: the quiz's gifts
+        path: 'tui-do',
+        element: <ROUTE_MODULES.bag.Route />,
+        id: 'BagPage',
+      }, // Bag Page
       {
         // /so-sanh, /so-sanh/charizard, /so-sanh/charizard-vs-blastoise
         path: 'so-sanh/:pair?',

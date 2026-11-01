@@ -40,11 +40,24 @@ const Header = ({
             Bộ sưu tập
           </LinkCustom>
           <LinkCustom
-            to="/ai-day"
-            aria-current={location.pathname === '/ai-day' ? 'page' : undefined}
+            to="/whos-that-pokemon"
+            aria-current={
+              location.pathname === '/whos-that-pokemon' ? 'page' : undefined
+            }
           >
-            Ai đây?
+            Who’s That Pokémon?
           </LinkCustom>
+          {/* items live on accounts: no accounts, no bag (dev keeps one) */}
+          {(account.status !== 'off' || import.meta.env.DEV) && (
+            <LinkCustom
+              to="/tui-do"
+              aria-current={
+                location.pathname === '/tui-do' ? 'page' : undefined
+              }
+            >
+              Túi đồ
+            </LinkCustom>
+          )}
           <LinkCustom
             to="/blogs"
             aria-current={

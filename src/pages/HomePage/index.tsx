@@ -133,6 +133,21 @@ function HomePage() {
     setQuery('')
     setParams({}, { state: { keepPage: true } })
   }
+  // NOTE - Arriving at the collection (the menu, the header, a link, the URL
+  // itself) shows the caught list, not the banner above it. Toggles inside
+  // the page scroll on their own (state.keepPage); Back restores its place.
+  const location = useLocation()
+  const navigationType = useNavigationType()
+  useEffect(() => {
+    if (!filters.caughtOnly || location.state?.keepPage) return
+    if (navigationType === 'POP' && location.key !== 'default') return
+    // after the layout's own "new page starts at the top"
+    const frame = requestAnimationFrame(() =>
+      catalogRef.current?.scrollIntoView({ block: 'start' })
+    )
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
   const explore = () => {
     catalogRef.current?.scrollIntoView({
       behavior: matchMedia('(prefers-reduced-motion: reduce)').matches

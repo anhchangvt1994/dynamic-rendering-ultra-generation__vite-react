@@ -15,6 +15,7 @@ import { getDataCompression } from './utils/CacheManager/utils'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
 import { BROTLI_OPTIONS } from '../constants'
+import apiQuiz from './routes/quiz'
 
 // NOTE - Wait for the cache of a request that another request is fetching.
 // It polls until the fetch timeout: a fetch that never stores its result
@@ -337,6 +338,10 @@ const apiService = (() => {
   return {
     init(app: Express) {
       if (!app) return Console.warn('You need provide express app!')
+
+      // NOTE - Handle API Quiz (round media)
+      apiQuiz.init(app)
+
       _app = app
       _allRequestHandler()
     },

@@ -147,6 +147,35 @@ export const HeaderStyle = styled.header`
   body:has(.pokemon-page) & .account-trigger:hover {
     background: rgba(255, 255, 255, 0.16);
   }
+  .search-trigger span,
+  .account-trigger {
+    white-space: nowrap;
+  }
+  /* narrow desktops: the five links keep their room, search is its icon */
+  @media (max-width: 1100px) {
+    .header-inner {
+      padding: 0 28px;
+      gap: 20px;
+    }
+    nav {
+      gap: 22px;
+    }
+    .search-trigger {
+      padding: 0;
+    }
+    .search-trigger span {
+      display: none;
+    }
+  }
+  /* no room for the links: the menu carries them */
+  @media (max-width: 960px) {
+    nav {
+      display: none;
+    }
+    .menu-trigger {
+      display: inline-flex;
+    }
+  }
   @media (max-width: 680px) {
     .header-inner {
       height: 64px;

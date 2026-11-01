@@ -8,6 +8,7 @@ export const ROUTE_MODULES = {
   blogs: lazyRoute(() => import('pages/BlogPage')),
   blogDetail: lazyRoute(() => import('pages/BlogDetailPage')),
   quiz: lazyRoute(() => import('pages/QuizPage')),
+  bag: lazyRoute(() => import('pages/BagPage')),
   compare: lazyRoute(() => import('pages/ComparePage')),
   // ENABLE_SUPABASE off: no page, nothing in the bundle
   account: ACCOUNTS_ENABLED
@@ -25,8 +26,11 @@ export function routeModuleFor(pathname: string) {
       return second ? ROUTE_MODULES.pokemon : undefined
     case 'blogs':
       return second ? ROUTE_MODULES.blogDetail : ROUTE_MODULES.blogs
+    case 'whos-that-pokemon':
     case 'ai-day':
       return ROUTE_MODULES.quiz
+    case 'tui-do':
+      return ROUTE_MODULES.bag
     case 'so-sanh':
       return ROUTE_MODULES.compare
     case 'dang-nhap':

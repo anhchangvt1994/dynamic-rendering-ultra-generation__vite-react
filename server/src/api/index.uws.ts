@@ -11,6 +11,7 @@ import { PROCESS_ENV } from '../utils/InitEnv'
 import { getResourceBudget } from '../utils/ResourceBudget'
 import { createHash } from 'crypto'
 import apiLighthouse from './routes/lighthouse/index.uws'
+import apiQuiz from './routes/quiz/index.uws'
 import { fetchData, refreshData } from './utils/FetchManager'
 import { HOST_DOWN_RESULT, isHostDown, setHostDown } from './utils/HostHealth'
 import { decodeRequestInfo } from './utils/StringHelper'
@@ -518,6 +519,8 @@ const apiService = (async () => {
 
       // NOTE - Handle API Lighthouse
       apiLighthouse.init(app)
+      // NOTE - Handle API Quiz (round media)
+      apiQuiz.init(app)
 
       _app = {
         all: (pattern, handler) => {

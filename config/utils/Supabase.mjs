@@ -276,7 +276,9 @@ export async function ensureLocalSupabase() {
 
   const mailUrl = status.MAILPIT_URL || status.INBUCKET_URL
   log(`Ready at ${url}${mailUrl ? ` (emails: ${mailUrl})` : ''}`)
-  return { url, publishableKey, mailUrl }
+  // the quiz's media proxy (server/src/api/routes/quiz) reads rounds with it
+  const serviceRoleKey = status.SERVICE_ROLE_KEY || status.SECRET_KEY || ''
+  return { url, publishableKey, mailUrl, serviceRoleKey }
 } // ensureLocalSupabase
 
 // ---------------------------------------------------------------------------
