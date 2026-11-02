@@ -13,7 +13,8 @@ import { useKitchenEngine } from './engine/useKitchenEngine'
 import type { CookResult, DishView, Menu, StatKey } from './engine/types'
 import DishArt from './DishArt'
 import Pot, { potFlavors } from './Pot'
-import CookFx, { COOK_MS, StatChips } from './CookFx'
+import CookFx, { COOK_MS } from './CookFx'
+import StatChips from './StatChips'
 import { KitchenStyle } from './styles'
 
 const CHEF = 869 // Alcremie

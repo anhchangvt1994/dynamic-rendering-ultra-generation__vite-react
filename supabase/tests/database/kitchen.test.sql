@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(32);
+select plan(33);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -110,6 +110,13 @@ select pg_temp.give('cheri-berry', 2);
 select pg_temp.give('lava-cookie', 1);
 insert into r values ('known', public.kitchen_cook(null, array['lava-cookie', 'cheri-berry', 'cheri-berry']));
 select is((select v->>'outcome' || '/' || (v->>'discovered') from r where k = 'known'), 'dish/false', 'a known recipe in the pot: a dish, no discovery');
+
+-- the player reads their own shelf (the bag's "Món ăn" pocket), nobody else's
+select is(
+  (select jsonb_object_agg(dish_id, count) from public.kitchen_dishes),
+  '{"poffin-cheri": 1, "poffin-pecha": 1, "poffin-hoang-gia": 1}'::jsonb,
+  'the player reads their own dishes'
+);
 
 -- nobody writes the kitchen's tables
 select throws_ok($$ insert into public.kitchen_dishes (user_id, dish_id, count) values ('11111111-1111-1111-1111-111111111111', 'ca-ri-lua', 9) $$, '42501', null, 'nobody fills their own shelf');

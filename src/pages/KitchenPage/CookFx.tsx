@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { itemById, itemSprite } from 'pages/QuizPage/items.mjs'
 import DishArt from './DishArt'
-import { STATS } from './kitchen.mjs'
-import type { CookResult, StatKey } from './engine/types'
+import type { CookResult } from './engine/types'
+import StatChips from './StatChips'
 
 type Props = {
   /** what went in */
@@ -17,23 +17,6 @@ type Props = {
 }
 
 export const COOK_MS = 1900
-
-/** A dish's stats as chips, in their flavours' colours. */
-export function StatChips({
-  stats,
-}: {
-  stats: Partial<Record<StatKey, number>>
-}) {
-  return (
-    <ul className="stat-chips" aria-label="Chỉ số">
-      {(Object.entries(stats) as [StatKey, number][]).map(([stat, points]) => (
-        <li key={stat} style={{ '--c': STATS[stat].color } as CSSProperties}>
-          {STATS[stat].label} <b>+{points}</b>
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 const PotArt = () => (
   <svg className="cf-pot" viewBox="0 0 160 130" aria-hidden="true">

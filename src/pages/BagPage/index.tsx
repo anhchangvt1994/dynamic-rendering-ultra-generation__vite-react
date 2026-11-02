@@ -14,8 +14,11 @@ import {
   rowCount,
 } from './bag.mjs'
 import { BagStyle } from './styles'
+import { useDishes } from 'pages/KitchenPage/useDishes'
+import DishShelf from 'pages/KitchenPage/DishShelf'
 
 const WIDE = '(min-width: 900px)'
+const DISHES_POCKET = { id: 'dishes', label: 'Món ăn', color: '#f07cb4' }
 
 /** From 900px the chosen item's card stands beside the list. */
 function useWide() {
@@ -167,7 +170,11 @@ export default function BagPage() {
     () => bagRows(bag ?? {}, { pocket, sort, missing }),
     [bag, pocket, sort, missing]
   )
-  const current = pocketOf(pocket)
+  // the kitchen's dishes: a pocket of their own, after the quiz's
+  const { dishes, menu } = useDishes()
+  const dishTotal = Object.values(dishes ?? {}).reduce((sum, n) => sum + n, 0)
+  const onDishes = pocket === DISHES_POCKET.id
+  const current = onDishes ? DISHES_POCKET : pocketOf(pocket)
   // the card beside the list shows the chosen item, else the first one
   const shown =
     rows.find((row) => row.item.id === selected)?.item.id ?? rows[0]?.item.id
@@ -261,10 +268,23 @@ export default function BagPage() {
             </b>
           </button>
         ))}
+        <button
+          type="button"
+          className="pocket"
+          aria-pressed={onDishes}
+          onClick={() => setPocket(DISHES_POCKET.id)}
+          style={{ '--c': DISHES_POCKET.color } as CSSProperties}
+        >
+          {DISHES_POCKET.label}
+          <b>
+            <span className="sr-only">, </span>
+            {badgeCount(dishTotal)}
+          </b>
+        </button>
       </nav>
 
       {/* nothing to sort in an empty bag: the empty state offers the catalogue */}
-      {(!empty || missing) && (
+      {(!empty || missing) && !onDishes && (
         <div className="bag-toolbar">
           <div className="sort" role="group" aria-label="Sắp xếp">
             {SORTS.map((s) => (
@@ -311,6 +331,8 @@ export default function BagPage() {
             Chơi thử không cần đăng nhập
           </LinkCustom>
         </div>
+      ) : onDishes ? (
+        dishes && <DishShelf dishes={dishes} menu={menu} />
       ) : bag === null ? null : rows.length ? (
         <div className="bag-body">
           <ol className="bag-list" aria-label={`Ngăn ${current.label}`}>

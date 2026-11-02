@@ -63,8 +63,10 @@ create policy "kitchen_dishes: read own" on public.kitchen_dishes
   for select to authenticated using (user_id = (select auth.uid()));
 revoke all on public.kitchen_recipes, public.kitchen_discoveries, public.kitchen_attempts
   from anon, authenticated;
-revoke insert, update, delete on public.kitchen_ingredients, public.kitchen_dishes
-  from anon, authenticated;
+revoke all on public.kitchen_ingredients, public.kitchen_dishes from anon, authenticated;
+-- tables get no default privileges here (as the quiz's): reading is granted
+grant select on public.kitchen_ingredients to anon, authenticated;
+grant select on public.kitchen_dishes to authenticated;
 
 insert into public.kitchen_ingredients (item_id, grp, spicy, dry, sweet, bitter, sour) values
   ('pomeg-berry', 'berry', 10, 0, 10, 10, 0),

@@ -271,22 +271,6 @@ export const KitchenStyle = styled.div`
     font-size: 13px;
     line-height: 1.45;
   }
-  .stat-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin: 0 0 6px;
-    padding: 0;
-    list-style: none;
-  }
-  .stat-chips li {
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--c) 20%, #fff);
-    box-shadow: inset 0 0 0 1.5px var(--c);
-    font-size: 11px;
-    font-weight: 800;
-  }
   .recipe {
     display: grid;
     gap: 2px;
