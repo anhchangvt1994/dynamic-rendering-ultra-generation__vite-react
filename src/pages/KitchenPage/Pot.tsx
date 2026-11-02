@@ -120,6 +120,9 @@ type Props = {
   onTarget?: (id: string | null) => void
 }
 
+const kindLabel = (dish: DishView) =>
+  KINDS[dish.kind as keyof typeof KINDS]?.label ?? 'Món'
+
 // a level's bounds on a flavour axis, in sums (3 levels of a full axis)
 const LEVEL_BOUNDS = [
   [0, FULL / 3],
@@ -257,29 +260,73 @@ export default function Pot({
         data-matched={matched || undefined}
       >
         {targets.length > 0 && (
-          <div className="hunt" role="group" aria-label="Món bí ẩn đang tìm">
-            <button
-              type="button"
-              aria-pressed={!target}
-              onClick={() => onTarget?.(null)}
+          <div className="hunt">
+            <div
+              className="hunt-row"
+              role="group"
+              aria-label="Món bí ẩn đang tìm"
             >
-              Tự do
-            </button>
-            {targets.map((dish) => (
               <button
-                key={dish.id}
                 type="button"
-                aria-pressed={target?.id === dish.id}
-                aria-label={`Tìm ${KINDS[dish.kind as keyof typeof KINDS]?.label ?? 'món'} bí ẩn, ${dish.count} nguyên liệu`}
-                onClick={() => onTarget?.(dish.id)}
+                className="hunt-token"
+                data-free=""
+                aria-pressed={!target}
+                aria-label="Tự do: nấu không theo món nào"
+                onClick={() => onTarget?.(null)}
               >
-                <DishArt kind={dish.kind} top={dish.top} secret size={26} />
-                <span aria-hidden="true">
-                  {KINDS[dish.kind as keyof typeof KINDS]?.label}
-                  <small> · {dish.count}</small>
+                <span className="hunt-face" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <ellipse
+                      cx="8.5"
+                      cy="8.5"
+                      rx="4.6"
+                      ry="5.8"
+                      transform="rotate(-45 8.5 8.5)"
+                    />
+                    <path d="M12 12 19.5 19.5" />
+                  </svg>
                 </span>
               </button>
-            ))}
+              {targets.map((dish) => {
+                const found = dish.kept?.length ?? 0
+                return (
+                  <button
+                    key={dish.id}
+                    type="button"
+                    className="hunt-token"
+                    aria-pressed={target?.id === dish.id}
+                    aria-label={`Tìm ${kindLabel(dish)} bí ẩn, ${dish.count} nguyên liệu, biết ${found} đúng`}
+                    onClick={() => onTarget?.(dish.id)}
+                  >
+                    <span className="hunt-face" aria-hidden="true">
+                      <DishArt
+                        kind={dish.kind}
+                        top={dish.top}
+                        secret
+                        size={30}
+                      />
+                    </span>
+                    <span className="hunt-pips" aria-hidden="true">
+                      {Array.from({ length: dish.count ?? 0 }, (_, k) => (
+                        <i key={k} data-on={k < found || undefined} />
+                      ))}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="hunt-caption" aria-hidden="true">
+              {target ? (
+                <>
+                  <b>{kindLabel(target)} bí ẩn</b> · {target.count} nguyên liệu
+                  {kept.length > 0 && ` · biết ${kept.length} đúng`}
+                </>
+              ) : (
+                <>
+                  <b>Tự do</b> · thử công thức bất kỳ
+                </>
+              )}
+            </p>
           </div>
         )}
         <div className="stage">
@@ -1084,52 +1131,159 @@ const PotStyle = styled.div`
     outline-offset: 3px;
   }
 
-  /* the hunt: which secret's shadow to fill */
+  /* the hunt: a tray of candy tokens, one per secret still to find (its
+     silhouette, a pip per ingredient, gold for the right ones known);
+     no scroller: they wrap in rows of 5 */
   .hunt {
+    margin: -4px 0 2px;
+  }
+  .hunt-row {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 6px;
-    margin: -4px -4px 0;
-    padding: 2px 4px 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    max-width: 244px;
+    margin: 0 auto;
+    padding-top: 6px;
   }
-  .hunt button {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    gap: 4px;
-    height: 36px;
-    padding: 0 12px 0 6px;
-    border: 2px solid rgba(255, 255, 255, 0.28);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
+  .hunt-token {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 5px;
+    width: 44px;
+    height: 56px;
+    padding: 0;
+    border: 0;
+    background: none;
     color: #fff;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 800;
-    white-space: nowrap;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .hunt button:first-child {
-    padding-left: 12px;
-  }
-  .hunt small {
-    font-size: 11px;
-    opacity: 0.7;
-  }
-  .hunt button[aria-pressed='true'] {
-    border-color: #c9b6ff;
-    background: #5b3f99;
+  .hunt-face {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background:
+      radial-gradient(
+        circle at 34% 28%,
+        rgba(255, 255, 255, 0.32),
+        transparent 52%
+      ),
+      #3f2c66;
     box-shadow:
-      0 0 0 2px var(--night),
-      0 0 0 4px #c9b6ff;
+      inset 0 -4px 0 rgba(0, 0, 0, 0.28),
+      0 0 0 2px rgba(255, 255, 255, 0.14);
+    transition:
+      transform 260ms cubic-bezier(0.3, 1.6, 0.5, 1),
+      box-shadow 200ms;
   }
-  .hunt button:focus-visible {
+  .hunt-token:hover .hunt-face {
+    transform: translateY(-2px);
+  }
+  .hunt-face .dish-art svg {
+    filter: brightness(0) invert(1) opacity(0.82);
+  }
+  .hunt-token[data-free] .hunt-face {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
+  .hunt-face svg ellipse,
+  .hunt-face svg path {
+    fill: #fff;
+    stroke: #fff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.85;
+  }
+  .hunt-pips {
+    display: flex;
+    gap: 3px;
+  }
+  .hunt-pips i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .hunt-pips i[data-on] {
+    background: #ffcf3a;
+    box-shadow: 0 0 6px rgba(255, 207, 58, 0.8);
+  }
+  /* the one hunted: a strawberry-milk candy, lifted, with a twinkle */
+  .hunt-token[aria-pressed='true'] .hunt-face {
+    background:
+      radial-gradient(
+        circle at 34% 28%,
+        rgba(255, 255, 255, 0.6),
+        transparent 50%
+      ),
+      linear-gradient(160deg, #ff9fd6, #b48cff);
+    box-shadow:
+      inset 0 -4px 0 rgba(90, 30, 120, 0.3),
+      0 0 0 3px #fff,
+      0 8px 16px rgba(255, 120, 200, 0.45);
+    transform: translateY(-3px) scale(1.06);
+  }
+  .hunt-token[aria-pressed='true'] .hunt-face .dish-art svg {
+    filter: brightness(0) invert(1);
+    animation: hunt-bob 2.4s ease-in-out infinite;
+  }
+  .hunt-token[aria-pressed='true'] .hunt-face::after {
+    content: '✦';
+    position: absolute;
+    top: -7px;
+    right: -5px;
+    color: #ffe66e;
+    font-size: 15px;
+    line-height: 1;
+    text-shadow: 0 0 6px rgba(255, 230, 110, 0.9);
+    animation: hunt-twinkle 1.8s ease-in-out infinite;
+  }
+  .hunt-token:focus-visible {
+    outline: none;
+  }
+  .hunt-token:focus-visible .hunt-face {
     outline: 3px solid #fff;
-    outline-offset: 2px;
+    outline-offset: 3px;
   }
-  .hunt .dish-art svg {
-    filter: brightness(0) invert(1) opacity(0.85);
+  .hunt-caption {
+    overflow: hidden;
+    min-height: 18px;
+    margin: 2px 0 0;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .hunt-caption b {
+    color: #ffc6ea;
+  }
+  @keyframes hunt-bob {
+    50% {
+      transform: translateY(-2px) rotate(-4deg);
+    }
+  }
+  @keyframes hunt-twinkle {
+    50% {
+      transform: scale(0.6) rotate(30deg);
+      opacity: 0.6;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hunt-face,
+    .hunt-face .dish-art svg,
+    .hunt-face::after {
+      transition: none;
+      animation: none !important;
+    }
   }
   /* a right ingredient found before: a gold rim and a tick */
   .soap[data-pinned]::after {
