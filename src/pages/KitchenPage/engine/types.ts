@@ -27,15 +27,26 @@ export type Menu = {
 }
 
 export type CookResult =
-  | { outcome: 'dish'; dish: DishView; discovered: boolean }
+  | {
+      outcome: 'dish'
+      dish: DishView
+      discovered: boolean
+      /** the portions cooked (a batch of a menu dish) */
+      count: number
+    }
   | { outcome: 'failed'; returned: string[]; near: number }
 
 /** The kitchen behind the page: the account's, this browser's, a guest's. */
 export interface KitchenEngine {
   kind: 'server' | 'local' | 'guest'
   menu(): Promise<Menu>
-  /** a dish of the menu (dish), or a pot of 2 to 4 ingredients */
-  cook(dish: string | null, pot: string[] | null): Promise<CookResult>
+  /** a dish of the menu (dish), `times` portions of it (1 to 99), or a pot
+   * of 2 to 4 ingredients (one at a time) */
+  cook(
+    dish: string | null,
+    pot: string[] | null,
+    times?: number
+  ): Promise<CookResult>
   /** the dishes cooked, by id */
   dishes(): Promise<Record<string, number>>
 }

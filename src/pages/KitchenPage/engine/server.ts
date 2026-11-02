@@ -25,8 +25,12 @@ export function createServerEngine(supabase: Client): KitchenEngine {
     async menu(): Promise<Menu> {
       return call('kitchen_menu')
     },
-    async cook(dish, pot): Promise<CookResult> {
-      return call('kitchen_cook', { p_dish: dish, p_ingredients: pot })
+    async cook(dish, pot, times = 1): Promise<CookResult> {
+      return call('kitchen_cook', {
+        p_dish: dish,
+        p_ingredients: pot,
+        p_times: times,
+      })
     },
     async dishes() {
       const { data, error } = await supabase

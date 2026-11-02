@@ -20,11 +20,12 @@ export function createLocalEngine({ storage = globalThis.localStorage } = {}) {
       const { discovered, attempts } = kitchen()
       return menuOf(discovered, attempts)
     },
-    async cook(dish, pot) {
+    async cook(dish, pot, times = 1) {
       const { state, result } = cookPot(
         { ...kitchen(), bag: readJSON(KEYS.bag, {}, storage) },
         dish,
-        pot
+        pot,
+        times
       )
       const { bag, ...rest } = state
       saveJSON(KEYS.bag, bag, storage)

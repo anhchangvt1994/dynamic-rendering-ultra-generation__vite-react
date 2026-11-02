@@ -6,6 +6,7 @@ import { test } from 'node:test'
 import { DISHES } from '../recipes.mjs'
 import { KNOWN, SECRET_CLUES, publicMenu } from '../menu.mjs'
 import { cookPot, menuOf } from './rules.mjs'
+import { batchMax, scaleStats } from '../batch.mjs'
 import { createLocalEngine, KEYS } from './local.mjs'
 import { createGuestEngine } from './guest.mjs'
 import { createServerEngine } from './server.ts'
@@ -169,7 +170,7 @@ test('the account engine maps the RPCs', async () => {
   assert.deepEqual(await engine.cook(null, ['x', 'y']), replies.kitchen_cook)
   assert.deepEqual(calls.at(-1), [
     'kitchen_cook',
-    { p_dish: null, p_ingredients: ['x', 'y'] },
+    { p_dish: null, p_ingredients: ['x', 'y'], p_times: 1 },
   ])
   assert.deepEqual(await engine.dishes(), { 'ca-ri-lua': 2 })
 })
@@ -180,4 +181,76 @@ test('guests look at the menu but can not cook', async () => {
   assert.deepEqual(await engine.menu(), publicMenu())
   await assert.rejects(engine.cook('poffin-pecha', null), /sign_in/)
   assert.deepEqual(await engine.dishes(), {})
+})
+
+// batch cooking (2026-11-02-kitchen-batch-cook-design.md): kitchen.test.sql
+// has the same cases
+test('a batch of a menu dish: all its portions at once, to the last', () => {
+  const { state, result } = cookPot(
+    fresh({ 'chesto-berry': 6, 'fresh-water': 3 }),
+    'tra-da-chesto',
+    null,
+    3
+  )
+  assert.equal(result.count, 3)
+  assert.deepEqual(state.bag, {})
+  assert.deepEqual(state.dishes, { 'tra-da-chesto': 3 })
+})
+
+test('a batch one portion short cooks nothing; its limits', () => {
+  const state = fresh({ 'chesto-berry': 7, 'fresh-water': 3 })
+  assert.throws(() => cookPot(state, 'tra-da-chesto', null, 4), /missing/)
+  assert.deepEqual(state.bag, { 'chesto-berry': 7, 'fresh-water': 3 })
+  assert.throws(() => cookPot(state, 'tra-da-chesto', null, 0), /bad_times/)
+  assert.throws(() => cookPot(state, 'tra-da-chesto', null, 100), /bad_times/)
+  assert.throws(
+    () => cookPot(state, null, ['chesto-berry', 'fresh-water'], 2),
+    /bad_times/
+  )
+  assert.equal(cookPot(state, 'tra-da-chesto', null).result.count, 1)
+})
+
+test('how many portions a bag makes, and what they give', () => {
+  const pecha = ['moomoo-milk', 'pecha-berry', 'pecha-berry']
+  assert.equal(batchMax(pecha, { 'pecha-berry': 9, 'moomoo-milk': 4 }), 4)
+  assert.equal(batchMax(pecha, { 'pecha-berry': 9 }), 0)
+  assert.equal(batchMax(pecha, { 'pecha-berry': 500, 'moomoo-milk': 500 }), 99)
+  assert.deepEqual(scaleStats({ happiness: 3, friendship: 3 }, 3), {
+    happiness: 9,
+    friendship: 9,
+  })
+})
+
+test('the local and server engines cook a batch', async () => {
+  const storage = memory({
+    [KEYS.bag]: { 'chesto-berry': 4, 'fresh-water': 2 },
+  })
+  const local = createLocalEngine({ storage })
+  const result = await local.cook('tra-da-chesto', null, 2)
+  assert.equal(result.count, 2)
+  assert.deepEqual(storage.read(KEYS.bag), {})
+  const calls = []
+  const server = createServerEngine({
+    rpc: async (name, args) => (
+      calls.push([name, args]),
+      { data: {}, error: null }
+    ),
+    from: () => ({ select: async () => ({ data: [], error: null }) }),
+  })
+  await server.cook('tra-da-chesto', null, 2)
+  await server.cook(null, ['chesto-berry', 'fresh-water'])
+  assert.deepEqual(calls, [
+    [
+      'kitchen_cook',
+      { p_dish: 'tra-da-chesto', p_ingredients: null, p_times: 2 },
+    ],
+    [
+      'kitchen_cook',
+      {
+        p_dish: null,
+        p_ingredients: ['chesto-berry', 'fresh-water'],
+        p_times: 1,
+      },
+    ],
+  ])
 })

@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(36);
+select plan(45);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -131,7 +131,24 @@ select is(
 
 -- nobody writes the kitchen's tables
 select throws_ok($$ insert into public.kitchen_dishes (user_id, dish_id, count) values ('11111111-1111-1111-1111-111111111111', 'ca-ri-lua', 9) $$, '42501', null, 'nobody fills their own shelf');
-select throws_ok($$ select * from public.kitchen_recipes $$, '42501', null, 'nobody reads the recipes');
+select throws_ok($ select * from public.kitchen_recipes $, '42501', null, 'nobody reads the recipes');
+
+-- a batch of a menu dish (2026-11-02-kitchen-batch-cook-design.md)
+select pg_temp.give('chesto-berry', 6);
+select pg_temp.give('fresh-water', 3);
+insert into r values ('batch', public.kitchen_cook('tra-da-chesto', null, 3));
+select is((select v->'count' from r where k = 'batch'), '3'::jsonb, 'a batch of 3 is cooked at once');
+select is(pg_temp.has('chesto-berry') || '/' || pg_temp.has('fresh-water'), '0/0', 'a batch spends 3 times the recipe, to the last');
+select is(pg_temp.dish_count('tra-da-chesto'), 3, 'and shelves 3 dishes');
+select pg_temp.give('chesto-berry', 7);
+select pg_temp.give('fresh-water', 3);
+select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 4) $, 'P0001', 'missing', 'one portion short: the batch does not cook');
+select is(pg_temp.has('chesto-berry') || '/' || pg_temp.has('fresh-water'), '7/3', 'and nothing is spent');
+select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 0) $, 'P0001', 'bad_times', 'no batch of 0');
+select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 100) $, 'P0001', 'bad_times', 'at most 99');
+select throws_ok($ select public.kitchen_cook(null, array['chesto-berry', 'fresh-water'], 2) $, 'P0001', 'bad_times', 'the free pot cooks one pot at a time');
+insert into r values ('one', public.kitchen_cook('tra-da-chesto', null));
+select is((select v->'count' from r where k = 'one'), '1'::jsonb, 'without a count: one, as before');
 
 reset role;
 set local role anon;
