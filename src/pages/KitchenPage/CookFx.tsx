@@ -1,7 +1,8 @@
 import styled from 'styled-components'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { itemById, itemSprite } from 'pages/QuizPage/items.mjs'
+import { scaleStats } from './batch.mjs'
 import DishArt from './DishArt'
 import type { CookResult } from './engine/types'
 import StatChips from './StatChips'
@@ -19,6 +20,44 @@ type Props = {
 }
 
 export const COOK_MS = 1900
+
+// a batch's plates: at most this many drawn, the number says the rest
+const STACK = 5
+
+/** The batch's count rolling up to n (n at once with reduced motion). */
+function useRollUp(n: number) {
+  const [shown, setShown] = useState(() =>
+    n <= 1 || matchMedia('(prefers-reduced-motion: reduce)').matches ? n : 1
+  )
+  useEffect(() => {
+    if (shown >= n) return
+    let frame = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      // 600ms, eased out, after the dish has landed
+      const t = Math.min(1, Math.max(0, (now - start - 350) / 600))
+      setShown(Math.max(1, Math.round(1 + (n - 1) * (1 - (1 - t) ** 3))))
+      if (t < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+    // once per result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n])
+  return shown
+}
+
+function DishCount({ count, name }: { count: number; name?: string }) {
+  const shown = useRollUp(count)
+  return (
+    <h2 className="cf-title" aria-label={`+${count} ${name ?? ''}`}>
+      <span className="cf-count" aria-hidden="true">
+        +{shown}
+      </span>{' '}
+      {name}
+    </h2>
+  )
+}
 
 const PotArt = () => (
   <svg className="cf-pot" viewBox="0 0 160 130" aria-hidden="true">
@@ -73,6 +112,8 @@ const PotArt = () => (
  * puffs black smoke and half the pot comes back.
  */
 export default function CookFx({ pot, result, glow, onClose, opener }: Props) {
+  // the portions of a batch (1 for a pot, or a server from before batches)
+  const count = result?.outcome === 'dish' ? (result.count ?? 1) : 1
   const closeRef = useRef<HTMLButtonElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -177,16 +218,35 @@ export default function CookFx({ pot, result, glow, onClose, opener }: Props) {
                 </span>
               </span>
             ) : (
-              <DishArt
-                className="cf-dish"
-                kind={result.dish.kind}
-                top={result.dish.top}
-                size={150}
-                steam
-              />
+              <span className="cf-stack" data-count={Math.min(count, STACK)}>
+                {/* the batch's other plates, under the first */}
+                {Array.from({ length: Math.min(count, STACK) - 1 }, (_, i) => (
+                  <span
+                    key={i}
+                    className="cf-plate"
+                    style={{ '--i': i + 1 } as CSSProperties}
+                    aria-hidden="true"
+                  >
+                    <DishArt
+                      kind={result.dish.kind}
+                      top={result.dish.top}
+                      size={150}
+                    />
+                  </span>
+                ))}
+                <DishArt
+                  className="cf-dish"
+                  kind={result.dish.kind}
+                  top={result.dish.top}
+                  size={150}
+                  steam
+                />
+              </span>
             )}
-            <h2 className="cf-title">+1 {result.dish.name}</h2>
-            {result.dish.stats && <StatChips stats={result.dish.stats} />}
+            <DishCount count={count} name={result.dish.name} />
+            {result.dish.stats && (
+              <StatChips stats={scaleStats(result.dish.stats, count)} />
+            )}
             <button
               ref={closeRef}
               type="button"
@@ -335,7 +395,33 @@ const CookFxStyle = styled.div`
     font-size: 22px;
   }
   .cf-dish {
+    position: relative;
     animation: cf-spin-up 800ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  }
+  .cf-count {
+    display: inline-block;
+    min-width: 1.6em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  /* a batch: the other plates fan out behind the first, after it lands */
+  .cf-stack {
+    position: relative;
+    display: grid;
+  }
+  .cf-plate {
+    position: absolute;
+    inset: 0;
+    opacity: 0.55;
+    filter: saturate(0.8);
+    transform: translate(calc(var(--i) * 13px), calc(var(--i) * -9px))
+      scale(calc(1 - var(--i) * 0.06));
+    animation: cf-plate 420ms cubic-bezier(0.2, 1.3, 0.4, 1)
+      calc(380ms + var(--i) * 70ms) both;
+  }
+  .cf-stack[data-count='2'] .cf-plate,
+  .cf-stack[data-count='3'] .cf-plate {
+    opacity: 0.7;
   }
   .cf-sparkles {
     position: absolute;
@@ -494,6 +580,12 @@ const CookFxStyle = styled.div`
     from {
       opacity: 0;
       transform: scale(0.7);
+    }
+  }
+  @keyframes cf-plate {
+    from {
+      opacity: 0;
+      transform: none;
     }
   }
   @keyframes cf-spin-up {

@@ -641,7 +641,7 @@ export const KitchenStyle = styled.div`
     outline-offset: -4px;
   }
   .batch-step {
-    width: 38px;
+    width: 44px;
     font-family: var(--font-display);
     font-size: 20px;
     line-height: 1;
