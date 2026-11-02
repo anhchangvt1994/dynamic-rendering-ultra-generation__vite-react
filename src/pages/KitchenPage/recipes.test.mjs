@@ -118,3 +118,54 @@ test('every secret dish can be found: a rare berry in it, a hint that matches', 
   }
   assert.match(hintOf(dishById('banh-kem-qualot')), /1 quả mọng, 2 bánh ngọt/)
 })
+
+test("the kitchen's migration seeds the same flavours and recipes", async () => {
+  const { readFileSync } = await import('node:fs')
+  const sql = readFileSync(
+    new URL(
+      '../../../supabase/migrations/20261104000000_kitchen.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+  const flavours = Object.fromEntries(
+    [
+      ...sql.matchAll(
+        /\('([a-z-]+)', '(?:berry|drink|sweet)', (\d+), (\d+), (\d+), (\d+), (\d+)\)/g
+      ),
+    ].map(([, id, spicy, dry, sweet, bitter, sour]) => [
+      id,
+      Object.fromEntries(
+        Object.entries({ spicy, dry, sweet, bitter, sour })
+          .map(([f, p]) => [f, Number(p)])
+          .filter(([, p]) => p > 0)
+      ),
+    ])
+  )
+  assert.deepEqual(flavours, FLAVORS)
+  const recipes = [
+    ...sql.matchAll(
+      /\('([a-z-]+)', '([^']+)', '([a-z]+)', (true|false), (\d), array\[([^\]]+)\], '(\{[^']+\})'/g
+    ),
+  ].map(([, id, name, kind, secret, rarity, ingredients, stats]) => ({
+    id,
+    name,
+    kind,
+    secret: secret === 'true',
+    rarity: Number(rarity),
+    key: ingredients.replace(/'/g, '').split(', ').join('+'),
+    stats: JSON.parse(stats),
+  }))
+  assert.deepEqual(
+    recipes,
+    DISHES.map((d) => ({
+      id: d.id,
+      name: d.name,
+      kind: d.kind,
+      secret: d.secret,
+      rarity: d.rarity,
+      key: recipeKey(d.ingredients),
+      stats: d.stats,
+    }))
+  )
+})
