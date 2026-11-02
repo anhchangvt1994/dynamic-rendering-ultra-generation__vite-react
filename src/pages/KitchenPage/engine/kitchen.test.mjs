@@ -89,6 +89,20 @@ test('a failure: half back (rounded up, the first sorted), the attempt kept, how
   ])
 })
 
+test('a failure with an ingredient twice: the half back counts each one', () => {
+  const { state, result } = cookPot(
+    fresh({ 'oran-berry': 2, 'pecha-berry': 1 }),
+    null,
+    ['pecha-berry', 'oran-berry', 'oran-berry']
+  )
+  assert.equal(result.outcome, 'failed')
+  assert.deepEqual(result.returned, ['oran-berry', 'oran-berry'])
+  assert.deepEqual(state.bag, { 'oran-berry': 2 })
+  assert.deepEqual(state.attempts, [
+    ['oran-berry', 'oran-berry', 'pecha-berry'],
+  ])
+})
+
 test('a secret found in any order; then known; then it no longer counts as near', () => {
   let { state, result } = cookPot(
     fresh({

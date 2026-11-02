@@ -39,6 +39,7 @@ import {
   veilElapsed as elapsedAtLoad,
   veilSeed,
 } from './engine/rules.mjs'
+import { createLatest, refusalNote, spendCharge } from './timeStop.mjs'
 import { useQuizEngine } from './engine/useQuizEngine'
 import type { PlayRound, Status, Verdict } from './engine'
 import { QuizStyle } from './styles'
@@ -71,6 +72,8 @@ const CLICK_AT = 1250
 const PALKIA_AFTER = 1100
 // after the last turn's answer, how long its result holds the stage
 const REST_AFTER = 2600
+// the Roar of Time's charges due back but not yet: asked again after this
+const TIME_BACK_RETRY = 20000
 const PARTY = ['#ffda55', '#ffffff', '#ff6a4a', '#4fd18b', '#4aa8ff', '#b77cff']
 const COACHED_KEY = 'pokedex:quiz-coached'
 // the whole National Pokédex when no generation is chosen
@@ -148,6 +151,16 @@ export default function QuizPage() {
   const rewards = engine?.rewards ?? mode !== 'guest'
 
   const [status, setStatus] = useState<Status | null>(null)
+  // NOTE - Every status the page shows takes a ticket when it is asked for:
+  // one asked before a newer write (a verdict) is dropped when it lands
+  const latest = useRef(createLatest())
+  const askStatus = useCallback(async () => {
+    if (!engine) throw new Error('no_engine')
+    const ticket = latest.current.ticket()
+    const value = await engine.status()
+    if (latest.current.accept(ticket)) setStatus(value)
+    return value
+  }, [engine])
   const [round, setRound] = useState<PlayRound | null>(null)
   const [chosen, setChosen] = useState<number | null>(null)
   const [verdict, setVerdict] = useState<Verdict | null>(null)
@@ -225,40 +238,39 @@ export default function QuizPage() {
   const left = rewards ? (status?.left ?? TURNS) : TURNS
   const refill = rewards ? (status?.refillAt ?? 0) : 0
 
-  const showRound = useCallback((playing: PlayRound) => {
-    audio.current?.pause()
-    veilLeft.current = 1
-    veilElapsed.current = playing.elapsedMs
-    roundAt.current = performance.now()
-    // a round stopped before (another visit): the rest of its 30 s, its veil
-    // already thinned, and whatever Palkia did for it
+  // NOTE - A stop as the engine has it, at page time `at`: the rest of its
+  // 30 s (the veil leaves out the part already gone), and whatever Palkia
+  // did for it. A round reloaded, or stopped from another tab
+  const takeStop = useCallback((playing: PlayRound, at: number) => {
     if (playing.frozenAtMs === null) stopRef.current = null
     else {
-      const until = roundAt.current + playing.freezeLeftMs
+      const until = at + playing.freezeLeftMs
       stopRef.current = { at: until - FREEZE_MS, until }
     }
     setStoppedId(playing.frozenAtMs === null ? null : playing.id)
     // the particles hold still only while this round's time is stopped
-    fxRef.current?.hold(
-      playing.freezeLeftMs > 0 ? roundAt.current + playing.freezeLeftMs : 0
-    )
+    fxRef.current?.hold(playing.freezeLeftMs > 0 ? at + playing.freezeLeftMs : 0)
     setFreeze(
       playing.freezeLeftMs > 0
-        ? {
-            until: roundAt.current + playing.freezeLeftMs,
-            fresh: false,
-            phase: 'hold',
-          }
+        ? { until: at + playing.freezeLeftMs, fresh: false, phase: 'hold' }
         : null
     )
-    setTimeNote('')
-    roundId.current = playing.id
     clearTimeout(palkiaTimer.current)
     setPalkia(
       playing.removed.length || playing.letter
         ? { removed: playing.removed, letter: playing.letter, fresh: false }
         : null
     )
+  }, [])
+
+  const showRound = useCallback((playing: PlayRound) => {
+    audio.current?.pause()
+    veilLeft.current = 1
+    veilElapsed.current = playing.elapsedMs
+    roundAt.current = performance.now()
+    takeStop(playing, roundAt.current)
+    setTimeNote('')
+    roundId.current = playing.id
     setPalkiaNote('')
     // moving on from the result with the keyboard: keep the player in the
     // game instead of dropping focus back to the top of the page
@@ -272,7 +284,7 @@ export default function QuizPage() {
     setChests([])
     setOutOfTurns(false)
     fxRef.current?.clear()
-  }, [])
+  }, [takeStop])
 
   // NOTE - A round costs its turn when it starts and is kept until answered
   // (by the engine): reloading brings the same Pokémon back, its clock still
@@ -287,31 +299,29 @@ export default function QuizPage() {
         hard,
       })
       showRound(playing)
-      if (engine.rewards) setStatus(await engine.status())
+      if (engine.rewards) await askStatus()
     } catch (error) {
       if ((error as Error).message === 'no_turns') {
         setRound(null)
         setVerdict(null)
         setOutOfTurns(true)
-        setStatus(await engine.status())
+        await askStatus()
       } else setImageFailed(true)
     }
-  }, [engine, generation, hard, showRound])
+  }, [engine, generation, hard, showRound, askStatus])
 
   // the game's state: its waiting round, else a new one if a turn is left
   const resume = useCallback(
     (live: () => boolean = () => true) =>
-      engine
-        ?.status()
+      askStatus()
         .then((value) => {
           if (!live()) return
-          setStatus(value)
           if (value.pending) showRound(value.pending)
           else if (value.left > 0) next()
           else setOutOfTurns(true)
         })
         .catch(() => live() && setImageFailed(true)),
-    [engine, showRound, next]
+    [askStatus, showRound, next]
   )
 
   // a new engine (signed in or out): its state, its waiting round or a new one
@@ -320,6 +330,8 @@ export default function QuizPage() {
     let live = true
     setRound(null)
     setVerdict(null)
+    // what the last engine still has on the way never lands
+    latest.current.accept(latest.current.ticket())
     setStatus(null)
     setOutOfTurns(false)
     setLost(false)
@@ -414,11 +426,13 @@ export default function QuizPage() {
         saveFlag(COACHED_KEY)
       }
       const streakBefore = status?.streak ?? 0
+      const ticket = latest.current.ticket()
       engine
         .answer(round, id)
         .then((result) => {
           setVerdict(result)
-          if (engine.rewards) setStatus(result.status)
+          if (engine.rewards && latest.current.accept(ticket))
+            setStatus(result.status)
           setLostStreak(result.outcome === 'right' ? 0 : streakBefore)
           setChests(result.chests)
           if (result.gift || result.chests.length) refreshBag()
@@ -430,10 +444,8 @@ export default function QuizPage() {
           // the way: the round still waiting is played on; one that is over
           // is said so, and the player starts the next round (a turn)
           setChosen(null)
-          engine
-            .status()
+          askStatus()
             .then((value) => {
-              setStatus(value)
               if (value.pending) showRound(value.pending)
               else {
                 refreshBag()
@@ -454,13 +466,16 @@ export default function QuizPage() {
       status,
       showRound,
       palkia,
+      askStatus,
     ]
   )
   const onVeilDone = useCallback(() => choose(TIME_UP), [choose])
 
-  // NOTE - The Roar of Time stops the round at once, then asks the engine:
-  // refused (no charge left on another device), the stop is taken back and
-  // the veil catches up with the time that went by
+  // NOTE - The Roar of Time stops the round at once, then asks the engine.
+  // Granted: one charge fewer on the page (a status asked for it could land
+  // after a verdict). Stopped already (another tab): the engine's stop is
+  // taken, when it began and what Palkia did. Refused otherwise: the stop is
+  // taken back and the veil catches up with the time that went by
   const stopTime = useCallback(() => {
     if (!engine?.rewards || !round || !loaded || revealed || answering) return
     if (stoppedId === round.id || timeLeft <= 0) return
@@ -487,25 +502,40 @@ export default function QuizPage() {
             },
             Math.max(0, at + PALKIA_AFTER - performance.now())
           )
-        return engine.status()
+        // whatever status is still on the way is older than this
+        latest.current.accept(latest.current.ticket())
+        setStatus((value) => value && spendCharge(value, Date.now()))
       })
-      .then(setStatus)
       .catch((error: Error) => {
+        setTimeNote(refusalNote(error.message))
+        if (error.message === 'time_used') {
+          // the page stays stopped meanwhile: the engine says it is
+          askStatus()
+            .then(({ pending }) => {
+              if (roundId.current !== round.id) return
+              if (pending?.id === round.id && pending.frozenAtMs !== null)
+                takeStop(pending, performance.now())
+            })
+            .catch(() => {})
+          return
+        }
         stopRef.current = null
         fxRef.current?.hold(0)
-        setStoppedId(error.message === 'time_used' ? round.id : null)
+        setStoppedId(null)
         setFreeze(null)
-        setTimeNote(
-          error.message === 'time_used'
-            ? 'Vòng này đã dừng rồi'
-            : 'Hết lượt Gầm Thời Gian'
-        )
-        engine
-          .status()
-          .then(setStatus)
-          .catch(() => {})
+        askStatus().catch(() => {})
       })
-  }, [engine, round, loaded, revealed, answering, stoppedId, timeLeft])
+  }, [
+    engine,
+    round,
+    loaded,
+    revealed,
+    answering,
+    stoppedId,
+    timeLeft,
+    askStatus,
+    takeStop,
+  ])
 
   // answered while time is stopped: the result's bursts fly at once
   useEffect(() => {
@@ -526,14 +556,30 @@ export default function QuizPage() {
   }, [timeNote])
 
   // the charges' 2 hours are over: the engine has them back
+  // NOTE - Asked again every 20 s until they are: the network may fail, and
+  // the server's clock may be a little behind this one
   const timeBack = timeRefillAt > 0 && now >= timeRefillAt
   useEffect(() => {
-    if (timeBack)
-      engine
-        ?.status()
-        .then(setStatus)
-        .catch(() => {})
-  }, [timeBack, engine])
+    if (!timeBack || !engine) return
+    let live = true
+    let timer = 0
+    const again = () => {
+      if (live) timer = window.setTimeout(ask, TIME_BACK_RETRY)
+    }
+    const ask = () => {
+      askStatus()
+        .then((value) => {
+          if (value.timeRefillAt > 0 && value.timeRefillAt <= Date.now())
+            again()
+        })
+        .catch(again)
+    }
+    ask()
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [timeBack, engine, askStatus])
 
   // the prize drops a notch: its gift breaks out of the orb's top edge
   const onDrop = useCallback((tier: number) => {
@@ -1071,7 +1117,11 @@ export default function QuizPage() {
               timeRefillAt={timeRefillAt}
               onTimeRefill={
                 engine?.rewards
-                  ? async () => setStatus(await engine.timeRefill())
+                  ? async () => {
+                      const ticket = latest.current.ticket()
+                      const value = await engine.timeRefill()
+                      if (latest.current.accept(ticket)) setStatus(value)
+                    }
                   : undefined
               }
               onPlay={() => {

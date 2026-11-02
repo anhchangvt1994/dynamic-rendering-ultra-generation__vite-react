@@ -1,70 +1,109 @@
+import KitchenHeader, { KitchenFilter } from 'pages/KitchenPage/KitchenHeader'
 import { KitchenStyle } from 'pages/KitchenPage/styles'
+import StatChips from 'pages/KitchenPage/StatChips'
+import { publicMenu } from 'pages/KitchenPage/menu.mjs'
+import { hintText } from 'pages/KitchenPage/kitchen.mjs'
+import { itemById } from 'pages/QuizPage/items.mjs'
 import { boneCss } from './bone'
 
-// The kitchen's own layout (KitchenStyle): the hero, the tabs and menu
-// cards at their sizes; the chef, the dishes and their text wait.
 const KitchenSkeletonStyle = styled(KitchenStyle)`
   ${boneCss}
-  .chef .bone {
-    width: 150px;
-    height: 150px;
-  }
   .menu-card .bone--round {
     grid-row: 1 / 3;
+    align-self: start;
     width: 88px;
     height: 88px;
   }
-  .lines {
-    display: grid;
-    gap: 8px;
+  .menu-body {
+    position: relative;
   }
-  .lines .bone {
-    height: 14px;
+  .menu-body > * {
+    visibility: hidden;
   }
-  @media (max-width: 599px) {
-    .chef .bone {
-      width: 110px;
-      height: 110px;
-    }
+  .menu-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: repeating-linear-gradient(
+      to bottom,
+      #e3e9f0 0 14px,
+      transparent 14px 28px
+    );
+    opacity: 0.65;
   }
 `
 
-export default function KitchenSkeleton() {
+export default function KitchenSkeleton({
+  line,
+  note = '',
+}: {
+  line?: string
+  note?: string
+}) {
   return (
-    <KitchenSkeletonStyle className="kitchen-page" aria-busy="true">
-      <header className="kitchen-hero">
-        <div className="chef">
-          <span className="bone bone--round" />
-        </div>
-        <div className="kitchen-intro">
-          <p className="kitchen-kicker">Tiệm bếp của Nhà Huấn luyện</p>
-          <h1 className="kitchen-title">Bếp Pokémon</h1>
-          <div className="lines">
-            <span className="bone" style={{ width: '90%' }} />
-            <span className="bone" style={{ width: '70%' }} />
-          </div>
-        </div>
-      </header>
+    <KitchenSkeletonStyle
+      className="kitchen-page"
+      aria-busy="true"
+      aria-label="Đang tải bếp"
+    >
+      <KitchenHeader line={line} />
       <div className="kitchen-tabs">
-        <button type="button" disabled>
+        <button type="button" aria-selected="true" disabled>
           Thực đơn
         </button>
-        <button type="button" disabled>
+        <button type="button" aria-selected="false" disabled>
           Tự pha chế
         </button>
       </div>
-      <ol className="menu-list">
-        {Array.from({ length: 4 }, (_, i) => (
-          <li key={i} className="menu-card">
-            <span className="bone bone--round" />
-            <div className="lines">
-              <span className="bone" style={{ width: '40%' }} />
-              <span className="bone" style={{ width: '75%' }} />
-              <span className="bone" style={{ width: '60%' }} />
-            </div>
-          </li>
-        ))}
-      </ol>
+      {note && (
+        <p className="kitchen-note" role="status">
+          {note}
+        </p>
+      )}
+      <section>
+        <KitchenFilter />
+        <ol className="menu-list" aria-hidden="true">
+          {publicMenu().dishes.map((dish) => (
+            <li
+              key={dish.id}
+              className="menu-card"
+              data-secret={!dish.known || undefined}
+            >
+              <span className="bone bone--round" />
+              <div className="menu-body">
+                <p className="menu-kicker">★ Món ăn</p>
+                <h3 className="dish-name">{dish.name ?? '???'}</h3>
+                {dish.known ? (
+                  <>
+                    <StatChips stats={dish.stats ?? {}} />
+                    <ul className="recipe">
+                      {[...new Set(dish.ingredients)].map((id) => (
+                        <li key={id as string}>
+                          <span className="portion-name">
+                            {itemById(id).name}
+                          </span>
+                          <span className="portion-tray" />
+                          <span className="portion-ticket" />
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="menu-hint">{hintText(dish)}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                className={dish.known ? 'cook' : 'try'}
+                disabled
+              >
+                {dish.known ? 'Nấu' : 'Tự pha chế'}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </section>
     </KitchenSkeletonStyle>
   )
 }

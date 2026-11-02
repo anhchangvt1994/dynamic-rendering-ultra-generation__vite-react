@@ -1,6 +1,3 @@
-import styled from 'styled-components'
-import { useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
 import {
   FLAVORS,
   FLAVOR_INFO,
@@ -8,14 +5,18 @@ import {
   itemById,
   itemSprite,
 } from 'pages/QuizPage/items.mjs'
+import type { CSSProperties, ReactNode } from 'react'
+import { useState } from 'react'
+import styled from 'styled-components'
 import { dishStats, groupOf, recipeKey } from './kitchen.mjs'
 import StatChips from './StatChips'
 
 type Flavor = keyof typeof FLAVOR_INFO
 type Group = 'berry' | 'drink' | 'sweet'
+export type PantryGroup = Group | 'all'
 const FLAVOR_KEYS = Object.keys(FLAVOR_INFO) as Flavor[]
 export const POT_SIZE = 4
-const GROUPS: { id: Group | 'all'; label: string }[] = [
+const GROUPS: { id: PantryGroup; label: string }[] = [
   { id: 'all', label: 'Tất cả' },
   { id: 'berry', label: 'Quả mọng' },
   { id: 'drink', label: 'Đồ uống' },
@@ -98,6 +99,11 @@ type Props = {
   action: ReactNode
   /** the pot is a recipe the player knows: the brew shimmers gold */
   known?: boolean
+  /** that recipe is a secret one found: its dish gives × 1.5 */
+  secret?: boolean
+  /** the pantry's group shown (kept by the page across its tabs) */
+  group: PantryGroup
+  onGroup: (group: PantryGroup) => void
 }
 
 /**
@@ -115,8 +121,10 @@ export default function Pot({
   onClear,
   action,
   known = false,
+  secret = false,
+  group,
+  onGroup,
 }: Props) {
-  const [group, setGroup] = useState<Group | 'all'>('all')
   // what the bag has first; kept while the tab is open, so a bubble that
   // runs out stays where it is (nothing jumps under the finger)
   const [order] = useState(() =>
@@ -129,7 +137,7 @@ export default function Pot({
   const liquid = liquidOf(sums)
   const tried =
     pot.length >= 2 && attempts.some((a) => a.join('+') === recipeKey(pot))
-  const preview = pot.length >= 2 ? dishStats(pot, false) : null
+  const preview = pot.length >= 2 ? dishStats(pot, secret) : null
 
   // the flavour star: a pentagon, one axis per flavour, from the top
   const point = (i: number, r: number) => {
@@ -156,7 +164,7 @@ export default function Pot({
               key={g.id}
               type="button"
               aria-pressed={group === g.id}
-              onClick={() => setGroup(g.id)}
+              onClick={() => onGroup(g.id)}
             >
               {g.label}
             </button>
@@ -515,7 +523,7 @@ export default function Pot({
             onClick={onClear}
             disabled={!pot.length}
           >
-            Đổ ra
+            Thu lại
           </button>
           {action}
         </div>

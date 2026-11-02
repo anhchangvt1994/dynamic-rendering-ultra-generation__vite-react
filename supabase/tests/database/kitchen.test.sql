@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(33);
+select plan(36);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -104,6 +104,17 @@ select pg_temp.give('pecha-berry', 1);
 select pg_temp.give('aspear-berry', 1);
 insert into r values ('fail2', public.kitchen_cook(null, array['pomeg-berry', 'pecha-berry', 'aspear-berry']));
 select is((select (v->>'near')::int from r where k = 'fail2'), 1, 'a found secret no longer counts as near');
+
+-- a failure with an ingredient twice: the half back counts each one
+select pg_temp.give('oran-berry', 2);
+select pg_temp.give('pecha-berry', 1);
+insert into r values ('twice', public.kitchen_cook(null, array['pecha-berry', 'oran-berry', 'oran-berry']));
+select is((select v->'returned' from r where k = 'twice'), '["oran-berry", "oran-berry"]'::jsonb, 'both Oran come back (the first 2 sorted)');
+select is(pg_temp.has('oran-berry') || '/' || pg_temp.has('pecha-berry'), '2/2', 'the bag has both Oran back, one Pecha spent (2 left of 3)');
+select ok(
+  (select v->'attempts' @> '[["oran-berry", "oran-berry", "pecha-berry"]]'::jsonb from (select public.kitchen_menu() v) m),
+  'the attempt is kept with its repeat'
+);
 
 -- a known recipe in the pot is a dish, not a discovery
 select pg_temp.give('cheri-berry', 2);

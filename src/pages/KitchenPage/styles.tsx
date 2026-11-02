@@ -70,13 +70,16 @@ export const KitchenStyle = styled.div`
   }
   .chef-line {
     position: relative;
-    max-width: 180px;
+    width: 180px;
+    min-height: 46px;
+    display: grid;
+    place-items: center;
     margin: 4px 0 0;
     padding: 6px 10px;
     border: 2px solid var(--ink);
     border-radius: 14px;
     background: #fff;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
     text-align: center;
   }
@@ -89,7 +92,7 @@ export const KitchenStyle = styled.div`
     text-transform: uppercase;
   }
   .kitchen-title {
-    margin: 2px 0 6px;
+    margin: 16px 0;
     font-family: var(--font-display);
     font-size: clamp(32px, 7vw, 54px);
     line-height: 1 !important;
@@ -265,7 +268,7 @@ export const KitchenStyle = styled.div`
     letter-spacing: 0;
   }
   .dish-name {
-    margin: 2px 0 6px;
+    margin: 2px 0 16px;
     font-family: var(--font-display);
     font-size: 18px;
     line-height: 1.15 !important;
@@ -280,31 +283,116 @@ export const KitchenStyle = styled.div`
   }
   .recipe {
     display: grid;
-    gap: 2px;
-    margin: 0;
+    gap: 10px;
+    margin: 12px 0 4px;
     padding: 0;
     list-style: none;
-    font-size: 13px;
+    font-size: 12px;
   }
   .recipe li {
+    --portion-tone: #286a51;
+    --portion-paper: #d9f4de;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 72px;
+    grid-template-rows: auto 36px;
+    align-items: center;
+    gap: 3px 8px;
+    min-width: 0;
+  }
+  .recipe li[data-short] {
+    --portion-tone: #9c3554;
+    --portion-paper: #ffe0e9;
+  }
+  .portion-name {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  /* A little ceramic mise-en-place tray: one hollow per portion, not
+     a progress bar. The ghost sprite makes the missing ingredient literal. */
+  .portion-tray {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 2px 5px 5px;
+    border-radius: 9px 9px 15px 15px;
+    background: #e7eef4;
+    box-shadow:
+      inset 0 2px 0 #fff,
+      0 3px 0 #a9bccb;
   }
-  .recipe img {
+  .portion-slot {
+    display: grid;
+    place-items: center;
+    width: 29px;
+    height: 27px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #b8cbd6, #d9e5ec 70%);
+    box-shadow: inset 0 2px 2px #172d4520;
+  }
+  .portion-slot img {
+    width: 28px;
+    height: 28px;
     image-rendering: pixelated;
+    filter: drop-shadow(0 2px 0 #172d4529);
+    transform: translateY(-3px) rotate(-9deg);
   }
-  /* fixed widths, text from the left: a count that changes moves nothing
-     (the display font has no even-width digits) */
-  .recipe b {
-    min-width: 3.4em;
-    margin-left: auto;
-    text-align: left;
+  .portion-slot:nth-child(even) img {
+    transform: translateY(-3px) rotate(9deg);
+  }
+  .portion-slot[data-empty] img {
+    opacity: 0.24;
+    filter: grayscale(1);
+    transform: none;
+  }
+  .portion-ticket {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    width: 72px;
+    height: 36px;
+    background: var(--portion-paper);
+    color: var(--portion-tone);
+    border-radius: 3px 3px 0 3px;
+    box-shadow: -2px 2px 0 #172d4518;
+    transform: rotate(-3deg);
     font-variant-numeric: tabular-nums;
-    color: #1f8f52;
   }
-  .recipe li[data-short] b {
-    color: var(--berry);
+  .portion-ticket::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #172d4530 50%, #fff 51%);
+  }
+  .portion-ticket b {
+    font-family: var(--font-display);
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .portion-ticket > span {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .menu-body {
+    min-width: 0;
+  }
+  @media (max-width: 359px) {
+    .recipe li {
+      grid-template-columns: minmax(0, 1fr) 66px;
+      column-gap: 4px;
+    }
+    .portion-ticket {
+      width: 66px;
+    }
+    .portion-slot {
+      width: 24px;
+    }
   }
   .cook,
   .try {

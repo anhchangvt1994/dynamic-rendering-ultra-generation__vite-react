@@ -144,8 +144,9 @@ function Backpack() {
 }
 
 /**
- * The bag: every gift won in "Who's That Pokémon?", by pocket. Kept in this
- * browser; the items will be used by the raising features to come.
+ * The bag: every gift won in "Who's That Pokémon?", by pocket. Kept on the
+ * account (this browser's under yarn dev); the items will be used by the
+ * raising features to come.
  */
 export default function BagPage() {
   setSeoTag({
@@ -171,9 +172,9 @@ export default function BagPage() {
     [bag, pocket, sort, missing]
   )
   // the kitchen's dishes: a pocket of their own, after the quiz's
-  const { dishes, menu } = useDishes()
-  const dishTotal = Object.values(dishes ?? {}).reduce((sum, n) => sum + n, 0)
   const onDishes = pocket === DISHES_POCKET.id
+  const { dishes, menu } = useDishes(onDishes)
+  const dishTotal = Object.values(dishes ?? {}).reduce((sum, n) => sum + n, 0)
   const current = onDishes ? DISHES_POCKET : pocketOf(pocket)
   // the card beside the list shows the chosen item, else the first one
   const shown =
@@ -332,7 +333,9 @@ export default function BagPage() {
           </LinkCustom>
         </div>
       ) : onDishes ? (
-        dishes && <DishShelf dishes={dishes} menu={menu} />
+        // the menu names the dishes: none cooked needs no menu
+        dishes &&
+        (menu || !dishTotal) && <DishShelf dishes={dishes} menu={menu} />
       ) : bag === null ? null : rows.length ? (
         <div className="bag-body">
           <ol className="bag-list" aria-label={`Ngăn ${current.label}`}>
@@ -490,8 +493,13 @@ export default function BagPage() {
       )}
 
       <p className="bag-note">
-        Túi đồ được lưu trên trình duyệt này. Vật phẩm sẽ dùng được cho Pokémon
-        trong bộ sưu tập khi các tính năng nuôi dưỡng ra mắt.
+        {mode === 'server'
+          ? 'Túi đồ được lưu trong tài khoản của bạn. '
+          : mode === 'local'
+            ? 'Túi đồ được lưu trên trình duyệt này. '
+            : ''}
+        Vật phẩm sẽ dùng được cho Pokémon trong bộ sưu tập khi các tính năng
+        nuôi dưỡng ra mắt.
       </p>
 
       <ItemDialog

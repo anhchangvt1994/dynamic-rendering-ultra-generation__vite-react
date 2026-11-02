@@ -1,30 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
-import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
+import { refreshBag, useBagStore } from 'pages/BagPage/bagStore'
+import KitchenSkeleton from 'components/PageSkeleton/KitchenSkeleton'
+import KitchenHeader, { CHEF_LINES, KitchenFilter } from './KitchenHeader'
 import {
   FLAVOR_INFO,
   TIERS,
   itemById,
   itemSprite,
 } from 'pages/QuizPage/items.mjs'
-import { refreshBag, useBagStore } from 'pages/BagPage/bagStore'
-import { STATS, hintText, recipeKey } from './kitchen.mjs'
-import { useKitchenEngine } from './engine/useKitchenEngine'
-import type { CookResult, DishView, Menu, StatKey } from './engine/types'
-import DishArt from './DishArt'
-import Pot, { potFlavors } from './Pot'
+import type { CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CookFx, { COOK_MS } from './CookFx'
+import DishArt from './DishArt'
+import type { CookResult, DishView, Menu, StatKey } from './engine/types'
+import { useKitchenEngine } from './engine/useKitchenEngine'
+import { hintText, recipeKey } from './kitchen.mjs'
+import Pot, { potFlavors } from './Pot'
+import type { PantryGroup } from './Pot'
 import StatChips from './StatChips'
 import { KitchenStyle } from './styles'
 
-const CHEF = 869 // Alcremie
-const LINES = [
-  'Hôm nay nấu gì cho bé cưng nào?',
-  'Quả mọng tươi, kem thật mịn!',
-  'Món bí ẩn đang chờ bạn khám phá đó!',
-  'Nêm nếm theo vị, chỉ số sẽ tự đến~',
-  'Bếp đã sẵn sàng, đầu bếp ơi!',
-]
 const ERRORS: Record<string, string> = {
   missing: 'Thiếu nguyên liệu: túi đồ vừa thay đổi, kệ đã được tải lại.',
   bad_pot: 'Nồi cần từ 2 đến 4 nguyên liệu.',
@@ -34,6 +28,18 @@ const ERRORS: Record<string, string> = {
 }
 
 type Count = Record<string, number>
+type Tab = 'menu' | 'pot'
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'menu', label: 'Thực đơn' },
+  { id: 'pot', label: 'Tự pha chế' },
+]
+const other = (tab: Tab): Tab => (tab === 'menu' ? 'pot' : 'menu')
+const TAB_KEYS: Record<string, (tab: Tab) => Tab> = {
+  ArrowLeft: other,
+  ArrowRight: other,
+  Home: () => 'menu',
+  End: () => 'pot',
+}
 
 // what a recipe needs, per ingredient
 const needsOf = (ingredients: string[]) => {
@@ -96,15 +102,28 @@ function MenuCard({
                   const have = bag[id] ?? 0
                   return (
                     <li key={id} data-short={have < n || undefined}>
-                      <img
-                        src={itemSprite(id)}
-                        alt=""
-                        width={24}
-                        height={24}
-                        loading="lazy"
-                      />
-                      {itemById(id).name}
-                      <b>{`${have}/${n}`}</b>
+                      <span className="portion-name">{itemById(id).name}</span>
+                      <span className="portion-tray" aria-hidden="true">
+                        {Array.from({ length: n }, (_, i) => (
+                          <span
+                            key={i}
+                            className="portion-slot"
+                            data-empty={i >= have || undefined}
+                          >
+                            <img
+                              src={itemSprite(id)}
+                              alt=""
+                              width={28}
+                              height={28}
+                              loading="lazy"
+                            />
+                          </span>
+                        ))}
+                      </span>
+                      <span className="portion-ticket">
+                        <b>{have < n ? `Thiếu ${n - have}` : `Đủ ${n}`}</b>
+                        <span>Túi: {have}</span>
+                      </span>
                     </li>
                   )
                 }
@@ -133,7 +152,7 @@ function MenuCard({
         </button>
       ) : (
         <button type="button" className="try" onClick={onTry}>
-          Thử ở Tự pha chế
+          Tự pha chế
         </button>
       )}
     </li>
@@ -159,8 +178,18 @@ export default function KitchenPage() {
   const guest = engine?.kind === 'guest'
   const [menu, setMenu] = useState<Menu | null>(null)
   const [dishes, setDishes] = useState<Count>({})
-  const [tab, setTab] = useState<'menu' | 'pot'>('menu')
+  const [tab, setTab] = useState<Tab>('menu')
+  // the tab's panel takes the focus once it shows (a secret's "Tự pha chế")
+  const focusPanel = useRef(false)
+  const panelRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!focusPanel.current) return
+    focusPanel.current = false
+    panelRef.current?.focus()
+  }, [tab])
   const [filter, setFilter] = useState<StatKey | ''>('')
+  // the pantry's group outlives the pot's tab
+  const [group, setGroup] = useState<PantryGroup>('all')
   const [pot, setPot] = useState<string[]>([])
   // the pot never holds more than the bag: an ingredient spent elsewhere
   // (another tab) leaves it when the bag reloads
@@ -178,7 +207,9 @@ export default function KitchenPage() {
   } | null>(null)
   const [note, setNote] = useState('')
   const opener = useRef<HTMLElement | null>(null)
-  const [line] = useState(() => LINES[Math.floor(Math.random() * LINES.length)])
+  const [line] = useState(
+    () => CHEF_LINES[Math.floor(Math.random() * CHEF_LINES.length)]
+  )
 
   const load = useCallback(() => {
     if (!engine) return
@@ -266,71 +297,46 @@ export default function KitchenPage() {
     </LinkCustom>
   )
 
+  if (!menu) return <KitchenSkeleton line={line} note={note} />
+
   return (
     <KitchenStyle className="kitchen-page">
-      <header className="kitchen-hero">
-        <div className="chef">
-          <img
-            src={getPokemonImage(CHEF)}
-            alt="Bếp trưởng Alcremie"
-            width={150}
-            height={150}
-          />
-          <p className="chef-line">{line}</p>
-        </div>
-        <div className="kitchen-intro">
-          <p className="kitchen-kicker">Tiệm bếp của Nhà Huấn luyện</p>
-          <h1 className="kitchen-title">Bếp Pokémon</h1>
-          <p className="kitchen-lede">
-            Nấu quả mọng, đồ uống và bánh ngọt thành món ăn cho Pokémon. Món nào
-            cũng chỉ mang lại điều tốt: vị nào nuôi chỉ số nấy.
-          </p>
-          <ul className="flavor-key" aria-label="Vị và chỉ số">
-            {(Object.keys(FLAVOR_INFO) as (keyof typeof FLAVOR_INFO)[]).map(
-              (flavor) => {
-                const stat = (Object.keys(STATS) as StatKey[]).find(
-                  (s) => STATS[s].flavor === flavor
-                ) as StatKey
-                return (
-                  <li
-                    key={flavor}
-                    style={
-                      { '--c': FLAVOR_INFO[flavor].color } as CSSProperties
-                    }
-                  >
-                    {FLAVOR_INFO[flavor].label} → <b>{STATS[stat].label}</b>
-                  </li>
-                )
-              }
-            )}
-          </ul>
-          <p className="kitchen-found">
-            Đã khám phá{' '}
-            <b>{`${menu?.found ?? 0}/${menu?.dishes.filter((d) => d.secret).length ?? 8}`}</b>{' '}
-            món bí ẩn
-          </p>
-        </div>
-      </header>
+      <KitchenHeader
+        line={line}
+        found={menu?.found ?? 0}
+        total={menu?.dishes.filter((d) => d.secret).length ?? 8}
+      />
 
-      <div className="kitchen-tabs" role="tablist" aria-label="Bếp">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'menu'}
-          aria-controls="kitchen-menu"
-          onClick={() => setTab('menu')}
-        >
-          Thực đơn
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'pot'}
-          aria-controls="kitchen-pot"
-          onClick={() => setTab('pot')}
-        >
-          Tự pha chế
-        </button>
+      {/* NOTE - Tabs the WAI-ARIA way: one stop for Tab, the arrows (and
+          Home/End) move between them and open the one they land on */}
+      <div
+        className="kitchen-tabs"
+        role="tablist"
+        aria-label="Bếp"
+        onKeyDown={(event) => {
+          const to = TAB_KEYS[event.key]?.(tab)
+          if (!to) return
+          event.preventDefault()
+          setTab(to)
+          event.currentTarget
+            .querySelector<HTMLElement>(`#kitchen-tab-${to}`)
+            ?.focus()
+        }}
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            id={`kitchen-tab-${t.id}`}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            aria-controls={`kitchen-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {note && (
@@ -348,35 +354,11 @@ export default function KitchenPage() {
         <section
           id="kitchen-menu"
           role="tabpanel"
-          aria-label="Thực đơn"
+          aria-labelledby="kitchen-tab-menu"
           tabIndex={-1}
+          ref={panelRef}
         >
-          <div
-            className="menu-filter"
-            role="group"
-            aria-label="Lọc theo chỉ số"
-          >
-            <button
-              type="button"
-              aria-pressed={!filter}
-              onClick={() => setFilter('')}
-            >
-              Tất cả
-            </button>
-            {(Object.keys(STATS) as StatKey[])
-              .filter((stat) => stat !== 'friendship')
-              .map((stat) => (
-                <button
-                  key={stat}
-                  type="button"
-                  aria-pressed={filter === stat}
-                  onClick={() => setFilter(stat)}
-                  style={{ '--c': STATS[stat].color } as CSSProperties}
-                >
-                  {STATS[stat].label}
-                </button>
-              ))}
-          </div>
+          <KitchenFilter filter={filter} onFilter={setFilter} />
           <ol className="menu-list">
             {shown.map((dish) => (
               <MenuCard
@@ -387,7 +369,10 @@ export default function KitchenPage() {
                 guest={guest}
                 busy={!!cooking}
                 onCook={() => cook(dish.id, dish.ingredients ?? [])}
-                onTry={() => setTab('pot')}
+                onTry={() => {
+                  focusPanel.current = true
+                  setTab('pot')
+                }}
               />
             ))}
           </ol>
@@ -396,8 +381,9 @@ export default function KitchenPage() {
         <section
           id="kitchen-pot"
           role="tabpanel"
-          aria-label="Tự pha chế"
+          aria-labelledby="kitchen-tab-pot"
           tabIndex={-1}
+          ref={panelRef}
         >
           <Pot
             // its shelf is sorted once the bag is in
@@ -415,6 +401,9 @@ export default function KitchenPage() {
             }
             onClear={() => setPot([])}
             known={!!potKnown}
+            secret={!!potKnown?.secret}
+            group={group}
+            onGroup={setGroup}
             action={
               guest ? (
                 signIn
