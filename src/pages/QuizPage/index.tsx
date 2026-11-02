@@ -1335,7 +1335,8 @@ export default function QuizPage() {
               />
             ) : null}
             <div className="actions">
-              {correct && (
+              {/* resting, the stage is Snorlax's: no Pokémon left to catch */}
+              {correct && !restUntil && (
                 <button
                   type="button"
                   className="catch"
@@ -1346,13 +1347,15 @@ export default function QuizPage() {
                   onClick={catchIt}
                 >
                   <Pokeball />
-                  {catchPhase === 'throw'
-                    ? 'Đang bắt…'
-                    : catchPhase === 'done'
-                      ? 'Đã bắt'
-                      : alreadyCaught
-                        ? 'Đã có'
-                        : 'Bắt'}
+                  <span className="catch-label">
+                    {catchPhase === 'throw'
+                      ? 'Đang bắt…'
+                      : catchPhase === 'done'
+                        ? 'Đã bắt'
+                        : alreadyCaught
+                          ? 'Đã có'
+                          : 'Bắt'}
+                  </span>
                   <span className="sr-only">
                     {' '}
                     {answerName}

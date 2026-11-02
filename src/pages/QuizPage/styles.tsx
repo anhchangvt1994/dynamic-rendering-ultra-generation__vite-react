@@ -1524,6 +1524,24 @@ export const QuizStyle = styled.section`
     outline: 3px solid #fff;
     outline-offset: 3px;
   }
+  /* narrow phones (320): the ball says "catch" (its label stays for
+     screen readers), the next button gets the room and a smaller type */
+  @media (max-width: 359px) {
+    .catch {
+      padding: 0 14px;
+    }
+    .catch-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .verdict .next {
+      font-size: 16px;
+    }
+  }
   .next {
     flex: 1 1 auto;
     min-width: 0;
