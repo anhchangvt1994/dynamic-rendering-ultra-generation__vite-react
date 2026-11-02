@@ -133,6 +133,10 @@ export const KitchenStyle = styled.div`
     font-size: 18px;
   }
 
+  /* a tab panel takes the focus back from the cooking dialog: no ring */
+  [role='tabpanel']:focus {
+    outline: none;
+  }
   /* ── tabs ── */
   .kitchen-tabs {
     display: flex;

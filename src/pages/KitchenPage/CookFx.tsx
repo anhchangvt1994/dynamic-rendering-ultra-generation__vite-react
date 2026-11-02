@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 import { useEffect, useRef } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { itemById, itemSprite } from 'pages/QuizPage/items.mjs'
 import DishArt from './DishArt'
 import type { CookResult } from './engine/types'
@@ -14,6 +14,8 @@ type Props = {
   /** the colour the pot glows in (its strongest flavour) */
   glow: string
   onClose: () => void
+  /** what opened it (read on the click: by now the button is disabled) */
+  opener: HTMLElement | null
 }
 
 export const COOK_MS = 1900
@@ -70,14 +72,45 @@ const PotArt = () => (
  * sparkles; a secret one flips from its silhouette ("MÓN MỚI!"); a failure
  * puffs black smoke and half the pot comes back.
  */
-export default function CookFx({ pot, result, glow, onClose }: Props) {
+export default function CookFx({ pot, result, glow, onClose, opener }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (result) closeRef.current?.focus()
   }, [result])
 
+  // NOTE - A modal: it takes the focus while it cooks, keeps Tab inside, and
+  // gives the focus back to what opened it (the button may be disabled for a
+  // frame, or gone: then its tab panel)
+  useEffect(() => {
+    const panel = opener?.closest<HTMLElement>('[role="tabpanel"]')
+    rootRef.current?.focus()
+    return () => {
+      requestAnimationFrame(() => {
+        if (opener?.isConnected && !(opener as HTMLButtonElement).disabled)
+          opener.focus()
+        else panel?.focus()
+      })
+    }
+    // the opener of this cooking only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && result) {
+      event.preventDefault()
+      onClose()
+    } else if (event.key === 'Tab') {
+      // one button at most: the focus stays on it (or on the dialog)
+      event.preventDefault()
+      ;(closeRef.current ?? rootRef.current)?.focus()
+    }
+  }
+
   return (
     <CookFxStyle
+      ref={rootRef}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
       className="cook-fx"
       role="dialog"
       aria-modal="true"
@@ -221,6 +254,7 @@ const CookFxStyle = styled.div`
     rgba(70, 38, 52, 0.88)
   );
   animation: cf-in 240ms ease-out both;
+  outline: none;
 
   .cf-stage {
     position: relative;

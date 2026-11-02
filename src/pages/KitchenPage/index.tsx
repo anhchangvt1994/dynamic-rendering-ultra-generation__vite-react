@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import {
@@ -162,11 +162,22 @@ export default function KitchenPage() {
   const [tab, setTab] = useState<'menu' | 'pot'>('menu')
   const [filter, setFilter] = useState<StatKey | ''>('')
   const [pot, setPot] = useState<string[]>([])
+  // the pot never holds more than the bag: an ingredient spent elsewhere
+  // (another tab) leaves it when the bag reloads
+  useEffect(() => {
+    if (!bagOrNull) return
+    setPot((current) => {
+      const left: Count = { ...bagOrNull }
+      const kept = current.filter((id) => (left[id] = (left[id] ?? 0) - 1) >= 0)
+      return kept.length === current.length ? current : kept
+    })
+  }, [bagOrNull])
   const [cooking, setCooking] = useState<{
     pot: string[]
     result: CookResult | null
   } | null>(null)
   const [note, setNote] = useState('')
+  const opener = useRef<HTMLElement | null>(null)
   const [line] = useState(() => LINES[Math.floor(Math.random() * LINES.length)])
 
   const load = useCallback(() => {
@@ -218,6 +229,8 @@ export default function KitchenPage() {
 
   const cook = (dish: string | null, ingredients: string[]) => {
     if (!engine || cooking) return
+    // the focus goes back there once the dialog closes
+    opener.current = document.activeElement as HTMLElement | null
     setNote('')
     setCooking({ pot: ingredients, result: null })
     const started = performance.now()
@@ -332,7 +345,12 @@ export default function KitchenPage() {
       )}
 
       {tab === 'menu' ? (
-        <section id="kitchen-menu" role="tabpanel" aria-label="Thực đơn">
+        <section
+          id="kitchen-menu"
+          role="tabpanel"
+          aria-label="Thực đơn"
+          tabIndex={-1}
+        >
           <div
             className="menu-filter"
             role="group"
@@ -375,7 +393,12 @@ export default function KitchenPage() {
           </ol>
         </section>
       ) : (
-        <section id="kitchen-pot" role="tabpanel" aria-label="Tự pha chế">
+        <section
+          id="kitchen-pot"
+          role="tabpanel"
+          aria-label="Tự pha chế"
+          tabIndex={-1}
+        >
           <Pot
             // its shelf is sorted once the bag is in
             key={bagOrNull ? 'bag' : 'waiting'}
@@ -415,6 +438,7 @@ export default function KitchenPage() {
           result={cooking.result}
           glow={FLAVOR_INFO[strongest].color}
           onClose={() => setCooking(null)}
+          opener={opener.current}
         />
       )}
     </KitchenStyle>
