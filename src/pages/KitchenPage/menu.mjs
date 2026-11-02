@@ -68,7 +68,7 @@ export const KNOWN = [
 
 export const SECRET_CLUES = [
   {
-    id: 'poffin-hoang-gia',
+    id: 'bi-an-1',
     kind: 'poffin',
     secret: true,
     known: false,
@@ -78,7 +78,7 @@ export const SECRET_CLUES = [
     top: ['happiness', 'wisdom'],
   },
   {
-    id: 'thach-bien-kelpsy',
+    id: 'bi-an-2',
     kind: 'jelly',
     secret: true,
     known: false,
@@ -88,7 +88,7 @@ export const SECRET_CLUES = [
     top: ['agility', 'wisdom'],
   },
   {
-    id: 'banh-kem-qualot',
+    id: 'bi-an-3',
     kind: 'cake',
     secret: true,
     known: false,
@@ -98,7 +98,7 @@ export const SECRET_CLUES = [
     top: ['happiness', 'agility'],
   },
   {
-    id: 'ca-ri-hondew',
+    id: 'bi-an-4',
     kind: 'curry',
     secret: true,
     known: false,
@@ -108,7 +108,7 @@ export const SECRET_CLUES = [
     top: ['power', 'wisdom'],
   },
   {
-    id: 'sinh-to-grepa',
+    id: 'bi-an-5',
     kind: 'smoothie',
     secret: true,
     known: false,
@@ -118,7 +118,7 @@ export const SECRET_CLUES = [
     top: ['agility', 'happiness'],
   },
   {
-    id: 'sup-lua-tamato',
+    id: 'bi-an-6',
     kind: 'soup',
     secret: true,
     known: false,
@@ -128,7 +128,7 @@ export const SECRET_CLUES = [
     top: ['power', 'beauty'],
   },
   {
-    id: 'pudding-co-dien',
+    id: 'bi-an-7',
     kind: 'pudding',
     secret: true,
     known: false,
@@ -138,7 +138,7 @@ export const SECRET_CLUES = [
     top: ['wisdom', 'happiness'],
   },
   {
-    id: 'dai-tiec-cau-vong',
+    id: 'bi-an-8',
     kind: 'cake',
     secret: true,
     known: false,

@@ -45,7 +45,7 @@ select ok(
   'a secret dish shows no recipe, no name, no stats'
 );
 select is(
-  (select d.e - 'id' from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu' and d.e->>'id' = 'banh-kem-qualot'),
+  (select d.e - 'id' from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu' and d.e->>'id' = 'bi-an-3'),
   '{"kind": "cake", "secret": true, "known": false, "rarity": 3, "count": 3, "groups": {"berry": 1, "sweet": 2}, "top": ["happiness", "agility"]}'::jsonb,
   'a secret dish shows its kind, its count, its groups and its 2 strongest stats'
 );
@@ -61,7 +61,7 @@ select is((select v->'dish'->>'name' from r where k = 'pecha'), 'Poffin Pecha', 
 select is(pg_temp.has('pecha-berry') || '/' || pg_temp.has('moomoo-milk'), '1/1', 'its ingredients are spent');
 select is(pg_temp.dish_count('poffin-pecha'), 1, 'the dish is in the kitchen''s shelf');
 select throws_ok($$ select public.kitchen_cook('poffin-pecha', null) $$, 'P0001', 'missing', 'one Pecha left: not enough');
-select throws_ok($$ select public.kitchen_cook('poffin-hoang-gia', null) $$, 'P0001', 'unknown_dish', 'a secret dish can not be cooked from the menu before it is found');
+select throws_ok($$ select public.kitchen_cook('bi-an-1', null) $$, 'P0001', 'unknown_dish', 'a secret dish can not be cooked from the menu before it is found');
 select throws_ok($$ select public.kitchen_cook('nope', null) $$, 'P0001', 'unknown_dish', 'no such dish');
 
 -- the pot
@@ -89,11 +89,11 @@ select is(
 -- a secret found in the pot, in any order
 insert into r values ('found', public.kitchen_cook(null, array['moomoo-milk', 'pomeg-berry', 'pecha-berry']));
 select is((select v->>'outcome' || '/' || (v->>'discovered') from r where k = 'found'), 'dish/true', 'a secret dish is found');
-select is((select v->'dish'->>'id' from r where k = 'found'), 'poffin-hoang-gia', 'the right one');
+select is((select v->'dish'->>'id' from r where k = 'found'), 'bi-an-1', 'the right one');
 insert into r values ('menu2', public.kitchen_menu());
 select ok(
   (select d.e ? 'ingredients' and d.e ? 'name' and (d.e->>'known')::boolean
-   from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu2' and d.e->>'id' = 'poffin-hoang-gia'),
+   from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu2' and d.e->>'id' = 'bi-an-1'),
   'once found, the menu shows its recipe'
 );
 select is((select v->'found' from r where k = 'menu2'), '1'::jsonb, 'one found');
@@ -114,7 +114,7 @@ select is((select v->>'outcome' || '/' || (v->>'discovered') from r where k = 'k
 -- the player reads their own shelf (the bag's "Món ăn" pocket), nobody else's
 select is(
   (select jsonb_object_agg(dish_id, count) from public.kitchen_dishes),
-  '{"poffin-cheri": 1, "poffin-pecha": 1, "poffin-hoang-gia": 1}'::jsonb,
+  '{"poffin-cheri": 1, "poffin-pecha": 1, "bi-an-1": 1}'::jsonb,
   'the player reads their own dishes'
 );
 

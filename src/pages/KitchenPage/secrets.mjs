@@ -1,62 +1,63 @@
 // The secret dishes: names and recipes found only in the pot. Never imported
 // by the page in production (the local engine is dev only): the database
 // keeps them (kitchen_recipes) and tells them once found.
+// Their ids say nothing (bi-an-N): the menu sends them with the clues.
 import { dishView } from './kitchen.mjs'
 
 const SECRET = { secret: true }
 
 export const SECRETS = [
   dishView(
-    'poffin-hoang-gia',
+    'bi-an-1',
     'Poffin Hoàng gia',
     'poffin',
     ['pomeg-berry', 'pecha-berry', 'moomoo-milk'],
     SECRET
   ),
   dishView(
-    'thach-bien-kelpsy',
+    'bi-an-2',
     'Thạch biển Kelpsy',
     'jelly',
     ['kelpsy-berry', 'aspear-berry', 'fresh-water'],
     SECRET
   ),
   dishView(
-    'banh-kem-qualot',
+    'bi-an-3',
     'Bánh kem Qualot',
     'cake',
     ['qualot-berry', 'big-malasada', 'shalour-sable'],
     SECRET
   ),
   dishView(
-    'ca-ri-hondew',
+    'bi-an-4',
     'Cà ri Hondew',
     'curry',
     ['hondew-berry', 'rawst-berry', 'lava-cookie'],
     SECRET
   ),
   dishView(
-    'sinh-to-grepa',
+    'bi-an-5',
     'Sinh tố Grepa',
     'smoothie',
     ['grepa-berry', 'lemonade', 'casteliacone'],
     SECRET
   ),
   dishView(
-    'sup-lua-tamato',
+    'bi-an-6',
     'Súp lửa Tamato',
     'soup',
     ['tamato-berry', 'cheri-berry', 'cheri-berry'],
     SECRET
   ),
   dishView(
-    'pudding-co-dien',
+    'bi-an-7',
     'Pudding cổ điển',
     'pudding',
     ['old-gateau', 'pomeg-berry', 'moomoo-milk'],
     SECRET
   ),
   dishView(
-    'dai-tiec-cau-vong',
+    'bi-an-8',
     'Đại tiệc cầu vồng',
     'cake',
     ['pomeg-berry', 'kelpsy-berry', 'qualot-berry', 'hondew-berry'],

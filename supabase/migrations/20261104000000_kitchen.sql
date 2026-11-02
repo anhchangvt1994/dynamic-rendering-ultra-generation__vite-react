@@ -110,14 +110,14 @@ insert into public.kitchen_recipes (dish_id, name, kind, secret, rarity, ingredi
   ('ca-ri-lua', 'Cà ri lửa', 'curry', false, 2, array['cheri-berry', 'lava-cookie', 'rage-candy-bar'], '{"power":5,"happiness":1,"friendship":3}', array['power', 'happiness']),
   ('pudding-lumiose', 'Pudding Lumiose', 'pudding', false, 2, array['chesto-berry', 'lumiose-galette', 'moomoo-milk'], '{"beauty":3,"happiness":1,"friendship":3}', array['beauty', 'happiness']),
   ('banh-quy-pewter', 'Bánh quy Pewter', 'sandwich', false, 2, array['oran-berry', 'pewter-crunchies', 'rawst-berry'], '{"wisdom":3,"beauty":2,"agility":1,"friendship":3}', array['wisdom', 'beauty']),
-  ('poffin-hoang-gia', 'Poffin Hoàng gia', 'poffin', true, 3, array['moomoo-milk', 'pecha-berry', 'pomeg-berry'], '{"happiness":5,"wisdom":2,"power":2,"friendship":5}', array['happiness', 'wisdom']),
-  ('thach-bien-kelpsy', 'Thạch biển Kelpsy', 'jelly', true, 3, array['aspear-berry', 'fresh-water', 'kelpsy-berry'], '{"agility":3,"wisdom":2,"beauty":2,"friendship":5}', array['agility', 'wisdom']),
-  ('banh-kem-qualot', 'Bánh kem Qualot', 'cake', true, 3, array['big-malasada', 'qualot-berry', 'shalour-sable'], '{"happiness":6,"agility":3,"power":2,"friendship":5}', array['happiness', 'agility']),
-  ('ca-ri-hondew', 'Cà ri Hondew', 'curry', true, 3, array['hondew-berry', 'lava-cookie', 'rawst-berry'], '{"power":5,"wisdom":3,"beauty":2,"friendship":5}', array['power', 'wisdom']),
-  ('sinh-to-grepa', 'Sinh tố Grepa', 'smoothie', true, 3, array['casteliacone', 'grepa-berry', 'lemonade'], '{"agility":5,"happiness":5,"beauty":3,"friendship":5}', array['agility', 'happiness']),
-  ('sup-lua-tamato', 'Súp lửa Tamato', 'soup', true, 3, array['cheri-berry', 'cheri-berry', 'tamato-berry'], '{"power":6,"beauty":2,"friendship":5}', array['power', 'beauty']),
-  ('pudding-co-dien', 'Pudding cổ điển', 'pudding', true, 3, array['moomoo-milk', 'old-gateau', 'pomeg-berry'], '{"wisdom":5,"happiness":5,"power":2,"friendship":5}', array['wisdom', 'happiness']),
-  ('dai-tiec-cau-vong', 'Đại tiệc cầu vồng', 'cake', true, 4, array['hondew-berry', 'kelpsy-berry', 'pomeg-berry', 'qualot-berry'], '{"wisdom":5,"power":5,"beauty":3,"friendship":6}', array['wisdom', 'power']);
+  ('bi-an-1', 'Poffin Hoàng gia', 'poffin', true, 3, array['moomoo-milk', 'pecha-berry', 'pomeg-berry'], '{"happiness":5,"wisdom":2,"power":2,"friendship":5}', array['happiness', 'wisdom']),
+  ('bi-an-2', 'Thạch biển Kelpsy', 'jelly', true, 3, array['aspear-berry', 'fresh-water', 'kelpsy-berry'], '{"agility":3,"wisdom":2,"beauty":2,"friendship":5}', array['agility', 'wisdom']),
+  ('bi-an-3', 'Bánh kem Qualot', 'cake', true, 3, array['big-malasada', 'qualot-berry', 'shalour-sable'], '{"happiness":6,"agility":3,"power":2,"friendship":5}', array['happiness', 'agility']),
+  ('bi-an-4', 'Cà ri Hondew', 'curry', true, 3, array['hondew-berry', 'lava-cookie', 'rawst-berry'], '{"power":5,"wisdom":3,"beauty":2,"friendship":5}', array['power', 'wisdom']),
+  ('bi-an-5', 'Sinh tố Grepa', 'smoothie', true, 3, array['casteliacone', 'grepa-berry', 'lemonade'], '{"agility":5,"happiness":5,"beauty":3,"friendship":5}', array['agility', 'happiness']),
+  ('bi-an-6', 'Súp lửa Tamato', 'soup', true, 3, array['cheri-berry', 'cheri-berry', 'tamato-berry'], '{"power":6,"beauty":2,"friendship":5}', array['power', 'beauty']),
+  ('bi-an-7', 'Pudding cổ điển', 'pudding', true, 3, array['moomoo-milk', 'old-gateau', 'pomeg-berry'], '{"wisdom":5,"happiness":5,"power":2,"friendship":5}', array['wisdom', 'happiness']),
+  ('bi-an-8', 'Đại tiệc cầu vồng', 'cake', true, 4, array['hondew-berry', 'kelpsy-berry', 'pomeg-berry', 'qualot-berry'], '{"wisdom":5,"power":5,"beauty":3,"friendship":6}', array['wisdom', 'power']);
 
 -- how many ingredients two pots share, as multisets
 create function public.kitchen_overlap(p_a text[], p_b text[])

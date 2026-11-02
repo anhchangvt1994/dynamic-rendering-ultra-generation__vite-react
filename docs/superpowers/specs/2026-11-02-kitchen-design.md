@@ -85,14 +85,14 @@ Rarity: known dishes 1 (2 with a sweet), secret 3, legendary 4.
 | Cà ri lửa `ca-ri-lua` | curry | cheri-berry + lava-cookie + rage-candy-bar | Sức mạnh +5, Hạnh phúc +1, Thân thiện +3 |
 | Pudding Lumiose `pudding-lumiose` | pudding | lumiose-galette + moomoo-milk + chesto-berry | Sắc đẹp +3, Hạnh phúc +1, Thân thiện +3 |
 | Bánh quy Pewter `banh-quy-pewter` | sandwich | pewter-crunchies + rawst-berry + oran-berry | Trí tuệ +3, Sắc đẹp +2, Linh hoạt +1, Thân thiện +3 |
-| ★ Poffin Hoàng gia `poffin-hoang-gia` | poffin | pomeg-berry + pecha-berry + moomoo-milk | Hạnh phúc +5, Trí tuệ +2, Sức mạnh +2, Thân thiện +5 |
-| ★ Thạch biển Kelpsy `thach-bien-kelpsy` | jelly | kelpsy-berry + aspear-berry + fresh-water | Linh hoạt +3, Trí tuệ +2, Sắc đẹp +2, Thân thiện +5 |
-| ★ Bánh kem Qualot `banh-kem-qualot` | cake | qualot-berry + big-malasada + shalour-sable | Hạnh phúc +6, Linh hoạt +3, Sức mạnh +2, Thân thiện +5 |
-| ★ Cà ri Hondew `ca-ri-hondew` | curry | hondew-berry + rawst-berry + lava-cookie | Sức mạnh +5, Trí tuệ +3, Sắc đẹp +2, Thân thiện +5 |
-| ★ Sinh tố Grepa `sinh-to-grepa` | smoothie | grepa-berry + lemonade + casteliacone | Linh hoạt +5, Hạnh phúc +5, Sắc đẹp +3, Thân thiện +5 |
-| ★ Súp lửa Tamato `sup-lua-tamato` | soup | tamato-berry + 2 cheri-berry | Sức mạnh +6, Sắc đẹp +2, Thân thiện +5 |
-| ★ Pudding cổ điển `pudding-co-dien` | pudding | old-gateau + pomeg-berry + moomoo-milk | Trí tuệ +5, Hạnh phúc +5, Sức mạnh +2, Thân thiện +5 |
-| ★★ Đại tiệc cầu vồng `dai-tiec-cau-vong` | cake | pomeg-berry + kelpsy-berry + qualot-berry + hondew-berry | Trí tuệ +5, Sức mạnh +5, Sắc đẹp +3, Thân thiện +6 |
+| ★ Poffin Hoàng gia `bi-an-1` | poffin | pomeg-berry + pecha-berry + moomoo-milk | Hạnh phúc +5, Trí tuệ +2, Sức mạnh +2, Thân thiện +5 |
+| ★ Thạch biển Kelpsy `bi-an-2` | jelly | kelpsy-berry + aspear-berry + fresh-water | Linh hoạt +3, Trí tuệ +2, Sắc đẹp +2, Thân thiện +5 |
+| ★ Bánh kem Qualot `bi-an-3` | cake | qualot-berry + big-malasada + shalour-sable | Hạnh phúc +6, Linh hoạt +3, Sức mạnh +2, Thân thiện +5 |
+| ★ Cà ri Hondew `bi-an-4` | curry | hondew-berry + rawst-berry + lava-cookie | Sức mạnh +5, Trí tuệ +3, Sắc đẹp +2, Thân thiện +5 |
+| ★ Sinh tố Grepa `bi-an-5` | smoothie | grepa-berry + lemonade + casteliacone | Linh hoạt +5, Hạnh phúc +5, Sắc đẹp +3, Thân thiện +5 |
+| ★ Súp lửa Tamato `bi-an-6` | soup | tamato-berry + 2 cheri-berry | Sức mạnh +6, Sắc đẹp +2, Thân thiện +5 |
+| ★ Pudding cổ điển `bi-an-7` | pudding | old-gateau + pomeg-berry + moomoo-milk | Trí tuệ +5, Hạnh phúc +5, Sức mạnh +2, Thân thiện +5 |
+| ★★ Đại tiệc cầu vồng `bi-an-8` | cake | pomeg-berry + kelpsy-berry + qualot-berry + hondew-berry | Trí tuệ +5, Sức mạnh +5, Sắc đẹp +3, Thân thiện +6 |
 
 Kinds (8, one drawing each): poffin, cake, curry, smoothie, jelly, sandwich,
 soup, pudding.

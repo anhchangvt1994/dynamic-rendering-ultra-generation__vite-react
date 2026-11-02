@@ -81,12 +81,12 @@ test('a dish gives what its flavours say, never a negative', () => {
     happiness: 1,
     friendship: 3,
   })
-  assert.deepEqual(dishById('sup-lua-tamato').stats, {
+  assert.deepEqual(dishById('bi-an-6').stats, {
     power: 6,
     beauty: 2,
     friendship: 5,
   })
-  assert.deepEqual(dishById('dai-tiec-cau-vong').stats, {
+  assert.deepEqual(dishById('bi-an-8').stats, {
     wisdom: 5,
     power: 5,
     beauty: 3,
@@ -116,7 +116,7 @@ test('every secret dish can be found: a rare berry in it, a hint that matches', 
       .map(([stat]) => STATS[stat].label)
     for (const label of top) assert.match(hint, new RegExp(label))
   }
-  assert.match(hintOf(dishById('banh-kem-qualot')), /1 quả mọng, 2 bánh ngọt/)
+  assert.match(hintOf(dishById('bi-an-3')), /1 quả mọng, 2 bánh ngọt/)
 })
 
 test("the kitchen's migration seeds the same flavours and recipes", async () => {
@@ -145,7 +145,7 @@ test("the kitchen's migration seeds the same flavours and recipes", async () => 
   assert.deepEqual(flavours, FLAVORS)
   const recipes = [
     ...sql.matchAll(
-      /\('([a-z-]+)', '([^']+)', '([a-z]+)', (true|false), (\d), array\[([^\]]+)\], '(\{[^']+\})'/g
+      /\('([a-z0-9-]+)', '([^']+)', '([a-z]+)', (true|false), (\d), array\[([^\]]+)\], '(\{[^']+\})'/g
     ),
   ].map(([, id, name, kind, secret, rarity, ingredients, stats]) => ({
     id,

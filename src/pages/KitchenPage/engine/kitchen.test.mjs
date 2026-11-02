@@ -55,7 +55,7 @@ test('a known dish from the menu: spent and given', () => {
 test('the errors of the database', () => {
   const state = fresh({ 'pecha-berry': 1, 'fire-stone': 1, 'oran-berry': 9 })
   assert.throws(() => cookPot(state, 'poffin-pecha', null), /missing/)
-  assert.throws(() => cookPot(state, 'poffin-hoang-gia', null), /unknown_dish/)
+  assert.throws(() => cookPot(state, 'bi-an-1', null), /unknown_dish/)
   assert.throws(() => cookPot(state, 'nope', null), /unknown_dish/)
   assert.throws(() => cookPot(state, null, ['pecha-berry']), /bad_pot/)
   assert.throws(
@@ -101,10 +101,10 @@ test('a secret found in any order; then known; then it no longer counts as near'
     ['moomoo-milk', 'pomeg-berry', 'pecha-berry']
   )
   assert.equal(result.discovered, true)
-  assert.equal(result.dish.id, 'poffin-hoang-gia')
+  assert.equal(result.dish.id, 'bi-an-1')
   const menu = menuOf(state.discovered, state.attempts)
   assert.equal(menu.found, 1)
-  assert.ok(menu.dishes.find((d) => d.id === 'poffin-hoang-gia').ingredients)
+  assert.ok(menu.dishes.find((d) => d.id === 'bi-an-1').ingredients)
   ;({ result } = cookPot(state, null, [
     'pomeg-berry',
     'pecha-berry',

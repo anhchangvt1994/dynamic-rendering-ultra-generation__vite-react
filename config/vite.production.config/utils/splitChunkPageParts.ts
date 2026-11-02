@@ -19,11 +19,17 @@ const PAGE_PARTS: [name: string, files: RegExp][] = [
     'bag-skeleton',
     /src\/(components\/PageSkeleton\/BagSkeleton|pages\/BagPage\/styles)\./,
   ],
+  // the kitchen's skeleton and the page styles it reuses: the kitchen's styles
+  // are heavy, the other skeletons' chunk would pass the budget with them
+  [
+    'kitchen-skeleton',
+    /src\/(components\/PageSkeleton\/KitchenSkeleton|pages\/KitchenPage\/styles)\./,
+  ],
   // the route skeletons (Layout shows them on the first paint) and the page
-  // styles the sign-in, quiz and kitchen skeletons reuse so they can not drift
+  // styles the sign-in and quiz skeletons reuse so they can not drift
   [
     'page-skeletons',
-    /src\/(components\/PageSkeleton\/|pages\/(QuizPage|AccountPage|KitchenPage)\/styles\.)/,
+    /src\/(components\/PageSkeleton\/|pages\/(QuizPage|AccountPage)\/styles\.)/,
   ],
 ]
 
