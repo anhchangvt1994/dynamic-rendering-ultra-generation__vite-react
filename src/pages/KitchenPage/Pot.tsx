@@ -8,7 +8,15 @@ import {
 import type { CSSProperties, ReactNode } from 'react'
 import { useState } from 'react'
 import styled from 'styled-components'
-import { dishStats, groupOf, recipeKey } from './kitchen.mjs'
+import DishArt from './DishArt'
+import type { DishView } from './engine/types'
+import {
+  KINDS,
+  dishStats,
+  flavorLevel,
+  groupOf,
+  recipeKey,
+} from './kitchen.mjs'
 import StatChips from './StatChips'
 
 type Flavor = keyof typeof FLAVOR_INFO
@@ -104,7 +112,20 @@ type Props = {
   /** the pantry's group shown (kept by the page across its tabs) */
   group: PantryGroup
   onGroup: (group: PantryGroup) => void
+  /** the secret being hunted: its flavour shadow is drawn to be filled */
+  target?: DishView | null
+  /** the secrets still to find, to hunt one */
+  targets?: DishView[]
+  onTarget?: (id: string | null) => void
 }
+
+// a level's bounds on a flavour axis, in sums (3 levels of a full axis)
+const LEVEL_BOUNDS = [
+  [0, FULL / 3],
+  [FULL / 3, (FULL * 2) / 3],
+  [(FULL * 2) / 3, FULL],
+]
+const radius = (sum: number) => 6 + (Math.min(sum, FULL) / FULL) * 36
 
 /**
  * Free cooking, an alchemist's patisserie: glass bubbles of ingredients
@@ -124,6 +145,9 @@ export default function Pot({
   secret = false,
   group,
   onGroup,
+  target = null,
+  targets = [],
+  onTarget,
 }: Props) {
   // what the bag has first; kept while the tab is open, so a bubble that
   // runs out stays where it is (nothing jumps under the finger)
@@ -145,8 +169,22 @@ export default function Pot({
     return [50 + Math.cos(a) * r, 50 + Math.sin(a) * r]
   }
   const shape = FLAVOR_KEYS.map((f, i) =>
-    point(i, 6 + (Math.min(sums[f], FULL) / FULL) * 36).join(',')
+    point(i, radius(sums[f])).join(',')
   ).join(' ')
+  // the hunt: which flavours already sit in the target's level
+  const goal = target?.shape
+  // an empty pot matches nothing yet, even the flavours the dish lacks
+  const hits =
+    goal && pot.length
+      ? FLAVOR_KEYS.filter((f) => flavorLevel(sums[f]) === goal[f])
+      : []
+  const matched = !!goal && hits.length === FLAVOR_KEYS.length
+  const ghost = goal
+    ? FLAVOR_KEYS.map((f, i) => {
+        const [lo, hi] = LEVEL_BOUNDS[goal[f]]
+        return point(i, radius((lo + hi) / 2)).join(',')
+      }).join(' ')
+    : ''
 
   return (
     <PotStyle
@@ -211,7 +249,34 @@ export default function Pot({
         aria-label="Nồi"
         data-count={pot.length}
         data-known={known || undefined}
+        data-matched={matched || undefined}
       >
+        {targets.length > 0 && (
+          <div className="hunt" role="group" aria-label="Món bí ẩn đang tìm">
+            <button
+              type="button"
+              aria-pressed={!target}
+              onClick={() => onTarget?.(null)}
+            >
+              Tự do
+            </button>
+            {targets.map((dish) => (
+              <button
+                key={dish.id}
+                type="button"
+                aria-pressed={target?.id === dish.id}
+                aria-label={`Tìm ${KINDS[dish.kind as keyof typeof KINDS]?.label ?? 'món'} bí ẩn, ${dish.count} nguyên liệu`}
+                onClick={() => onTarget?.(dish.id)}
+              >
+                <DishArt kind={dish.kind} top={dish.top} secret size={26} />
+                <span aria-hidden="true">
+                  {KINDS[dish.kind as keyof typeof KINDS]?.label}
+                  <small> · {dish.count}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="stage">
           <span className="halo" aria-hidden="true" />
           {/* embers drifting up from the fire */}
@@ -420,7 +485,13 @@ export default function Pot({
             {ORBIT.map(([x, y], index) => {
               const id = pot[index]
               return (
-                <li key={index} style={{ left: `${x}%`, top: `${y}%` }}>
+                <li
+                  key={index}
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                  data-unneeded={
+                    (!!target?.count && index >= target.count) || undefined
+                  }
+                >
                   {id ? (
                     <button
                       key={`${index}-${id}`}
@@ -459,6 +530,28 @@ export default function Pot({
                 <line key={f} className="grid" x1="50" y1="50" x2={x} y2={y} />
               )
             })}
+            {goal && (
+              <g className="ghost" aria-hidden="true">
+                {/* each flavour's level: a soft band along its axis */}
+                {FLAVOR_KEYS.map((f, i) => {
+                  const [lo, hi] = LEVEL_BOUNDS[goal[f]]
+                  const [x1, y1] = point(i, radius(lo))
+                  const [x2, y2] = point(i, radius(hi))
+                  return (
+                    <line
+                      key={f}
+                      className="ghost-band"
+                      data-hit={hits.includes(f) || undefined}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                    />
+                  )
+                })}
+                <polygon className="ghost-shape" points={ghost} />
+              </g>
+            )}
             <polygon className="shape" points={shape} />
           </svg>
           <dl className="flavor-meter">
@@ -469,6 +562,7 @@ export default function Pot({
                   key={flavor}
                   data-flavor={flavor}
                   data-value={sums[flavor]}
+                  data-hit={(goal && hits.includes(flavor)) || undefined}
                   style={
                     {
                       '--c': FLAVOR_INFO[flavor].color,
@@ -485,6 +579,19 @@ export default function Pot({
           </dl>
         </div>
 
+        {goal && (
+          <p className="hunt-score" aria-live="polite">
+            {matched ? (
+              'Hình vị khớp rồi, nấu thử!'
+            ) : !pot.length ? (
+              'Bỏ nguyên liệu vào để phủ kín bóng'
+            ) : (
+              <>
+                Khớp <b>{hits.length}/5</b> vị
+              </>
+            )}
+          </p>
+        )}
         <div className="forecast" aria-live="polite">
           {preview ? (
             <>
@@ -946,6 +1053,59 @@ const PotStyle = styled.div`
     outline-offset: 3px;
   }
 
+  /* the hunt: which secret's shadow to fill */
+  .hunt {
+    display: flex;
+    gap: 6px;
+    margin: -4px -4px 0;
+    padding: 2px 4px 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hunt button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    height: 36px;
+    padding: 0 12px 0 6px;
+    border: 2px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .hunt button:first-child {
+    padding-left: 12px;
+  }
+  .hunt small {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+  .hunt button[aria-pressed='true'] {
+    border-color: #c9b6ff;
+    background: #5b3f99;
+    box-shadow:
+      0 0 0 2px var(--night),
+      0 0 0 4px #c9b6ff;
+  }
+  .hunt button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+  .hunt .dish-art svg {
+    filter: brightness(0) invert(1) opacity(0.85);
+  }
+  /* a slot the hunted dish doesn't need */
+  .slots li[data-unneeded] .soap[data-empty] {
+    opacity: 0.25;
+    border-style: dashed;
+  }
+
   /* the flavour star */
   .taste {
     position: relative;
@@ -969,6 +1129,50 @@ const PotStyle = styled.div`
     stroke-width: 1.2;
     stroke-linejoin: round;
     transition: all 300ms ease-out;
+  }
+  /* the secret's shadow: the bands to reach, a dashed outline through them */
+  .ghost-band {
+    stroke: rgba(201, 182, 255, 0.4);
+    stroke-width: 7;
+    stroke-linecap: round;
+    transition: stroke 240ms ease-out;
+  }
+  .ghost-band[data-hit] {
+    stroke: rgba(76, 195, 138, 0.75);
+  }
+  .ghost-shape {
+    fill: rgba(201, 182, 255, 0.12);
+    stroke: #c9b6ff;
+    stroke-width: 1;
+    stroke-dasharray: 3 2.5;
+    stroke-linejoin: round;
+  }
+  .cauldron[data-matched] .ghost-shape {
+    fill: rgba(76, 195, 138, 0.22);
+    stroke: #7ef0b5;
+    animation: ghost-glow 1.4s ease-in-out infinite alternate;
+  }
+  @keyframes ghost-glow {
+    to {
+      opacity: 0.55;
+    }
+  }
+  .flavor-meter div[data-hit] dt::after {
+    content: ' ✓';
+    color: #7ef0b5;
+  }
+  .hunt-score {
+    margin: -4px 0 0;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+  }
+  .hunt-score b {
+    color: #7ef0b5;
+    font-variant-numeric: tabular-nums;
+  }
+  .cauldron[data-matched] .hunt-score {
+    color: #7ef0b5;
   }
   .flavor-meter {
     position: absolute;
@@ -1213,11 +1417,13 @@ const PotStyle = styled.div`
     .pop,
     .embers i,
     .steam i,
-    .cauldron[data-known] .brew {
+    .cauldron[data-known] .brew,
+    .cauldron[data-matched] .ghost-shape {
       animation: none !important;
     }
     .bubble,
     .star .shape,
+    .ghost-band,
     .brew {
       transition: none;
     }

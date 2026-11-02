@@ -243,6 +243,10 @@ export default function KitchenPage() {
   // the pantry's group outlives the pot's tab
   const [group, setGroup] = useState<PantryGroup>('all')
   const [pot, setPot] = useState<string[]>([])
+  // the secret hunted in the pot; found, it leaves the list (and the hunt)
+  const [targetId, setTargetId] = useState<string | null>(null)
+  const targets = (menu?.dishes ?? []).filter((d) => d.secret && !d.known)
+  const target = targets.find((d) => d.id === targetId) ?? null
   // the pot never holds more than the bag: an ingredient spent elsewhere
   // (another tab) leaves it when the bag reloads
   useEffect(() => {
@@ -428,6 +432,7 @@ export default function KitchenPage() {
                 busy={!!cooking}
                 onCook={(times) => cook(dish.id, dish.ingredients ?? [], times)}
                 onTry={() => {
+                  setTargetId(dish.id)
                   focusPanel.current = true
                   setTab('pot')
                 }}
@@ -462,6 +467,9 @@ export default function KitchenPage() {
             secret={!!potKnown?.secret}
             group={group}
             onGroup={setGroup}
+            target={target}
+            targets={targets}
+            onTarget={setTargetId}
             action={
               guest ? (
                 signIn

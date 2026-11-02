@@ -16,6 +16,8 @@ export type DishView = {
   // a secret's clue
   count?: number
   groups?: Partial<Record<'berry' | 'drink' | 'sweet', number>>
+  /** each flavour's level (0 to 2): the secret's shadow in the pot */
+  shape?: Record<'spicy' | 'dry' | 'sweet' | 'bitter' | 'sour', number>
 }
 
 export type Menu = {
