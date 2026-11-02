@@ -24,7 +24,7 @@ export const KitchenStyle = styled.div`
       rgba(191, 238, 222, 0.6),
       transparent 30%
     ),
-    repeating-linear-gradient(90deg, #fff3e4 0 22px, #fff8ef 22px 44px);
+    #fff6ee;
   color: var(--ink);
 
   > * {
@@ -229,12 +229,15 @@ export const KitchenStyle = styled.div`
   .menu-card[data-ready] {
     background: linear-gradient(160deg, #fff, #fff1f6);
   }
+  /* a secret: a lilac card, a little starlight behind its silhouette */
   .menu-card[data-secret] {
-    background: repeating-linear-gradient(
-      -45deg,
-      #f6f2ff 0 10px,
-      #fff 10px 20px
-    );
+    background:
+      radial-gradient(
+        circle at 18% 30%,
+        rgba(176, 124, 255, 0.18),
+        transparent 40%
+      ),
+      #f7f3ff;
   }
   .menu-card .dish-art {
     grid-row: 1 / 3;
@@ -329,203 +332,9 @@ export const KitchenStyle = styled.div`
     box-shadow: 1px 1px 0 var(--ink);
   }
 
-  /* ── free cooking: the shelf and the pot ── */
-  .pot-area {
-    display: grid;
-    gap: 14px;
-  }
-  .shelf {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
-    margin: 0;
-    padding: 14px;
-    border: 3px solid var(--ink);
-    border-radius: 22px;
-    background:
-      linear-gradient(transparent 92%, rgba(120, 72, 40, 0.25) 92%) 0 0 / 100%
-        108px,
-      linear-gradient(#f6dcc2, #edc8a5);
-    list-style: none;
-  }
-  /* a jar: its sprite, name and count on a row, its flavours under them
-     across the jar (a name wraps rather than being cut) */
-  .jar {
-    display: grid;
-    grid-template-columns: 30px 1fr auto;
-    grid-template-areas:
-      'img name count'
-      'flavors flavors flavors';
-    align-items: center;
-    gap: 4px 6px;
-    width: 100%;
-    height: 100%;
-    min-height: 74px;
-    padding: 8px;
-    border: 2px solid var(--ink);
-    border-radius: 16px 16px 12px 12px;
-    background: linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.95),
-      rgba(230, 245, 255, 0.85)
-    );
-    color: var(--ink);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  .jar img {
-    grid-area: img;
-    image-rendering: pixelated;
-  }
-  .jar-name {
-    grid-area: name;
-    min-width: 0;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-  }
-  /* fixed widths, text from the left: a count that changes moves nothing */
-  .jar-count {
-    grid-area: count;
-    min-width: 2.6em;
-    font-size: 12px;
-    text-align: left;
-    font-variant-numeric: tabular-nums;
-  }
-  .jar-flavors {
-    grid-area: flavors;
-  }
-  .jar-flavors > span {
-    padding: 0 5px;
-    font-size: 10px;
-  }
-  .jar:disabled {
-    cursor: default;
-    opacity: 0.45;
-  }
-  .jar:not(:disabled):hover {
-    translate: 0 -2px;
-  }
-  .pot-bar {
-    position: sticky;
-    bottom: 12px;
-    z-index: 5;
-    display: grid;
-    gap: 10px;
-    padding: 14px;
-    border: 3px solid var(--ink);
-    border-radius: 22px;
-    background: linear-gradient(160deg, #fff, #ffeef4);
-    box-shadow: 5px 5px 0 var(--ink);
-  }
-  .pot-slots {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .slot {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    aspect-ratio: 1;
-    max-height: 64px;
-    border: 2px solid var(--ink);
-    border-radius: 50%;
-    background: radial-gradient(circle at 50% 35%, #ffd6b0, #d98a4e);
-    cursor: pointer;
-  }
-  .slot[data-empty] {
-    border-style: dashed;
-    background: #fff;
-    cursor: default;
-  }
-  .slot img {
-    image-rendering: pixelated;
-    animation: slot-drop 300ms cubic-bezier(0.3, 1.6, 0.5, 1);
-  }
-  .flavor-meter {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
-    margin: 0;
-  }
-  .flavor-meter div {
-    display: grid;
-    gap: 2px;
-  }
-  .flavor-meter dt {
-    font-size: 11px;
-    font-weight: 800;
-    text-align: center;
-  }
-  .flavor-meter dd {
-    height: 8px;
-    margin: 0;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgba(23, 45, 69, 0.1);
-  }
-  .flavor-meter i {
-    display: block;
-    height: 100%;
-    width: calc(var(--v) * 100%);
-    border-radius: inherit;
-    background: var(--c);
-    transition: width 300ms ease-out;
-  }
-  .pot-warning {
-    margin: 0;
-    color: var(--berry);
-    font-size: 13px;
-    font-weight: 800;
-  }
-  .pot-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .pot-clear,
-  .pot-cook {
-    min-height: 48px;
-    padding: 0 16px;
-    border: 3px solid var(--ink);
-    border-radius: 14px;
-    font: inherit;
-    font-family: var(--font-display);
-    font-size: 16px;
-    box-shadow: 3px 3px 0 var(--ink);
-    cursor: pointer;
-  }
-  .pot-clear {
-    background: #fff;
-    color: var(--ink);
-  }
-  .pot-cook {
-    flex: 1;
-    background: var(--berry);
-    color: #fff;
-  }
-  .pot-actions .sign-in-cook {
-    flex: 1;
-  }
-  .pot-clear:disabled,
-  .pot-cook:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-
   @keyframes chef-wave {
     50% {
       transform: rotate(-4deg) translateY(-4px);
-    }
-  }
-  @keyframes slot-drop {
-    from {
-      transform: translateY(-20px) scale(1.4);
     }
   }
 
@@ -542,18 +351,10 @@ export const KitchenStyle = styled.div`
       width: 110px;
       height: 110px;
     }
-    .shelf {
-      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-      padding: 10px;
-    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .chef img,
-    .slot img {
+    .chef img {
       animation: none;
-    }
-    .flavor-meter i {
-      transition: none;
     }
   }
 `
