@@ -5,9 +5,10 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { DISHES } from '../recipes.mjs'
 import { KNOWN, SECRET_CLUES, publicMenu } from '../menu.mjs'
-import { cookPot, menuOf } from './rules.mjs'
+import { cookPot, keptOf, menuOf } from './rules.mjs'
 import { flavorLevel, shapeOf } from '../kitchen.mjs'
 import { batchMax, scaleStats } from '../batch.mjs'
+import { missingOf, pinnedOf, potWithKept } from '../kept.mjs'
 import { createLocalEngine, KEYS } from './local.mjs'
 import { createGuestEngine } from './guest.mjs'
 import { createServerEngine } from './server.ts'
@@ -35,11 +36,17 @@ test('the public menu: known dishes in full, secrets as clues only', () => {
     const dish = DISHES.find((d) => d.id === clue.id)
     assert.deepEqual(
       menuOf([]).dishes.find((d) => d.id === clue.id),
-      clue
+      {
+        ...clue,
+        kept: [],
+      }
     )
     assert.equal(clue.count, dish.ingredients.length)
   }
-  assert.deepEqual(publicMenu(), menuOf([]))
+  assert.deepEqual(
+    publicMenu().dishes.map((d) => d.id),
+    menuOf([]).dishes.map((d) => d.id)
+  )
 })
 
 test('a known dish from the menu: spent and given', () => {
@@ -70,7 +77,7 @@ test('the errors of the database', () => {
   )
 })
 
-test('a failure: half back (rounded up, the first sorted), the attempt kept, how near', () => {
+test('a failure: all back, the attempt kept, how near and which secret', () => {
   const { state, result } = cookPot(
     fresh({ 'pomeg-berry': 2, 'aspear-berry': 1, 'pecha-berry': 1 }),
     null,
@@ -78,11 +85,12 @@ test('a failure: half back (rounded up, the first sorted), the attempt kept, how
   )
   assert.deepEqual(result, {
     outcome: 'failed',
-    returned: ['aspear-berry', 'pecha-berry'],
+    returned: ['aspear-berry', 'pecha-berry', 'pomeg-berry'],
     near: 2,
+    closest: 'bi-an-1',
   })
   assert.deepEqual(state.bag, {
-    'pomeg-berry': 1,
+    'pomeg-berry': 2,
     'aspear-berry': 1,
     'pecha-berry': 1,
   })
@@ -91,18 +99,26 @@ test('a failure: half back (rounded up, the first sorted), the attempt kept, how
   ])
 })
 
-test('a failure with an ingredient twice: the half back counts each one', () => {
+test('a failure with an ingredient twice: both come back', () => {
   const { state, result } = cookPot(
     fresh({ 'oran-berry': 2, 'pecha-berry': 1 }),
     null,
     ['pecha-berry', 'oran-berry', 'oran-berry']
   )
   assert.equal(result.outcome, 'failed')
-  assert.deepEqual(result.returned, ['oran-berry', 'oran-berry'])
-  assert.deepEqual(state.bag, { 'oran-berry': 2 })
+  assert.deepEqual(result.returned, ['oran-berry', 'oran-berry', 'pecha-berry'])
+  assert.deepEqual(state.bag, { 'oran-berry': 2, 'pecha-berry': 1 })
   assert.deepEqual(state.attempts, [
     ['oran-berry', 'oran-berry', 'pecha-berry'],
   ])
+})
+
+test('a pot near no secret: closest is null', () => {
+  const { result } = cookPot(fresh({ 'oran-berry': 1, 'soda-pop': 1 }), null, [
+    'oran-berry',
+    'soda-pop',
+  ])
+  assert.deepEqual([result.near, result.closest], [0, null])
 })
 
 test('a secret found in any order; then known; then it no longer counts as near', () => {
@@ -277,4 +293,75 @@ test("every secret's clue carries its recipe's shape, and still no recipe", () =
     ])
     assert.ok(!('ingredients' in clue) && !('name' in clue))
   }
+})
+
+// the right ingredients kept (2026-11-03-kitchen-kept-design.md)
+test("a secret's right ingredients: every attempt's share, counted, never more than the recipe", () => {
+  const recipe = ['moomoo-milk', 'pecha-berry', 'pomeg-berry']
+  assert.deepEqual(keptOf(recipe, []), [])
+  assert.deepEqual(
+    keptOf(recipe, [
+      ['aspear-berry', 'pecha-berry', 'pecha-berry'],
+      ['lemonade', 'pomeg-berry'],
+    ]),
+    ['pecha-berry', 'pomeg-berry']
+  )
+  assert.deepEqual(
+    keptOf(
+      ['oran-berry', 'oran-berry', 'sitrus-berry'],
+      [
+        ['oran-berry', 'pecha-berry'],
+        ['oran-berry', 'oran-berry', 'oran-berry'],
+      ]
+    ),
+    ['oran-berry', 'oran-berry']
+  )
+})
+
+test('the menu gives each unfound secret its kept ingredients, a found one its recipe', () => {
+  let { state } = cookPot(
+    fresh({ 'pomeg-berry': 1, 'aspear-berry': 1, 'pecha-berry': 1 }),
+    null,
+    ['pomeg-berry', 'aspear-berry', 'pecha-berry']
+  )
+  const clue = menuOf(state.discovered, state.attempts).dishes.find(
+    (d) => d.id === 'bi-an-1'
+  )
+  assert.deepEqual(clue.kept, ['pecha-berry', 'pomeg-berry'])
+  assert.ok(!('ingredients' in clue))
+})
+
+test('a hunt fills the pot with what the bag has of the kept, then what was there', () => {
+  const kept = ['pecha-berry', 'pomeg-berry']
+  assert.deepEqual(
+    potWithKept(kept, ['oran-berry'], {
+      'pecha-berry': 1,
+      'pomeg-berry': 1,
+      'oran-berry': 1,
+    }),
+    ['pecha-berry', 'pomeg-berry', 'oran-berry']
+  )
+  assert.deepEqual(
+    potWithKept(kept, ['pecha-berry', 'lemonade'], {
+      'pecha-berry': 1,
+      lemonade: 1,
+    }),
+    ['pecha-berry', 'lemonade']
+  )
+  assert.deepEqual(
+    potWithKept(['a', 'b'], ['c', 'd', 'e'], { a: 1, b: 1, c: 1, d: 1, e: 1 }),
+    ['a', 'b', 'c', 'd']
+  )
+})
+
+test("the pot's pinned slots, and the kept still missing", () => {
+  const kept = ['oran-berry', 'oran-berry', 'pecha-berry']
+  assert.deepEqual(
+    pinnedOf(kept, ['oran-berry', 'lemonade', 'oran-berry', 'oran-berry']),
+    [true, false, true, false]
+  )
+  assert.deepEqual(missingOf(kept, ['oran-berry', 'lemonade']), [
+    'oran-berry',
+    'pecha-berry',
+  ])
 })

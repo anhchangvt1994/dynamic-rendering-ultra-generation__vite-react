@@ -1,5 +1,6 @@
 // The kitchen's rules for the browser's engine (yarn dev), the same as the
-// database's kitchen_cook and kitchen_menu (20261104000000_kitchen.sql):
+// database's kitchen_cook and kitchen_menu (20261104000000_kitchen.sql,
+// 20261107000000_kitchen_kept.sql):
 // engine/kitchen.test.mjs mirrors kitchen.test.sql.
 import { FLAVORS } from '../../QuizPage/items.mjs'
 import { DISHES, dishById, recipeKey } from '../recipes.mjs'
@@ -27,11 +28,32 @@ export function overlap(a, b) {
   )
 }
 
-/** The menu: known dishes and found secrets in full, the others as clues. */
+/**
+ * A secret's right ingredients found so far: for each of its ingredients, as
+ * many as one attempt held at most, never more than the recipe. Sorted.
+ */
+export function keptOf(recipe, attempts = []) {
+  const need = countOf(recipe)
+  const tried = attempts.map(countOf)
+  return Object.keys(need)
+    .sort()
+    .flatMap((id) =>
+      Array(
+        Math.min(need[id], Math.max(0, ...tried.map((pot) => pot[id] ?? 0)))
+      ).fill(id)
+    )
+}
+
+/**
+ * The menu: known dishes and found secrets in full, the others as clues
+ * with their right ingredients found so far (kept).
+ */
 export function menuOf(discovered = [], attempts = []) {
   return {
     dishes: DISHES.map((dish) =>
-      !dish.secret || discovered.includes(dish.id) ? dish : clueOf(dish)
+      !dish.secret || discovered.includes(dish.id)
+        ? dish
+        : { ...clueOf(dish), kept: keptOf(dish.ingredients, attempts) }
     ).sort(byMenuOrder),
     found: discovered.length,
     attempts,
@@ -94,15 +116,18 @@ export function cookPot(state, dishId, ingredients, times = 1) {
     }
   }
 
-  const returned = pot.slice(0, Math.ceil(pot.length / 2))
-  for (const id of returned) bag[id] = (bag[id] ?? 0) + 1
+  // a failure costs nothing: all of it back
+  for (const id of pot) bag[id] = (bag[id] ?? 0) + 1
   const key = pot.join('+')
-  const near = Math.max(
-    0,
-    ...DISHES.filter(
-      (dish) => dish.secret && !state.discovered.includes(dish.id)
-    ).map((dish) => overlap(pot, dish.ingredients))
-  )
+  // the unfound secret sharing the most, in the menu's order on a tie
+  let near = 0
+  let closest = null
+  for (const dish of DISHES.filter(
+    (d) => d.secret && !state.discovered.includes(d.id)
+  ).sort(byMenuOrder)) {
+    const shared = overlap(pot, dish.ingredients)
+    if (shared > near) [near, closest] = [shared, dish.id]
+  }
   return {
     state: {
       ...state,
@@ -112,6 +137,6 @@ export function cookPot(state, dishId, ingredients, times = 1) {
         pot,
       ],
     },
-    result: { outcome: 'failed', returned, near },
+    result: { outcome: 'failed', returned: pot, near, closest },
   }
 }

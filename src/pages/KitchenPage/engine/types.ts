@@ -18,6 +18,8 @@ export type DishView = {
   groups?: Partial<Record<'berry' | 'drink' | 'sweet', number>>
   /** each flavour's level (0 to 2): the secret's shadow in the pot */
   shape?: Record<'spicy' | 'dry' | 'sweet' | 'bitter' | 'sour', number>
+  /** its right ingredients found so far over every attempt, sorted */
+  kept?: string[]
 }
 
 export type Menu = {
@@ -36,7 +38,14 @@ export type CookResult =
       /** the portions cooked (a batch of a menu dish) */
       count: number
     }
-  | { outcome: 'failed'; returned: string[]; near: number }
+  | {
+      outcome: 'failed'
+      /** all of the pot: a failure costs nothing */
+      returned: string[]
+      near: number
+      /** the unfound secret sharing the most, or null */
+      closest: string | null
+    }
 
 /** The kitchen behind the page: the account's, this browser's, a guest's. */
 export interface KitchenEngine {

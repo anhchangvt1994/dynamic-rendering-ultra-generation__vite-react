@@ -15,6 +15,7 @@ import CookFx, { COOK_MS } from './CookFx'
 import DishArt from './DishArt'
 import type { CookResult, DishView, Menu, StatKey } from './engine/types'
 import { useKitchenEngine } from './engine/useKitchenEngine'
+import { potWithKept } from './kept.mjs'
 import { STATS, hintText, recipeKey } from './kitchen.mjs'
 import Pot, { potFlavors } from './Pot'
 import type { PantryGroup } from './Pot'
@@ -247,6 +248,17 @@ export default function KitchenPage() {
   const [targetId, setTargetId] = useState<string | null>(null)
   const targets = (menu?.dishes ?? []).filter((d) => d.secret && !d.known)
   const target = targets.find((d) => d.id === targetId) ?? null
+  // hunting a secret puts its right ingredients found so far in the pot
+  const hunt = (id: string | null, dishes = menu?.dishes ?? []) => {
+    setTargetId(id)
+    const kept = dishes.find((d) => d.id === id)?.kept
+    if (kept?.length)
+      setPot((current) => potWithKept(kept, current, bagOrNull ?? {}))
+  }
+  // a failed pot hunts again once the menu has its new kept: the target, or
+  // the secret it came closest to
+  // (a failure gives all back: the bag is as it was before the cook)
+  const huntNext = useRef<{ id: string | null } | null>(null)
   // the pot never holds more than the bag: an ingredient spent elsewhere
   // (another tab) leaves it when the bag reloads
   useEffect(() => {
@@ -279,6 +291,14 @@ export default function KitchenPage() {
       .catch(() => {})
   }, [engine])
   useEffect(load, [load])
+  // once the menu is back after a failure, with its new kept
+  useEffect(() => {
+    const next = huntNext.current
+    if (!next || !menu) return
+    huntNext.current = null
+    hunt(next.id, menu.dishes)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menu])
 
   // NOTE - What can be cooked comes first, else the menu's order. The order
   // is set when the menu opens or the filter changes, not after each cook:
@@ -332,6 +352,8 @@ export default function KitchenPage() {
         if (rest > 0) await new Promise((r) => setTimeout(r, rest))
         setCooking({ pot: ingredients, result })
         if (!dish) setPot([])
+        if (result.outcome === 'failed')
+          huntNext.current = { id: targetId ?? result.closest }
         refreshBag()
         load()
       })
@@ -432,7 +454,7 @@ export default function KitchenPage() {
                 busy={!!cooking}
                 onCook={(times) => cook(dish.id, dish.ingredients ?? [], times)}
                 onTry={() => {
-                  setTargetId(dish.id)
+                  hunt(dish.id)
                   focusPanel.current = true
                   setTab('pot')
                 }}
@@ -469,7 +491,7 @@ export default function KitchenPage() {
             onGroup={setGroup}
             target={target}
             targets={targets}
-            onTarget={setTargetId}
+            onTarget={(id) => hunt(id)}
             action={
               guest ? (
                 signIn

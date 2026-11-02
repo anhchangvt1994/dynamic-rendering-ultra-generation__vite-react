@@ -17,6 +17,7 @@ import {
   groupOf,
   recipeKey,
 } from './kitchen.mjs'
+import { missingOf, pinnedOf } from './kept.mjs'
 import StatChips from './StatChips'
 
 type Flavor = keyof typeof FLAVOR_INFO
@@ -179,6 +180,10 @@ export default function Pot({
       ? FLAVOR_KEYS.filter((f) => flavorLevel(sums[f]) === goal[f])
       : []
   const matched = !!goal && hits.length === FLAVOR_KEYS.length
+  // its right ingredients found so far: pinned in the pot, or still owed
+  const kept = target?.kept ?? []
+  const pinned = pinnedOf(kept, pot)
+  const missing = missingOf(kept, pot)
   const ghost = goal
     ? FLAVOR_KEYS.map((f, i) => {
         const [lo, hi] = LEVEL_BOUNDS[goal[f]]
@@ -497,8 +502,9 @@ export default function Pot({
                       key={`${index}-${id}`}
                       type="button"
                       className="slot soap"
+                      data-pinned={pinned[index] || undefined}
                       onClick={() => onRemove(index)}
-                      aria-label={`Lấy ${itemById(id).name} ra`}
+                      aria-label={`Lấy ${itemById(id).name} ra${pinned[index] ? ' (nguyên liệu đúng)' : ''}`}
                     >
                       <img src={itemSprite(id)} alt="" width={30} height={30} />
                     </button>
@@ -579,6 +585,31 @@ export default function Pot({
           </dl>
         </div>
 
+        {target && (kept.length > 0 || missing.length > 0) && (
+          <p className="kept-note">
+            {missing.length ? (
+              <>
+                Cần thêm
+                {missing.map((id, i) => (
+                  <img
+                    key={i}
+                    src={itemSprite(id)}
+                    alt={itemById(id).name}
+                    width={22}
+                    height={22}
+                  />
+                ))}
+                <span>
+                  ({kept.length - missing.length}/{kept.length} đúng)
+                </span>
+              </>
+            ) : (
+              <>
+                Đã ghim <b>{kept.length}</b> nguyên liệu đúng
+              </>
+            )}
+          </p>
+        )}
         {goal && (
           <p className="hunt-score" aria-live="polite">
             {matched ? (
@@ -1099,6 +1130,48 @@ const PotStyle = styled.div`
   }
   .hunt .dish-art svg {
     filter: brightness(0) invert(1) opacity(0.85);
+  }
+  /* a right ingredient found before: a gold rim and a tick */
+  .soap[data-pinned]::after {
+    content: '✓';
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--night);
+    border-radius: 50%;
+    background: #ffcf3a;
+    color: #3a2400;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .soap[data-pinned] {
+    box-shadow:
+      inset 0 0 0 3px #ffcf3a,
+      0 0 18px rgba(255, 207, 58, 0.6);
+  }
+  .kept-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 24px;
+    margin: 4px 0 0;
+    color: #ffe9a8;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+  }
+  .kept-note span {
+    opacity: 0.75;
+  }
+  .kept-note img {
+    image-rendering: pixelated;
   }
   /* a slot the hunted dish doesn't need */
   .slots li[data-unneeded] .soap[data-empty] {

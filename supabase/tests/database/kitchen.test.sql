@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(46);
+select plan(49);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -75,14 +75,25 @@ select throws_ok($$ select public.kitchen_cook(null, array['oran-berry', 'oran-b
 select pg_temp.give('fire-stone', 1);
 select throws_ok($$ select public.kitchen_cook(null, array['fire-stone', 'pecha-berry']) $$, 'P0001', 'not_food', 'a stone is no food');
 
--- a failure: half back (rounded up), the attempt kept, how near a secret
+-- a failure: all back (20261107 kept), the attempt kept, how near a secret and which
 select pg_temp.give('pomeg-berry', 2);
 select pg_temp.give('aspear-berry', 1);
 select pg_temp.give('pecha-berry', 1);
 insert into r values ('fail', public.kitchen_cook(null, array['pomeg-berry', 'aspear-berry', 'pecha-berry']));
 select is((select v->>'outcome' from r where k = 'fail'), 'failed', 'no recipe: it fails');
-select is((select v->'returned' from r where k = 'fail'), '["aspear-berry", "pecha-berry"]'::jsonb, 'half comes back (2 of 3), the first ones sorted');
-select is(pg_temp.has('aspear-berry') || '/' || pg_temp.has('pecha-berry') || '/' || pg_temp.has('pomeg-berry'), '1/2/1', 'the bag keeps what came back');
+select is((select v->'returned' from r where k = 'fail'), '["aspear-berry", "pecha-berry", "pomeg-berry"]'::jsonb, 'all of it comes back, sorted');
+select is(pg_temp.has('aspear-berry') || '/' || pg_temp.has('pecha-berry') || '/' || pg_temp.has('pomeg-berry'), '1/2/2', 'the bag is as before');
+select is((select v->>'closest' from r where k = 'fail'), 'bi-an-1', 'the closest secret is named');
+select is(
+  (select d.e->'kept' from jsonb_array_elements(public.kitchen_menu()->'dishes') d(e) where d.e->>'id' = 'bi-an-1'),
+  '["pecha-berry", "pomeg-berry"]'::jsonb,
+  'its clue keeps the 2 right ones'
+);
+select is(
+  (select d.e->'kept' from jsonb_array_elements(public.kitchen_menu()->'dishes') d(e) where d.e->>'id' = 'bi-an-3'),
+  '[]'::jsonb,
+  'a secret with none right keeps none'
+);
 select is((select (v->>'near')::int from r where k = 'fail'), 2, '2 of them are in a secret recipe (Poffin Hoàng gia)');
 select ok((select not (v ? 'dish') from r where k = 'fail'), 'a failure names no dish');
 select is(
@@ -110,12 +121,13 @@ select pg_temp.give('aspear-berry', 1);
 insert into r values ('fail2', public.kitchen_cook(null, array['pomeg-berry', 'pecha-berry', 'aspear-berry']));
 select is((select (v->>'near')::int from r where k = 'fail2'), 1, 'a found secret no longer counts as near');
 
--- a failure with an ingredient twice: the half back counts each one
+-- a failure with an ingredient twice: both come back
 select pg_temp.give('oran-berry', 2);
 select pg_temp.give('pecha-berry', 1);
 insert into r values ('twice', public.kitchen_cook(null, array['pecha-berry', 'oran-berry', 'oran-berry']));
-select is((select v->'returned' from r where k = 'twice'), '["oran-berry", "oran-berry"]'::jsonb, 'both Oran come back (the first 2 sorted)');
-select is(pg_temp.has('oran-berry') || '/' || pg_temp.has('pecha-berry'), '2/2', 'the bag has both Oran back, one Pecha spent (2 left of 3)');
+select is((select v->'returned' from r where k = 'twice'), '["oran-berry", "oran-berry", "pecha-berry"]'::jsonb, 'all 3 come back');
+select is(pg_temp.has('oran-berry') || '/' || pg_temp.has('pecha-berry'), '2/3', 'the bag has all of it back');
+select is((select v->'closest' from r where k = 'twice'), 'null'::jsonb, 'near no unfound secret: closest is null');
 select ok(
   (select v->'attempts' @> '[["oran-berry", "oran-berry", "pecha-berry"]]'::jsonb from (select public.kitchen_menu() v) m),
   'the attempt is kept with its repeat'

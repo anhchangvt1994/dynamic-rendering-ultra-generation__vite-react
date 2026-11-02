@@ -274,11 +274,11 @@ export default function CookFx({ pot, result, glow, onClose, opener }: Props) {
             <h2 className="cf-title">Món này hỏng mất rồi</h2>
             <p className="cf-near">
               {result.near > 0
-                ? `Có ${result.near} nguyên liệu nằm trong một công thức bí ẩn!`
+                ? `Có ${result.near} nguyên liệu đúng của một món bí ẩn, nồi sẽ ghim lại cho lần sau!`
                 : 'Chẳng nguyên liệu nào hợp với một công thức bí ẩn.'}
             </p>
             <p className="cf-back">
-              Trả lại kệ:{' '}
+              Trả hết về túi:{' '}
               {result.returned.map((id, i) => (
                 <span key={i} className="cf-back-item">
                   <img src={itemSprite(id)} alt="" width={24} height={24} />
