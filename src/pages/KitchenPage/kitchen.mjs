@@ -1,7 +1,7 @@
 // The kitchen's public rules (docs/superpowers/specs/2026-11-02-kitchen-design.md):
 // stats, flavours, kinds, how a dish's stats come from its ingredients, and
 // a secret dish's clue. Nothing secret here: the page ships it.
-import { FLAVORS, itemById } from '../QuizPage/items.mjs'
+import { FLAVORS, FLAVOR_INFO, itemById } from '../QuizPage/items.mjs'
 
 /** The stats a dish feeds, each with the flavour behind it and its colour. */
 export const STATS = {
@@ -13,13 +13,9 @@ export const STATS = {
   friendship: { label: 'Thân thiện', flavor: null, color: '#ff9f43' },
 }
 
-export const FLAVOR_LABEL = {
-  spicy: 'Cay',
-  dry: 'Chát',
-  sweet: 'Ngọt',
-  bitter: 'Đắng',
-  sour: 'Chua',
-}
+export const FLAVOR_LABEL = Object.fromEntries(
+  Object.entries(FLAVOR_INFO).map(([flavor, info]) => [flavor, info.label])
+)
 export const FLAVOR_STAT = {
   spicy: 'power',
   dry: 'beauty',

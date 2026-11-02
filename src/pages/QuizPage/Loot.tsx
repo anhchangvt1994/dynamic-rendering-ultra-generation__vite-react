@@ -2,6 +2,7 @@ import styled from 'styled-components'
 import { forwardRef } from 'react'
 import type { CSSProperties } from 'react'
 import { TIERS, isValuable, itemById, itemSprite } from './items.mjs'
+import Flavors from './Flavors'
 
 type Props = {
   id: string
@@ -356,6 +357,7 @@ const Loot = forwardRef<HTMLImageElement, Props>(function Loot(
           </span>
           {item.name}
         </strong>
+        <Flavors id={id} className="loot-flavors" />
         <span className="loot-stats">
           {item.stats.slice(0, 2).map(([label, value]: [string, string]) => (
             <span key={label}>

@@ -586,6 +586,15 @@ export const FLAVORS = {
   'pewter-crunchies': { bitter: 10, dry: 10 },
 }
 
+/** The 5 flavours: their names and the games' Pokéblock colours. */
+export const FLAVOR_INFO = {
+  spicy: { label: 'Cay', color: '#e5483b' },
+  dry: { label: 'Chát', color: '#3b7be5' },
+  sweet: { label: 'Ngọt', color: '#f07cb4' },
+  bitter: { label: 'Đắng', color: '#3fa463' },
+  sour: { label: 'Chua', color: '#e8c022' },
+}
+
 /** The ingredients, in the catalogue's order. */
 export const INGREDIENTS = ITEMS.map((item) => item.id).filter(
   (id) => id in FLAVORS

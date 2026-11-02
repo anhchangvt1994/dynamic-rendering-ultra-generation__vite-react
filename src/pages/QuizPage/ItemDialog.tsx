@@ -12,6 +12,7 @@ import {
 } from './items.mjs'
 import { dialogCss, useModal } from './useModal'
 import { fullCount } from './progress.mjs'
+import Flavors from './Flavors'
 
 type Props = {
   id: string | null
@@ -530,6 +531,8 @@ export function ItemCard({ id, count, headingId, onClose }: CardProps) {
               </p>
             )}
             <p className="effect">{item.effect}</p>
+            {/* an ingredient's taste: the kitchen's clue */}
+            <Flavors id={item.id} className="item-flavors" />
             {item.move && type ? (
               <dl
                 className="bars"
