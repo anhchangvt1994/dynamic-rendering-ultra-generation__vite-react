@@ -15,7 +15,7 @@ import CookFx, { COOK_MS } from './CookFx'
 import DishArt from './DishArt'
 import type { CookResult, DishView, Menu, StatKey } from './engine/types'
 import { useKitchenEngine } from './engine/useKitchenEngine'
-import { hintText, recipeKey } from './kitchen.mjs'
+import { STATS, hintText, recipeKey } from './kitchen.mjs'
 import Pot, { potFlavors } from './Pot'
 import type { PantryGroup } from './Pot'
 import StatChips from './StatChips'
@@ -100,23 +100,44 @@ function MenuCard({
       data-dish={dish.id}
       data-ready={ready || undefined}
       data-secret={!dish.known || undefined}
-      style={{ '--tier': tier.color } as CSSProperties}
+      style={
+        {
+          '--tier': tier.color,
+          '--dish': STATS[dish.top[0] ?? 'friendship'].color,
+        } as CSSProperties
+      }
     >
-      <DishArt
-        kind={dish.kind}
-        top={dish.top}
-        secret={!dish.known}
-        size={88}
-        steam={ready}
-      />
+      <header className="menu-head">
+        <span className="dish-stage">
+          <DishArt
+            kind={dish.kind}
+            top={dish.top}
+            secret={!dish.known}
+            size={76}
+            steam={ready}
+          />
+        </span>
+        <div className="menu-titles">
+          <p className="menu-kicker">
+            <span className="stars" aria-hidden="true">
+              {'★'.repeat(dish.rarity)}
+            </span>
+            {dish.known ? tier.label : 'Món bí ẩn'}
+            {cooked > 0 && <span className="cooked">· đã nấu {cooked}</span>}
+          </p>
+          {dish.known ? (
+            <h3 className="dish-name">{dish.name}</h3>
+          ) : (
+            <h3 className="dish-name dish-unknown">
+              <span aria-hidden="true">???</span>
+              <span className="sr-only">Món bí ẩn</span>
+            </h3>
+          )}
+        </div>
+      </header>
       <div className="menu-body">
-        <p className="menu-kicker">
-          {'★'.repeat(dish.rarity)} {dish.known ? tier.label : 'Món bí ẩn'}
-          {cooked > 0 && <span className="cooked"> · đã nấu {cooked}</span>}
-        </p>
         {dish.known ? (
           <>
-            <h3 className="dish-name">{dish.name}</h3>
             {dish.stats && <StatChips stats={scaleStats(dish.stats, count)} />}
             <ul className="recipe" aria-label="Công thức">
               {Object.entries(needsOf(dish.ingredients ?? [])).map(
@@ -124,24 +145,17 @@ function MenuCard({
                   const have = bag[id] ?? 0
                   return (
                     <li key={id} data-short={have < n || undefined}>
-                      <span className="portion-name">{itemById(id).name}</span>
-                      <span className="portion-tray" aria-hidden="true">
-                        {Array.from({ length: n }, (_, i) => (
-                          <span
-                            key={i}
-                            className="portion-slot"
-                            data-empty={i >= have || undefined}
-                          >
-                            <img
-                              src={itemSprite(id)}
-                              alt=""
-                              width={28}
-                              height={28}
-                              loading="lazy"
-                            />
-                          </span>
-                        ))}
+                      <span className="portion-badge" aria-hidden="true">
+                        <img
+                          src={itemSprite(id)}
+                          alt=""
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                        />
+                        {n > 1 && <i className="portion-n">×{n}</i>}
                       </span>
+                      <span className="portion-name">{itemById(id).name}</span>
                       <span className="portion-ticket">
                         <b>
                           {have < n
@@ -150,54 +164,49 @@ function MenuCard({
                               ? `Dùng ${n * count}`
                               : `Đủ ${n}`}
                         </b>
-                        <span>Túi: {have}</span>
+                        <span>Túi {have}</span>
                       </span>
                     </li>
                   )
                 }
               )}
             </ul>
+            <div className="cook-row">
+              {batch && (
+                <BatchStepper
+                  count={count}
+                  max={max}
+                  disabled={busy}
+                  onChange={setChosen}
+                />
+              )}
+              <button
+                type="button"
+                className="cook"
+                disabled={guest || !ready || busy}
+                onClick={() => {
+                  onCook(count)
+                  setChosen(1)
+                }}
+                aria-label={
+                  count > 1
+                    ? `Nấu ${count} phần ${dish.name}`
+                    : `Nấu ${dish.name}`
+                }
+              >
+                {count > 1 ? `Nấu ×${count}` : 'Nấu'}
+              </button>
+            </div>
           </>
         ) : (
           <>
-            <h3 className="dish-name dish-unknown">
-              <span aria-hidden="true">???</span>
-              <span className="sr-only">Món bí ẩn</span>
-            </h3>
             <p className="menu-hint">{hintText(dish)}</p>
+            <button type="button" className="try" onClick={onTry}>
+              Tự pha chế
+            </button>
           </>
         )}
       </div>
-      {dish.known ? (
-        <div className="cook-row">
-          {batch && (
-            <BatchStepper
-              count={count}
-              max={max}
-              disabled={busy}
-              onChange={setChosen}
-            />
-          )}
-          <button
-            type="button"
-            className="cook"
-            disabled={guest || !ready || busy}
-            onClick={() => {
-              onCook(count)
-              setChosen(1)
-            }}
-            aria-label={
-              count > 1 ? `Nấu ${count} phần ${dish.name}` : `Nấu ${dish.name}`
-            }
-          >
-            {count > 1 ? `Nấu ×${count}` : 'Nấu'}
-          </button>
-        </div>
-      ) : (
-        <button type="button" className="try" onClick={onTry}>
-          Tự pha chế
-        </button>
-      )}
     </li>
   )
 }

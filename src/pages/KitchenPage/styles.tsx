@@ -218,208 +218,339 @@ export const KitchenStyle = styled.div`
   .menu-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-    gap: 14px;
+    gap: 18px 16px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
+  /* A patisserie order card: a frosted band in the dish's own flavour, the
+     dish on its cake stand, then the recipe as ingredient capsules. */
   .menu-card {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    align-content: start;
-    gap: 6px 12px;
-    padding: 14px;
+    --dish-soft: color-mix(in srgb, var(--dish) 26%, #fff);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     border: 3px solid var(--ink);
-    border-radius: 22px;
+    border-radius: 24px;
     background: #fff;
     box-shadow: 5px 5px 0 var(--ink);
   }
   .menu-card[data-offscreen] * {
     animation-play-state: paused !important;
   }
-  .menu-card[data-ready] {
-    background: linear-gradient(160deg, #fff, #fff1f6);
-  }
-  /* a secret: a lilac card, a little starlight behind its silhouette */
-  .menu-card[data-secret] {
-    background:
-      radial-gradient(
-        circle at 18% 30%,
-        rgba(176, 124, 255, 0.18),
-        transparent 40%
-      ),
-      #f7f3ff;
-  }
-  .menu-card .dish-art {
-    grid-row: 1 / 3;
-    align-self: start;
-  }
-  /* Recipe slip: artwork and title share the masthead; ingredients use
-     the whole counter rather than squeezing beside an 88px illustration. */
-  .menu-body {
-    display: contents;
-  }
-  .menu-body > .menu-kicker,
-  .menu-body > .dish-name {
-    grid-column: 2;
-  }
-  .menu-body > .stat-chips,
-  .menu-body > .recipe,
-  .menu-body > .menu-hint {
-    grid-column: 1 / -1;
-  }
-  .menu-body > .stat-chips {
-    margin-top: 8px;
-  }
-  .menu-kicker {
-    margin: 0;
-    color: var(--tier);
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    filter: brightness(0.75);
-  }
-  .menu-kicker .cooked {
-    color: var(--ink);
-    text-transform: none;
-    letter-spacing: 0;
-  }
-  .dish-name {
-    margin: 2px 0 16px;
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.15 !important;
-  }
-  .dish-unknown {
-    color: #6b5aa8;
-  }
-  .menu-hint {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.45;
-  }
-  .recipe {
-    display: grid;
-    gap: 10px;
-    margin: 12px 0 4px;
-    padding: 0;
-    list-style: none;
-    font-size: 12px;
-  }
-  .recipe li {
-    --portion-tone: #286a51;
-    --portion-paper: #d9f4de;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 72px;
-    grid-template-rows: minmax(40px, auto);
-    align-items: center;
-    gap: 3px 8px;
-    min-width: 0;
-  }
-  .recipe li[data-short] {
-    --portion-tone: #9c3554;
-    --portion-paper: #ffe0e9;
-  }
-  .portion-name {
-    font-weight: 700;
-    overflow-wrap: break-word;
-  }
-  /* A little ceramic mise-en-place tray: one hollow per portion, not
-     a progress bar. The ghost sprite makes the missing ingredient literal. */
-  .portion-tray {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    width: fit-content;
-    max-width: 100%;
-    padding: 2px 5px 5px;
-    border-radius: 9px 9px 15px 15px;
-    background: #e7eef4;
-    box-shadow:
-      inset 0 2px 0 #fff,
-      0 3px 0 #a9bccb;
-  }
-  .portion-slot {
-    display: grid;
-    place-items: center;
-    width: 29px;
-    height: 27px;
-    border-radius: 50%;
-    background: radial-gradient(ellipse, #b8cbd6, #d9e5ec 70%);
-    box-shadow: inset 0 2px 2px #172d4520;
-  }
-  .portion-slot img {
-    width: 28px;
-    height: 28px;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 2px 0 #172d4529);
-    transform: translateY(-3px) rotate(-9deg);
-  }
-  .portion-slot:nth-child(even) img {
-    transform: translateY(-3px) rotate(9deg);
-  }
-  .portion-slot[data-empty] img {
-    opacity: 0.24;
-    filter: grayscale(1);
-    transform: none;
-  }
-  .portion-ticket {
+  .menu-head {
     position: relative;
     display: grid;
-    justify-items: center;
-    align-content: center;
-    width: 72px;
-    height: 36px;
-    background: var(--portion-paper);
-    color: var(--portion-tone);
-    border-radius: 3px 3px 0 3px;
-    box-shadow: -2px 2px 0 #172d4518;
-    transform: rotate(-3deg);
-    font-variant-numeric: tabular-nums;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px 22px;
+    background: linear-gradient(
+      150deg,
+      var(--dish-soft),
+      color-mix(in srgb, var(--dish) 9%, #fff)
+    );
+    isolation: isolate;
   }
-  .portion-ticket::after {
+  /* sprinkles: thick around the dish, gone under the name */
+  .menu-head::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(
+          circle,
+          color-mix(in srgb, var(--dish) 72%, #fff) 0 2px,
+          transparent 2.6px
+        )
+        0 0 / 24px 20px,
+      radial-gradient(circle, #fff 0 1.8px, transparent 2.4px) 12px 10px / 24px
+        20px;
+    -webkit-mask-image: radial-gradient(
+      circle at 58px 50%,
+      #000 18%,
+      transparent 60%
+    );
+    mask-image: radial-gradient(circle at 58px 50%, #000 18%, transparent 60%);
+  }
+  /* the frosting's scalloped edge, melting into the white of the card */
+  .menu-head::after {
     content: '';
     position: absolute;
     right: 0;
-    bottom: 0;
-    width: 8px;
-    height: 8px;
-    background: linear-gradient(135deg, #172d4530 50%, #fff 51%);
+    bottom: -1px;
+    left: 0;
+    height: 10px;
+    background: radial-gradient(
+        circle at 10px 10px,
+        #fff 0 7px,
+        transparent 7.5px
+      ) -2px
+      0 / 20px 10px repeat-x;
+  }
+  .dish-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 50% 38%,
+      #fff 0 56%,
+      var(--dish-soft) 100%
+    );
+    box-shadow:
+      0 0 0 3px #fff,
+      0 0 0 5px var(--ink),
+      3px 4px 0 5px var(--ink);
+  }
+  .dish-stage .dish-art {
+    margin-top: -6px;
+  }
+  /* cookable now: a green tick on the stand */
+  .menu-card[data-ready] .dish-stage::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    border: 2.5px solid var(--ink);
+    border-radius: 50%;
+    background: #4cc38a
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      center / 15px no-repeat;
+  }
+  .menu-titles {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+  .menu-kicker {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: 5px;
+    height: 22px;
+    margin: 0;
+    padding: 0 9px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .menu-kicker .stars {
+    color: var(--tier);
+    letter-spacing: -1px;
+    filter: brightness(0.85);
+  }
+  .menu-kicker .cooked {
+    color: #5b6b7d;
+    font-weight: 700;
+  }
+  .dish-name {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 23px !important;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  /* a secret: a starry night band, the silhouette on a dark stand */
+  .menu-card[data-secret] .menu-head {
+    background: radial-gradient(circle at 20% 30%, #5b3f99, #2a1b4b 72%);
+  }
+  .menu-card[data-secret] .menu-head::before {
+    background:
+      radial-gradient(circle, #fff 0 1.4px, transparent 2px) 0 0 / 26px 22px,
+      radial-gradient(circle, #c9b6ff 0 1px, transparent 1.6px) 13px 11px / 26px
+        22px;
+    -webkit-mask-image: none;
+    mask-image: none;
+    opacity: 0.6;
+  }
+  .menu-card[data-secret] .dish-stage {
+    background: radial-gradient(circle at 50% 40%, #46317a, #1c1234);
+    box-shadow:
+      0 0 0 3px #b9a3ff,
+      0 0 0 5px var(--ink),
+      3px 4px 0 5px var(--ink);
+  }
+  .menu-card[data-secret] .dish-name {
+    color: #fff;
+    letter-spacing: 0.12em;
+  }
+  .menu-card[data-secret] .menu-kicker {
+    border-color: #c9b6ff;
+    background: #2a1b4b;
+    color: #efe8ff;
+  }
+  .menu-card[data-secret] .menu-kicker .stars {
+    filter: none;
+  }
+
+  .menu-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 6px 16px 16px;
+  }
+  .menu-body > .stat-chips {
+    align-content: flex-start;
+    margin: 0;
+  }
+  /* 4 stats wrap to 2 rows at every card width: held, never measured */
+  .menu-body > .stat-chips:has(> :nth-child(4)) {
+    min-height: 46px;
+  }
+  .stat-chips li {
+    line-height: 16px;
+    white-space: nowrap;
+  }
+  .menu-hint {
+    min-height: 60px;
+    margin: 0;
+    color: #4b3d73;
+    font-size: 13px;
+    line-height: 20px;
+  }
+  /* the recipe: one capsule per ingredient, its token, its name, its count */
+  .recipe {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+  }
+  .recipe li {
+    --tone: #23845b;
+    --paper: #dcf4e5;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 4px 0 2px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--paper) 45%, #fff);
+    box-shadow: inset 0 0 0 1.5px
+      color-mix(in srgb, var(--tone) 22%, transparent);
+  }
+  .recipe li[data-short] {
+    --tone: #b23a5c;
+    --paper: #ffe2eb;
+  }
+  .portion-badge {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow:
+      inset 0 0 0 2px var(--tone),
+      0 2px 0 color-mix(in srgb, var(--tone) 35%, transparent);
+  }
+  .portion-badge img {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+  }
+  li[data-short] .portion-badge img {
+    opacity: 0.45;
+    filter: grayscale(1);
+  }
+  .portion-n {
+    position: absolute;
+    right: -6px;
+    bottom: -3px;
+    min-width: 20px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 9.5px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 16px;
+    text-align: center;
+  }
+  .portion-name {
+    min-width: 0;
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 15px;
+  }
+  .portion-ticket {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    justify-content: center;
+    gap: 6px;
+    min-width: 98px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--tone);
+    font-variant-numeric: tabular-nums;
   }
   .portion-ticket b {
     font-family: var(--font-display);
     font-size: 13px;
-    line-height: 1.2;
+    line-height: 1;
   }
   .portion-ticket > span {
-    font-size: 10px;
-    line-height: 1.2;
-  }
-  .menu-body {
-    min-width: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.85;
   }
   @media (max-width: 359px) {
     .recipe li {
-      grid-template-columns: minmax(0, 1fr) auto 66px;
-      column-gap: 4px;
+      gap: 8px;
     }
     .portion-ticket {
-      width: 66px;
-    }
-    .portion-slot {
-      width: 24px;
+      min-width: 88px;
+      padding: 0 8px;
     }
   }
+
+  /* the card's foot: the batch (when the bag makes 2 or more), then Nấu */
+  .cook-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    margin-top: auto;
+  }
   .try {
-    grid-column: 2;
-    justify-self: end;
+    align-self: flex-end;
+    margin-top: auto;
   }
   .cook,
   .try {
-    min-height: 42px;
-    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 20px;
     border: 3px solid var(--ink);
     border-radius: 14px;
     background: var(--rose);
@@ -427,21 +558,35 @@ export const KitchenStyle = styled.div`
     font: inherit;
     font-family: var(--font-display);
     font-size: 15px;
+    white-space: nowrap;
     box-shadow: 3px 3px 0 var(--ink);
     cursor: pointer;
   }
+  .cook {
+    min-width: 96px;
+    background: color-mix(in srgb, var(--dish) 42%, #fff);
+  }
   .try {
     background: #e6ddff;
-    font-size: 13px;
+    font-size: 14px;
   }
   .cook:disabled {
-    opacity: 0.45;
+    border-color: #a9b5c2;
+    background: #eef2f6;
+    color: #8593a3;
+    box-shadow: 3px 3px 0 #a9b5c2;
+    opacity: 1;
     cursor: default;
   }
   .cook:not(:disabled):active,
   .try:active {
     translate: 2px 2px;
     box-shadow: 1px 1px 0 var(--ink);
+  }
+  .cook:focus-visible,
+  .try:focus-visible {
+    outline: 3px solid var(--berry);
+    outline-offset: 3px;
   }
 
   @keyframes chef-wave {
@@ -544,76 +689,6 @@ export const KitchenStyle = styled.div`
     min-height: 40px;
     padding-inline: 14px;
   }
-  /* kicker, name, stats, recipe, then the button pinned to the bottom of a
-     row-mate that is taller */
-  .menu-card {
-    grid-template-columns: 88px minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto 1fr;
-    align-content: stretch;
-    gap: 4px 12px;
-    padding: 12px 14px 14px;
-  }
-  .menu-kicker {
-    align-self: end;
-    min-height: 18px;
-    margin-top: 10px;
-    line-height: 16px;
-  }
-  .dish-name {
-    align-self: start;
-    min-height: 46px;
-    margin: 0;
-    line-height: 23px !important;
-    text-wrap: balance;
-  }
-  .menu-body > .stat-chips {
-    align-content: flex-start;
-    align-items: flex-start;
-    min-height: 46px;
-    margin: 6px 0 0;
-  }
-  .stat-chips li {
-    white-space: nowrap;
-    line-height: 16px;
-  }
-  .menu-body > .recipe {
-    gap: 4px;
-    margin: 6px 0 0;
-  }
-  .recipe li {
-    height: 40px;
-    line-height: 16px;
-  }
-  .menu-body > .menu-hint {
-    min-height: 60px;
-    margin-top: 6px;
-    line-height: 20px;
-  }
-  /* the card's foot: the batch (when the bag makes 2 or more), then Nấu.
-     44px for every card, stepper or not, so the menu never jumps */
-  .cook-row,
-  .try {
-    grid-row: 5;
-    align-self: end;
-    margin-top: 6px;
-  }
-  .cook-row {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    min-width: 0;
-  }
-  .cook,
-  .try {
-    height: 44px;
-    min-height: 44px;
-    white-space: nowrap;
-  }
-  .cook {
-    min-width: 84px;
-  }
   .batch {
     display: flex;
     align-items: stretch;
@@ -705,9 +780,6 @@ export const KitchenStyle = styled.div`
     }
     .menu-filter button {
       padding-inline: 4px;
-    }
-    .menu-body > .stat-chips {
-      min-height: 52px;
     }
   }
   @media (max-width: 420px) {

@@ -75,37 +75,55 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
     flex: 1 1 88px;
     height: 40px;
   }
-  .menu-card > .bone--round {
-    grid-row: 1 / 3;
-    width: 88px;
-    height: 88px;
+  .menu-card {
+    --dish: #b9c5d2;
+  }
+  .menu-head::before {
+    display: none;
+  }
+  .dish-stage {
+    background: var(--bone, #e3e9f0);
+  }
+  .menu-kicker {
+    border-color: transparent;
+    background: none;
+    padding: 0;
   }
   .menu-kicker .bone {
-    width: 70px;
-    height: 10px;
+    width: 84px;
+    height: 22px;
+    border-radius: 999px;
   }
   .dish-name .bone {
     width: 82%;
-    height: 18px;
-    margin-top: 3px;
+    height: 20px;
   }
   .stat-chips {
     display: flex;
     flex-wrap: wrap;
-    align-content: start;
+    align-content: flex-start;
     gap: 4px;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
   .stat-chips .bone {
     width: 76px;
-    height: 20px;
+    height: 21px;
+  }
+  .stat-chips:has(> :nth-child(4)) {
+    min-height: 46px;
+  }
+  .recipe li {
+    background: none;
+    box-shadow: none;
+    padding: 0;
   }
   .recipe .bone {
     grid-column: 1 / -1;
     width: 100%;
-    height: 28px;
-    border-radius: 9px;
+    height: 40px;
+    border-radius: 999px;
   }
   .menu-hint .bone {
     height: 10px;
@@ -115,13 +133,10 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
     width: 60%;
   }
   .skeleton-action {
-    grid-column: 2;
-    grid-row: 5;
-    align-self: end;
-    justify-self: end;
-    width: 84px;
+    align-self: flex-end;
+    width: 96px;
     height: 44px;
-    margin-top: 6px;
+    margin-top: auto;
     border-radius: 14px;
   }
   /* the intro fits one line on a wide screen */
@@ -219,14 +234,18 @@ export default function KitchenSkeleton({
               className="menu-card"
               data-secret={card.secret || undefined}
             >
-              <span className="bone bone--round" />
+              <div className="menu-head">
+                <span className="dish-stage bone bone--round" />
+                <div className="menu-titles">
+                  <div className="menu-kicker">
+                    <span className="bone" />
+                  </div>
+                  <div className="dish-name">
+                    <span className="bone" />
+                  </div>
+                </div>
+              </div>
               <div className="menu-body">
-                <div className="menu-kicker">
-                  <span className="bone" />
-                </div>
-                <div className="dish-name">
-                  <span className="bone" />
-                </div>
                 {card.secret ? (
                   <div className="menu-hint">
                     <span className="bone" />
@@ -248,8 +267,8 @@ export default function KitchenSkeleton({
                     </ul>
                   </>
                 )}
+                <span className="bone skeleton-action" />
               </div>
-              <span className="bone skeleton-action" />
             </li>
           ))}
         </ol>
