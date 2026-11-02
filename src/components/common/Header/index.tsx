@@ -58,6 +58,16 @@ const Header = ({
               Túi đồ
             </LinkCustom>
           )}
+          {(account.status !== 'off' || import.meta.env.DEV) && (
+            <LinkCustom
+              to="/che-bien"
+              aria-current={
+                location.pathname === '/che-bien' ? 'page' : undefined
+              }
+            >
+              Chế biến
+            </LinkCustom>
+          )}
           <LinkCustom
             to="/blogs"
             aria-current={

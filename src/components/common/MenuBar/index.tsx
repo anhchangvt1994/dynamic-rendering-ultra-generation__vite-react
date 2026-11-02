@@ -47,7 +47,15 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
     // items live on accounts: no accounts, no bag (dev keeps one)
     ...(account.status === 'off' && !import.meta.env.DEV
       ? []
-      : [{ title: 'Túi đồ', id: 'BagPage', icon: 'bag', path: '/tui-do' }]),
+      : [
+          { title: 'Túi đồ', id: 'BagPage', icon: 'bag', path: '/tui-do' },
+          {
+            title: 'Chế biến',
+            id: 'KitchenPage',
+            icon: 'kitchen',
+            path: '/che-bien',
+          },
+        ]),
     {
       title: 'So sánh Pokémon',
       id: 'ComparePage',

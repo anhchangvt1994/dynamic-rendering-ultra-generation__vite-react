@@ -39,6 +39,12 @@ const ServerConfig = defineServerConfig({
             name: 'tui-do-page',
           },
         }
+      else if (pathSlitted[1] === 'che-bien')
+        return {
+          loader: {
+            name: 'che-bien-page',
+          },
+        }
       else if (pathSlitted[1] === 'so-sanh')
         return {
           loader: {

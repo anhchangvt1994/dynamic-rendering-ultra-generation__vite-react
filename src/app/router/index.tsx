@@ -89,6 +89,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'BagPage',
       }, // Bag Page
       {
+        // the kitchen: the bag's food cooked into dishes
+        path: 'che-bien',
+        element: <ROUTE_MODULES.kitchen.Route />,
+        id: 'KitchenPage',
+      }, // Kitchen Page
+      {
         // /so-sanh, /so-sanh/charizard, /so-sanh/charizard-vs-blastoise
         path: 'so-sanh/:pair?',
         element: <ROUTE_MODULES.compare.Route />,

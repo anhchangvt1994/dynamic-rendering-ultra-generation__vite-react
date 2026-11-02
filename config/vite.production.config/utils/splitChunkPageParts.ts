@@ -20,10 +20,10 @@ const PAGE_PARTS: [name: string, files: RegExp][] = [
     /src\/(components\/PageSkeleton\/BagSkeleton|pages\/BagPage\/styles)\./,
   ],
   // the route skeletons (Layout shows them on the first paint) and the page
-  // styles the sign-in and quiz skeletons reuse so they can not drift
+  // styles the sign-in, quiz and kitchen skeletons reuse so they can not drift
   [
     'page-skeletons',
-    /src\/(components\/PageSkeleton\/|pages\/(QuizPage|AccountPage)\/styles\.)/,
+    /src\/(components\/PageSkeleton\/|pages\/(QuizPage|AccountPage|KitchenPage)\/styles\.)/,
   ],
 ]
 

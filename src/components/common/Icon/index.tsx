@@ -2,6 +2,9 @@
 // replace the Material Symbols web font, which blocked rendering and showed
 // the words "menu" / "search" until (or unless) it loaded.
 const PATHS = {
+  // a cooking pot, its lid lifted by the steam
+  kitchen:
+    'M4 10h16v7.5A3.5 3.5 0 0 1 16.5 21h-9A3.5 3.5 0 0 1 4 17.5zm-2-2h20v2H2zm7-3.5a1 1 0 0 1 2 0V7H9zm4 0a1 1 0 0 1 2 0V7h-2z',
   bag: 'M9 6V5a3 3 0 0 1 6 0v1h2.5A2.5 2.5 0 0 1 20 8.5v10A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-10A2.5 2.5 0 0 1 6.5 6zm2 0h2V5a1 1 0 0 0-2 0zm-3 6v2h8v-2z',
   compare: 'M9 3 4 8l5 5V9.5h7v-3H9Zm6 8v3.5H8v3h7V21l5-5Z',
   ball: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 0 1 7.94 7h-4.07a4 4 0 0 0-7.74 0H4.06A8 8 0 0 1 12 4Zm0 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-7.94 3h4.07a4 4 0 0 0 7.74 0h4.07A8 8 0 0 1 4.06 13Z',
