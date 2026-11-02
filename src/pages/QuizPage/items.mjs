@@ -551,3 +551,45 @@ export const specialGifts = (random = Math.random) =>
     sure: SPECIAL_SURE,
     rest: SPECIAL_WEIGHTS,
   })
+
+// NOTE - Flavours (potencies in tens) of the items the kitchen cooks with
+// (src/pages/KitchenPage): the berries' are the games' (PokéAPI berry/*),
+// the drinks' and sweets' were given to fit. The kitchen's migration
+// (20261104000000_kitchen.sql) has the same table: recipes.test.mjs checks
+export const FLAVORS = {
+  'oran-berry': { spicy: 10, dry: 10, bitter: 10, sour: 10 },
+  'sitrus-berry': { dry: 10, sweet: 10, bitter: 10, sour: 10 },
+  'lum-berry': { spicy: 10, dry: 10, sweet: 10, bitter: 10 },
+  'leppa-berry': { spicy: 10, sweet: 10, bitter: 10, sour: 10 },
+  'cheri-berry': { spicy: 10 },
+  'chesto-berry': { dry: 10 },
+  'pecha-berry': { sweet: 10 },
+  'rawst-berry': { bitter: 10 },
+  'aspear-berry': { sour: 10 },
+  'pomeg-berry': { spicy: 10, sweet: 10, bitter: 10 },
+  'kelpsy-berry': { dry: 10, bitter: 10, sour: 10 },
+  'qualot-berry': { spicy: 10, sweet: 10, sour: 10 },
+  'hondew-berry': { spicy: 10, dry: 10, bitter: 10 },
+  'grepa-berry': { dry: 10, sweet: 10, sour: 10 },
+  'tamato-berry': { spicy: 20, dry: 10 },
+  'fresh-water': {},
+  'moomoo-milk': { sweet: 10 },
+  lemonade: { sour: 20, sweet: 10 },
+  'soda-pop': { sweet: 10, spicy: 10 },
+  'rage-candy-bar': { spicy: 20, sweet: 10 },
+  'big-malasada': { sweet: 20 },
+  'lava-cookie': { spicy: 20 },
+  'old-gateau': { bitter: 20, sweet: 10 },
+  casteliacone: { sweet: 10, dry: 10 },
+  'lumiose-galette': { dry: 20 },
+  'shalour-sable': { sour: 10, sweet: 10 },
+  'pewter-crunchies': { bitter: 10, dry: 10 },
+}
+
+/** The ingredients, in the catalogue's order. */
+export const INGREDIENTS = ITEMS.map((item) => item.id).filter(
+  (id) => id in FLAVORS
+)
+
+/** An item's flavours ({} for water), null when it is no ingredient. */
+export const flavorsOf = (id) => FLAVORS[id] ?? null
