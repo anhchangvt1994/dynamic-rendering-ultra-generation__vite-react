@@ -9,6 +9,8 @@ import {
 } from 'pages/QuizPage/items.mjs'
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import BatchStepper from './BatchStepper'
+import { batchMax, scaleStats } from './batch.mjs'
 import CookFx, { COOK_MS } from './CookFx'
 import DishArt from './DishArt'
 import type { CookResult, DishView, Menu, StatKey } from './engine/types'
@@ -67,13 +69,33 @@ function MenuCard({
   cooked: number
   guest: boolean
   busy: boolean
-  onCook: () => void
+  onCook: (times: number) => void
   onTry: () => void
 }) {
   const ready = canCook(dish, bag)
+  // a batch: 1 to what the bag makes; the choice shrinks with the bag
+  const max = batchMax(dish.ingredients, bag)
+  const [chosen, setChosen] = useState(1)
+  const count = Math.max(1, Math.min(chosen, max))
+  const batch = !guest && max >= 2
   const tier = TIERS[dish.rarity as keyof typeof TIERS]
+  // NOTE - A card scrolled away pauses its steam and wobble: the menu's
+  // looping art only runs where it can be seen (an attribute, no re-render)
+  const ref = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    const card = ref.current
+    if (!card || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        card.toggleAttribute('data-offscreen', !entry.isIntersecting),
+      { rootMargin: '120px 0px' }
+    )
+    observer.observe(card)
+    return () => observer.disconnect()
+  }, [])
   return (
     <li
+      ref={ref}
       className="menu-card"
       data-dish={dish.id}
       data-ready={ready || undefined}
@@ -95,7 +117,7 @@ function MenuCard({
         {dish.known ? (
           <>
             <h3 className="dish-name">{dish.name}</h3>
-            {dish.stats && <StatChips stats={dish.stats} />}
+            {dish.stats && <StatChips stats={scaleStats(dish.stats, count)} />}
             <ul className="recipe" aria-label="Công thức">
               {Object.entries(needsOf(dish.ingredients ?? [])).map(
                 ([id, n]) => {
@@ -121,7 +143,13 @@ function MenuCard({
                         ))}
                       </span>
                       <span className="portion-ticket">
-                        <b>{have < n ? `Thiếu ${n - have}` : `Đủ ${n}`}</b>
+                        <b>
+                          {have < n
+                            ? `Thiếu ${n - have}`
+                            : count > 1
+                              ? `Dùng ${n * count}`
+                              : `Đủ ${n}`}
+                        </b>
                         <span>Túi: {have}</span>
                       </span>
                     </li>
@@ -141,15 +169,30 @@ function MenuCard({
         )}
       </div>
       {dish.known ? (
-        <button
-          type="button"
-          className="cook"
-          disabled={guest || !ready || busy}
-          onClick={onCook}
-          aria-label={`Nấu ${dish.name}`}
-        >
-          Nấu
-        </button>
+        <div className="cook-row">
+          {batch && (
+            <BatchStepper
+              count={count}
+              max={max}
+              disabled={busy}
+              onChange={setChosen}
+            />
+          )}
+          <button
+            type="button"
+            className="cook"
+            disabled={guest || !ready || busy}
+            onClick={() => {
+              onCook(count)
+              setChosen(1)
+            }}
+            aria-label={
+              count > 1 ? `Nấu ${count} phần ${dish.name}` : `Nấu ${dish.name}`
+            }
+          >
+            {count > 1 ? `Nấu ×${count}` : 'Nấu'}
+          </button>
+        </div>
       ) : (
         <button type="button" className="try" onClick={onTry}>
           Tự pha chế
@@ -258,15 +301,18 @@ export default function KitchenPage() {
       .sort((a, b) => rank(a.id) - rank(b.id))
   }, [menu, filter, order])
 
-  const cook = (dish: string | null, ingredients: string[]) => {
-    if (!engine || cooking) return
+  // a second tap before the dialog shows cooks nothing more
+  const cookingNow = useRef(false)
+  const cook = (dish: string | null, ingredients: string[], times = 1) => {
+    if (!engine || cooking || cookingNow.current) return
+    cookingNow.current = true
     // the focus goes back there once the dialog closes
     opener.current = document.activeElement as HTMLElement | null
     setNote('')
     setCooking({ pot: ingredients, result: null })
     const started = performance.now()
     engine
-      .cook(dish, dish ? null : ingredients)
+      .cook(dish, dish ? null : ingredients, dish ? times : 1)
       .then(async (result) => {
         // the pot has its moment, however fast the answer
         const rest = COOK_MS - (performance.now() - started)
@@ -280,6 +326,9 @@ export default function KitchenPage() {
         setCooking(null)
         setNote(ERRORS[error.message] ?? 'Bếp đang bận, thử lại sau nhé.')
         refreshBag()
+      })
+      .finally(() => {
+        cookingNow.current = false
       })
   }
 
@@ -368,7 +417,7 @@ export default function KitchenPage() {
                 cooked={dishes[dish.id] ?? 0}
                 guest={guest}
                 busy={!!cooking}
-                onCook={() => cook(dish.id, dish.ingredients ?? [])}
+                onCook={(times) => cook(dish.id, dish.ingredients ?? [], times)}
                 onTry={() => {
                   focusPanel.current = true
                   setTab('pot')

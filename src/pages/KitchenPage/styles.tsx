@@ -35,7 +35,7 @@ export const KitchenStyle = styled.div`
   /* ── the hero: Alcremie at the counter ── */
   .kitchen-hero {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 180px minmax(0, 1fr);
     align-items: center;
     gap: 20px;
     padding: 18px 20px;
@@ -94,8 +94,9 @@ export const KitchenStyle = styled.div`
   .kitchen-title {
     margin: 16px 0;
     font-family: var(--font-display);
-    font-size: clamp(32px, 7vw, 54px);
-    line-height: 1 !important;
+    font-size: clamp(26px, 4.2vw, 54px);
+    line-height: 1.15 !important;
+    text-wrap: balance;
     color: var(--berry);
     -webkit-text-stroke: 1.5px var(--ink);
     paint-order: stroke fill;
@@ -225,13 +226,17 @@ export const KitchenStyle = styled.div`
   .menu-card {
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: auto auto;
+    align-content: start;
     gap: 6px 12px;
     padding: 14px;
     border: 3px solid var(--ink);
     border-radius: 22px;
     background: #fff;
     box-shadow: 5px 5px 0 var(--ink);
+  }
+  .menu-card[data-offscreen] * {
+    animation-play-state: paused !important;
   }
   .menu-card[data-ready] {
     background: linear-gradient(160deg, #fff, #fff1f6);
@@ -250,8 +255,22 @@ export const KitchenStyle = styled.div`
     grid-row: 1 / 3;
     align-self: start;
   }
+  /* Recipe slip: artwork and title share the masthead; ingredients use
+     the whole counter rather than squeezing beside an 88px illustration. */
   .menu-body {
-    min-width: 0;
+    display: contents;
+  }
+  .menu-body > .menu-kicker,
+  .menu-body > .dish-name {
+    grid-column: 2;
+  }
+  .menu-body > .stat-chips,
+  .menu-body > .recipe,
+  .menu-body > .menu-hint {
+    grid-column: 1 / -1;
+  }
+  .menu-body > .stat-chips {
+    margin-top: 8px;
   }
   .menu-kicker {
     margin: 0;
@@ -293,8 +312,8 @@ export const KitchenStyle = styled.div`
     --portion-tone: #286a51;
     --portion-paper: #d9f4de;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 72px;
-    grid-template-rows: auto 36px;
+    grid-template-columns: minmax(0, 1fr) auto 72px;
+    grid-template-rows: minmax(40px, auto);
     align-items: center;
     gap: 3px 8px;
     min-width: 0;
@@ -304,9 +323,8 @@ export const KitchenStyle = styled.div`
     --portion-paper: #ffe0e9;
   }
   .portion-name {
-    grid-column: 1 / -1;
     font-weight: 700;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
   /* A little ceramic mise-en-place tray: one hollow per portion, not
      a progress bar. The ghost sprite makes the missing ingredient literal. */
@@ -384,7 +402,7 @@ export const KitchenStyle = styled.div`
   }
   @media (max-width: 359px) {
     .recipe li {
-      grid-template-columns: minmax(0, 1fr) 66px;
+      grid-template-columns: minmax(0, 1fr) auto 66px;
       column-gap: 4px;
     }
     .portion-ticket {
@@ -394,10 +412,12 @@ export const KitchenStyle = styled.div`
       width: 24px;
     }
   }
-  .cook,
   .try {
     grid-column: 2;
     justify-self: end;
+  }
+  .cook,
+  .try {
     min-height: 42px;
     padding: 0 18px;
     border: 3px solid var(--ink);
@@ -430,18 +450,277 @@ export const KitchenStyle = styled.div`
     }
   }
 
-  @media (max-width: 599px) {
+  .flavor-key li,
+  .menu-filter button,
+  .portion-ticket b,
+  .portion-ticket > span {
+    white-space: nowrap;
+  }
+  @media (max-width: 679px) {
     padding-top: 16px;
     .kitchen-hero {
       grid-template-columns: 1fr;
       text-align: center;
     }
     .flavor-key {
-      justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      text-align: center;
+    }
+    .flavor-key li {
+      padding-inline: 4px;
+      font-size: 11px;
+    }
+    .flavor-key li:last-child {
+      grid-column: 1 / -1;
+      justify-self: center;
+      padding-inline: 12px;
+    }
+    .kitchen-title {
+      font-size: clamp(26px, 6.8vw, 44px);
+    }
+    .kitchen-hero {
+      padding-inline: 14px;
     }
     .chef img {
       width: 110px;
       height: 110px;
+    }
+  }
+  /* Shared geometry for the route's loading and loaded states: each text
+     row reserves its line boxes (min-height, never a fixed box, so a longer
+     line grows instead of overlapping), and cards size to their recipe. */
+  .chef-line {
+    min-height: 46px;
+    line-height: 14px;
+  }
+  .kitchen-kicker {
+    min-height: 18px;
+    line-height: 18px;
+  }
+  .kitchen-title {
+    min-height: 62px;
+    margin: 6px 0 8px;
+    line-height: 62px !important;
+  }
+  .kitchen-lede {
+    min-height: 42px;
+    margin-bottom: 12px;
+    line-height: 21px;
+  }
+  .flavor-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 26px;
+    margin-bottom: 10px;
+  }
+  .flavor-key li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* a flex row drops the spaces around the arrow: the gap puts them back */
+    gap: 0.3em;
+    height: 26px;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+  .kitchen-found {
+    min-height: 28px;
+    line-height: 28px;
+  }
+  .kitchen-tabs {
+    margin-top: 18px;
+    margin-bottom: 12px;
+  }
+  .menu-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .menu-filter button {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding-inline: 14px;
+  }
+  /* kicker, name, stats, recipe, then the button pinned to the bottom of a
+     row-mate that is taller */
+  .menu-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    align-content: stretch;
+    gap: 4px 12px;
+    padding: 12px 14px 14px;
+  }
+  .menu-kicker {
+    align-self: end;
+    min-height: 18px;
+    margin-top: 10px;
+    line-height: 16px;
+  }
+  .dish-name {
+    align-self: start;
+    min-height: 46px;
+    margin: 0;
+    line-height: 23px !important;
+    text-wrap: balance;
+  }
+  .menu-body > .stat-chips {
+    align-content: flex-start;
+    align-items: flex-start;
+    min-height: 46px;
+    margin: 6px 0 0;
+  }
+  .stat-chips li {
+    white-space: nowrap;
+    line-height: 16px;
+  }
+  .menu-body > .recipe {
+    gap: 4px;
+    margin: 6px 0 0;
+  }
+  .recipe li {
+    height: 40px;
+    line-height: 16px;
+  }
+  .menu-body > .menu-hint {
+    min-height: 60px;
+    margin-top: 6px;
+    line-height: 20px;
+  }
+  /* the card's foot: the batch (when the bag makes 2 or more), then Nấu.
+     44px for every card, stepper or not, so the menu never jumps */
+  .cook-row,
+  .try {
+    grid-row: 5;
+    align-self: end;
+    margin-top: 6px;
+  }
+  .cook-row {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+  }
+  .cook,
+  .try {
+    height: 44px;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .cook {
+    min-width: 84px;
+  }
+  .batch {
+    display: flex;
+    align-items: stretch;
+    height: 44px;
+    margin-right: auto;
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 3px 3px 0 var(--ink);
+    overflow: hidden;
+  }
+  .batch button {
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .batch button:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .batch button:focus-visible {
+    outline: 3px solid var(--berry);
+    outline-offset: -4px;
+  }
+  .batch-step {
+    width: 38px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .batch-step:not(:disabled):active {
+    background: var(--rose);
+  }
+  /* the count, and the most the bag makes: tap it to cook them all */
+  .batch-count {
+    display: grid;
+    place-content: center;
+    min-width: 54px;
+    padding: 0 4px;
+    border-inline: 2px solid var(--ink) !important;
+    font-variant-numeric: tabular-nums;
+  }
+  .batch-count b {
+    font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 17px;
+  }
+  .batch-count small {
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 11px;
+    color: #8a5a6b;
+    white-space: nowrap;
+  }
+  .batch-count[aria-pressed='true'] {
+    background: var(--rose);
+  }
+  .batch-count[aria-pressed='true'] small {
+    color: var(--ink);
+  }
+  @media (min-width: 1200px) {
+    .kitchen-lede {
+      min-height: 21px;
+    }
+  }
+  @media (max-width: 679px) {
+    .kitchen-title {
+      min-height: 52px;
+      line-height: 52px !important;
+    }
+    .kitchen-lede {
+      min-height: 63px;
+    }
+    .flavor-key {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 26px;
+      justify-items: stretch;
+    }
+    .flavor-key li {
+      padding-inline: 4px;
+      font-size: 11px;
+    }
+    .menu-filter {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .menu-filter button {
+      padding-inline: 4px;
+    }
+    .menu-body > .stat-chips {
+      min-height: 52px;
+    }
+  }
+  @media (max-width: 420px) {
+    .kitchen-lede {
+      min-height: 84px;
+    }
+    .menu-body > .menu-hint {
+      min-height: 80px;
+    }
+  }
+  @media (max-width: 359px) {
+    .kitchen-lede {
+      min-height: 105px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
