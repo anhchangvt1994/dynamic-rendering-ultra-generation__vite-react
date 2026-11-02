@@ -6,6 +6,7 @@ import { test } from 'node:test'
 import { DISHES } from '../recipes.mjs'
 import { KNOWN, SECRET_CLUES, publicMenu } from '../menu.mjs'
 import { cookPot, menuOf } from './rules.mjs'
+import { flavorLevel, shapeOf } from '../kitchen.mjs'
 import { batchMax, scaleStats } from '../batch.mjs'
 import { createLocalEngine, KEYS } from './local.mjs'
 import { createGuestEngine } from './guest.mjs'
@@ -253,4 +254,27 @@ test('the local and server engines cook a batch', async () => {
       },
     ],
   ])
+})
+
+// the secret dishes' flavour shadow (2026-11-02-kitchen-flavor-shadow-design.md)
+test('a flavour sum in 3 levels, capped at 40', () => {
+  assert.deepEqual(
+    [0, 13, 14, 26, 27, 40, 90].map(flavorLevel),
+    [0, 0, 1, 1, 2, 2, 2]
+  )
+})
+
+test("every secret's clue carries its recipe's shape, and still no recipe", () => {
+  for (const clue of SECRET_CLUES) {
+    const dish = DISHES.find((d) => d.id === clue.id)
+    assert.deepEqual(clue.shape, shapeOf(dish.ingredients), clue.id)
+    assert.deepEqual(Object.keys(clue.shape), [
+      'spicy',
+      'dry',
+      'sweet',
+      'bitter',
+      'sour',
+    ])
+    assert.ok(!('ingredients' in clue) && !('name' in clue))
+  }
 })

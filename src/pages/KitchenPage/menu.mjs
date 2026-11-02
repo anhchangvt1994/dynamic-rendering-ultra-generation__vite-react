@@ -76,6 +76,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { drink: 1, berry: 2 },
     top: ['happiness', 'wisdom'],
+    shape: { spicy: 0, dry: 0, sweet: 2, bitter: 0, sour: 0 },
   },
   {
     id: 'bi-an-2',
@@ -86,6 +87,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { berry: 2, drink: 1 },
     top: ['agility', 'wisdom'],
+    shape: { spicy: 0, dry: 0, sweet: 0, bitter: 0, sour: 1 },
   },
   {
     id: 'bi-an-3',
@@ -96,6 +98,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { sweet: 2, berry: 1 },
     top: ['happiness', 'agility'],
+    shape: { spicy: 0, dry: 0, sweet: 2, bitter: 0, sour: 1 },
   },
   {
     id: 'bi-an-4',
@@ -106,6 +109,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { berry: 2, sweet: 1 },
     top: ['power', 'wisdom'],
+    shape: { spicy: 2, dry: 0, sweet: 0, bitter: 1, sour: 0 },
   },
   {
     id: 'bi-an-5',
@@ -116,6 +120,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { sweet: 1, berry: 1, drink: 1 },
     top: ['agility', 'happiness'],
+    shape: { spicy: 0, dry: 1, sweet: 2, bitter: 0, sour: 2 },
   },
   {
     id: 'bi-an-6',
@@ -126,6 +131,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { berry: 3 },
     top: ['power', 'beauty'],
+    shape: { spicy: 2, dry: 0, sweet: 0, bitter: 0, sour: 0 },
   },
   {
     id: 'bi-an-7',
@@ -136,6 +142,7 @@ export const SECRET_CLUES = [
     count: 3,
     groups: { drink: 1, sweet: 1, berry: 1 },
     top: ['wisdom', 'happiness'],
+    shape: { spicy: 0, dry: 0, sweet: 2, bitter: 2, sour: 0 },
   },
   {
     id: 'bi-an-8',
@@ -146,6 +153,7 @@ export const SECRET_CLUES = [
     count: 4,
     groups: { berry: 4 },
     top: ['wisdom', 'power'],
+    shape: { spicy: 2, dry: 1, sweet: 1, bitter: 2, sour: 1 },
   },
 ]
 

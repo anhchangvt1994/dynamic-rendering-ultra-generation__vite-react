@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(45);
+select plan(46);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -50,6 +50,11 @@ select is(
   'a secret dish shows its kind, its count, its groups and its 2 strongest stats'
 );
 select is((select v->'found' from r where k = 'menu'), '0'::jsonb, 'nothing found yet');
+select is(
+  (select d.e->'shape' from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu' and d.e->>'id' = 'bi-an-1'),
+  '{"spicy": 0, "dry": 0, "sweet": 2, "bitter": 0, "sour": 0}'::jsonb,
+  'a secret''s clue carries its flavour shadow (kitchen.mjs shapeOf)'
+);
 
 -- a known dish from the menu
 select throws_ok($$ select public.kitchen_cook('poffin-pecha', null) $$, 'P0001', 'missing', 'no ingredients: nothing to cook');

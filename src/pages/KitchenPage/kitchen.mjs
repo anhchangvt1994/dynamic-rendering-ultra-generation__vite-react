@@ -103,7 +103,31 @@ export function dishView(
   }
 }
 
-/** A secret dish not found yet: its kind, count, groups, 2 strongest stats. */
+/** The flavours in the pot's order (the pentagon's axes, from the top). */
+export const FLAVOR_ORDER = ['spicy', 'dry', 'sweet', 'bitter', 'sour']
+// a full axis of the pot's pentagon (Pot.tsx FULL)
+const AXIS = 40
+
+/** A flavour's sum in 3 levels (0, 1, 2), capped at a full axis. */
+export const flavorLevel = (sum) =>
+  Math.min(2, Math.floor((Math.min(sum, AXIS) * 3) / AXIS))
+
+/** A recipe's flavour shadow: each flavour's level (the database's too). */
+export function shapeOf(ingredients) {
+  return Object.fromEntries(
+    FLAVOR_ORDER.map((flavor) => [
+      flavor,
+      flavorLevel(
+        ingredients.reduce((sum, id) => sum + (FLAVORS[id]?.[flavor] ?? 0), 0)
+      ),
+    ])
+  )
+}
+
+/**
+ * A secret dish not found yet: its kind, count, groups, 2 strongest stats
+ * and its flavour shadow; never its recipe.
+ */
 export function clueOf(dish) {
   const groups = {}
   for (const id of dish.ingredients)
@@ -117,6 +141,7 @@ export function clueOf(dish) {
     count: dish.ingredients.length,
     groups,
     top: dish.top,
+    shape: shapeOf(dish.ingredients),
   }
 }
 
