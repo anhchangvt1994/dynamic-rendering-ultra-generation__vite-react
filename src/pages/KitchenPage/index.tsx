@@ -414,6 +414,7 @@ export default function KitchenPage() {
               setPot((current) => current.filter((_, i) => i !== index))
             }
             onClear={() => setPot([])}
+            known={!!potKnown}
             action={
               guest ? (
                 signIn

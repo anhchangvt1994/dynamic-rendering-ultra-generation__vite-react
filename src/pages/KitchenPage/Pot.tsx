@@ -23,10 +23,10 @@ const GROUPS: { id: Group | 'all'; label: string }[] = [
 ]
 // where the 4 slots float over the cauldron's mouth (% of the stage)
 const ORBIT = [
-  [17, 30],
-  [37, 14],
-  [63, 14],
-  [83, 30],
+  [14, 33],
+  [35, 15],
+  [65, 15],
+  [86, 33],
 ]
 // the pentagon's scale: a full axis is 40 (four tens of one flavour), so a
 // usual pot of 3 fills a good part of it
@@ -96,6 +96,8 @@ type Props = {
   onClear: () => void
   /** the cook button, or the invitation to sign in */
   action: ReactNode
+  /** the pot is a recipe the player knows: the brew shimmers gold */
+  known?: boolean
 }
 
 /**
@@ -112,6 +114,7 @@ export default function Pot({
   onRemove,
   onClear,
   action,
+  known = false,
 }: Props) {
   const [group, setGroup] = useState<Group | 'all'>('all')
   // what the bag has first; kept while the tab is open, so a bubble that
@@ -195,61 +198,215 @@ export default function Pot({
         </ul>
       </section>
 
-      <section className="cauldron" aria-label="Nồi">
+      <section
+        className="cauldron"
+        aria-label="Nồi"
+        data-count={pot.length}
+        data-known={known || undefined}
+      >
         <div className="stage">
           <span className="halo" aria-hidden="true" />
-          <svg className="pot-svg" viewBox="0 0 240 190" aria-hidden="true">
-            <path
-              className="flame f1"
-              d="M78 182q-14-22 4-40 2 16 12 18-2-14 8-26 6 22 6 34-6 16-30 14z"
+          {/* embers drifting up from the fire */}
+          <span className="embers" aria-hidden="true">
+            {Array.from({ length: 7 }, (_, i) => (
+              <i key={i} style={{ '--i': i } as CSSProperties} />
+            ))}
+          </span>
+          <svg className="pot-svg" viewBox="0 0 300 250" aria-hidden="true">
+            <defs>
+              <linearGradient id="copper" x1="0" x2="1">
+                <stop offset="0" stopColor="#5e2a12" />
+                <stop offset="0.22" stopColor="#c4683a" />
+                <stop offset="0.42" stopColor="#f7c08c" />
+                <stop offset="0.58" stopColor="#df874c" />
+                <stop offset="1" stopColor="#5e2a12" />
+              </linearGradient>
+              <linearGradient id="rim" x1="0" x2="1">
+                <stop offset="0" stopColor="#7a3a1a" />
+                <stop offset="0.45" stopColor="#ffd2a1" />
+                <stop offset="1" stopColor="#7a3a1a" />
+              </linearGradient>
+              <radialGradient id="brew" cx="0.4" cy="0.35" r="0.8">
+                <stop offset="0" className="brew-light" />
+                <stop offset="0.7" className="brew-mid" />
+                <stop offset="1" className="brew-deep" />
+              </radialGradient>
+              <clipPath id="mouth">
+                <ellipse cx="150" cy="104" rx="98" ry="21" />
+              </clipPath>
+            </defs>
+            {/* the fire: crossed logs, three flames */}
+            <ellipse
+              cx="150"
+              cy="240"
+              rx="104"
+              ry="9"
+              fill="rgba(0,0,0,0.35)"
+            />
+            <rect
+              x="70"
+              y="222"
+              width="160"
+              height="16"
+              rx="8"
+              fill="#6b3b1f"
+              stroke="#2a1630"
+              strokeWidth="5"
+              transform="rotate(-8 150 230)"
+            />
+            <rect
+              x="70"
+              y="222"
+              width="160"
+              height="16"
+              rx="8"
+              fill="#7d4826"
+              stroke="#2a1630"
+              strokeWidth="5"
+              transform="rotate(8 150 230)"
             />
             <path
-              className="flame f2"
-              d="M134 184q-12-24 8-42 0 14 10 18 0-14 10-24 6 22 2 34-8 16-30 14z"
+              className="flame back"
+              d="M108 228c-16-26 4-48 10-62 4 18 16 22 16 34 8-16 4-30 16-44 16 22 24 46 12 72z"
             />
             <path
-              d="M28 64h184l-14 82a34 34 0 0 1-34 28H76a34 34 0 0 1-34-28z"
-              fill="#c9773f"
+              className="flame mid"
+              d="M124 230c-12-22 2-40 10-50 2 14 12 18 12 28 8-12 6-22 14-32 10 18 14 38 4 54z"
+            />
+            <path
+              className="flame core"
+              d="M138 232c-6-14 2-26 8-32 2 10 8 12 8 18 4-6 4-12 8-18 6 12 8 24 0 32z"
+            />
+            {/* the cauldron: a round copper belly, a band of rivets, handles */}
+            <path
+              d="M54 108c-8 64 30 116 96 116s104-52 96-116z"
+              fill="url(#copper)"
               stroke="#2a1630"
               strokeWidth="6"
               strokeLinejoin="round"
             />
             <path
-              d="M48 92h144"
-              stroke="#f0b27a"
-              strokeWidth="8"
-              strokeLinecap="round"
-              opacity="0.75"
-            />
-            <path
-              d="M58 150q62 18 124 0"
-              stroke="#8f4a22"
-              strokeWidth="6"
-              strokeLinecap="round"
+              d="M58 140c40 18 144 18 184 0"
               fill="none"
-              opacity="0.6"
-            />
-            <ellipse cx="120" cy="64" rx="96" ry="22" fill="#2a1630" />
-            <ellipse className="brew" cx="120" cy="66" rx="86" ry="16" />
-            <ellipse
-              cx="96"
-              cy="60"
-              rx="22"
-              ry="4"
-              fill="#fff"
-              opacity="0.35"
-            />
-            <path
-              d="M10 70h22M208 70h22"
               stroke="#2a1630"
-              strokeWidth="10"
-              strokeLinecap="round"
+              strokeWidth="5"
+              opacity="0.55"
             />
-          </svg>
-          <span className="fizz" aria-hidden="true" data-count={pot.length}>
-            {Array.from({ length: 6 }, (_, i) => (
-              <i key={i} style={{ '--i': i } as CSSProperties} />
+            {[78, 108, 150, 192, 222].map((x, i) => (
+              <circle
+                key={x}
+                cx={x}
+                cy={i === 2 ? 153 : i % 4 === 0 ? 146 : 151}
+                r="3.4"
+                fill="#ffd2a1"
+                stroke="#2a1630"
+                strokeWidth="2"
+              />
             ))}
+            <path
+              d="M84 196c26 16 106 16 132 0"
+              fill="none"
+              stroke="#fff"
+              strokeWidth="5"
+              strokeLinecap="round"
+              opacity="0.18"
+            />
+            <ellipse
+              cx="42"
+              cy="124"
+              rx="13"
+              ry="17"
+              fill="none"
+              stroke="#2a1630"
+              strokeWidth="9"
+            />
+            <ellipse
+              cx="42"
+              cy="124"
+              rx="13"
+              ry="17"
+              fill="none"
+              stroke="#e7a16a"
+              strokeWidth="4"
+            />
+            <ellipse
+              cx="258"
+              cy="124"
+              rx="13"
+              ry="17"
+              fill="none"
+              stroke="#2a1630"
+              strokeWidth="9"
+            />
+            <ellipse
+              cx="258"
+              cy="124"
+              rx="13"
+              ry="17"
+              fill="none"
+              stroke="#e7a16a"
+              strokeWidth="4"
+            />
+            {/* the rim, the brew: a whirl seen in perspective, bubbles */}
+            <ellipse
+              cx="150"
+              cy="104"
+              rx="112"
+              ry="28"
+              fill="url(#rim)"
+              stroke="#2a1630"
+              strokeWidth="6"
+            />
+            <ellipse cx="150" cy="104" rx="98" ry="21" fill="#1a0c1f" />
+            <g clipPath="url(#mouth)">
+              <ellipse
+                className="brew"
+                cx="150"
+                cy="106"
+                rx="98"
+                ry="21"
+                fill="url(#brew)"
+              />
+              <g transform="translate(150 106) scale(1 0.22)">
+                <g className="whirl">
+                  <path d="M0 0c22-6 46 8 50 34" />
+                  <path d="M0 0c-22 6-46-8-50-34" />
+                  <path d="M0 0c6 22-8 46-34 50" />
+                  <path d="M0 0c-6-22 8-46 34-50" />
+                  <circle r="70" />
+                </g>
+              </g>
+              {[
+                [112, 104],
+                [176, 100],
+                [146, 112],
+                [196, 110],
+                [100, 110],
+              ].map(([x, y], i) => (
+                <circle
+                  key={i}
+                  className="pop"
+                  cx={x}
+                  cy={y}
+                  r="4.5"
+                  style={{ '--i': i } as CSSProperties}
+                />
+              ))}
+              <ellipse
+                cx="118"
+                cy="98"
+                rx="30"
+                ry="4"
+                fill="#fff"
+                opacity="0.28"
+              />
+            </g>
+          </svg>
+          {/* steam the colour of the brew */}
+          <span className="steam" aria-hidden="true">
+            <i />
+            <i />
+            <i />
           </span>
           <ol className="slots" aria-label="Trong nồi">
             {ORBIT.map(([x, y], index) => {
@@ -260,15 +417,14 @@ export default function Pot({
                     <button
                       key={`${index}-${id}`}
                       type="button"
-                      className="slot"
+                      className="slot soap"
                       onClick={() => onRemove(index)}
                       aria-label={`Lấy ${itemById(id).name} ra`}
-                      style={{ '--ring': ringOf(id) } as CSSProperties}
                     >
                       <img src={itemSprite(id)} alt="" width={30} height={30} />
                     </button>
                   ) : (
-                    <span className="slot" data-empty="">
+                    <span className="slot soap" data-empty="">
                       <span className="sr-only">Ô trống</span>
                     </span>
                   )}
@@ -426,7 +582,8 @@ const PotStyle = styled.div`
     font: inherit;
     cursor: pointer;
   }
-  /* a glass bubble, its flavours as a ring of colour around it */
+  /* a soap bubble on the shelf: an iridescent film, a glint, and a thin
+     rim in the ingredient's flavours (their shares) */
   .bubble {
     position: relative;
     display: grid;
@@ -435,8 +592,8 @@ const PotStyle = styled.div`
     height: 76px;
     flex: none;
     border-radius: 50%;
-    background: var(--ring);
-    box-shadow: 0 6px 0 rgba(23, 45, 69, 0.18);
+    background: radial-gradient(circle at 50% 60%, #f4fbff, #e4f2fb 70%);
+    box-shadow: 0 6px 0 rgba(23, 45, 69, 0.14);
     transition:
       transform 180ms cubic-bezier(0.3, 1.6, 0.5, 1),
       filter 200ms;
@@ -444,15 +601,44 @@ const PotStyle = styled.div`
   .bubble::before {
     content: '';
     position: absolute;
-    inset: 6px;
+    inset: 0;
     border-radius: 50%;
     background:
-      radial-gradient(circle at 32% 28%, #fff 0 10%, transparent 26%),
-      radial-gradient(circle at 50% 60%, #f3fbff, #d7ecfa 70%, #bcd9ee);
-    box-shadow: inset 0 -6px 10px rgba(23, 45, 69, 0.12);
+      radial-gradient(circle at 30% 26%, #fff 0 6%, transparent 14%),
+      conic-gradient(from 60deg, #ff6ec7, #6ebeff, #8cffbe, #ffe66e, #ff6ec7);
+    -webkit-mask: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.08) 50%,
+      rgba(0, 0, 0, 0.5) 66%,
+      transparent 72%
+    );
+    mask: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.08) 50%,
+      rgba(0, 0, 0, 0.5) 66%,
+      transparent 72%
+    );
+  }
+  .bubble::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--ring);
+    -webkit-mask: radial-gradient(
+      circle closest-side,
+      transparent calc(100% - 4px),
+      #000 calc(100% - 3.5px)
+    );
+    mask: radial-gradient(
+      circle closest-side,
+      transparent calc(100% - 4px),
+      #000 calc(100% - 3.5px)
+    );
   }
   .bubble img {
     position: relative;
+    z-index: 1;
     width: 36px;
     height: 36px;
     image-rendering: pixelated;
@@ -463,6 +649,7 @@ const PotStyle = styled.div`
   }
   .jar-count {
     position: absolute;
+    z-index: 1;
     right: -2px;
     top: -2px;
     display: grid;
@@ -507,104 +694,171 @@ const PotStyle = styled.div`
     opacity: 0.5;
   }
 
-  /* ── the cauldron, on its stove, at night ── */
+  /* ── the cauldron over its fire, at night ── */
   .cauldron {
     position: sticky;
     top: 16px;
     display: grid;
     gap: 12px;
     padding: 16px;
+    overflow: hidden;
     border: 3px solid var(--ink);
     border-radius: 28px;
     background:
       radial-gradient(
-        circle at 50% 30%,
-        color-mix(in srgb, var(--liquid) 30%, transparent),
-        transparent 60%
+        circle at 50% 42%,
+        color-mix(in srgb, var(--liquid) 28%, transparent),
+        transparent 58%
       ),
       radial-gradient(
-          circle at 18% 12%,
-          rgba(255, 230, 160, 0.25) 0 2px,
-          transparent 3px
-        )
-        0 0 / 46px 46px,
+        circle at 50% 100%,
+        rgba(255, 140, 60, 0.35),
+        transparent 45%
+      ),
       linear-gradient(170deg, var(--plum), var(--night));
     color: #fff;
     box-shadow: 5px 5px 0 var(--ink);
   }
   .stage {
     position: relative;
-    height: 230px;
+    height: 300px;
   }
   .halo {
     position: absolute;
     left: 50%;
-    top: 46%;
-    width: 220px;
-    height: 120px;
+    top: 58%;
+    width: 300px;
+    height: 150px;
     border-radius: 50%;
     background: radial-gradient(
       closest-side,
-      color-mix(in srgb, var(--liquid) 70%, transparent),
+      color-mix(in srgb, var(--liquid) 65%, transparent),
       transparent
     );
     transform: translate(-50%, -50%);
-    filter: blur(6px);
+    filter: blur(8px);
   }
   .pot-svg {
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: 240px;
+    width: min(300px, 100%);
     transform: translateX(-50%);
     overflow: visible;
   }
-  .brew {
-    fill: var(--liquid);
-    transition: fill 400ms;
+  /* the brew: its colour is the pot's flavours */
+  .brew-light {
+    stop-color: color-mix(in srgb, var(--liquid) 45%, #fff);
+  }
+  .brew-mid {
+    stop-color: var(--liquid);
+  }
+  .brew-deep {
+    stop-color: color-mix(in srgb, var(--liquid) 55%, #1a0c1f);
+  }
+  .whirl {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 5;
+    stroke-linecap: round;
+    animation: whirl 5s linear infinite;
+  }
+  .whirl circle {
+    stroke: rgba(255, 255, 255, 0.14);
+    stroke-width: 3;
+  }
+  .pop {
+    fill: color-mix(in srgb, var(--liquid) 35%, #fff);
+    stroke: rgba(255, 255, 255, 0.8);
+    stroke-width: 1;
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: brew-pop 2.4s ease-in infinite;
+    animation-delay: calc(var(--i) * -0.48s);
+  }
+  .cauldron[data-count='0'] .pop,
+  .cauldron[data-count='0'] .steam i {
+    animation: none;
+  }
+  /* a pot that is a known recipe shimmers gold: ready to cook */
+  .cauldron[data-known] .brew {
+    animation: brew-gold 1.4s ease-in-out infinite alternate;
   }
   .flame {
-    fill: #ffb347;
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: flicker 520ms ease-in-out infinite alternate;
+  }
+  .flame.back {
+    fill: #ff5a36;
     stroke: #2a1630;
     stroke-width: 4;
-    transform-origin: 50% 100%;
-    transform-box: fill-box;
-    animation: flicker 600ms ease-in-out infinite alternate;
   }
-  .f2 {
-    fill: #ff7a45;
-    animation-delay: -300ms;
+  .flame.mid {
+    fill: #ffa23a;
+    animation-duration: 430ms;
+    animation-delay: -200ms;
   }
-  /* the brew fizzes: livelier the fuller the pot */
-  .fizz {
+  .flame.core {
+    fill: #ffe58a;
+    animation-duration: 360ms;
+  }
+  .embers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .embers i {
+    position: absolute;
+    bottom: 34px;
+    left: calc(40% + var(--i) * 3%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffd27a;
+    box-shadow: 0 0 6px #ff7a45;
+    opacity: 0;
+    animation: ember 2.6s ease-out infinite;
+    animation-delay: calc(var(--i) * -0.37s);
+  }
+  .steam {
     position: absolute;
     left: 50%;
-    top: 104px;
-    width: 150px;
+    top: 92px;
+    width: 200px;
     height: 70px;
     transform: translateX(-50%);
     pointer-events: none;
   }
-  .fizz i {
+  .steam i {
     position: absolute;
     bottom: 0;
-    left: calc(8% + var(--i) * 16%);
-    width: 9px;
-    height: 9px;
+    width: 50px;
+    height: 70px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--liquid) 50%, #fff);
+    background: radial-gradient(
+      color-mix(in srgb, var(--liquid) 45%, #fff),
+      transparent 70%
+    );
+    filter: blur(6px);
     opacity: 0;
-    animation: fizz 1.8s ease-in infinite;
-    animation-delay: calc(var(--i) * -0.3s);
+    animation: steam 3.2s ease-out infinite;
   }
-  .fizz[data-count='0'] i {
-    animation: none;
+  .steam i:nth-child(1) {
+    left: 8%;
   }
-  .fizz[data-count='3'] i,
-  .fizz[data-count='4'] i {
-    animation-duration: 1.1s;
+  .steam i:nth-child(2) {
+    left: 40%;
+    animation-delay: -1.1s;
   }
-  /* 4 slots floating over the mouth: fixed circles, never stretched */
+  .steam i:nth-child(3) {
+    left: 70%;
+    animation-delay: -2.2s;
+  }
+
+  /* 4 soap bubbles floating over the mouth: an iridescent film, a glint,
+     a thin bright rim; filled, an ingredient inside */
   .slots {
     margin: 0;
     padding: 0;
@@ -614,47 +868,72 @@ const PotStyle = styled.div`
     position: absolute;
     transform: translate(-50%, -50%);
   }
-  .slots li:nth-child(odd) .slot {
-    animation: hover 2.6s ease-in-out infinite;
-  }
-  .slots li:nth-child(even) .slot {
-    animation: hover 2.6s ease-in-out -1.3s infinite;
-  }
-  .slot {
+  .soap {
     position: relative;
     display: grid;
     place-items: center;
-    width: 60px;
-    height: 60px;
+    width: 66px;
+    height: 66px;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: var(--ring);
+    background: transparent;
     cursor: pointer;
+    animation: drift 4.2s ease-in-out infinite;
   }
-  button.slot::before {
+  .slots li:nth-child(even) .soap {
+    animation-delay: -2.1s;
+  }
+  .soap::before {
     content: '';
     position: absolute;
-    inset: 5px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at 35% 30%,
-      #fff 0 12%,
-      #f3fbff 30%,
-      #cfe6f6
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 30% 26%, #fff 0 5%, transparent 13%),
+      radial-gradient(
+        circle at 70% 74%,
+        rgba(255, 255, 255, 0.6) 0 4%,
+        transparent 10%
+      ),
+      conic-gradient(from 30deg, #ff6ec7, #6ebeff, #8cffbe, #ffe66e, #ff6ec7);
+    -webkit-mask: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.12) 46%,
+      rgba(0, 0, 0, 0.55) 62%,
+      #000 68%,
+      #000 70%,
+      transparent 71%
     );
+    mask: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.12) 46%,
+      rgba(0, 0, 0, 0.55) 62%,
+      #000 68%,
+      #000 70%,
+      transparent 71%
+    );
+    box-shadow: 0 0 18px rgba(170, 220, 255, 0.35);
+    animation: film 6s linear infinite;
   }
-  button.slot img {
+  .soap img {
     position: relative;
+    width: 34px;
+    height: 34px;
     image-rendering: pixelated;
-    animation: drop 380ms cubic-bezier(0.3, 1.6, 0.5, 1);
   }
-  .slot[data-empty] {
-    border: 2px dashed rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.06);
+  button.soap {
+    animation:
+      inflate 460ms cubic-bezier(0.3, 1.6, 0.5, 1),
+      drift 4.2s ease-in-out 460ms infinite;
+  }
+  .soap[data-empty] {
+    width: 54px;
+    height: 54px;
     cursor: default;
+    opacity: 0.8;
   }
-  button.slot:focus-visible {
+  button.soap:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 3px;
   }
@@ -777,33 +1056,89 @@ const PotStyle = styled.div`
       transform: translateY(-4px) rotate(-4deg);
     }
   }
-  @keyframes hover {
-    50% {
-      transform: translateY(-6px);
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translateY(0) scale(1, 1);
+    }
+    33% {
+      transform: translateY(-6px) scale(1.04, 0.97);
+    }
+    66% {
+      transform: translateY(3px) scale(0.97, 1.03);
     }
   }
-  @keyframes drop {
+  @keyframes inflate {
     from {
-      transform: translateY(-40px) scale(1.5);
+      transform: scale(0.2);
+      opacity: 0.3;
+    }
+  }
+  @keyframes film {
+    to {
+      filter: hue-rotate(360deg);
+    }
+  }
+  @keyframes whirl {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes brew-pop {
+    0% {
+      transform: scale(0);
       opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    80% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    90% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
+  }
+  @keyframes brew-gold {
+    to {
+      filter: brightness(1.25) drop-shadow(0 0 6px #ffd34d);
     }
   }
   @keyframes flicker {
     to {
-      transform: scale(1.08, 0.9);
+      transform: scale(1.08, 0.88) skewX(-3deg);
     }
   }
-  @keyframes fizz {
+  @keyframes ember {
     0% {
       opacity: 0;
-      transform: translateY(0) scale(0.6);
+      transform: translate(0, 0);
     }
-    30% {
-      opacity: 0.9;
+    15% {
+      opacity: 1;
     }
     100% {
       opacity: 0;
-      transform: translateY(-60px) scale(1.1);
+      transform: translate(calc((var(--i) - 3) * 9px), -150px);
+    }
+  }
+  @keyframes steam {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.6);
+    }
+    40% {
+      opacity: 0.55;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-40px) scale(1.3);
     }
   }
 
@@ -817,10 +1152,7 @@ const PotStyle = styled.div`
       order: -1;
     }
     .stage {
-      height: 200px;
-    }
-    .pot-svg {
-      width: 210px;
+      height: 270px;
     }
     .taste {
       width: 170px;
@@ -866,10 +1198,14 @@ const PotStyle = styled.div`
   }
   @media (prefers-reduced-motion: reduce) {
     .bubble img,
-    .slot,
-    button.slot img,
+    .soap,
+    .soap::before,
     .flame,
-    .fizz i {
+    .whirl,
+    .pop,
+    .embers i,
+    .steam i,
+    .cauldron[data-known] .brew {
       animation: none !important;
     }
     .bubble,
