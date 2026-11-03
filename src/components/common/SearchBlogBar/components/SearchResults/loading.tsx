@@ -18,7 +18,6 @@ const SearchLoading = () => {
         </ImageColStyle>
         <InfoColStyle>
           <NameLoadingStyle />
-          <DescriptionLoadingStyle />
           <DescriptionLoadingStyle style={{ width: '70%' }} />
         </InfoColStyle>
       </SearchItemInnerLoadingStyle>

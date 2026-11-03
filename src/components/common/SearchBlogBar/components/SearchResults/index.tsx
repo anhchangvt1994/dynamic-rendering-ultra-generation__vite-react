@@ -12,19 +12,37 @@ import {
   SearchListStyle,
 } from './styles'
 
+export const optionId = (slug: string) => `blog-search-option-${slug}`
+
 const SearchResults = ({
   keyword = '',
   searchResults = [],
-  onScroll,
+  activeIndex,
+  listId,
+  onHover,
 }: {
   keyword?: string
   searchResults?: ArticleHit[]
-  onScroll?: () => void
+  activeIndex: number
+  listId: string
+  onHover: (index: number) => void
 }) => (
-  <SearchListStyle onScroll={onScroll}>
-    {searchResults.map((result) => (
-      <SearchItemStyle key={result.slug}>
-        <SearchItemInnerStyle to={articleHref(result.slug)}>
+  // focus stays in the combobox input; arrows drive the selection
+  <SearchListStyle
+    id={listId}
+    role="listbox"
+    aria-label="Kết quả tìm bài viết"
+    tabIndex={-1}
+  >
+    {searchResults.map((result, index) => (
+      <SearchItemStyle
+        key={result.slug}
+        id={optionId(result.slug)}
+        role="option"
+        aria-selected={index === activeIndex}
+        onMouseEnter={() => onHover(index)}
+      >
+        <SearchItemInnerStyle to={articleHref(result.slug)} tabIndex={-1}>
           <ImageColStyle
             style={{ '--cover': result.cover_color } as CSSProperties}
           >

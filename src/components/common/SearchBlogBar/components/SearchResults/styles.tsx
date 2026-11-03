@@ -1,54 +1,29 @@
 import { css } from 'styled-components'
 import { functionGenerator } from 'utils/EnvHelper'
+import {
+  InfoColStyle as PokemonInfoColStyle,
+  SearchItemInnerLoadingStyle,
+  SearchItemInnerStyle as PokemonItemInnerStyle,
+  SearchItemStyle,
+  SearchListStyle,
+} from 'components/common/SearchPokemonBar/components/SearchResults/styles'
 
 const generateReadMoreMultipleLineStyle = functionGenerator(
   import.meta.env.STYLE_MIXINS_READ_MORE_MULTIPLE_LINE_FUNCTION
 )
 
-export const SearchListStyle = styled.ul`
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
-  }
-  margin-top: 16px;
-  max-height: 40dvh;
-`
-
-export const SearchItemStyle = styled.li`
-  margin-top: 16px;
-
-  &:first-child {
-    margin-top: 0;
-  }
-`
-
-export const SearchItemInnerStyle = styled(LinkCustom)`
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  border-radius: 10px;
-`
-
-export const SearchItemInnerLoadingStyle = styled.div`
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  border-radius: 10px;
-`
+// rows, hover, the selected row and the loading row come from the Pokédex
+// search; only the thumbnail (a cover) and the text (title + excerpt) differ
+export { SearchItemInnerLoadingStyle, SearchItemStyle, SearchListStyle }
+export const SearchItemInnerStyle = PokemonItemInnerStyle
 
 export const ImageColStyle = styled.div`
-  display: inline-flex;
-  flex: 0 0 60px;
-  width: 60px;
-  height: 60px;
-  min-width: 0;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
   overflow: hidden;
-  border-radius: 4px;
-  background: var(--cover, rgba(255, 255, 255, 0.15));
+  border-radius: 10px;
+  background: var(--cover, #ffffff22);
 
   img {
     width: 100%;
@@ -60,54 +35,49 @@ export const ImageColStyle = styled.div`
 export const ImageLoadingStyle = styled.div`
   width: 100%;
   height: 100%;
-  min-width: 0;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-  border-radius: 8px;
+  background: #ffffff14;
 `
 
-export const InfoColStyle = styled.div`
-  display: inline-flex;
-  flex: 1 1 auto;
-  padding-top: 4px;
-  flex-wrap: wrap;
-  min-width: 0;
+export const InfoColStyle = styled(PokemonInfoColStyle)`
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2px;
 `
 
 export const NameStyle = styled.div`
   color: #ffffff;
-  font-size: 14px;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  ${generateReadMoreMultipleLineStyle(css, 1)}
 
   mark {
-    ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
-    border-radius: 2px;
-    color: inherit;
+    background: none;
+    color: #ffcb05;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
   }
 `
 
 export const NameLoadingStyle = styled.div`
-  width: 50%;
-  height: 14px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  width: 60%;
+  height: 16px;
+  background: #ffffff14;
   border-radius: 4px;
-  margin-bottom: 4px;
 `
 
 export const DescriptionStyle = styled.div`
-  color: #ffffff;
+  color: #b6c8d8;
   font-size: 12px;
-  font-style: italic;
-  ${generateReadMoreMultipleLineStyle(css, 2)}
+  line-height: 1.4;
+  ${generateReadMoreMultipleLineStyle(css, 1)}
 `
 
 export const DescriptionLoadingStyle = styled.div`
   width: 100%;
   height: 12px;
-  ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
+  background: #ffffff14;
   border-radius: 4px;
 `
