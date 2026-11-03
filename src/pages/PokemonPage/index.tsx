@@ -8,9 +8,7 @@ import pokemonApi, {
 import store from 'app/store'
 import { useNavigateInfo } from 'app/router/context/InfoContext'
 import Image from 'components/common/Image'
-import RelatedBlogsSheet from 'components/common/RelatedBlogsSheet'
 import PokemonTypes from 'components/pokemon-page/pokemon-types'
-import { createPortal } from 'react-dom'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/virtual'
@@ -218,9 +216,18 @@ const PokemonPage = () => {
     }
   }, [shiny, shinyArt, isShowLoading])
 
-  const { data: species } = useGetPokemonSpeciesQuery(speciesId, {
-    skip: !speciesId,
+  // NOTE - The species (forms, name, Pokédex entry) is asked for at once,
+  // by the id the link carried or the name in the url, not after the detail:
+  // the form row then lands with the rest instead of pushing the page down a
+  // second later. A form's url (charizard-mega-x) is no species name: its
+  // 404 falls back to the detail's species id.
+  const earlyKey = curId && curId <= POKEMON_COUNT ? curId : name
+  const early = useGetPokemonSpeciesQuery(earlyKey, { skip: !earlyKey })
+  const earlyFits = !!early.data && early.data.id === speciesId
+  const late = useGetPokemonSpeciesQuery(speciesId, {
+    skip: !speciesId || earlyFits || early.isFetching,
   })
+  const species = earlyFits ? early.data : late.data
   // species data belongs to the shown Pokémon only once their ids agree
   const speciesMatches =
     !!species && idFromUrl(pokemonState?.species?.url) === species.id
@@ -407,10 +414,6 @@ const PokemonPage = () => {
 
   return (
     <PokemonPageStyle className="pokemon-page">
-      {createPortal(
-        <RelatedBlogsSheet keyword={pokemonState?.name || ''} />,
-        document.getElementById('related-blogs-sheet')!
-      )}
       <HeaderStyle>
         <BackButtonStyle aria-label="Quay lại" onClick={handleBack}>
           <svg className="back-arrow" viewBox="0 0 24 24" aria-hidden="true">
@@ -421,12 +424,15 @@ const PokemonPage = () => {
       </HeaderStyle>
       <BodyStyle>
         {RenderingInfo.loader || isFirstLoading ? (
-          <Image
-            src={ImagePath}
-            alt={`Pokemon ${pokemonState?.name || ''}`}
-            width={'100%'}
-            height={150}
-          />
+          // the stage's own height, so its arrival moves nothing below
+          <div className="first-stage">
+            <Image
+              src={ImagePath}
+              alt={`Pokemon ${pokemonState?.name || ''}`}
+              width={'100%'}
+              height={150}
+            />
+          </div>
         ) : (
           <StageWrapStyle
             ref={stageRef}

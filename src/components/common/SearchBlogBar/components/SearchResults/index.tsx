@@ -1,5 +1,7 @@
-import Image from 'components/common/Image'
-import { functionGenerator } from 'utils/EnvHelper'
+import type { CSSProperties } from 'react'
+import type { ArticleHit } from 'app/apis/blog'
+import { articleHref } from 'pages/BlogPage/href'
+import { splitHit } from 'pages/BlogPage/text.mjs'
 import {
   DescriptionStyle,
   ImageColStyle,
@@ -9,51 +11,40 @@ import {
   SearchItemStyle,
   SearchListStyle,
 } from './styles'
-import { generateShortDescription } from './utils'
 
-const SearchResults = (props) => {
-  const { keyword = '', searchResults = [], onScroll } = props
-
-  const searchResultList = searchResults.map((result) => {
-    if (!result) return null
-
-    const title = result.title.replace(keyword, `<span>${keyword}</span>`)
-    const description =
-      result.content && result.content.length > 0
-        ? generateShortDescription(result.content)
-        : ''
-    const getBlogDetailPath = functionGenerator(
-      import.meta.env.ROUTER_BLOG_DETAIL_GET_PATH_FUNCTION
-    )
-
-    return (
-      <SearchItemStyle key={result.id}>
-        <SearchItemInnerStyle to={getBlogDetailPath(result.slug)}>
-          <ImageColStyle>
-            <Image
-              hash={result.coverImage?.blurhash ?? ''}
-              src={`${import.meta.env.HOST}${result.coverImage?.url ?? 'null.jpg'}`}
-              height={'100%'}
-              width={'100%'}
-              alt={result.title}
-            />
+const SearchResults = ({
+  keyword = '',
+  searchResults = [],
+  onScroll,
+}: {
+  keyword?: string
+  searchResults?: ArticleHit[]
+  onScroll?: () => void
+}) => (
+  <SearchListStyle onScroll={onScroll}>
+    {searchResults.map((result) => (
+      <SearchItemStyle key={result.slug}>
+        <SearchItemInnerStyle to={articleHref(result.slug)}>
+          <ImageColStyle
+            style={{ '--cover': result.cover_color } as CSSProperties}
+          >
+            {result.cover_url && (
+              <img src={result.cover_url} alt="" loading="lazy" />
+            )}
           </ImageColStyle>
           <InfoColStyle>
-            <NameStyle
-              dangerouslySetInnerHTML={{
-                __html: title,
-              }}
-            />
-            <DescriptionStyle>{description}</DescriptionStyle>
+            {/* the hit is a <mark>, never an HTML string */}
+            <NameStyle>
+              {splitHit(result.title, keyword).map((part, i) =>
+                part.hit ? <mark key={i}>{part.text}</mark> : part.text
+              )}
+            </NameStyle>
+            <DescriptionStyle>{result.excerpt}</DescriptionStyle>
           </InfoColStyle>
         </SearchItemInnerStyle>
       </SearchItemStyle>
-    )
-  })
-
-  return (
-    <SearchListStyle onScroll={onScroll}>{searchResultList}</SearchListStyle>
-  )
-}
+    ))}
+  </SearchListStyle>
+)
 
 export default SearchResults

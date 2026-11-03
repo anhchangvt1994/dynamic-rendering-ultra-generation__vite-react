@@ -46,58 +46,14 @@ export const ImageColStyle = styled.div`
   width: 60px;
   height: 60px;
   min-width: 0;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--cover, rgba(255, 255, 255, 0.15));
 
-  .image-wrapper {
+  img {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
-
-    &::before,
-    &::after {
-      display: block;
-      content: none;
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 100%;
-      height: 100%;
-      transform: translateX(-50%);
-      z-index: -1;
-    }
-
-    &::before {
-      content: '';
-      background: url('/images/pikachu-02.webp') no-repeat center center;
-      background-size: contain;
-    }
-
-    &::after {
-      background: url('/images/pokemon-02.webp') no-repeat center center;
-      background-size: contain;
-    }
-
-    &:has(.show) {
-      &::before {
-        content: none;
-      }
-    }
-
-    &:has(.error) {
-      &::before {
-        content: none;
-      }
-      &::after {
-        content: '';
-      }
-    }
-  }
-
-  .image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 `
 
@@ -119,7 +75,6 @@ export const InfoColStyle = styled.div`
 
 export const NameStyle = styled.div`
   color: #ffffff;
-  text-transform: capitalize;
   font-size: 14px;
   margin-bottom: 2px;
   white-space: nowrap;
@@ -128,9 +83,10 @@ export const NameStyle = styled.div`
   text-overflow: ellipsis;
   font-weight: bold;
 
-  span {
+  mark {
     ${import.meta.env.STYLE_MIXINS_LIQUID_GLASS}
     border-radius: 2px;
+    color: inherit;
   }
 `
 
@@ -144,7 +100,6 @@ export const NameLoadingStyle = styled.div`
 
 export const DescriptionStyle = styled.div`
   color: #ffffff;
-  text-transform: capitalize;
   font-size: 12px;
   font-style: italic;
   ${generateReadMoreMultipleLineStyle(css, 2)}

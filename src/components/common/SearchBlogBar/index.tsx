@@ -1,6 +1,7 @@
 import Icon from 'components/common/Icon'
 import useDialog from 'hooks/useDialog'
-import { useSearchArticlesByTitleQuery } from 'app/apis/blog'
+import { BLOG_ENABLED, useSearchArticlesQuery } from 'app/apis/blog'
+import type { ArticleHit } from 'app/apis/blog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
 import SearchResults from './components/SearchResults'
@@ -21,14 +22,15 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [keyword, setKeyword] = useState('')
-  const [results, setResults] = useState<{ name: string }[]>([])
+  const [results, setResults] = useState<ArticleHit[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const location = useLocation()
   const currentPathname = useRef(location.pathname)
 
-  // An empty keyword has no request to make (the endpoint returns nothing).
-  const { data, isFetching } = useSearchArticlesByTitleQuery(keyword, {
-    skip: !keyword,
+  // An empty keyword (or one with only characters the query drops) has no
+  // request to make
+  const { data, isFetching } = useSearchArticlesQuery(keyword, {
+    skip: !keyword || !BLOG_ENABLED,
   })
 
   const search = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,8 +54,8 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
   }, [isFetching])
 
   useEffect(() => {
-    setResults(data?.data ?? [])
-  }, [data?.data])
+    setResults(Array.isArray(data) ? data : [])
+  }, [data])
 
   useEffect(() => {
     if (currentPathname.current === location.pathname) return

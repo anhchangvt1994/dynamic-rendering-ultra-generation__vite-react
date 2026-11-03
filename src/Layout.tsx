@@ -1,5 +1,4 @@
 import BackToTop from 'components/common/BackToTop'
-import BlogCardLoading from 'components/common/BlogCard/loading'
 import Header from 'components/common/Header'
 import MenuBar from 'components/common/MenuBar'
 import SearchBlogBar from 'components/common/SearchBlogBar'
@@ -7,7 +6,6 @@ import SearchPokemonBar from 'components/common/SearchPokemonBar'
 import PageSkeleton, { HeaderSkeleton } from 'components/PageSkeleton'
 import BlogDetailLoading from 'pages/BlogDetailPage/loading'
 import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
-import { BlogPageStyled } from 'pages/BlogPage/styles'
 import React from 'react'
 import {
   BodyStyle,
@@ -42,14 +40,6 @@ const OutletWrapper = React.memo(() => {
           <BlogDetailPageStyle>
             <BlogDetailLoading />
           </BlogDetailPageStyle>
-        )
-      case pageId === import.meta.env.ROUTER_BLOGS_ID:
-        return (
-          <BlogPageStyled>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <BlogCardLoading key={index} />
-            ))}
-          </BlogPageStyled>
         )
       default:
         return <PageSkeleton routeId={pageId} />
@@ -183,7 +173,6 @@ function Layout() {
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
         {searchBarOfPage}
-        <div id="related-blogs-sheet" />
       </MainContainerStyle>
     </div>
   )

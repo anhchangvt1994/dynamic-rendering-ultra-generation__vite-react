@@ -1,38 +1,61 @@
+import { useSearchParams } from 'react-router'
+import {
+  BLOG_ENABLED,
+  listStoreKey,
+  useGetArticlesQuery,
+} from 'app/apis/blog'
+import type { ArticleCard } from 'app/apis/blog'
 import BattleMessage from 'components/common/BattleMessage'
-import { useGetPokemonBlogsQuery } from 'app/apis/blog'
-import BlogCard from 'components/common/BlogCard'
-import BlogCardLoading from 'components/common/BlogCard/loading'
-import { BlogPageStyled } from './styles'
+import BlogSkeleton from 'components/PageSkeleton/BlogSkeleton'
+import Notebook from './Notebook'
+import Specimen from './Specimen'
+import { BlogStyle } from './styles'
 
-const BlogPage = () => {
+const tagsOf = (articles: ArticleCard[]) => [
+  ...new Set(articles.flatMap((article) => article.tags ?? [])),
+]
+
+/**
+ * /blogs: the naturalist's desk (docs/superpowers/specs/2026-11-03-field-notes-blog-design.md).
+ * The newest note is the notebook page, the rest are specimens; `?tag=` keeps
+ * one tag.
+ */
+export default function BlogPage() {
   setSeoTag({
-    title: 'Bài viết về Pokémon | Pokédex',
-    description: 'Hướng dẫn, phân tích và câu chuyện về thế giới Pokémon.',
-    'og:title': 'Bài viết về Pokémon',
+    title: 'Sổ tay thực địa | Pokédex',
+    description:
+      'Sổ tay thực địa: hướng dẫn, phân tích và câu chuyện về thế giới Pokémon.',
+    'og:title': 'Sổ tay thực địa',
     robots: 'index, follow',
   })
 
   const {
-    data = getAPIStore(import.meta.env.API_ENDPOINT_GET_POKEMON_BLOGS),
+    data = getAPIStore(listStoreKey()),
     isFetching,
     refetch,
-  } = useGetPokemonBlogsQuery()
-  const isShowLoading = RenderingInfo.loader || (isFetching && !data)
-  // The backend can answer with anything (or nothing); only an article list
-  // is renderable, everything else is an error the reader can retry.
-  const articles = Array.isArray(data?.data) ? data.data : null
+  } = useGetArticlesQuery()
+  const [params, setParams] = useSearchParams()
+  const tag = params.get('tag') ?? ''
+  const setTag = (next: string) =>
+    setParams(next ? { tag: next } : {}, { replace: true })
 
-  if (isShowLoading) {
+  if (RenderingInfo.loader || (BLOG_ENABLED && isFetching && !data))
+    return <BlogSkeleton />
+
+  if (!BLOG_ENABLED)
     return (
-      <BlogPageStyled className="blog-page">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <BlogCardLoading key={index} />
-        ))}
-      </BlogPageStyled>
+      <BattleMessage
+        title="Bài viết chưa bật"
+        action={{ label: 'Về Pokédex', to: import.meta.env.ROUTER_HOME_PATH }}
+      >
+        Sổ tay thực địa cần Supabase. Bật nó để đọc các bài viết.
+      </BattleMessage>
     )
-  }
 
-  if (!articles) {
+  // the backend can answer with anything; only a list of articles is shown
+  const articles: ArticleCard[] | null = Array.isArray(data) ? data : null
+
+  if (!articles)
     return (
       <BattleMessage
         title="Máy chủ bài viết đã gục ngã!"
@@ -41,26 +64,69 @@ const BlogPage = () => {
         Không tải được danh sách bài viết. Thử lại sau giây lát.
       </BattleMessage>
     )
-  }
 
-  if (!articles.length) {
+  if (!articles.length)
     return (
       <BattleMessage
         title="Chưa có bài viết nào."
         action={{ label: 'Về Pokédex', to: import.meta.env.ROUTER_HOME_PATH }}
       >
-        Các bài viết về Pokémon sẽ xuất hiện ở đây.
+        Các ghi chú về Pokémon sẽ xuất hiện ở đây.
       </BattleMessage>
     )
-  }
+
+  const tags = tagsOf(articles)
+  const visible = tag
+    ? articles.filter((article) => article.tags?.includes(tag))
+    : articles
+  const [newest, ...rest] = visible
 
   return (
-    <BlogPageStyled className="blog-page">
-      {articles.map((blog) => (
-        <BlogCard key={blog.id} {...blog} />
-      ))}
-    </BlogPageStyled>
+    <BlogStyle className="blog-page">
+      <header className="blog-hero">
+        <h1 className="hero-title">Sổ tay thực địa</h1>
+        <p className="hero-count">{articles.length} ghi chú, mới nhất ở đầu</p>
+      </header>
+
+      <div className="blog-tags" role="group" aria-label="Lọc theo nhãn">
+        <button
+          type="button"
+          aria-pressed={!tag}
+          onClick={() => setTag('')}
+        >
+          Tất cả
+        </button>
+        {tags.map((name) => (
+          <button
+            key={name}
+            type="button"
+            aria-pressed={tag === name}
+            onClick={() => setTag(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {newest ? (
+        <>
+          <Notebook article={newest} />
+          {rest.length > 0 && (
+            <ul className="blog-grid">
+              {rest.map((article) => (
+                <Specimen key={article.slug} article={article} />
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p className="blog-empty">
+          Chưa có ghi chú nào với nhãn này
+          <button type="button" onClick={() => setTag('')}>
+            Xem tất cả
+          </button>
+        </p>
+      )}
+    </BlogStyle>
   )
 }
-
-export default BlogPage
