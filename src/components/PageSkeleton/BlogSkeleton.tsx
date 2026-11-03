@@ -6,7 +6,7 @@ const BlogSkeletonStyle = styled(BlogStyle)`
   /* blocks only: every row is held by BlogStyle's fixed line heights, the
      same boxes as the loaded page */
   .hero-title::after,
-  .nb-badge {
+  .nb-ribbon {
     display: none;
   }
   /* the intro belongs to the loaded page: the skeleton holds still */

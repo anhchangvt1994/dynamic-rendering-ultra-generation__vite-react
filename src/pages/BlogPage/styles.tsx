@@ -15,8 +15,7 @@ export const BlogStyle = styled.div`
   padding: 24px 16px 120px;
   color: var(--ink);
   background:
-    linear-gradient(rgba(23, 45, 69, 0.06) 1px, transparent 1px) 0 0 / 24px
-      24px,
+    linear-gradient(rgba(23, 45, 69, 0.06) 1px, transparent 1px) 0 0 / 24px 24px,
     linear-gradient(90deg, rgba(23, 45, 69, 0.06) 1px, transparent 1px) 0 0 /
       24px 24px,
     #eef3f8;
@@ -230,7 +229,11 @@ export const BlogStyle = styled.div`
     right: 24px;
     left: 24px;
     height: 16px;
-    background: radial-gradient(circle at 50% 50%, var(--ink) 5px, transparent 6px)
+    background: radial-gradient(
+        circle at 50% 50%,
+        var(--ink) 5px,
+        transparent 6px
+      )
       0 0 / 28px 16px repeat-x;
     pointer-events: none;
   }
@@ -339,7 +342,6 @@ export const BlogStyle = styled.div`
     gap: 6px 14px;
     height: 24px;
     margin: 0;
-    overflow: hidden;
     font-size: 13px;
     line-height: 24px;
     color: var(--muted);
@@ -378,20 +380,33 @@ export const BlogStyle = styled.div`
     translate: 0 3px;
     box-shadow: none;
   }
-  /* the badge: the ring of words turns, the number in the middle stays */
-  .nb-badge {
+  /* a bookmark ribbon hangs from the top edge: the newest page, its number */
+  .nb-ribbon {
     position: absolute;
     z-index: 3;
-    top: -30px;
-    right: -12px;
-    width: 92px;
-    height: 92px;
-    rotate: 10deg;
-    filter: drop-shadow(2px 3px 0 rgba(23, 45, 69, 0.35));
+    top: -3px;
+    right: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 46px;
+    height: 66px;
+    padding-top: 8px;
+    background: var(--berry);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.1;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
     pointer-events: none;
   }
-  .nb-badge .ring {
-    transform-origin: 50px 50px;
+  .nb-ribbon small {
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.9;
   }
   .no-tag {
     position: absolute;
@@ -461,11 +476,8 @@ export const BlogStyle = styled.div`
     .nb-cta {
       width: auto;
     }
-    .nb-badge {
-      top: -34px;
-      right: -20px;
-      width: 112px;
-      height: 112px;
+    .nb-ribbon {
+      right: 32px;
     }
     .nb-excerpt {
       height: 96px;
@@ -506,6 +518,7 @@ export const BlogStyle = styled.div`
   .blog-card {
     position: relative;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     height: 100%;
     padding: 10px 10px 14px;
@@ -614,7 +627,8 @@ export const BlogStyle = styled.div`
         one after another, the badge is stamped on. Nothing moves otherwise. ── */
   @media (prefers-reduced-motion: no-preference) {
     .hero-title::after {
-      animation: blog-marker 520ms 120ms cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
+      animation: blog-marker 520ms 120ms cubic-bezier(0.3, 0.7, 0.2, 1)
+        backwards;
     }
     .blog-notebook {
       animation: blog-pin 520ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
@@ -623,11 +637,8 @@ export const BlogStyle = styled.div`
       animation: blog-pin 480ms calc(220ms + var(--i, 0) * 90ms)
         cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
     }
-    .nb-badge {
-      animation: blog-stamp 420ms 520ms cubic-bezier(0.3, 1.4, 0.4, 1) backwards;
-    }
-    .nb-badge .ring {
-      animation: blog-spin 28s linear infinite;
+    .nb-ribbon {
+      animation: blog-drop 520ms 500ms cubic-bezier(0.3, 1.3, 0.5, 1) backwards;
     }
     .cover img {
       transition: opacity 260ms ease-out;
@@ -649,16 +660,9 @@ export const BlogStyle = styled.div`
       scale: 1.03;
     }
   }
-  @keyframes blog-stamp {
+  @keyframes blog-drop {
     from {
-      opacity: 0;
-      scale: 2.2;
-      rotate: -40deg;
-    }
-  }
-  @keyframes blog-spin {
-    to {
-      transform: rotate(360deg);
+      translate: 0 -70px;
     }
   }
 

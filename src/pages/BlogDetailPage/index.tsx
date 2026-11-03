@@ -18,7 +18,7 @@ import CopyLink from './CopyLink'
 import Markdown, { outlineOf } from './Markdown'
 import type { Block } from './Markdown'
 import Outline from './Outline'
-import ReadBall from './ReadBall'
+import ReadRail from './ReadRail'
 import Related, { nextTwo } from './Related'
 import { BlogDetailStyle } from './styles'
 
@@ -133,13 +133,7 @@ export default function BlogDetailPage() {
 
   return (
     <BlogDetailStyle className="blog-detail-page">
-      <ReadBall />
-      <button
-        type="button"
-        className="blog-back"
-        aria-label="Quay lại"
-        onClick={back}
-      />
+      <ReadRail onBack={back} />
       <article className="blog-article">
         <Cover
           src={article.cover_url}

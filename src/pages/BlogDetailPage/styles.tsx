@@ -11,31 +11,116 @@ export const BlogDetailStyle = styled(BlogStyle)`
   > * {
     max-width: none;
   }
-  .blog-back {
+  /* ── the rail: back and the reading trail, pinned above the page ── */
+  .read-rail {
     position: sticky;
-    z-index: 5;
-    top: 8px;
+    z-index: 6;
+    top: 0;
+    margin: 0 -16px;
+    padding: 0 16px;
+    border-bottom: 2px solid var(--ink);
+    background: rgba(255, 253, 247, 0.94);
+    backdrop-filter: blur(6px);
+  }
+  .read-inner {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    margin: 8px 0 -52px;
-    border: 2px solid var(--ink);
-    border-radius: 14px;
-    background: var(--paper);
-    box-shadow: 2px 2px 0 var(--ink);
-    color: var(--ink);
-    cursor: pointer;
+    gap: 18px;
+    max-width: 1180px;
+    height: 60px;
+    margin-inline: auto;
   }
-  .blog-back::before {
-    content: '';
-    width: 9px;
-    height: 9px;
-    margin-left: 4px;
+  .rail-back {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px 0 12px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 var(--ink);
+    transition:
+      translate 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+  .rail-back:hover {
+    translate: -1px -1px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .rail-back:active {
+    translate: 2px 2px;
+    box-shadow: none;
+  }
+  .rail-back .chev {
+    width: 8px;
+    height: 8px;
+    margin-left: 3px;
     border: solid var(--ink);
-    border-width: 0 3px 3px 0;
+    border-width: 0 2.5px 2.5px 0;
     rotate: 135deg;
+  }
+  /* the trail: a dashed path, inked where the ball has been, a flag at its end */
+  .read-trail {
+    position: relative;
+    flex: 1;
+    height: 28px;
+    margin-inline: 14px 16px;
+  }
+  .read-trail::before,
+  .trail-fill {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 0;
+    border-top: 3px dashed rgba(23, 45, 69, 0.3);
+    translate: 0 -50%;
+  }
+  .trail-fill {
+    right: auto;
+    width: calc(var(--p, 0) * 100%);
+    border-top: 4px solid var(--berry);
+    border-radius: 2px;
+  }
+  .read-ball {
+    position: absolute;
+    top: 0;
+    left: calc(var(--p, 0) * 100%);
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    rotate: var(--r, 0deg);
+  }
+  .trail-flag {
+    position: absolute;
+    top: 3px;
+    right: -16px;
+    width: 14px;
+    height: 22px;
+    border-left: 3px solid var(--ink);
+  }
+  .trail-flag::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 10px;
+    background: var(--berry);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .read-ball {
+      rotate: 0deg;
+    }
   }
   .blog-article {
     max-width: 1180px;
@@ -68,7 +153,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   @media (min-width: 700px) {
     .blog-cover {
       aspect-ratio: 21 / 9;
-      margin-inline: 0;
+      margin: 24px 0 0;
       border: 3px solid var(--ink);
       border-radius: 6px;
     }
@@ -149,6 +234,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .blog-body h2,
   .blog-body h3 {
+    scroll-margin-top: 84px; /* clears the sticky reading rail */
     margin: 1.6em 0 0.5em;
     font-family: var(--font-display);
     font-weight: 400;
@@ -401,48 +487,5 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .blog-related .blog-grid {
     margin-top: 22px;
-  }
-
-  /* ── reading progress ── */
-  .read-progress {
-    position: sticky;
-    z-index: 6;
-    top: 0;
-    height: 0;
-    pointer-events: none;
-  }
-  .read-bar {
-    position: absolute;
-    top: 0;
-    left: -16px;
-    right: -16px;
-    height: 3px;
-    background: var(--berry);
-    transform: scaleX(var(--p, 0));
-    transform-origin: 0 50%;
-  }
-  .read-ball {
-    display: none;
-  }
-  @media (min-width: 900px) {
-    .read-bar {
-      display: none;
-    }
-    .read-ball {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      display: block;
-      width: 44px;
-      height: 44px;
-      translate: 0 var(--y, 0);
-      rotate: var(--r, 0deg);
-      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.25));
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .read-ball {
-      rotate: 0deg;
-    }
   }
 `

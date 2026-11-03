@@ -3,6 +3,13 @@ import { boneCss } from './bone'
 
 const BlogDetailSkeletonStyle = styled(BlogDetailStyle)`
   ${boneCss}
+  .rail-back.bone {
+    width: 104px;
+    padding: 0;
+    border-color: transparent;
+    border-radius: 999px;
+    box-shadow: none;
+  }
   .blog-cover.bone {
     background-color: var(--bone);
   }
@@ -42,7 +49,12 @@ export default function BlogDetailSkeleton() {
       role="status"
       aria-label="Đang tải bài viết…"
     >
-      <div className="blog-back" aria-hidden="true" />
+      <div className="read-rail" aria-hidden="true">
+        <div className="read-inner">
+          <span className="rail-back bone" />
+          <span className="read-trail" />
+        </div>
+      </div>
       <div className="blog-article" aria-hidden="true">
         <span className="cover bone blog-cover" />
         <div className="blog-head">
