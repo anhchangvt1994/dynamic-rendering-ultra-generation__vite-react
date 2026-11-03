@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import PokeBallArt from 'pages/HomePage/PokeBallArt'
 import { fitMon, pickMon } from './mons.mjs'
 
 const scrollerOf = (node: HTMLElement | null) => {
@@ -16,21 +17,39 @@ const scrollerOf = (node: HTMLElement | null) => {
  * Poké Ball rolls, as the article is read, towards a random animated Pokémon
  * (a Gen V pixel sprite or a Showdown model) that waits at the end as a dark
  * "Who's that Pokémon?" silhouette and shows its colours as the ball nears.
- * At the end of the article the ball catches it: flash, drawn into the ball,
- * three shakes, a click and a burst of stars. Reading back up lets it out.
+ * Where it waits the ball opens like the Pokédex's thrown one, draws it in,
+ * closes, shakes three times, clicks and bursts into stars, then rolls on to
+ * the end of the trail. Reading back up lets the Pokémon out again.
  * The page scrolls inside the app's body, so the scroller is found from the
  * rail. The roll is written as CSS variables and the catch is a data-state
  * (roll / caught / release) the CSS animates: no re-render while scrolling.
  */
-// the ball reaches the Pokémon at this share of the article; it is caught from
-// CATCH on and let out again below FREE (a gap, so the edge does not flicker)
-const CATCH = 0.92
-const FREE = 0.9
+// the Pokémon stands at the far end of the trail. The ball reaches it, opens,
+// draws it in and bursts into stars (at CATCH, the end of the article), and
+// lets it out again when read back above FREE: any number of times
+const CATCH = 0.99
+const FREE = 0.93
 // the silhouette shows its colours from here
-const REVEAL = 0.6
+const REVEAL = 0.8
 const TRIES = 4
+const BOX = 68
 
-const SPARKS = [0, 45, 90, 135, 180, 225, 270, 315]
+// stars thrown from the ball in arcs: kind (star / twinkle), x reach, peak
+// (h) and fall (f) in px from the ball, size, delay (ms), spin (deg), colour
+const STARS = [
+  { k: 'st', x: -96, h: -20, f: 80, s: 1.2, t: 0, r: -300, c: '#ffd23f' },
+  { k: 'st', x: 100, h: -18, f: 86, s: 1.1, t: 20, r: 280, c: '#ff6fb5' },
+  { k: 'tw', x: -62, h: -22, f: 59, s: 1.3, t: 40, r: 120, c: '#fff7c2' },
+  { k: 'tw', x: 66, h: -22, f: 65, s: 1.2, t: 10, r: -140, c: '#5fd0ff' },
+  { k: 'st', x: -34, h: -23, f: 101, s: 0.9, t: 60, r: 240, c: '#8cf0b0' },
+  { k: 'st', x: 36, h: -23, f: 104, s: 1, t: 50, r: -220, c: '#ff8a3c' },
+  { k: 'tw', x: -126, h: -12, f: 53, s: 0.9, t: 80, r: -90, c: '#ffd23f' },
+  { k: 'tw', x: 130, h: -10, f: 59, s: 1, t: 70, r: 100, c: '#ff6fb5' },
+  { k: 'st', x: -78, h: -14, f: 107, s: 0.8, t: 110, r: 360, c: '#5fd0ff' },
+  { k: 'st', x: 82, h: -16, f: 110, s: 0.8, t: 100, r: -360, c: '#ffd23f' },
+  { k: 'tw', x: -12, h: -25, f: 44, s: 1.1, t: 130, r: 90, c: '#ff8a3c' },
+  { k: 'tw', x: 14, h: -25, f: 47, s: 0.9, t: 120, r: -90, c: '#8cf0b0' },
+]
 
 export default function ReadRail({ onBack }: { onBack: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -52,13 +71,20 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
       const room = scroller.scrollHeight - scroller.clientHeight
       const progress =
         room > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / room)) : 0
-      const travel = Math.min(1, progress / CATCH)
-      root.style.setProperty('--p', String(travel))
-      root.style.setProperty('--r', `${travel * 1080}deg`)
+      root.style.setProperty('--p', String(progress))
+      root.style.setProperty('--r', `${progress * 1440}deg`)
       const reveal = progress >= REVEAL ? '1' : '0'
       if (root.dataset.reveal !== reveal) root.dataset.reveal = reveal
       if (!caught && progress >= CATCH) {
         caught = true
+        // the Pokémon is drawn towards the ball, wherever it is by now
+        const ball = root.querySelector('.ball-roll')?.getBoundingClientRect()
+        const mon = root.querySelector('.mon-body')?.getBoundingClientRect()
+        if (ball && mon)
+          root.style.setProperty(
+            '--dx',
+            `${ball.left + ball.width / 2 - (mon.left + mon.width / 2)}px`
+          )
         root.dataset.state = 'caught'
       } else if (caught && progress < FREE) {
         caught = false
@@ -85,6 +111,16 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
           Sổ tay
         </button>
         <div className="read-trail" aria-hidden="true">
+          <svg width="0" height="0" style={{ position: 'absolute' }}>
+            <defs>
+              <symbol id="rr-st" viewBox="0 0 40 40" overflow="visible">
+                <path d="M20 3l4.8 10.4 11.4 1.3-8.4 7.8 2.3 11.2L20 28l-10.1 5.7 2.3-11.2-8.4-7.8 11.4-1.3z" />
+              </symbol>
+              <symbol id="rr-tw" viewBox="0 0 40 40" overflow="visible">
+                <path d="M20 1c1.6 10 7.4 16.4 19 19-11.6 2.6-17.4 9-19 19-1.6-10-7.4-16.4-19-19C12.6 17.4 18.4 11 20 1z" />
+              </symbol>
+            </defs>
+          </svg>
           <span className="trail-fill" />
           <div
             className="trail-mon"
@@ -105,7 +141,8 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
                       fitMon(
                         e.currentTarget.naturalWidth,
                         e.currentTarget.naturalHeight,
-                        mon.pixel
+                        mon.pixel,
+                        BOX
                       )
                     )
                   }
@@ -119,62 +156,39 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
             </span>
           </div>
           <div className="ball-rig">
-            <span className="fx-flash" />
-            <span className="fx-ring" />
-            <svg className="read-ball" viewBox="0 0 100 100">
-              <defs>
-                <radialGradient id="rr-top" cx="38%" cy="28%" r="80%">
-                  <stop offset="0" stopColor="#ff7a5c" />
-                  <stop offset="0.55" stopColor="#e3350d" />
-                  <stop offset="1" stopColor="#a81f05" />
-                </radialGradient>
-                <radialGradient id="rr-bottom" cx="40%" cy="70%" r="80%">
-                  <stop offset="0" stopColor="#ffffff" />
-                  <stop offset="0.6" stopColor="#eef1f5" />
-                  <stop offset="1" stopColor="#b9c3cf" />
-                </radialGradient>
-              </defs>
-              <circle cx="50" cy="50" r="46" fill="url(#rr-bottom)" />
-              <path d="M4 50a46 46 0 0 1 92 0z" fill="url(#rr-top)" />
-              <path d="M4 50h92" stroke="#172d45" strokeWidth="8" />
-              <circle
-                cx="50"
-                cy="50"
-                r="46"
-                fill="none"
-                stroke="#172d45"
-                strokeWidth="7"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="14"
-                fill="#f4f6f8"
-                stroke="#172d45"
-                strokeWidth="7"
-              />
-              <circle className="ball-led" cx="50" cy="50" r="7" fill="#fff" />
-              <ellipse
-                cx="31"
-                cy="27"
-                rx="11"
-                ry="6.5"
-                fill="#fff"
-                opacity="0.55"
-                transform="rotate(-35 31 27)"
-              />
-            </svg>
+            <span className="fx fx-rays" />
+            <span className="fx fx-beam" />
+            <span className="fx fx-flash" />
+            <span className="fx fx-ring" />
+            <span className="fx fx-ring fx-ring--b" />
+            <span className="ball-roll">
+              <span className="ball-fx">
+                {/* cap under base: the button (on the base) stays whole */}
+                <PokeBallArt className="bh bh--cap" part="cap" />
+                <PokeBallArt className="bh bh--base" part="base" />
+                <i className="ball-led" />
+              </span>
+            </span>
             <span className="sparks">
-              {SPARKS.map((angle, i) => (
+              {STARS.map((star, i) => (
                 <i
-                  key={angle}
+                  key={i}
                   style={
                     {
-                      '--a': `${angle}deg`,
-                      '--d': `${i % 2 ? 26 : 38}px`,
+                      '--x': `${star.x}px`,
+                      '--h': `${star.h}px`,
+                      '--f': `${star.f}px`,
+                      '--s': star.s,
+                      '--t': `${star.t}ms`,
+                      '--rot': `${star.r}deg`,
+                      color: star.c,
                     } as CSSProperties
                   }
-                />
+                >
+                  <svg viewBox="0 0 40 40">
+                    <use href={`#rr-${star.k}`} />
+                  </svg>
+                </i>
               ))}
             </span>
             <svg className="catch-star" viewBox="0 0 40 40">

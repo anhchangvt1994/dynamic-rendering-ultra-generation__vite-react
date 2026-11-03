@@ -27,7 +27,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     align-items: center;
     gap: 18px;
     max-width: 1180px;
-    height: 68px;
+    height: 76px;
     margin-inline: auto;
   }
   .rail-back {
@@ -66,16 +66,15 @@ export const BlogDetailStyle = styled(BlogStyle)`
     border-width: 0 2.5px 2.5px 0;
     rotate: 135deg;
   }
-  /* the trail: a dashed path, inked where the ball has been. At its end a
-     random animated Pokémon waits in a 72px slot, a "Who's that Pokémon?"
-     silhouette that shows its colours as the ball nears; the ball catches it
-     (flash, drawn in, three shakes, click, stars). --p is the way travelled */
+  /* the trail: a dashed path, inked where the ball has been. A random
+     animated Pokémon waits on it at --pos, a "Who's that Pokémon?" silhouette
+     that shows its colours as the ball nears. The ball opens, catches it, goes
+     on to the end. --p is the way read (0 to 1) */
   .read-trail {
-    --slot: 72px;
     position: relative;
     flex: 1;
-    height: 60px;
-    margin-inline: 14px 0;
+    height: 68px;
+    margin-inline: 14px 18px;
   }
   .read-trail::before,
   .trail-fill {
@@ -90,39 +89,66 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .trail-fill {
     right: auto;
-    width: calc(var(--p, 0) * (100% - var(--slot)) + 15px);
+    width: calc(var(--p, 0) * (100% - 74px) + 15px);
     border-top: 4px solid var(--berry);
     border-radius: 2px;
   }
+  /* the ball stops short of the Pokémon: it is drawn the last stretch in */
   .ball-rig {
     position: absolute;
     z-index: 3;
     top: 50%;
-    left: calc(var(--p, 0) * (100% - var(--slot)));
+    left: calc(var(--p, 0) * (100% - 74px));
     width: 30px;
     height: 30px;
     margin-top: -15px;
   }
-  .read-ball {
+  .ball-roll {
     display: block;
     width: 100%;
     height: 100%;
     rotate: var(--r, 0deg);
+  }
+  .ball-fx {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
     filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.3));
   }
-  .ball-led {
-    transition: fill 120ms;
+  .bh {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
   }
+  /* the cap flips open on a hinge at its left end */
+  .bh--cap {
+    transform-origin: 6% 50%;
+  }
+  .ball-led {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px;
+    border-radius: 50%;
+    background: #fff;
+    transition: background 120ms;
+  }
+  /* the Pokémon stands on the trail's far end, large */
   .trail-mon {
     position: absolute;
     z-index: 2;
     top: 0;
-    right: 0;
     bottom: 0;
+    right: -34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--slot);
+    width: 96px;
     opacity: 0;
     transition: opacity 240ms ease-out;
   }
@@ -151,38 +177,39 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .mon-shadow {
     position: absolute;
-    bottom: 4px;
+    bottom: 5px;
     left: 50%;
-    width: 44px;
-    height: 8px;
-    margin-left: -22px;
+    width: 64px;
+    height: 9px;
+    margin-left: -32px;
     border-radius: 50%;
     background: radial-gradient(
       closest-side,
-      rgba(23, 45, 69, 0.28),
+      rgba(23, 45, 69, 0.3),
       rgba(23, 45, 69, 0)
     );
-    transition: opacity 240ms;
   }
-  .fx-flash,
-  .fx-ring {
+  /* ── the catch: light, beam, rays, rings, stars thrown in arcs ── */
+  .fx {
     position: absolute;
     top: 50%;
     left: 50%;
-    border-radius: 50%;
     opacity: 0;
     pointer-events: none;
   }
+  .fx-flash,
+  .fx-ring {
+    border-radius: 50%;
+  }
   .fx-flash {
-    width: 84px;
-    height: 84px;
-    margin: -42px 0 0 -42px;
+    width: 90px;
+    height: 90px;
+    margin: -45px 0 0 -45px;
     background: radial-gradient(
       circle,
-      #fff 0,
-      rgba(255, 244, 205, 0.9) 28%,
-      rgba(255, 150, 110, 0.4) 55%,
-      transparent 72%
+      #fff 0 30%,
+      rgba(255, 246, 200, 0.85) 45%,
+      rgba(255, 255, 255, 0) 70%
     );
   }
   .fx-ring {
@@ -191,117 +218,278 @@ export const BlogDetailStyle = styled(BlogStyle)`
     margin: -15px 0 0 -15px;
     border: 3px solid #ffd23f;
   }
-  .sparks i {
+  .fx-ring--b {
+    border-color: #ff6fb5;
+    border-width: 2px;
+  }
+  .fx-rays {
+    width: 150px;
+    height: 150px;
+    margin: -75px 0 0 -75px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+      rgba(255, 214, 90, 0.95) 0 6deg,
+      rgba(255, 214, 90, 0) 6deg 30deg
+    );
+    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 68%);
+    mask-image: radial-gradient(circle, #000 12%, transparent 68%);
+  }
+  /* the light that leaves the open ball, towards the Pokémon */
+  .fx-beam {
+    width: 84px;
+    height: 44px;
+    margin-top: -22px;
+    transform-origin: 0 50%;
+    background: linear-gradient(
+      to right,
+      #fff,
+      rgba(255, 150, 130, 0.75) 55%,
+      rgba(255, 90, 90, 0)
+    );
+    clip-path: polygon(0 38%, 100% 0, 100% 100%, 0 62%);
+  }
+  .sparks {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 11px;
-    height: 11px;
-    margin: -5.5px;
-    background: linear-gradient(135deg, #fff7c2, #ffb800);
-    clip-path: polygon(
-      50% 0,
-      62% 38%,
-      100% 50%,
-      62% 62%,
-      50% 100%,
-      38% 62%,
-      0 50%,
-      38% 38%
-    );
-    opacity: 0;
     pointer-events: none;
+  }
+  /* i flies sideways, svg goes up and falls: together, an arc */
+  .sparks i {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+  }
+  .sparks svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(22px * var(--s, 1));
+    height: calc(22px * var(--s, 1));
+    margin: calc(-11px * var(--s, 1)) 0 0 calc(-11px * var(--s, 1));
+    overflow: visible;
+    fill: currentColor;
+    stroke: #172d45;
+    stroke-width: 2.4;
+    stroke-linejoin: round;
+    paint-order: stroke;
+    opacity: 0;
   }
   .catch-star {
     position: absolute;
-    top: -17px;
+    top: -19px;
     left: 50%;
-    width: 26px;
-    height: 26px;
-    margin-left: -13px;
+    width: 22px;
+    height: 22px;
+    margin-left: -11px;
     opacity: 0;
     scale: 0;
     pointer-events: none;
     filter: drop-shadow(0 2px 2px rgba(23, 45, 69, 0.3));
   }
-  /* the end states, whatever the motion: caught = the Pokémon is in the ball,
-     the star is out and the ball's light is on */
-  [data-state='caught'] .read-ball {
-    rotate: 0deg;
-  }
-  [data-state='caught'] .ball-led {
-    fill: #7dffb0;
-  }
+  /* the end states, whatever the motion: caught = the Pokémon is in the ball
+     (the ball carries a star and its light is on) */
   [data-state='caught'] .trail-mon {
     opacity: 0;
+  }
+  [data-state='caught'] .ball-led {
+    background: #7dffb0;
   }
   [data-state='caught'] .catch-star {
     opacity: 1;
     scale: 1;
   }
   @media (prefers-reduced-motion: reduce) {
-    .read-ball {
+    .ball-roll {
       rotate: 0deg;
     }
   }
   @media (prefers-reduced-motion: no-preference) {
-    /* the Pokémon: flashes white, goes red, is pulled into the ball */
-    [data-state='caught'] .mon-body {
-      animation: mon-in 560ms cubic-bezier(0.55, 0, 0.8, 0.5) both;
+    /* caught: the ball swells, the cap flips open, a beam, the Pokémon flashes
+       white then red and is drawn in, the cap clicks shut, three shakes, the
+       light blinks, then rays, rings and a fountain of stars */
+    [data-state='caught'] .sparks {
+      --b: 1560ms;
     }
-    [data-state='caught'] .mon-shadow {
-      opacity: 0;
+    [data-state='caught'] .ball-fx {
+      animation: ball-catch 1900ms ease-in-out both;
+    }
+    [data-state='caught'] .bh--cap {
+      animation: cap-catch 700ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    }
+    [data-state='caught'] .fx-beam {
+      animation: beam 560ms 120ms ease-out both;
     }
     [data-state='caught'] .fx-flash {
-      animation: fx-flash 420ms 120ms ease-out both;
+      animation: fx-flash 520ms 160ms ease-out both;
     }
-    /* the ball: closes with a squash, shakes three times, light blinks,
-       clicks shut (ring + sparks + star) */
-    [data-state='caught'] .read-ball {
-      animation: ball-shake 1200ms 620ms ease-in-out both;
+    [data-state='caught'] .mon-body {
+      animation: mon-in 560ms 200ms cubic-bezier(0.55, 0, 0.8, 0.5) both;
     }
     [data-state='caught'] .ball-led {
-      animation: led 1200ms 620ms steps(1, end) both;
+      animation: led 800ms 800ms steps(1, end) both;
+    }
+    [data-state='caught'] .fx-rays {
+      animation: rays 1000ms 1560ms ease-out both;
     }
     [data-state='caught'] .fx-ring {
-      animation: fx-ring 560ms 1840ms ease-out both;
+      animation: fx-ring 640ms 1560ms ease-out both;
     }
-    [data-state='caught'] .sparks i {
-      animation: spark 640ms 1840ms cubic-bezier(0.1, 0.8, 0.3, 1) both;
+    [data-state='caught'] .fx-ring--b {
+      animation: fx-ring 760ms 1700ms ease-out both;
     }
     [data-state='caught'] .catch-star {
-      animation: star-pop 700ms 1840ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+      animation: star-pop 700ms 1620ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
     }
-    /* let out */
-    [data-state='release'] .read-ball {
-      animation: ball-open 460ms ease-out both;
+    /* let out: the same, backwards in spirit: beam, flash, the Pokémon bursts
+       out of the cap, stars fly */
+    [data-state='release'] .sparks {
+      --b: 330ms;
+    }
+    [data-state='release'] .ball-fx {
+      animation: ball-release 1100ms ease-in-out both;
+    }
+    [data-state='release'] .bh--cap {
+      animation: cap-release 800ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    }
+    [data-state='release'] .fx-beam {
+      animation: beam 520ms 180ms ease-out both;
     }
     [data-state='release'] .fx-flash {
-      animation: fx-flash 520ms 140ms ease-out both;
+      animation: fx-flash 520ms 240ms ease-out both;
+    }
+    [data-state='release'] .fx-rays {
+      animation: rays 800ms 300ms ease-out both;
+    }
+    [data-state='release'] .fx-ring {
+      animation: fx-ring 640ms 300ms ease-out both;
     }
     [data-state='release'] .mon-body {
-      animation: mon-out 640ms 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+      animation: mon-out 680ms 300ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
     }
+    [data-state='caught'] .sparks i,
     [data-state='release'] .sparks i {
-      animation: spark 520ms 160ms cubic-bezier(0.1, 0.8, 0.3, 1) both;
+      animation: spark-x 1000ms cubic-bezier(0.15, 0.6, 0.35, 1)
+        calc(var(--b) + var(--t)) both;
+    }
+    [data-state='caught'] .sparks svg,
+    [data-state='release'] .sparks svg {
+      animation: spark-y 1000ms linear calc(var(--b) + var(--t)) both;
+    }
+  }
+  @keyframes ball-catch {
+    0% {
+      scale: 1;
+    }
+    9% {
+      scale: 1.5;
+    }
+    38% {
+      scale: 1.5;
+      rotate: 0deg;
+    }
+    42% {
+      scale: 1.2 1.05;
+    }
+    46% {
+      rotate: -26deg;
+      scale: 1.2;
+    }
+    54% {
+      rotate: 22deg;
+    }
+    62% {
+      rotate: -16deg;
+    }
+    70% {
+      rotate: 12deg;
+    }
+    77% {
+      rotate: -5deg;
+    }
+    82% {
+      rotate: 0deg;
+      scale: 1.2;
+    }
+    86% {
+      scale: 1.65 1.3;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+  @keyframes ball-release {
+    0% {
+      scale: 1;
+    }
+    12% {
+      scale: 1.5;
+    }
+    70% {
+      scale: 1.5;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+  @keyframes cap-catch {
+    0% {
+      rotate: 0deg;
+    }
+    24%,
+    66% {
+      rotate: -70deg;
+    }
+    80%,
+    100% {
+      rotate: 0deg;
+    }
+  }
+  @keyframes cap-release {
+    0% {
+      rotate: 0deg;
+    }
+    22%,
+    66% {
+      rotate: -70deg;
+    }
+    90%,
+    100% {
+      rotate: 0deg;
+    }
+  }
+  @keyframes beam {
+    0% {
+      opacity: 0;
+      scale: 0.2 0.6;
+    }
+    30% {
+      opacity: 1;
+      scale: 1 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1.1 1.2;
     }
   }
   @keyframes mon-in {
     0% {
       filter: none;
     }
-    30% {
+    26% {
       filter: brightness(4) saturate(0);
-      scale: 1.08;
+      scale: 1.1;
     }
-    62% {
+    60% {
       filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
       scale: 0.7;
       opacity: 1;
     }
     100% {
       filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
-      translate: -26px 2px;
+      translate: var(--dx, 0px) -4px;
       scale: 0;
       opacity: 0;
     }
@@ -309,13 +497,13 @@ export const BlogDetailStyle = styled(BlogStyle)`
   @keyframes mon-out {
     0% {
       filter: brightness(4) saturate(0) drop-shadow(0 0 8px #fff);
-      translate: -26px 2px;
+      translate: var(--dx, 0px) -4px;
       scale: 0;
       opacity: 0;
     }
     45% {
       filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
-      scale: 1.12;
+      scale: 1.14;
       translate: 0 0;
       opacity: 1;
     }
@@ -326,102 +514,97 @@ export const BlogDetailStyle = styled(BlogStyle)`
       opacity: 1;
     }
   }
-  /* three shakes, each smaller, then still */
-  @keyframes ball-shake {
-    0%,
-    100% {
-      rotate: 0deg;
-      translate: 0 0;
-      scale: 1;
-    }
-    6% {
-      scale: 1.18 0.86;
-    }
-    12% {
-      scale: 1;
-    }
-    24% {
-      rotate: -28deg;
-      translate: -2px 0;
-    }
-    38% {
-      rotate: 24deg;
-      translate: 2px 0;
-    }
-    52% {
-      rotate: -18deg;
-      translate: -1px 0;
-    }
-    64% {
-      rotate: 14deg;
-      translate: 1px 0;
-    }
-    76% {
-      rotate: -7deg;
-    }
-    88% {
-      rotate: 2deg;
-    }
-    94% {
-      scale: 1.12;
-    }
-  }
   @keyframes led {
     0%,
     24% {
-      fill: #fff;
+      background: #fff;
     }
     25%,
     36% {
-      fill: #ff5a3c;
+      background: #ff5a3c;
     }
     37%,
     52% {
-      fill: #fff;
+      background: #fff;
     }
     53%,
     64% {
-      fill: #ff5a3c;
+      background: #ff5a3c;
     }
     65%,
     100% {
-      fill: #fff;
+      background: #fff;
     }
   }
   @keyframes fx-flash {
     0% {
       opacity: 0;
-      scale: 0.3;
-    }
-    35% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-      scale: 1.3;
-    }
-  }
-  @keyframes fx-ring {
-    0% {
-      opacity: 0.9;
-      scale: 0.6;
-    }
-    100% {
-      opacity: 0;
-      scale: 2.6;
-    }
-  }
-  @keyframes spark {
-    0% {
-      opacity: 0;
-      transform: rotate(var(--a)) translateY(0) scale(0.4);
+      scale: 0.2;
     }
     25% {
       opacity: 1;
     }
     100% {
       opacity: 0;
-      transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1);
+      scale: 1.8;
+    }
+  }
+  @keyframes fx-ring {
+    0% {
+      opacity: 0.95;
+      scale: 0.6;
+    }
+    100% {
+      opacity: 0;
+      scale: 3.4;
+    }
+  }
+  @keyframes rays {
+    0% {
+      opacity: 0;
+      scale: 0.3;
+      rotate: 0deg;
+    }
+    22% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1.35;
+      rotate: 70deg;
+    }
+  }
+  @keyframes spark-x {
+    to {
+      translate: var(--x) 0;
+    }
+  }
+  /* up to --h, then falling to --f */
+  @keyframes spark-y {
+    0% {
+      opacity: 0;
+      scale: 0.2;
+      rotate: 0deg;
+      translate: 0 0;
+      animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+    }
+    10% {
+      opacity: 1;
+    }
+    36% {
+      opacity: 1;
+      scale: 1.25;
+      translate: 0 var(--h);
+      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+    }
+    72% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 0.55;
+      rotate: var(--rot);
+      translate: 0 var(--f);
     }
   }
   @keyframes star-pop {
@@ -433,7 +616,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     55% {
       opacity: 1;
-      scale: 1.3;
+      scale: 1.5;
       rotate: 14deg;
       translate: 0 -4px;
     }
@@ -442,20 +625,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
       scale: 1;
       rotate: 0deg;
       translate: 0 0;
-    }
-  }
-  @keyframes ball-open {
-    0% {
-      translate: 0 0;
-      scale: 1;
-    }
-    30% {
-      translate: 0 -7px;
-      scale: 1.12;
-    }
-    100% {
-      translate: 0 0;
-      scale: 1;
     }
   }
   .blog-article {
@@ -570,7 +739,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .blog-body h2,
   .blog-body h3 {
-    scroll-margin-top: 92px; /* clears the sticky reading rail */
+    scroll-margin-top: 100px; /* clears the sticky reading rail */
     margin: 1.6em 0 0.5em;
     font-family: var(--font-display);
     font-weight: 400;
