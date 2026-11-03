@@ -258,6 +258,10 @@ const apiService = (() => {
                         isCompress: false,
                       }
                     )
+
+                    // NOTE - the client is served the compressed copy, so a
+                    // renewed entry must replace it too
+                    compressData(requestInfo.cacheKey, data)
                   }
                 })
               }
