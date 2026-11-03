@@ -99,16 +99,18 @@ export const BlogStyle = styled.div`
     flex-wrap: nowrap;
     gap: 8px;
     height: 60px;
-    padding: 8px 4px 8px;
-    margin-top: 6px;
+    padding: 8px 16px 8px;
+    margin: 6px -16px 0;
     overflow-x: auto;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
-    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
-  @media (min-width: 900px) {
+  @media (min-width: 720px) {
     .blog-tags {
       mask-image: none;
+      margin-inline: auto;
+      margin-top: 6px;
+      padding: 8px 0;
     }
   }
   .blog-tags::-webkit-scrollbar {
@@ -384,7 +386,7 @@ export const BlogStyle = styled.div`
   .nb-ribbon {
     position: absolute;
     z-index: 3;
-    top: -3px;
+    top: 0;
     right: 22px;
     display: flex;
     flex-direction: column;
@@ -636,9 +638,6 @@ export const BlogStyle = styled.div`
     .blog-grid > li {
       animation: blog-pin 480ms calc(220ms + var(--i, 0) * 90ms)
         cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-    }
-    .nb-ribbon {
-      animation: blog-drop 520ms 500ms cubic-bezier(0.3, 1.3, 0.5, 1) backwards;
     }
     .cover img {
       transition: opacity 260ms ease-out;
