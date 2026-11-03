@@ -27,7 +27,9 @@ good: no migration of old articles, the new blog starts with seed articles.
 | `cover_alt` | text | default '' |
 | `cover_color` | text | `#rrggbb`, the cover's colour while the image loads and the card's tint |
 | `tags` | text[] | stamp on the card; first tag is the main one |
-| `status` | text | `draft` \| `published` (check) |
+| `status` | text | `draft` \| `pending` \| `published` \| `rejected` (check; Studio uses draft/published, `pending`/`rejected` are for member articles) |
+| `author_id` | uuid null | `references auth.users on delete set null`; null = written in Studio (the editorial desk) |
+| `like_count` | int | default 0, kept by trigger on `article_likes` |
 | `published_at` | timestamptz null | set when published |
 | `updated_at` | timestamptz | trigger |
 
@@ -36,12 +38,44 @@ good: no migration of old articles, the new blog starts with seed articles.
   only (see `20261031000001_explicit_grants.sql`); no insert/update/delete for
   anyone from the API. Studio writes as `postgres`.
 - Seed: 6 Vietnamese articles about Pokémon (covers: official artwork URLs).
-- pgTAP `supabase/tests/database/articles.test.sql`: a draft and a future
+- pgTAP `supabase/tests/database/articles.test.sql`: a member can not insert
+  for another `author_id`, can not publish, can not edit a published article;
+  likes: one per member, own article refused, draft refused, counter follows
+  insert/delete; a draft and a future
   article are invisible to anon and authenticated; a published one is
   visible; anon can not insert/update/delete; the slug check rejects
   `Bad Slug`.
 - No Supabase Storage (it is off locally and absent on the VPS): a cover is
   a URL.
+
+## Open path: member articles and likes (schema now, UI later)
+
+Built now (migration, RLS, pgTAP), no UI yet:
+
+- `articles.author_id`: a signed-in member's article carries their id. The
+  detail page shows "Bởi <display_name>" when set (from `profiles`).
+- Member writing, later: an `authenticated` user may `insert` only
+  `author_id = auth.uid()` with `status in ('draft','pending')`, `update`/`delete`
+  only their own while not `published` (policies written and tested now, the
+  `grant insert, update, delete` stays commented in the migration until the
+  editor UI ships). A moderator (Studio) sets `published` / `rejected`.
+  Authors read their own drafts through a second `select` policy.
+- `article_likes (article_id, user_id, created_at, pk(article_id, user_id))`:
+  `authenticated` may insert/delete their own row only. RPC
+  `article_like(p_article uuid, p_on boolean)` toggles it. Rules: only a
+  published article, **the author's own like and a like on one's own article
+  never count** (the row is refused), one like per member and article.
+  `like_count` is a trigger-kept counter, so the list needs no join.
+- Gifts, later (the contract, not built): tiers on `like_count`
+  (`article_reward_tiers(min_likes, item, qty)`), claimed once per article and
+  tier by the author through an RPC that puts the items in the bag the quiz
+  and the kitchen already use (`article_reward_claims(article_id, tier_id,
+  claimed_at, pk(article_id, tier_id))`). Reading `like_count` through the
+  apiProxy lags by `renewTime`, so a claim re-checks the live count in SQL.
+
+Not built in this phase: the editor, the like button, the gift tiers, the claim
+RPC. The list and detail already read `like_count` and `author_id` columns so
+adding them needs no change of the read path.
 
 ## Managing articles (Studio)
 
@@ -154,5 +188,5 @@ links.
 
 ## Out of scope
 
-Comments, likes, an editor UI in the site, Storage, migrating the Strapi
+Comments, an editor UI, a like button, gift tiers and claims (their schema path is open above), Storage, migrating the Strapi
 articles, public Studio.
