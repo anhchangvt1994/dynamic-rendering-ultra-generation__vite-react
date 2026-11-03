@@ -1,118 +1,169 @@
-import BattleMessage from 'components/common/BattleMessage'
-import { useGetPokemonBlogDetailQuery } from 'app/apis/blog'
-import { useNavigateInfo } from 'app/router/context/InfoContext'
-import Image from 'components/common/Image'
-import { getBlogDetailPath } from 'utils/ApiHelper'
-import BlogDetailLoading from './loading'
+import { useMemo } from 'react'
 import {
-  BackButtonStyle,
-  BackIconStyle,
-  BlogDetailPageStyle,
-  HeaderStyle,
-  TitleStyle,
-} from './styles'
-import { generateDescription, generateShortDescription } from './utils'
+  BLOG_ENABLED,
+  detailStoreKey,
+  listStoreKey,
+  useGetArticleQuery,
+  useGetArticlesQuery,
+} from 'app/apis/blog'
+import type { Article, ArticleCard } from 'app/apis/blog'
+import { useNavigateInfo } from 'app/router/context/InfoContext'
+import BattleMessage from 'components/common/BattleMessage'
+import BlogDetailSkeleton from 'components/PageSkeleton/BlogDetailSkeleton'
+import Cover from 'pages/BlogPage/Cover'
+import Stamp from 'pages/BlogPage/Stamp'
+import { formatDate, readLabel } from 'pages/BlogPage/text.mjs'
+import { parseMarkdown } from 'pages/BlogPage/markdown.mjs'
+import Markdown from './Markdown'
+import type { Block } from './Markdown'
+import ReadBall from './ReadBall'
+import Related, { nextTwo } from './Related'
+import { BlogDetailStyle } from './styles'
 
-const BlogDetailPage = () => {
+const SITE_AUTHOR = 'Pokédex Field Notes'
+
+/** /blogs/:slug: one page of the notebook. */
+export default function BlogDetailPage() {
   const route = useRoute()
   const navigateInfo = useNavigateInfo()
   const navigate = useNavigate()
+  const { slug } = route.params as { slug: string }
 
-  const { slug } = route.params
   const {
-    data = getAPIStore(getBlogDetailPath(slug)),
+    data = getAPIStore(detailStoreKey(slug)),
     isFetching,
     refetch,
-  } = useGetPokemonBlogDetailQuery(slug)
-  // The backend can answer with anything; only an article list is usable.
-  const articles = Array.isArray(data?.data) ? data.data : null
-  const [blogDetailState, setBlogDetailState] = useState(data?.data ?? {})
-  const isShowLoading = RenderingInfo.loader || (isFetching && !data)
-  const description = generateDescription(blogDetailState?.content || [])
-  const imagePath = `${import.meta.env.HOST}${blogDetailState?.coverImage?.url ?? ''}`
-  const shortDescription = generateShortDescription(
-    blogDetailState?.content || []
+  } = useGetArticleQuery(slug)
+  // the list is on the desk already (cache and store): Related needs no request of its own
+  const { data: list = getAPIStore(listStoreKey()) } = useGetArticlesQuery()
+
+  // the backend can answer with anything; only a list of rows is usable
+  const rows: Article[] | null = Array.isArray(data) ? data : null
+  const article = rows?.[0] ?? null
+  const blocks = useMemo(
+    () => parseMarkdown(article?.body ?? '') as Block[],
+    [article]
+  )
+  const related = useMemo(
+    () =>
+      nextTwo(Array.isArray(list) ? (list as ArticleCard[]) : [], slug),
+    [list, slug]
   )
 
-  useEffect(() => {
-    if (data && !isFetching) {
-      setBlogDetailState(articles?.[0] || null)
-    }
-  }, [articles, data, isFetching])
+  if (article)
+    setSeoTag({
+      title: `${article.title} | Sổ tay thực địa`,
+      description: article.excerpt,
+      'og:type': 'article',
+      'og:title': article.title,
+      'og:description': article.excerpt,
+      'og:url': `${import.meta.env.HOST}${window?.location?.pathname ?? ''}`,
+      'og:image': article.cover_url ?? '',
+      'twitter:title': article.title,
+      'twitter:description': article.excerpt,
+      'twitter:image': article.cover_url ?? '',
+      robots: 'index, follow',
+    })
+  else
+    setSeoTag({
+      title: 'Bài viết không tồn tại | Pokédex',
+      robots: 'noindex',
+    })
 
-  useEffect(() => {
-    if (blogDetailState) {
-      setSeoTag({
-        title: blogDetailState.title || 'Pokemon',
-        'og:type': 'website',
-        'og:title': blogDetailState.title || 'Pokemon',
-        'twitter:title': blogDetailState.title || 'Pokemon',
-        'og:description': shortDescription,
-        description: shortDescription,
-        'twitter:description': shortDescription,
-        'og:url': window.location.pathname,
-        'og:site_name': `Pokemon ${blogDetailState.name || ''}`,
-        'og:image': imagePath,
-        'twitter:image': imagePath,
-        'og:image:width': '1200',
-        'og:image:height': '628',
-        robots: 'index, follow',
-      })
-    }
-  }, [blogDetailState, imagePath, shortDescription])
+  const back = () =>
+    navigateInfo.from
+      ? navigate(-1)
+      : navigate(import.meta.env.ROUTER_BLOGS_GET_PATH)
 
-  const handleBack = () => {
-    if (!navigateInfo.from)
-      return navigate(import.meta.env.ROUTER_BLOGS_GET_PATH)
+  if (RenderingInfo.loader || (BLOG_ENABLED && isFetching && !data))
+    return <BlogDetailSkeleton />
 
-    navigate(-1)
-  } // handleBack
+  if (!BLOG_ENABLED)
+    return (
+      <BattleMessage
+        title="Bài viết chưa bật"
+        action={{ label: 'Về Pokédex', to: import.meta.env.ROUTER_HOME_PATH }}
+      >
+        Sổ tay thực địa cần Supabase. Bật nó để đọc các bài viết.
+      </BattleMessage>
+    )
+
+  if (!rows)
+    return (
+      <BattleMessage
+        title="Máy chủ bài viết đã gục ngã!"
+        action={{ label: 'Thử lại', onClick: () => refetch() }}
+      >
+        Không tải được bài viết này. Thử lại sau giây lát.
+      </BattleMessage>
+    )
+
+  if (!article)
+    return (
+      <BattleMessage
+        title="Bài viết này đã bỏ chạy!"
+        action={{
+          label: 'Xem các bài viết',
+          to: import.meta.env.ROUTER_BLOGS_GET_PATH,
+        }}
+      >
+        Không tìm thấy bài viết với đường dẫn này. Có thể nó đã được đổi tên
+        hoặc gỡ xuống.
+      </BattleMessage>
+    )
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    image: article.cover_url ? [article.cover_url] : undefined,
+    datePublished: article.published_at,
+    dateModified: article.updated_at ?? article.published_at,
+    author: { '@type': 'Person', name: article.author_name || SITE_AUTHOR },
+  }
 
   return (
-    <BlogDetailPageStyle className="blog-detail-page">
-      <HeaderStyle>
-        <BackButtonStyle onClick={handleBack}>
-          <BackIconStyle />
-        </BackButtonStyle>
-      </HeaderStyle>
-      {isShowLoading ? (
-        <BlogDetailLoading />
-      ) : !articles ? (
-        <BattleMessage
-          title="Máy chủ bài viết đã gục ngã!"
-          action={{ label: 'Thử lại', onClick: () => refetch() }}
-        >
-          Không tải được bài viết này. Thử lại sau giây lát.
-        </BattleMessage>
-      ) : !blogDetailState ? (
-        <BattleMessage
-          title="Bài viết này đã bỏ chạy!"
-          action={{
-            label: 'Xem các bài viết',
-            to: import.meta.env.ROUTER_BLOGS_GET_PATH,
+    <BlogDetailStyle className="blog-detail-page">
+      <ReadBall />
+      <button
+        type="button"
+        className="blog-back"
+        aria-label="Quay lại"
+        onClick={back}
+      />
+      <article className="blog-article">
+        <Cover
+          src={article.cover_url}
+          alt={article.cover_alt}
+          color={article.cover_color}
+          priority
+          className="blog-cover"
+        />
+        <header className="blog-head">
+          <div className="blog-tagrow">
+            {article.tags[0] && <Stamp tag={article.tags[0]} />}
+          </div>
+          <h1 className="blog-title">{article.title}</h1>
+          <p className="blog-meta">
+            <time dateTime={article.published_at}>
+              {formatDate(article.published_at)}
+            </time>
+            <span>{readLabel(article.read_minutes)}</span>
+            {article.author_name && <span>Bởi {article.author_name}</span>}
+          </p>
+        </header>
+        <div className="blog-body">
+          <Markdown blocks={blocks} />
+        </div>
+        <script
+          type="application/ld+json"
+          // `<` escaped: no text in the data can close the script
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
           }}
-        >
-          Không tìm thấy bài viết với đường dẫn này. Có thể nó đã được đổi tên
-          hoặc gỡ xuống.
-        </BattleMessage>
-      ) : (
-        <>
-          {blogDetailState?.title && (
-            <TitleStyle>{blogDetailState.title}</TitleStyle>
-          )}
-          {blogDetailState?.coverImage?.url && (
-            <Image
-              hash={blogDetailState.coverImage.blurhash || ''}
-              src={`${import.meta.env.HOST}${blogDetailState.coverImage.url}`}
-              alt={blogDetailState.title}
-            />
-          )}
-
-          {description}
-        </>
-      )}
-    </BlogDetailPageStyle>
+        />
+      </article>
+      <Related articles={related} />
+    </BlogDetailStyle>
   )
 }
-
-export default BlogDetailPage

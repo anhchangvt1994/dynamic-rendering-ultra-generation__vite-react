@@ -7,6 +7,7 @@ import QuizSkeleton from './QuizSkeleton'
 import BagSkeleton from './BagSkeleton'
 import KitchenSkeleton from './KitchenSkeleton'
 import BlogSkeleton from './BlogSkeleton'
+import BlogDetailSkeleton from './BlogDetailSkeleton'
 
 export { default as HeaderSkeleton } from './HeaderSkeleton'
 
@@ -23,6 +24,8 @@ export default function PageSkeleton({ routeId }: { routeId?: string }) {
       return <PokemonSkeleton />
     case import.meta.env.ROUTER_BLOGS_ID:
       return <BlogSkeleton />
+    case import.meta.env.ROUTER_BLOG_DETAIL_ID:
+      return <BlogDetailSkeleton />
     case 'QuizPage':
       return <QuizSkeleton />
     case 'BagPage':

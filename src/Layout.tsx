@@ -4,8 +4,6 @@ import MenuBar from 'components/common/MenuBar'
 import SearchBlogBar from 'components/common/SearchBlogBar'
 import SearchPokemonBar from 'components/common/SearchPokemonBar'
 import PageSkeleton, { HeaderSkeleton } from 'components/PageSkeleton'
-import BlogDetailLoading from 'pages/BlogDetailPage/loading'
-import { BlogDetailPageStyle } from 'pages/BlogDetailPage/styles'
 import React from 'react'
 import {
   BodyStyle,
@@ -33,18 +31,7 @@ const OutletWrapper = React.memo(() => {
   const matches = useMatches()
   const pageId = matches[matches.length - 1]?.id ?? route.id
 
-  const loading = useMemo(() => {
-    switch (true) {
-      case pageId === import.meta.env.ROUTER_BLOG_DETAIL_ID:
-        return (
-          <BlogDetailPageStyle>
-            <BlogDetailLoading />
-          </BlogDetailPageStyle>
-        )
-      default:
-        return <PageSkeleton routeId={pageId} />
-    }
-  }, [pageId])
+  const loading = useMemo(() => <PageSkeleton routeId={pageId} />, [pageId])
 
   // NOTE - The ISR loader snapshot (RenderingInfo.loader) is the page's
   // skeleton only: no page code, no data requests
