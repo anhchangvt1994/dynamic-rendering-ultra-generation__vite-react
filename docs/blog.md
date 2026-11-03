@@ -46,8 +46,10 @@ An article shows on the site only when `status = 'published'` **and**
 
 ## Delay
 
-The site keeps what it read for a minute (`renewTime` 60 s of the apiProxy):
-a change in Studio shows within about a minute, after the next reload.
+The site keeps what it read and refreshes it in the background (`renewTime`
+60 s of the apiProxy, stale-while-revalidate). The first reload after 60 s
+still shows the old text and starts the refresh; the next reload shows the
+change. Measured: edit at 0 s, reloads at 70 s (old) and 105 s (new).
 
 ## Member articles and likes: the path is open
 

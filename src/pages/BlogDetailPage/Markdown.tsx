@@ -70,7 +70,6 @@ export default function Markdown({ blocks }: { blocks: Block[] }) {
           }
           case 'code':
             return (
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
               <pre key={i} tabIndex={0}>
                 <code>{block.text}</code>
               </pre>

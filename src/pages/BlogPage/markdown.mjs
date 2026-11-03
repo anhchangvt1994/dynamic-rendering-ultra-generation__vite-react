@@ -4,7 +4,6 @@
 
 const SAFE_LINK = /^(https?:\/\/|mailto:)\S+$/i
 const SAFE_IMAGE = /^https?:\/\/\S+$/i
-// eslint-disable-next-line no-control-regex
 const BAD_CHARS = /[\u0000-\u001f\u007f\s]/
 
 export const safeUrl = (url, kind) => {
