@@ -74,7 +74,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     position: relative;
     flex: 1;
     height: 68px;
-    margin-inline: 14px 84px;
+    margin-inline: 14px 16px;
   }
   .read-trail::before,
   .trail-fill {
@@ -93,7 +93,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     border-top: 4px solid var(--berry);
     border-radius: 2px;
   }
-  /* the ball rolls to the very end of the trail; the Pokémon waits beyond it */
+  /* the ball rolls the whole trail, on past the Pokémon once it is caught */
   .ball-rig {
     position: absolute;
     z-index: 3;
@@ -138,13 +138,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     background: #fff;
     transition: background 120ms;
   }
-  /* the Pokémon stands on the trail's far end, large */
+  /* the Pokémon stands on the trail, large, towards its end */
   .trail-mon {
     position: absolute;
     z-index: 2;
     top: 0;
     bottom: 0;
-    right: -70px;
+    left: calc(var(--pos, 0.88) * (100% - 30px) + 15px);
+    margin-left: -48px;
     display: flex;
     align-items: center;
     justify-content: center;

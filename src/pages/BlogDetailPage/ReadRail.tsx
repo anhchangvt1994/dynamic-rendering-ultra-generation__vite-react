@@ -24,13 +24,16 @@ const scrollerOf = (node: HTMLElement | null) => {
  * rail. The roll is written as CSS variables and the catch is a data-state
  * (roll / caught / release) the CSS animates: no re-render while scrolling.
  */
-// the Pokémon stands at the far end of the trail. The ball reaches it, opens,
-// draws it in and bursts into stars (at CATCH, the end of the article), and
-// lets it out again when read back above FREE: any number of times
-const CATCH = 0.995
-const FREE = 0.97
+// where the Pokémon waits along the trail (share of the way). The ball touches
+// it (CATCH), draws it in, and rolls on to the very end of the trail; read
+// back above FREE it lets the Pokémon out again: any number of times
+const POS = 0.88
+// the ball catches it when this close (px, centre to centre)
+const REACH = 46
+// let out again this much further back (px): a gap against flicker
+const GAP = 36
 // the silhouette shows its colours from here
-const REVEAL = 0.8
+const REVEAL = POS - 0.3
 const TRIES = 4
 const BOX = 68
 
@@ -66,6 +69,8 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
     if (!root || !scroller) return
     let frame = 0
     let caught = false
+    const trail = root.querySelector<HTMLElement>('.read-trail')
+    if (!trail) return
     // the Pokémon is drawn towards the ball (and let out of it): the way
     const aim = () => {
       const ball = root.querySelector('.ball-roll')?.getBoundingClientRect()
@@ -88,6 +93,7 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
     }
     const update = () => {
       frame = 0
+      const lane = Math.max(1, trail.offsetWidth - 30)
       const room = scroller.scrollHeight - scroller.clientHeight
       const progress =
         room > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / room)) : 0
@@ -95,12 +101,15 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
       root.style.setProperty('--r', `${progress * 1440}deg`)
       const reveal = progress >= REVEAL ? '1' : '0'
       if (root.dataset.reveal !== reveal) root.dataset.reveal = reveal
-      if (!caught && progress >= CATCH) {
+      if (!caught && progress >= POS - Math.min(REACH, lane * 0.1) / lane) {
         caught = true
         aim()
         root.dataset.state = 'caught'
         ripple(0.15)
-      } else if (caught && progress < FREE) {
+      } else if (
+        caught &&
+        progress < POS - Math.min(REACH + GAP, lane * 0.2) / lane
+      ) {
         caught = false
         aim()
         root.dataset.state = 'release'
@@ -126,7 +135,11 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
           <span className="chev" aria-hidden="true" />
           Sổ tay
         </button>
-        <div className="read-trail" aria-hidden="true">
+        <div
+          className="read-trail"
+          aria-hidden="true"
+          style={{ '--pos': POS } as CSSProperties}
+        >
           <svg width="0" height="0" style={{ position: 'absolute' }}>
             <defs>
               <filter
