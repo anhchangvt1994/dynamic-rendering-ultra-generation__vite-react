@@ -66,12 +66,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     border-width: 0 2.5px 2.5px 0;
     rotate: 135deg;
   }
-  /* the trail: a dashed path, inked where the ball has been, a flag at its end */
+  /* the trail: a dashed path, inked where the ball has been. At its end a
+     Pikachu waits (44px kept free for it); the ball rolls up to it, catches it
+     and, shaking, a star jumps out. --p is the way travelled (0 to 1) */
   .read-trail {
     position: relative;
     flex: 1;
     height: 28px;
-    margin-inline: 14px 16px;
+    margin-inline: 14px 8px;
   }
   .read-trail::before,
   .trail-fill {
@@ -86,40 +88,186 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .trail-fill {
     right: auto;
-    width: calc(var(--p, 0) * 100%);
+    width: calc(var(--p, 0) * (100% - 44px) + 14px);
     border-top: 4px solid var(--berry);
     border-radius: 2px;
   }
   .read-ball {
     position: absolute;
+    z-index: 2;
     top: 0;
-    left: calc(var(--p, 0) * 100%);
+    left: calc(var(--p, 0) * (100% - 44px));
     width: 28px;
     height: 28px;
-    margin-left: -14px;
     rotate: var(--r, 0deg);
   }
-  .trail-flag {
+  .trail-mon {
     position: absolute;
-    top: 3px;
-    right: -16px;
-    width: 14px;
-    height: 22px;
-    border-left: 3px solid var(--ink);
+    top: -6px;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    transform-origin: 25% 70%;
+    overflow: visible;
   }
-  .trail-flag::after {
-    content: '';
+  .catch-star {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 12px;
-    height: 10px;
-    background: var(--berry);
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    z-index: 3;
+    top: -16px;
+    left: calc(100% - 44px + 1px);
+    width: 26px;
+    height: 26px;
+    opacity: 0;
+    scale: 0;
+    pointer-events: none;
+  }
+  /* the end states, whatever the motion: caught = the Pikachu is in the ball
+     and the star is out */
+  [data-state='caught'] .read-ball {
+    rotate: 0deg;
+  }
+  [data-state='caught'] .trail-mon {
+    opacity: 0;
+    scale: 0;
+  }
+  [data-state='caught'] .catch-star {
+    opacity: 1;
+    scale: 1;
+    translate: 0 -3px;
   }
   @media (prefers-reduced-motion: reduce) {
     .read-ball {
       rotate: 0deg;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-state='caught'] .trail-mon {
+      animation: mon-in 480ms cubic-bezier(0.5, 0, 0.9, 0.4) both;
+    }
+    [data-state='caught'] .read-ball {
+      animation: ball-shake 1050ms 520ms ease-in-out both;
+    }
+    [data-state='caught'] .catch-star {
+      animation: star-pop 620ms 1620ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    }
+    [data-state='release'] .trail-mon {
+      animation: mon-out 560ms 160ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+    }
+    [data-state='release'] .read-ball {
+      animation: ball-hop 360ms ease-out;
+    }
+    [data-state='release'] .catch-star {
+      animation: star-out 200ms ease-in both;
+    }
+  }
+  /* drawn in: a white glow, then pulled into the ball (on its left) */
+  @keyframes mon-in {
+    0% {
+      filter: brightness(1) invert(0) drop-shadow(0 0 0 rgba(255, 90, 60, 0));
+    }
+    40% {
+      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+      scale: 1.06;
+      translate: -2px 0;
+    }
+    100% {
+      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+      scale: 0;
+      translate: -16px 4px;
+      opacity: 0;
+    }
+  }
+  /* three shakes, each smaller, then still */
+  @keyframes ball-shake {
+    0%,
+    100% {
+      rotate: 0deg;
+      translate: 0 0;
+    }
+    8% {
+      scale: 1.14 0.9;
+    }
+    16% {
+      scale: 1;
+    }
+    22% {
+      rotate: -26deg;
+      translate: -2px 0;
+    }
+    38% {
+      rotate: 22deg;
+      translate: 2px 0;
+    }
+    50% {
+      rotate: -18deg;
+      translate: -1px 0;
+    }
+    62% {
+      rotate: 14deg;
+      translate: 1px 0;
+    }
+    76% {
+      rotate: -8deg;
+    }
+    88% {
+      rotate: 3deg;
+    }
+  }
+  @keyframes star-pop {
+    0% {
+      opacity: 0;
+      scale: 0;
+      rotate: -90deg;
+      translate: 0 14px;
+    }
+    55% {
+      opacity: 1;
+      scale: 1.35;
+      rotate: 12deg;
+      translate: 0 -8px;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+      rotate: 0deg;
+      translate: 0 -3px;
+    }
+  }
+  @keyframes star-out {
+    from {
+      opacity: 1;
+      scale: 1;
+      translate: 0 -3px;
+    }
+    to {
+      opacity: 0;
+      scale: 0;
+      translate: 0 12px;
+    }
+  }
+  /* let out: a white flash that grows out of the ball into the Pikachu */
+  @keyframes mon-out {
+    0% {
+      opacity: 1;
+      scale: 0;
+      translate: -16px 4px;
+      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+    }
+    55% {
+      scale: 1.12;
+      translate: 0 0;
+      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+      translate: 0 0;
+      filter: brightness(1) invert(0) drop-shadow(0 0 0 rgba(255, 90, 60, 0));
+    }
+  }
+  @keyframes ball-hop {
+    40% {
+      translate: 0 -5px;
     }
   }
   .blog-article {
