@@ -29,8 +29,10 @@ export default function BlogDetailPage() {
   const navigate = useNavigate()
   const { slug } = route.params as { slug: string }
 
+  // currentData belongs to this slug: `data` keeps the previous article's
+  // result while the next one loads
   const {
-    data = getAPIStore(detailStoreKey(slug)),
+    currentData: data = getAPIStore(detailStoreKey(slug)),
     isFetching,
     refetch,
   } = useGetArticleQuery(slug)

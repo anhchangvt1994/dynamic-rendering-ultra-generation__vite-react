@@ -6,19 +6,26 @@ import { useCallback, useState } from 'react'
  * by the parent) while the picture loads, then the picture fades in. Opacity
  * only, nothing moves. A picture that fails stays the colour.
  */
-export default function Cover({
-  src,
-  alt = '',
-  color,
-  priority = false,
-  className = '',
-}: {
+export default function Cover(props: CoverProps) {
+  // a new picture starts over: its own wait / loaded / failed state
+  return <CoverBox key={props.src ?? ''} {...props} />
+}
+
+interface CoverProps {
   src?: string | null
   alt?: string
   color: string
   priority?: boolean
   className?: string
-}) {
+}
+
+function CoverBox({
+  src,
+  alt = '',
+  color,
+  priority = false,
+  className = '',
+}: CoverProps) {
   const [state, setState] = useState<'wait' | 'loaded' | 'failed'>('wait')
   // a picture the browser had before React took over never fires onLoad
   const ref = useCallback((img: HTMLImageElement | null) => {
