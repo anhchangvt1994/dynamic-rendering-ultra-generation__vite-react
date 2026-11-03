@@ -74,7 +74,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     position: relative;
     flex: 1;
     height: 68px;
-    margin-inline: 14px 18px;
+    margin-inline: 14px 84px;
   }
   .read-trail::before,
   .trail-fill {
@@ -89,16 +89,16 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .trail-fill {
     right: auto;
-    width: calc(var(--p, 0) * (100% - 74px) + 15px);
+    width: calc(var(--p, 0) * (100% - 30px) + 15px);
     border-top: 4px solid var(--berry);
     border-radius: 2px;
   }
-  /* the ball stops short of the Pokémon: it is drawn the last stretch in */
+  /* the ball rolls to the very end of the trail; the Pokémon waits beyond it */
   .ball-rig {
     position: absolute;
     z-index: 3;
     top: 50%;
-    left: calc(var(--p, 0) * (100% - 74px));
+    left: calc(var(--p, 0) * (100% - 30px));
     width: 30px;
     height: 30px;
     margin-top: -15px;
@@ -144,7 +144,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     z-index: 2;
     top: 0;
     bottom: 0;
-    right: -34px;
+    right: -70px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -154,6 +154,22 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .trail-mon[data-ready='true'] {
     opacity: 1;
+  }
+  .mon-ripple {
+    display: flex;
+  }
+  /* rings on the water at the Pokémon's feet */
+  .mon-wave {
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    width: 36px;
+    height: 9px;
+    margin-left: -18px;
+    border: 2px solid rgba(110, 195, 255, 0.9);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
   }
   .mon-body {
     display: flex;
@@ -234,20 +250,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
     -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 68%);
     mask-image: radial-gradient(circle, #000 12%, transparent 68%);
   }
-  /* the light that leaves the open ball, towards the Pokémon */
-  .fx-beam {
-    width: 84px;
-    height: 44px;
-    margin-top: -22px;
-    transform-origin: 0 50%;
-    background: linear-gradient(
-      to right,
-      #fff,
-      rgba(255, 150, 130, 0.75) 55%,
-      rgba(255, 90, 90, 0)
-    );
-    clip-path: polygon(0 38%, 100% 0, 100% 100%, 0 62%);
-  }
   .sparks {
     position: absolute;
     top: 50%;
@@ -291,7 +293,8 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   /* the end states, whatever the motion: caught = the Pokémon is in the ball
      (the ball carries a star and its light is on) */
-  [data-state='caught'] .trail-mon {
+  [data-state='caught'] .mon-body,
+  [data-state='caught'] .mon-shadow {
     opacity: 0;
   }
   [data-state='caught'] .ball-led {
@@ -307,114 +310,120 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
   }
   @media (prefers-reduced-motion: no-preference) {
-    /* caught: the ball swells, the cap flips open, a beam, the Pokémon flashes
-       white then red and is drawn in, the cap clicks shut, three shakes, the
-       light blinks, then rays, rings and a fountain of stars */
-    [data-state='caught'] .sparks {
-      --b: 1560ms;
+    /* caught: the Pokémon turns white, the water ripples through it (as in
+       "Who's that Pokémon?"), then it is slowly drawn into the ball, which
+       swells, shakes three times, clicks and throws a fountain of stars */
+    [data-state='caught'] .trail-mon .mon-body {
+      animation: mon-in 1400ms both;
+    }
+    [data-state='caught'] .mon-ripple {
+      animation: mon-ripple-in 1400ms both;
+    }
+    [data-state='caught'] .mon-shadow {
+      animation: shadow-out 1400ms both;
+    }
+    [data-state='caught'] .mon-wave {
+      animation: wave-ring 800ms 100ms ease-out 2 both;
+    }
+    [data-state='caught'] .mon-wave + .mon-wave {
+      animation-delay: 380ms;
     }
     [data-state='caught'] .ball-fx {
-      animation: ball-catch 1900ms ease-in-out both;
-    }
-    [data-state='caught'] .bh--cap {
-      animation: cap-catch 700ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
-    }
-    [data-state='caught'] .fx-beam {
-      animation: beam 560ms 120ms ease-out both;
+      animation: ball-catch 2300ms ease-in-out both;
     }
     [data-state='caught'] .fx-flash {
-      animation: fx-flash 520ms 160ms ease-out both;
-    }
-    [data-state='caught'] .mon-body {
-      animation: mon-in 560ms 200ms cubic-bezier(0.55, 0, 0.8, 0.5) both;
+      animation: fx-flash 520ms 1300ms ease-out both;
     }
     [data-state='caught'] .ball-led {
-      animation: led 800ms 800ms steps(1, end) both;
+      animation: led 700ms 1400ms steps(1, end) both;
     }
     [data-state='caught'] .fx-rays {
-      animation: rays 1000ms 1560ms ease-out both;
+      animation: rays 1000ms 2100ms ease-out both;
     }
     [data-state='caught'] .fx-ring {
-      animation: fx-ring 640ms 1560ms ease-out both;
+      animation: fx-ring 640ms 2100ms ease-out both;
     }
     [data-state='caught'] .fx-ring--b {
-      animation: fx-ring 760ms 1700ms ease-out both;
+      animation: fx-ring 760ms 2240ms ease-out both;
     }
     [data-state='caught'] .catch-star {
-      animation: star-pop 700ms 1620ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+      animation: star-pop 700ms 2160ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
     }
-    /* let out: the same, backwards in spirit: beam, flash, the Pokémon bursts
-       out of the cap, stars fly */
-    [data-state='release'] .sparks {
-      --b: 330ms;
+    [data-state='caught'] .sparks i {
+      animation: spark-x 1000ms cubic-bezier(0.15, 0.6, 0.35, 1)
+        calc(2100ms + var(--t)) both;
+    }
+    [data-state='caught'] .sparks svg {
+      animation: spark-y 1000ms linear calc(2100ms + var(--t)) both;
+    }
+    /* let out: the ball swells and throws its stars, the Pokémon rises from
+       it white, the water ripples, its colours come back */
+    [data-state='release'] .trail-mon .mon-body {
+      animation: mon-out 1300ms both;
+    }
+    [data-state='release'] .mon-ripple {
+      animation: mon-ripple-out 1300ms both;
+    }
+    [data-state='release'] .mon-shadow {
+      animation: shadow-in 1300ms both;
+    }
+    [data-state='release'] .mon-wave {
+      animation: wave-ring 800ms 450ms ease-out 2 both;
+    }
+    [data-state='release'] .mon-wave + .mon-wave {
+      animation-delay: 830ms;
     }
     [data-state='release'] .ball-fx {
-      animation: ball-release 1100ms ease-in-out both;
-    }
-    [data-state='release'] .bh--cap {
-      animation: cap-release 800ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
-    }
-    [data-state='release'] .fx-beam {
-      animation: beam 520ms 180ms ease-out both;
+      animation: ball-release 900ms ease-in-out both;
     }
     [data-state='release'] .fx-flash {
-      animation: fx-flash 520ms 240ms ease-out both;
+      animation: fx-flash 520ms ease-out both;
     }
     [data-state='release'] .fx-rays {
-      animation: rays 800ms 300ms ease-out both;
+      animation: rays 800ms ease-out both;
     }
     [data-state='release'] .fx-ring {
-      animation: fx-ring 640ms 300ms ease-out both;
+      animation: fx-ring 640ms ease-out both;
     }
-    [data-state='release'] .mon-body {
-      animation: mon-out 680ms 300ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
-    }
-    [data-state='caught'] .sparks i,
     [data-state='release'] .sparks i {
-      animation: spark-x 1000ms cubic-bezier(0.15, 0.6, 0.35, 1)
-        calc(var(--b) + var(--t)) both;
+      animation: spark-x-b 1000ms cubic-bezier(0.15, 0.6, 0.35, 1)
+        calc(60ms + var(--t)) both;
     }
-    [data-state='caught'] .sparks svg,
     [data-state='release'] .sparks svg {
-      animation: spark-y 1000ms linear calc(var(--b) + var(--t)) both;
+      animation: spark-y-b 1000ms linear calc(60ms + var(--t)) both;
     }
   }
   @keyframes ball-catch {
-    0% {
+    0%,
+    24% {
       scale: 1;
     }
-    9% {
-      scale: 1.5;
+    40%,
+    56% {
+      scale: 1.22;
     }
-    38% {
-      scale: 1.5;
+    61% {
+      scale: 1.12;
       rotate: 0deg;
     }
-    42% {
-      scale: 1.2 1.05;
-    }
-    46% {
+    66% {
       rotate: -26deg;
-      scale: 1.2;
     }
-    54% {
+    73% {
       rotate: 22deg;
     }
-    62% {
-      rotate: -16deg;
-    }
-    70% {
-      rotate: 12deg;
-    }
-    77% {
-      rotate: -5deg;
-    }
-    82% {
-      rotate: 0deg;
-      scale: 1.2;
+    80% {
+      rotate: -14deg;
     }
     86% {
-      scale: 1.65 1.3;
+      rotate: 8deg;
+    }
+    90% {
+      rotate: 0deg;
+      scale: 1.1;
+    }
+    94% {
+      scale: 1.6 1.25;
     }
     100% {
       scale: 1;
@@ -424,94 +433,118 @@ export const BlogDetailStyle = styled(BlogStyle)`
     0% {
       scale: 1;
     }
-    12% {
-      scale: 1.5;
+    18% {
+      scale: 1.55 1.3;
     }
-    70% {
-      scale: 1.5;
+    50% {
+      scale: 1.2;
     }
     100% {
       scale: 1;
     }
   }
-  @keyframes cap-catch {
-    0% {
-      rotate: 0deg;
-    }
-    24%,
-    66% {
-      rotate: -70deg;
-    }
-    80%,
-    100% {
-      rotate: 0deg;
-    }
-  }
-  @keyframes cap-release {
-    0% {
-      rotate: 0deg;
-    }
-    22%,
-    66% {
-      rotate: -70deg;
-    }
-    90%,
-    100% {
-      rotate: 0deg;
-    }
-  }
-  @keyframes beam {
-    0% {
-      opacity: 0;
-      scale: 0.2 0.6;
-    }
-    30% {
-      opacity: 1;
-      scale: 1 1;
-    }
-    100% {
-      opacity: 0;
-      scale: 1.1 1.2;
-    }
-  }
+  /* white at once, held while the water ripples, then slowly drawn in */
   @keyframes mon-in {
     0% {
-      filter: none;
+      filter: brightness(1) invert(0)
+        drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
+      scale: 1;
+      opacity: 1;
     }
-    26% {
-      filter: brightness(4) saturate(0);
-      scale: 1.1;
-    }
-    60% {
-      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
-      scale: 0.7;
+    11%,
+    50% {
+      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      scale: 1.06;
       opacity: 1;
     }
     100% {
-      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
-      translate: var(--dx, 0px) -4px;
-      scale: 0;
+      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      translate: var(--dx, 0px) var(--dy, 0px);
+      scale: 0.06 0.2;
       opacity: 0;
+      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
     }
   }
   @keyframes mon-out {
     0% {
-      filter: brightness(4) saturate(0) drop-shadow(0 0 8px #fff);
-      translate: var(--dx, 0px) -4px;
-      scale: 0;
+      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      translate: var(--dx, 0px) var(--dy, 0px);
+      scale: 0.06 0.2;
       opacity: 0;
     }
-    45% {
-      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
-      scale: 1.14;
+    10% {
+      opacity: 1;
+    }
+    30%,
+    74% {
+      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
       translate: 0 0;
+      scale: 1.06;
       opacity: 1;
     }
     100% {
-      filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
-      scale: 1;
+      filter: brightness(1) invert(0)
+        drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
       translate: 0 0;
+      scale: 1;
       opacity: 1;
+    }
+  }
+  /* the water: a wavy displacement (the SVG filter) while it is white */
+  @keyframes mon-ripple-in {
+    0%,
+    9% {
+      filter: none;
+    }
+    10%,
+    49% {
+      filter: url(#rr-ripple);
+    }
+    50%,
+    100% {
+      filter: none;
+    }
+  }
+  @keyframes mon-ripple-out {
+    0%,
+    23% {
+      filter: none;
+    }
+    24%,
+    78% {
+      filter: url(#rr-ripple);
+    }
+    79%,
+    100% {
+      filter: none;
+    }
+  }
+  @keyframes shadow-out {
+    0%,
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes shadow-in {
+    0%,
+    30% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes wave-ring {
+    0% {
+      opacity: 0.9;
+      scale: 0.3;
+    }
+    100% {
+      opacity: 0;
+      scale: 3;
     }
   }
   @keyframes led {
@@ -574,13 +607,46 @@ export const BlogDetailStyle = styled(BlogStyle)`
       rotate: 70deg;
     }
   }
+  /* the stars use their own names in each state: a state change must restart
+     the fountain, every time the end is reached or left */
   @keyframes spark-x {
     to {
       translate: var(--x) 0;
     }
   }
-  /* up to --h, then falling to --f */
+  @keyframes spark-x-b {
+    to {
+      translate: var(--x) 0;
+    }
+  }
   @keyframes spark-y {
+    0% {
+      opacity: 0;
+      scale: 0.2;
+      rotate: 0deg;
+      translate: 0 0;
+      animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+    }
+    10% {
+      opacity: 1;
+    }
+    36% {
+      opacity: 1;
+      scale: 1.25;
+      translate: 0 var(--h);
+      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+    }
+    72% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 0.55;
+      rotate: var(--rot);
+      translate: 0 var(--f);
+    }
+  }
+  @keyframes spark-y-b {
     0% {
       opacity: 0;
       scale: 0.2;

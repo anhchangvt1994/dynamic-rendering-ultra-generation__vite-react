@@ -17,7 +17,7 @@ const scrollerOf = (node: HTMLElement | null) => {
  * Poké Ball rolls, as the article is read, towards a random animated Pokémon
  * (a Gen V pixel sprite or a Showdown model) that waits at the end as a dark
  * "Who's that Pokémon?" silhouette and shows its colours as the ball nears.
- * Where it waits the ball opens like the Pokédex's thrown one, draws it in,
+ * Where it waits the Pokémon turns white, ripples like water and is slowly drawn in,
  * closes, shakes three times, clicks and bursts into stars, then rolls on to
  * the end of the trail. Reading back up lets the Pokémon out again.
  * The page scrolls inside the app's body, so the scroller is found from the
@@ -27,8 +27,8 @@ const scrollerOf = (node: HTMLElement | null) => {
 // the Pokémon stands at the far end of the trail. The ball reaches it, opens,
 // draws it in and bursts into stars (at CATCH, the end of the article), and
 // lets it out again when read back above FREE: any number of times
-const CATCH = 0.99
-const FREE = 0.93
+const CATCH = 0.995
+const FREE = 0.97
 // the silhouette shows its colours from here
 const REVEAL = 0.8
 const TRIES = 4
@@ -66,6 +66,26 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
     if (!root || !scroller) return
     let frame = 0
     let caught = false
+    // the Pokémon is drawn towards the ball (and let out of it): the way
+    const aim = () => {
+      const ball = root.querySelector('.ball-roll')?.getBoundingClientRect()
+      const body = root.querySelector('.mon-body')?.getBoundingClientRect()
+      if (!ball || !body) return
+      root.style.setProperty(
+        '--dx',
+        `${ball.left + ball.width / 2 - (body.left + body.width / 2)}px`
+      )
+      root.style.setProperty(
+        '--dy',
+        `${ball.top + ball.height / 2 - (body.top + body.height / 2)}px`
+      )
+    }
+    // the water: the filter's waves run for a moment, in time with the CSS
+    const ripple = (at: number) => {
+      root
+        .querySelectorAll<SVGAnimationElement>('.ripple-anim')
+        .forEach((a) => a.beginElementAt?.(at))
+    }
     const update = () => {
       frame = 0
       const room = scroller.scrollHeight - scroller.clientHeight
@@ -77,18 +97,14 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
       if (root.dataset.reveal !== reveal) root.dataset.reveal = reveal
       if (!caught && progress >= CATCH) {
         caught = true
-        // the Pokémon is drawn towards the ball, wherever it is by now
-        const ball = root.querySelector('.ball-roll')?.getBoundingClientRect()
-        const mon = root.querySelector('.mon-body')?.getBoundingClientRect()
-        if (ball && mon)
-          root.style.setProperty(
-            '--dx',
-            `${ball.left + ball.width / 2 - (mon.left + mon.width / 2)}px`
-          )
+        aim()
         root.dataset.state = 'caught'
+        ripple(0.15)
       } else if (caught && progress < FREE) {
         caught = false
+        aim()
         root.dataset.state = 'release'
+        ripple(0.45)
       }
     }
     const schedule = () => {
@@ -113,6 +129,43 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
         <div className="read-trail" aria-hidden="true">
           <svg width="0" height="0" style={{ position: 'absolute' }}>
             <defs>
+              <filter
+                id="rr-ripple"
+                x="-30%"
+                y="-30%"
+                width="160%"
+                height="160%"
+              >
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.012 0.07"
+                  numOctaves="1"
+                  result="n"
+                >
+                  <animate
+                    className="ripple-anim"
+                    attributeName="baseFrequency"
+                    values="0.012 0.05;0.02 0.12;0.012 0.05"
+                    dur="0.7s"
+                    begin="indefinite"
+                  />
+                </feTurbulence>
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="n"
+                  scale="0"
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                >
+                  <animate
+                    className="ripple-anim"
+                    attributeName="scale"
+                    values="0;22;14;20;0"
+                    dur="0.7s"
+                    begin="indefinite"
+                  />
+                </feDisplacementMap>
+              </filter>
               <symbol id="rr-st" viewBox="0 0 40 40" overflow="visible">
                 <path d="M20 3l4.8 10.4 11.4 1.3-8.4 7.8 2.3 11.2L20 28l-10.1 5.7 2.3-11.2-8.4-7.8 11.4-1.3z" />
               </symbol>
@@ -128,36 +181,39 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
             data-pixel={mon?.pixel}
           >
             <span className="mon-shadow" />
+            <span className="mon-wave" />
+            <span className="mon-wave" />
             <span className="mon-body">
-              {mon && (
-                <img
-                  key={mon.src}
-                  src={mon.src}
-                  alt=""
-                  decoding="async"
-                  style={size ?? undefined}
-                  onLoad={(e) =>
-                    setSize(
-                      fitMon(
-                        e.currentTarget.naturalWidth,
-                        e.currentTarget.naturalHeight,
-                        mon.pixel,
-                        BOX
+              <span className="mon-ripple">
+                {mon && (
+                  <img
+                    key={mon.src}
+                    src={mon.src}
+                    alt=""
+                    decoding="async"
+                    style={size ?? undefined}
+                    onLoad={(e) =>
+                      setSize(
+                        fitMon(
+                          e.currentTarget.naturalWidth,
+                          e.currentTarget.naturalHeight,
+                          mon.pixel,
+                          BOX
+                        )
                       )
-                    )
-                  }
-                  onError={() => {
-                    // a model that does not exist: another one, a pixel one
-                    if (++tries.current >= TRIES) return setMon(null)
-                    setMon(pickMon(() => Math.random() * 0.49))
-                  }}
-                />
-              )}
+                    }
+                    onError={() => {
+                      // a model that does not exist: another one, a pixel one
+                      if (++tries.current >= TRIES) return setMon(null)
+                      setMon(pickMon(() => Math.random() * 0.49))
+                    }}
+                  />
+                )}
+              </span>
             </span>
           </div>
           <div className="ball-rig">
             <span className="fx fx-rays" />
-            <span className="fx fx-beam" />
             <span className="fx fx-flash" />
             <span className="fx fx-ring" />
             <span className="fx fx-ring fx-ring--b" />
