@@ -1089,14 +1089,16 @@ export default function QuizPage() {
               aria-pressed={!hard}
               onClick={() => setSetting('mode', '')}
             >
-              Dễ · 4 lựa chọn
+              <b>Dễ</b>
+              <small>4 lựa chọn</small>
             </button>
             <button
               type="button"
               aria-pressed={hard}
               onClick={() => setSetting('mode', 'hard')}
             >
-              Khó · tự gõ tên · có TM/HM
+              <b>Khó</b>
+              <small>tự gõ tên, có TM/HM</small>
             </button>
           </div>
           <p className="settings-note">Thay đổi áp dụng từ lượt sau.</p>

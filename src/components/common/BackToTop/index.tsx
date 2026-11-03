@@ -24,6 +24,13 @@ const BackToTopStyle = styled.button`
     opacity 200ms ease-out,
     transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* a page that docks buttons at the bottom (the kitchen's pot) lifts it */
+  @media (max-width: 899px) {
+    body[data-pot-dock] & {
+      bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
   &[data-visible='false'] {
     opacity: 0;
     transform: translateY(24px) scale(0.85);

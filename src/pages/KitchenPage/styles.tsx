@@ -193,15 +193,42 @@ export const KitchenStyle = styled.div`
   }
 
   /* ── the menu ── */
-  .menu-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  /* Tất cả + the 5 flavour stats = 6 chips, even rows (3×2, then 6×1). No
+     "Thân thiện" chip: every dish gives it, so it would filter nothing */
+  /* filter + sort are ONE toolbar: stacked below 960px, a single row after
+     (the sort is a separated control at the end, never a lone wrapped pill) */
+  .menu-tools {
+    display: grid;
+    gap: 10px;
     margin-bottom: 14px;
   }
+  @media (min-width: 960px) {
+    .menu-tools {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: 0;
+    }
+    .menu-tools::after {
+      display: none;
+    }
+  }
+  .menu-filter {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  @media (min-width: 680px) {
+    .menu-filter {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
   .menu-filter button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     min-height: 36px;
-    padding: 0 12px;
+    padding: 0 8px;
     border: 2px solid var(--ink);
     border-radius: 999px;
     background: #fff;
@@ -211,9 +238,74 @@ export const KitchenStyle = styled.div`
     font-weight: 700;
     cursor: pointer;
   }
+  /* the stat's colour, as in the key above ("Tất cả": all five) */
+  .menu-filter button::before {
+    content: '';
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(
+      --c,
+      conic-gradient(#e5483b, #e8c022, #3fa463, #3b7be5, #f07cb4, #e5483b)
+    );
+  }
   .menu-filter button[aria-pressed='true'] {
     background: color-mix(in srgb, var(--c, var(--rose)) 35%, #fff);
     box-shadow: inset 0 0 0 2px var(--c, var(--berry));
+  }
+  /* a fixed row under the filter (always there: nothing shifts) */
+  .menu-sort {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 12px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .menu-sort::before {
+    content: '';
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff9f43;
+  }
+  .menu-sort[aria-pressed='true'] {
+    background: color-mix(in srgb, #ff9f43 35%, #fff);
+    box-shadow: inset 0 0 0 2px #ff9f43;
+  }
+  .menu-sort:focus-visible {
+    outline: 3px solid var(--berry);
+    outline-offset: 3px;
+  }
+  @media (min-width: 960px) {
+    .menu-sort {
+      width: 196px;
+      margin-left: 16px;
+      position: relative;
+    }
+    /* a divider sets it apart from the six filter chips */
+    .menu-sort::after {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 8px;
+      bottom: 8px;
+      border-left: 2px dashed color-mix(in srgb, var(--ink) 35%, transparent);
+    }
   }
   .menu-list {
     display: grid;
@@ -616,11 +708,6 @@ export const KitchenStyle = styled.div`
       padding-inline: 4px;
       font-size: 11px;
     }
-    .flavor-key li:last-child {
-      grid-column: 1 / -1;
-      justify-self: center;
-      padding-inline: 12px;
-    }
     .kitchen-title {
       font-size: clamp(26px, 6.8vw, 44px);
     }
@@ -653,12 +740,19 @@ export const KitchenStyle = styled.div`
     margin-bottom: 12px;
     line-height: 21px;
   }
+  /* 6 chips in even rows (3×2), one row only where all six fit: never a
+     lone chip dropped on its own line */
   .flavor-key {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    justify-content: start;
     gap: 6px;
-    min-height: 26px;
     margin-bottom: 10px;
+  }
+  @media (min-width: 1100px) {
+    .flavor-key {
+      grid-template-columns: repeat(6, max-content);
+    }
   }
   .flavor-key li {
     display: flex;
@@ -678,16 +772,8 @@ export const KitchenStyle = styled.div`
     margin-top: 18px;
     margin-bottom: 12px;
   }
-  .menu-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 14px;
-  }
   .menu-filter button {
-    flex: 1 1 auto;
     min-height: 40px;
-    padding-inline: 14px;
   }
   .batch {
     display: flex;
@@ -773,13 +859,6 @@ export const KitchenStyle = styled.div`
     .flavor-key li {
       padding-inline: 4px;
       font-size: 11px;
-    }
-    .menu-filter {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .menu-filter button {
-      padding-inline: 4px;
     }
   }
   @media (max-width: 420px) {

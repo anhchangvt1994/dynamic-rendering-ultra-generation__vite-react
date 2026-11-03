@@ -308,7 +308,6 @@ const PowerCardStyle = styled.section`
     75%,
     85% {
       opacity: 1;
-      filter: drop-shadow(0 0 8px var(--tier-a));
     }
     80% {
       opacity: 0.4;
@@ -323,13 +322,13 @@ const PowerCardStyle = styled.section`
     }
   }
   @keyframes power-crown {
+    /* the glow stays static (data-glow): only the crown bobs, on the
+       compositor, instead of repainting a blur every frame */
     from {
       transform: translateY(1px);
-      filter: drop-shadow(0 0 3px var(--tier-a));
     }
     to {
       transform: translateY(-2px);
-      filter: drop-shadow(0 0 9px var(--tier-a));
     }
   }
   @keyframes power-stamp {

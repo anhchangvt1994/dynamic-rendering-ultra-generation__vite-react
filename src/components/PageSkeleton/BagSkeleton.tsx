@@ -1,131 +1,96 @@
+import type { CSSProperties } from 'react'
 import { BagStyle } from 'pages/BagPage/styles'
-import { boneCss } from './bone'
+import { Backpack, PocketGlyph, POCKET_TABS } from 'pages/BagPage/BagArt'
+import BagBones from 'pages/BagPage/BagBones'
 
-// The bag page's own layout (BagStyle): the hero, the pockets and the menu
-// rows are drawn for real at their sizes; the bag, numbers and names wait
-// (dashes and zeros where the numbers will be, so nothing moves).
-// the pockets and sorts by name only: bag.mjs would bring the whole item
-// catalogue into the skeletons' chunk
-const POCKETS = [
-  'Tất cả',
-  'Tăng chỉ số',
-  'Thân thiện',
-  'Tiến hoá',
-  'Hồi phục',
-  'Chiêu thức',
-]
-const SORTS = ['Giá trị', 'Số lượng', 'Tên']
-
-const BagSkeletonStyle = styled(BagStyle)`
-  ${boneCss}
-
-  /* the sort's buttons, as spans of the same size */
-  .sort-item {
-    display: grid;
-    place-items: center;
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--dim-text);
-  }
-  .bag-art .bone {
-    width: 100%;
-    height: 100%;
-    border-radius: 30%;
-  }
-  .bag-stats dd,
-  .tier-legend {
-    color: var(--dim-text);
-  }
-  .slot .bone {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-  }
-  .row-name .bone {
-    width: 60%;
-    height: 14px;
-  }
-  .row-meta .bone {
-    width: 40%;
-    height: 10px;
-  }
-`
-
+// The bag page's own markup and styles (BagStyle). No words at all: every
+// text is a bone of its box's fixed size, so whether the fonts have come
+// or not, the hand-over to the page moves nothing. The drawings (bag,
+// pocket signs) are SVG and stay.
 export default function BagSkeleton() {
   return (
-    <BagSkeletonStyle
+    <BagStyle
       className="bag-page"
       role="status"
       aria-busy="true"
       data-tone="dark"
       data-page-skeleton
+      style={{ '--pocket': POCKET_TABS[0].color } as CSSProperties}
     >
       <span className="sr-only">Đang mở túi đồ…</span>
       <header className="bag-hero" aria-hidden="true">
         <div className="bag-art">
-          <span className="bone" />
+          <Backpack />
         </div>
-        <div className="bag-intro">
-          <p className="bag-kicker">Túi của Nhà Huấn luyện</p>
-          <p className="bag-title">Túi đồ</p>
-          <dl className="bag-stats">
-            {['Vật phẩm', 'Sưu tầm', 'Quý hiếm+'].map((label) => (
-              <div key={label}>
-                <dt>{label}</dt>
-                <dd>—</dd>
-              </div>
-            ))}
-          </dl>
+        <div className="bag-name">
+          <span className="bag-kicker">
+            <span className="bone" />
+          </span>
+          <span className="bag-title">
+            <span className="bone" />
+          </span>
+        </div>
+        <div className="stickers">
+          {['#ffda55', '#4fd18b', '#c38bff'].map((c, i) => (
+            <div
+              key={c}
+              className="sticker"
+              style={{ '--c': c, '--i': i } as CSSProperties}
+            >
+              <span className="sticker-dt">
+                <span className="bone" />
+              </span>
+              <span className="sticker-dd">
+                <span className="bone" />
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="bag-tiers">
           <span className="tier-bar" />
-          <ul className="tier-legend">
-            {['★★★★', '★★★', '★★', '★'].map((stars) => (
-              <li key={stars}>{stars} 0</li>
-            ))}
-          </ul>
+          <span className="tier-legend">
+            <span className="bone" />
+          </span>
         </div>
       </header>
       <div className="pockets" aria-hidden="true">
-        {POCKETS.map((pocket) => (
-          <span key={pocket} className="pocket">
-            {pocket}
-            <b>…</b>
+        {POCKET_TABS.map((p, i) => (
+          <span
+            key={p.id}
+            className="tag"
+            aria-pressed={i === 0}
+            style={{ '--c': p.color, '--i': i } as CSSProperties}
+          >
+            <span className="tag-card">
+              <span className="tag-glyph">
+                <PocketGlyph id={p.id} />
+              </span>
+              <span className="tag-label">
+                <span className="bone" />
+              </span>
+              <span className="tag-count">
+                <span className="bone" />
+              </span>
+            </span>
           </span>
         ))}
       </div>
-      <div className="bag-toolbar" aria-hidden="true">
-        <span className="sort">
-          {SORTS.map((sort) => (
-            <span key={sort} className="sort-item">
-              {sort}
+      <div className="pocket-panel">
+        <div className="bag-head" aria-hidden="true">
+          <span className="bag-pocket">
+            <span className="bone" />
+          </span>
+          <span className="bag-tools">
+            <span className="sort">
+              <span className="bone" />
             </span>
-          ))}
-        </span>
-        <span className="toggle">
-          <span />
-          Hiện món chưa có
-        </span>
+            <span className="seek">
+              <span className="bone" />
+            </span>
+          </span>
+        </div>
+        <BagBones />
       </div>
-      <ol className="bag-list" aria-hidden="true">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <li key={i}>
-            <span className="bag-row">
-              <span className="slot">
-                <span className="bone" />
-              </span>
-              <span className="row-text">
-                <span className="row-name">
-                  <span className="bone" />
-                </span>
-                <span className="row-meta">
-                  <span className="bone" />
-                </span>
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </BagSkeletonStyle>
+    </BagStyle>
   )
 }

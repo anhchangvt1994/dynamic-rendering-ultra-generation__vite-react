@@ -72,8 +72,19 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
     border-radius: 16px;
   }
   .menu-filter > .bone {
-    flex: 1 1 88px;
     height: 40px;
+  }
+  .menu-sort.bone {
+    display: block;
+    width: 100%;
+    height: 44px;
+    margin: 0;
+  }
+  @media (min-width: 960px) {
+    .menu-sort.bone {
+      width: 196px;
+      margin-left: 16px;
+    }
   }
   .menu-card {
     --dish: #b9c5d2;
@@ -158,9 +169,6 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
     .flavor-key .bone {
       width: 100%;
     }
-    .flavor-key li:last-child .bone {
-      width: 150px;
-    }
     .kitchen-lede .bone:last-child {
       justify-self: center;
     }
@@ -201,7 +209,7 @@ export default function KitchenSkeleton({
             <span className="bone" />
           </div>
           <ul className="flavor-key">
-            {Array.from({ length: 5 }, (_, i) => (
+            {Array.from({ length: 6 }, (_, i) => (
               <li key={i}>
                 <span className="bone bone--pill" />
               </li>
@@ -222,10 +230,13 @@ export default function KitchenSkeleton({
         </p>
       )}
       <section aria-hidden="true">
-        <div className="menu-filter">
-          {Array.from({ length: 6 }, (_, i) => (
-            <span key={i} className="bone bone--pill" />
-          ))}
+        <div className="menu-tools">
+          <div className="menu-filter">
+            {Array.from({ length: 6 }, (_, i) => (
+              <span key={i} className="bone bone--pill" />
+            ))}
+          </div>
+          <span className="bone bone--pill menu-sort" />
         </div>
         <ol className="menu-list">
           {CARDS.map((card, i) => (

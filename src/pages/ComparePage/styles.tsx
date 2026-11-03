@@ -492,6 +492,45 @@ export const CompareStyle = styled.section`
   .hit--b {
     border-top-color: var(--b);
   }
+  .hit--loading {
+    min-height: 156px;
+    align-content: center;
+    gap: 10px;
+  }
+  .hit-bone {
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(100deg, #e3e9f0 35%, #f5f8fb 50%, #e3e9f0 65%)
+      #e3e9f0;
+    background-size: 300% 100%;
+    animation: bone-sweep 1.6s ease-in-out infinite;
+  }
+  .hit-bone--who {
+    width: 78%;
+    height: 12px;
+  }
+  .hit-bone--power {
+    width: 54px;
+    height: 34px;
+  }
+  .hit-bone--type {
+    width: 68px;
+    height: 22px;
+    border-radius: 999px;
+  }
+  @keyframes bone-sweep {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+  @media (max-width: 359px) {
+    .hit--loading {
+      min-height: 174px;
+    }
+  }
   .hit p {
     margin: 0;
   }

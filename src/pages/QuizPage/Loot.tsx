@@ -139,9 +139,7 @@ const LootStyle = styled.button`
     min-width: 0;
   }
   .loot-kicker {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     font-size: 11px;
     font-weight: 900;
     letter-spacing: 0.08em;

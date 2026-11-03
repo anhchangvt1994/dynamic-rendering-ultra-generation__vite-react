@@ -50,6 +50,8 @@ const needsOf = (ingredients: string[]) => {
   for (const id of ingredients) need[id] = (need[id] ?? 0) + 1
   return need
 }
+const friendshipOf = (dish: DishView) =>
+  dish.stats?.friendship ?? Math.ceil((dish.count ?? 0) * 1.5)
 const canCook = (dish: DishView, bag: Count) =>
   !!dish.ingredients &&
   Object.entries(needsOf(dish.ingredients)).every(
@@ -235,10 +237,31 @@ export default function KitchenPage() {
   // the tab's panel takes the focus once it shows (a secret's "Tự pha chế")
   const focusPanel = useRef(false)
   const panelRef = useRef<HTMLElement>(null)
+  // switching tabs shows the new panel from its tabs down (the app scrolls
+  // inside a container, so the menu's position would carry over to the pot)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const firstTab = useRef(true)
   useEffect(() => {
+    if (firstTab.current) {
+      firstTab.current = false
+      return
+    }
+    const tabs = tabsRef.current
+    for (
+      let node = tabs?.parentElement;
+      tabs && node;
+      node = node.parentElement
+    ) {
+      if (node.scrollHeight <= node.clientHeight) continue
+      const top =
+        tabs.getBoundingClientRect().top - node.getBoundingClientRect().top
+      // only upwards: a reader already above the tabs stays where they are
+      if (top < 0) node.scrollTop += top - 12
+      break
+    }
     if (!focusPanel.current) return
     focusPanel.current = false
-    panelRef.current?.focus()
+    panelRef.current?.focus({ preventScroll: true })
   }, [tab])
   const [filter, setFilter] = useState<StatKey | ''>('')
   // the pantry's group outlives the pot's tab
@@ -304,20 +327,24 @@ export default function KitchenPage() {
   // is set when the menu opens or the filter changes, not after each cook:
   // cards jumping around under the player's eyes (a layout shift)
   const [order, setOrder] = useState<string[]>([])
+  // "Sắp theo Thân thiện": most friendship first, cookable or not (a secret's
+  // is its public ingredient count × 1.5); set like the order
+  const [byFriend, setByFriend] = useState(false)
   const ready = Boolean(menu && bagOrNull)
   useEffect(() => {
     if (!menu || !bagOrNull) return
     setOrder(
       [...menu.dishes]
-        .sort(
-          (a, b) =>
-            Number(canCook(b, bagOrNull)) - Number(canCook(a, bagOrNull))
+        .sort((a, b) =>
+          byFriend
+            ? friendshipOf(b) - friendshipOf(a)
+            : Number(canCook(b, bagOrNull)) - Number(canCook(a, bagOrNull))
         )
         .map((dish) => dish.id)
     )
     // only on opening and on a new filter
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, filter])
+  }, [ready, filter, byFriend])
   const shown = useMemo(() => {
     const rank = (id: string) => {
       const at = order.indexOf(id)
@@ -395,6 +422,7 @@ export default function KitchenPage() {
           Home/End) move between them and open the one they land on */}
       <div
         className="kitchen-tabs"
+        ref={tabsRef}
         role="tablist"
         aria-label="Bếp"
         onKeyDown={(event) => {
@@ -442,7 +470,17 @@ export default function KitchenPage() {
           tabIndex={-1}
           ref={panelRef}
         >
-          <KitchenFilter filter={filter} onFilter={setFilter} />
+          <div className="menu-tools">
+            <KitchenFilter filter={filter} onFilter={setFilter} />
+            <button
+              type="button"
+              className="menu-sort"
+              aria-pressed={byFriend}
+              onClick={() => setByFriend((on) => !on)}
+            >
+              {byFriend ? 'Thân thiện: nhiều → ít' : 'Sắp theo Thân thiện'}
+            </button>
+          </div>
           <ol className="menu-list">
             {shown.map((dish) => (
               <MenuCard

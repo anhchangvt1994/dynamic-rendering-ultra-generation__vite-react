@@ -6,7 +6,7 @@ import {
   itemSprite,
 } from 'pages/QuizPage/items.mjs'
 import type { CSSProperties, ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import DishArt from './DishArt'
 import type { DishView } from './engine/types'
@@ -160,6 +160,27 @@ export default function Pot({
       (a, b) => Number((bag[b] ?? 0) > 0) - Number((bag[a] ?? 0) > 0)
     )
   )
+  // the active hunt token is brought into the row (it can sit past the edge)
+  const huntRow = useRef<HTMLDivElement>(null)
+  const targetId = target?.id ?? ''
+  useEffect(() => {
+    const row = huntRow.current
+    const on = row?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!row || !on) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const r = row.getBoundingClientRect()
+    const o = on.getBoundingClientRect()
+    const to = row.scrollLeft + o.left - r.left - (r.width - o.width) / 2
+    row.scrollTo({ left: Math.max(0, to), behavior: reduce ? 'auto' : 'smooth' })
+  }, [targetId, targets.length])
+  // on phones the pot's buttons dock at the screen's bottom: the page's
+  // back-to-top ball (BackToTop) reads this flag and rises above them
+  useEffect(() => {
+    document.body.dataset.potDock = ''
+    return () => {
+      delete document.body.dataset.potDock
+    }
+  }, [])
   const inPot = (id: string) => pot.filter((x) => x === id).length
   const sums = potFlavors(pot)
   const liquid = liquidOf(sums)
@@ -263,6 +284,7 @@ export default function Pot({
           <div className="hunt">
             <div
               className="hunt-row"
+              ref={huntRow}
               role="group"
               aria-label="Món bí ẩn đang tìm"
             >
@@ -306,11 +328,11 @@ export default function Pot({
                         size={30}
                       />
                     </span>
-                    <span className="hunt-pips" aria-hidden="true">
-                      {Array.from({ length: dish.count ?? 0 }, (_, k) => (
-                        <i key={k} data-on={k < found || undefined} />
-                      ))}
-                    </span>
+                    {found > 0 && (
+                      <span className="hunt-badge" aria-hidden="true">
+                        {found}
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -1131,66 +1153,57 @@ const PotStyle = styled.div`
     outline-offset: 3px;
   }
 
-  /* the hunt: a tray of candy tokens, one per secret still to find (its
-     silhouette, a pip per ingredient, gold for the right ones known);
-     no scroller: they wrap in rows of 5 */
+  /* the hunt: one row of candy tokens, sliding sideways only, edge to
+     edge of the cauldron (its padding given back to the scroller) */
   .hunt {
-    margin: -4px 0 2px;
+    min-width: 0;
+    margin: -6px -16px 0;
   }
   .hunt-row {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-    max-width: 244px;
-    margin: 0 auto;
-    padding-top: 6px;
+    gap: 10px;
+    padding: 10px 16px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hunt-row::-webkit-scrollbar {
+    display: none;
   }
   .hunt-token {
     position: relative;
+    flex: none;
     display: grid;
-    justify-items: center;
-    align-content: start;
-    gap: 5px;
+    place-items: center;
     width: 44px;
-    height: 56px;
+    height: 44px;
     padding: 0;
     border: 0;
     background: none;
     color: #fff;
     cursor: pointer;
+    scroll-snap-align: start;
     -webkit-tap-highlight-color: transparent;
   }
   .hunt-face {
     position: relative;
     display: grid;
     place-items: center;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background:
-      radial-gradient(
-        circle at 34% 28%,
-        rgba(255, 255, 255, 0.32),
-        transparent 52%
-      ),
-      #3f2c66;
-    box-shadow:
-      inset 0 -4px 0 rgba(0, 0, 0, 0.28),
-      0 0 0 2px rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
     transition:
       transform 260ms cubic-bezier(0.3, 1.6, 0.5, 1),
-      box-shadow 200ms;
-  }
-  .hunt-token:hover .hunt-face {
-    transform: translateY(-2px);
+      background 200ms;
   }
   .hunt-face .dish-art svg {
-    filter: brightness(0) invert(1) opacity(0.82);
-  }
-  .hunt-token[data-free] .hunt-face {
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+    filter: brightness(0) invert(1) opacity(0.55);
   }
   .hunt-face svg ellipse,
   .hunt-face svg path {
@@ -1198,64 +1211,55 @@ const PotStyle = styled.div`
     stroke: #fff;
     stroke-width: 3;
     stroke-linecap: round;
-    opacity: 0.85;
+    opacity: 0.55;
   }
-  .hunt-pips {
-    display: flex;
-    gap: 3px;
-  }
-  .hunt-pips i {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.28);
-  }
-  .hunt-pips i[data-on] {
+  .hunt-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    display: grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border: 2px solid var(--night);
+    border-radius: 999px;
     background: #ffcf3a;
-    box-shadow: 0 0 6px rgba(255, 207, 58, 0.8);
+    color: #3a2400;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
   }
-  /* the one hunted: a strawberry-milk candy, lifted, with a twinkle */
+  /* the one hunted: a strawberry-milk candy */
   .hunt-token[aria-pressed='true'] .hunt-face {
     background:
       radial-gradient(
         circle at 34% 28%,
-        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.55),
         transparent 50%
       ),
       linear-gradient(160deg, #ff9fd6, #b48cff);
-    box-shadow:
-      inset 0 -4px 0 rgba(90, 30, 120, 0.3),
-      0 0 0 3px #fff,
-      0 8px 16px rgba(255, 120, 200, 0.45);
-    transform: translateY(-3px) scale(1.06);
+    box-shadow: 0 0 0 2px #fff;
+    transform: scale(1.08);
   }
-  .hunt-token[aria-pressed='true'] .hunt-face .dish-art svg {
+  .hunt-token[aria-pressed='true'] .hunt-face .dish-art svg,
+  .hunt-token[aria-pressed='true'] .hunt-face svg ellipse,
+  .hunt-token[aria-pressed='true'] .hunt-face svg path {
     filter: brightness(0) invert(1);
-    animation: hunt-bob 2.4s ease-in-out infinite;
-  }
-  .hunt-token[aria-pressed='true'] .hunt-face::after {
-    content: '✦';
-    position: absolute;
-    top: -7px;
-    right: -5px;
-    color: #ffe66e;
-    font-size: 15px;
-    line-height: 1;
-    text-shadow: 0 0 6px rgba(255, 230, 110, 0.9);
-    animation: hunt-twinkle 1.8s ease-in-out infinite;
+    opacity: 1;
   }
   .hunt-token:focus-visible {
     outline: none;
   }
   .hunt-token:focus-visible .hunt-face {
     outline: 3px solid #fff;
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
   .hunt-caption {
     overflow: hidden;
     min-height: 18px;
-    margin: 2px 0 0;
-    color: rgba(255, 255, 255, 0.78);
+    margin: 0 16px;
+    color: rgba(255, 255, 255, 0.72);
     font-size: 12px;
     font-weight: 700;
     line-height: 18px;
@@ -1266,23 +1270,9 @@ const PotStyle = styled.div`
   .hunt-caption b {
     color: #ffc6ea;
   }
-  @keyframes hunt-bob {
-    50% {
-      transform: translateY(-2px) rotate(-4deg);
-    }
-  }
-  @keyframes hunt-twinkle {
-    50% {
-      transform: scale(0.6) rotate(30deg);
-      opacity: 0.6;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .hunt-face,
-    .hunt-face .dish-art svg,
-    .hunt-face::after {
+    .hunt-face {
       transition: none;
-      animation: none !important;
     }
   }
   /* a right ingredient found before: a gold rim and a tick */

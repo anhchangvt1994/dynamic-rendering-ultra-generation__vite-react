@@ -152,11 +152,42 @@ const EntryStyle = styled.section`
     color: #e9fff6;
     font-weight: 600;
   }
+  /* Loading keeps the loaded screen's line boxes (genus 22px, text 24px,
+     facts 18px), so the stats below hold still when the species lands. */
+  .screen-loading {
+    display: grid;
+    grid-template-rows: 22px repeat(4, 24px) 18px 18px;
+    row-gap: 0;
+    align-items: center;
+  }
+  .screen-loading .skeleton:first-child {
+    margin-bottom: 6px;
+  }
   .skeleton {
-    height: 14px;
-    margin-top: 8px;
+    display: block;
+    height: 12px;
     border-radius: 4px;
     background: rgba(125, 255, 196, 0.12);
+  }
+  .skeleton--genus {
+    width: 42%;
+    height: 14px;
+  }
+  .skeleton--meta {
+    width: 56%;
+    height: 10px;
+  }
+  .screen-loading .skeleton--meta:nth-last-child(2) {
+    margin-top: 10px;
+  }
+  @media (min-width: 560px) {
+    .screen-loading {
+      grid-template-rows: 22px repeat(2, 24px) 18px;
+    }
+    .skeleton--narrow-only,
+    .screen-loading .skeleton:nth-child(5) {
+      display: none;
+    }
   }
 
   @keyframes entry-lens {
@@ -251,11 +282,16 @@ const PokemonEntry = memo(({ pokemon }: { pokemon: any }) => {
 
       <div className="screen" aria-live="polite">
         {isLoading && !species ? (
-          <>
-            <div className="skeleton" style={{ width: '40%' }} />
-            <div className="skeleton" />
-            <div className="skeleton" style={{ width: '80%' }} />
-          </>
+          // the entry's real rhythm: genus, a few lines of text, the facts
+          <div className="screen-loading" aria-hidden="true">
+            <span className="skeleton skeleton--genus" />
+            <span className="skeleton" />
+            <span className="skeleton" />
+            <span className="skeleton skeleton--narrow-only" />
+            <span className="skeleton" style={{ width: '72%' }} />
+            <span className="skeleton skeleton--meta" />
+            <span className="skeleton skeleton--meta skeleton--narrow-only" />
+          </div>
         ) : (
           <>
             <p className="genus">

@@ -32,7 +32,7 @@ config/env/.env
 config/env/env.json
 *.DS_Store
 
-!server/dist
+server/dist
 config/utils/PortHandler/.env
 server/resources/*
 server/**/server-info.json
@@ -68,6 +68,9 @@ DEPLOYMENT.md
 # Browser engine comparison output
 .compare-engines
 .vps-lab
+.claude
+.compare-engines
+.superpowers
 
 # Supabase self-host: generated secrets and keys (config/utils/Supabase.mjs)
 infra/supabase/.env

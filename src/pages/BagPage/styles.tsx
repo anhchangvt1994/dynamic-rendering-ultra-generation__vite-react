@@ -1,11 +1,18 @@
 import styled from 'styled-components'
+import { boneCss } from 'components/PageSkeleton/bone'
 
 /*
- * The trainer's bag, as the games draw it: a big backpack that takes the
- * colour of the pocket opened (HeartGold/SoulSilver), pockets as tabs, a
- * menu list with the red ▶ cursor and a steady count column, the chosen
- * item's card beside it (from 900px) or in a dialog (phones). Items not
- * yet found are silhouettes, as in "Who's That Pokémon?".
+ * Inside the trainer's backpack. The hero is the bag with its stats as
+ * stickers slapped on; the pockets are luggage tags hung on a zip, the
+ * open one drops on its string; the open pocket is a canvas panel and the
+ * items sit in it as an inventory grid of glossy wells, each with its
+ * count sticker. Phones: the chosen item's commands dock at the bottom,
+ * the DS games' touch screen; wide: its card stands beside the grid.
+ *
+ * No jump on load: every text sits in a box of fixed height (line-height
+ * in px, nowrap, overflow hidden) inside a grid of fixed or fractional
+ * columns, so neither the data nor the web fonts arriving move a thing.
+ * The skeleton draws these same boxes with bones in place of the words.
  */
 export const BagStyle = styled.section`
   --ink: #172d45;
@@ -15,26 +22,36 @@ export const BagStyle = styled.section`
   --dim-text: rgba(255, 255, 255, 0.66);
   --pocket: #ffda55;
   display: grid;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
   max-width: 1160px;
   margin: 0 auto;
   padding: 14px 12px 40px;
   color: #fff;
+  ${boneCss}
 
-  /* ── the hero: the bag and its numbers ── */
+  &[data-docked] {
+    padding-bottom: 210px;
+  }
+
+  /* ── the hero: the bag, its name, its stickers ── */
   .bag-hero {
     position: relative;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'art name'
+      'stickers stickers'
+      'tiers tiers';
     align-items: center;
-    gap: 14px;
-    padding: 16px 14px;
+    gap: 14px 14px;
+    padding: 14px 14px 16px;
     overflow: hidden;
     border: 3px solid var(--shadow-ink);
     border-radius: 24px;
     background:
       radial-gradient(
-        90% 120% at 0% 50%,
+        90% 120% at 0% 0%,
         color-mix(in srgb, var(--pocket) 38%, transparent),
         transparent 65%
       ),
@@ -43,12 +60,11 @@ export const BagStyle = styled.section`
     isolation: isolate;
     transition: background 400ms ease-out;
   }
-  /* sunburst behind the bag */
   .bag-hero::before {
     content: '';
     position: absolute;
-    left: -30%;
-    top: -60%;
+    left: -38%;
+    top: -70%;
     z-index: -1;
     width: 90%;
     aspect-ratio: 1;
@@ -62,19 +78,24 @@ export const BagStyle = styled.section`
     animation: bag-spin 40s linear infinite;
   }
   .bag-art {
+    grid-area: art;
     position: relative;
-    width: clamp(104px, 30vw, 200px);
+    width: clamp(84px, 24vw, 120px);
     aspect-ratio: 1;
   }
-  .bag-art svg {
+  .bag-art svg,
+  .bag-empty-art svg {
+    display: block;
     width: 100%;
     height: 100%;
     overflow: visible;
+  }
+  .bag-art svg {
     filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.45));
     transform-origin: 50% 90%;
-    animation: bag-hop 620ms cubic-bezier(0.3, 1.5, 0.5, 1);
   }
-  .bag-body {
+  .bag-art .bag-body,
+  .bag-empty-art .bag-body {
     fill: var(--pocket);
     transition: fill 400ms ease-out;
   }
@@ -89,25 +110,22 @@ export const BagStyle = styled.section`
   .bag-flap {
     transform-box: fill-box;
     transform-origin: 50% 0%;
+  }
+  .bag-art[data-moved] svg {
+    animation: bag-hop 620ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .bag-art[data-moved] .bag-flap {
     animation: bag-flap 620ms cubic-bezier(0.3, 1.5, 0.5, 1);
   }
-  /* sparkles thrown as a pocket opens */
   .bag-art i {
     position: absolute;
     width: 14px;
     height: 14px;
     background: #fff;
-    clip-path: polygon(
-      50% 0,
-      62% 38%,
-      100% 50%,
-      62% 62%,
-      50% 100%,
-      38% 62%,
-      0 50%,
-      38% 38%
-    );
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
     opacity: 0;
+  }
+  .bag-art[data-moved] i {
     animation: bag-spark 900ms ease-out both;
   }
   .bag-art i:nth-of-type(1) {
@@ -126,60 +144,136 @@ export const BagStyle = styled.section`
     height: 10px;
     animation-delay: 220ms;
   }
-  .bag-intro {
+  .bag-name {
+    grid-area: name;
     display: grid;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
   }
   .bag-kicker {
+    display: block;
+    height: 16px;
     margin: 0;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 16px !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--pocket);
+    transition: color 400ms ease-out;
+  }
+  .bag-kicker .bone {
+    width: 78%;
+    height: 12px;
+    margin-top: 2px;
   }
   .bag-title {
+    display: block;
+    width: 100%;
+    height: 0.95em;
+    overflow: visible;
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(30px, 9vw, 56px);
+    font-size: clamp(36px, 11vw, 72px);
     line-height: 0.95 !important;
     text-transform: uppercase;
     color: var(--sun);
     -webkit-text-stroke: 1.5px #2a4c8f;
     paint-order: stroke fill;
-    text-shadow: 0 3px 0 #2a4c8f;
+    text-shadow: 0 4px 0 #2a4c8f;
     white-space: nowrap;
   }
-  .bag-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    margin: 0;
+  .bag-title .bone {
+    width: 86%;
+    max-width: 320px;
+    height: 100%;
+    border-radius: 12px;
   }
-  .bag-stats div {
+
+  /* the numbers: die-cut stickers, each its colour and its tilt */
+  .stickers {
+    grid-area: stickers;
     display: grid;
-  }
-  .bag-stats dt {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--dim-text);
-  }
-  .bag-stats dd {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
     margin: 0;
+    padding: 0 2px;
+  }
+  .sticker {
+    --c: #ffda55;
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    height: 64px;
+    min-width: 0;
+    padding: 0 10px;
+    border-radius: 16px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 40%),
+      var(--c);
+    color: var(--ink);
+    box-shadow:
+      0 0 0 3px #fff,
+      0 0 0 5px var(--shadow-ink),
+      4px 6px 0 2px var(--shadow-ink);
+    rotate: -3deg;
+  }
+  .sticker:nth-child(2) {
+    rotate: 2deg;
+    translate: 0 3px;
+  }
+  .sticker:nth-child(3) {
+    rotate: -1.5deg;
+  }
+  .sticker dt,
+  .sticker-dt {
+    display: block;
+    height: 14px;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 14px !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+  }
+  .sticker dd,
+  .sticker-dd {
+    display: block;
+    height: 30px;
+    margin: 0;
+    overflow: hidden;
     font-family: var(--font-display);
-    font-size: 20px;
-    line-height: 1.1 !important;
+    font-size: 24px;
+    line-height: 30px !important;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .bag-stats small {
+  .sticker small {
     font-size: 13px;
-    color: var(--dim-text);
+    opacity: 0.7;
   }
-  /* units per tier, as one bar */
+  .sticker .bone {
+    --bone: rgba(23, 45, 69, 0.18);
+    --shine: rgba(23, 45, 69, 0.06);
+  }
+  .sticker-dt .bone {
+    width: 70%;
+    height: 9px;
+    margin-top: 3px;
+  }
+  .sticker-dd .bone {
+    width: 55%;
+    height: 20px;
+    margin-top: 5px;
+  }
+  .bag-tiers {
+    grid-area: tiers;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
   .tier-bar {
     display: flex;
     height: 10px;
@@ -196,353 +290,656 @@ export const BagStyle = styled.section`
   }
   .tier-legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px 10px;
+    gap: 10px;
+    height: 16px;
     margin: 0;
     padding: 0;
+    overflow: hidden;
     list-style: none;
     font-size: 11px;
     font-weight: 700;
+    line-height: 16px !important;
+    white-space: nowrap;
     color: var(--dim-text);
   }
-  .tier-legend li {
-    white-space: nowrap;
+  .tier-legend > .bone {
+    width: 70%;
+    height: 10px;
+    margin-top: 3px;
   }
-  .tier-legend b {
-    color: var(--tier);
+  .tier-legend li:nth-child(1) b {
+    color: #ffcf3a;
+  }
+  .tier-legend li:nth-child(2) b {
+    color: #c38bff;
+  }
+  .tier-legend li:nth-child(3) b {
+    color: #4fb4ff;
+  }
+  .tier-legend li:nth-child(4) b {
+    color: #7fdcae;
   }
 
-  /* ── pockets ── */
+  /* ── the pockets: luggage tags on the bag's zip ── */
   .pockets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    height: 96px;
+    padding: 0 4px;
   }
-  .pocket {
-    --c: #ffda55;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    min-height: 40px;
-    padding: 0 12px 0 8px;
-    border: 2px solid rgba(255, 255, 255, 0.14);
+  /* the zip: a dark tape with its teeth */
+  .pockets::before {
+    content: '';
+    position: absolute;
+    inset: 6px -2px auto;
+    height: 14px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
+    background:
+      repeating-linear-gradient(90deg, #c8d3e2 0 3px, #6d7d93 3px 4px, transparent 4px 7px)
+        center / 100% 6px no-repeat,
+      #0a1628;
+    box-shadow:
+      0 0 0 2px var(--shadow-ink),
+      0 3px 0 2px var(--shadow-ink);
+  }
+  .tag {
+    --c: #ffda55;
+    position: relative;
+    display: block;
+    height: 96px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* the string from the zip to the tag's eyelet */
+  .tag::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    width: 2px;
+    height: 16px;
+    margin-left: -1px;
+    background: #e9eef5;
+    box-shadow: 0 0 0 1px var(--shadow-ink);
+    transition: height 260ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .tag-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 26px;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 3px;
+    height: 58px;
+    padding: 12px 2px 0;
+    border-radius: 10px 10px 14px 14px;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.35), transparent 50%),
+      color-mix(in srgb, var(--c) 30%, #20324a);
+    box-shadow:
+      0 0 0 2px var(--shadow-ink),
+      0 3px 0 2px var(--shadow-ink);
+    clip-path: none;
+    transform-origin: 50% -2px;
+    rotate: 4deg;
+    transition:
+      translate 260ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      rotate 260ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      background-color 200ms ease-out;
+  }
+  .tag:nth-child(even) .tag-card {
+    rotate: -4deg;
+  }
+  /* the eyelet */
+  .tag-card::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+    border-radius: 50%;
+    background: #0a1628;
+    box-shadow: 0 0 0 2px #e9eef5;
+  }
+  .tag-glyph {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--shadow-ink);
+  }
+  .tag-glyph svg {
+    width: 14px;
+    height: 14px;
+    fill: var(--c);
+  }
+  .tag-label {
+    display: none;
+  }
+  .tag-count {
+    display: block;
+    width: 100%;
+    height: 14px;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 14px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
     color: #fff;
+  }
+  .tag-count .bone {
+    width: 60%;
+    height: 8px;
+    margin: 3px auto 0;
+  }
+  .tag:hover .tag-card {
+    rotate: 0deg;
+  }
+  .tag[aria-pressed='true']::before {
+    height: 26px;
+  }
+  .tag[aria-pressed='true'] .tag-card {
+    translate: 0 10px;
+    rotate: 0deg;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.45), transparent 55%),
+      var(--c);
+  }
+  .tag[aria-pressed='true'] .tag-count {
+    color: var(--ink);
+  }
+  .tag[aria-pressed='true'] .tag-glyph {
+    box-shadow: 0 0 0 2px #fff;
+  }
+  .pockets[data-moved] .tag[aria-pressed='true'] .tag-card {
+    animation: tag-swing 900ms cubic-bezier(0.3, 1.2, 0.5, 1);
+  }
+  .tag:focus-visible {
+    outline: none;
+  }
+  .tag:focus-visible .tag-card,
+  .slot:focus-visible .slot-well,
+  .sort button:focus-visible,
+  .seek:focus-visible,
+  .bag-tool-link:focus-visible,
+  .bag-empty-more:focus-visible,
+  .dock-close:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+  }
+
+  /* ── the open pocket: a canvas panel in the pocket's colour ── */
+  .pocket-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    padding: 14px 12px 16px;
+    border: 3px solid var(--shadow-ink);
+    border-radius: 24px;
+    background:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 6px),
+      linear-gradient(
+        color-mix(in srgb, var(--pocket) 24%, #0d1c33),
+        color-mix(in srgb, var(--pocket) 8%, #0a1628) 260px
+      );
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--pocket) 45%, transparent),
+      inset 0 10px 18px rgba(0, 0, 0, 0.35),
+      5px 5px 0 var(--shadow-ink);
+    transition: background 400ms ease-out;
+  }
+  .bag-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .bag-pocket {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    height: 32px;
+    margin: 0;
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 32px !important;
+    white-space: nowrap;
+  }
+  .bag-pocket > .bone {
+    width: 46%;
+    height: 24px;
+    align-self: center;
+  }
+  .bag-pocket-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bag-pocket-count {
+    flex: none;
+    font-size: 16px;
+    color: var(--pocket);
+    font-variant-numeric: tabular-nums;
+  }
+  .bag-tools {
+    display: flex;
+    gap: 8px;
+    height: 44px;
+    min-width: 0;
+  }
+  /* the sort: a switch where the chosen order spells its name and the
+     others show their sign; its width comes from the row, not the words */
+  .sort {
+    display: flex;
+    flex: 1 1 0;
+    gap: 2px;
+    min-width: 0;
+    padding: 3px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  .sort > .bone,
+  .seek > .bone {
+    width: 100%;
+    height: 100%;
+    border-radius: 11px;
+  }
+  .sort button {
+    display: flex;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    height: 38px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: none;
+    border-radius: 11px;
+    background: none;
+    color: var(--dim-text);
     font: inherit;
     font-size: 13px;
     font-weight: 800;
+    line-height: 16px;
     white-space: nowrap;
     cursor: pointer;
     transition:
-      background-color 160ms ease-out,
-      translate 120ms ease-out;
+      flex-grow 240ms cubic-bezier(0.3, 1.3, 0.5, 1),
+      background-color 160ms ease-out;
   }
-  .pocket::before {
-    content: '';
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--c);
-    box-shadow: 0 0 8px var(--c);
+  .sort-glyph {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
   }
-  .pocket b {
-    min-width: 20px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    font-size: 11px;
-    text-align: center;
-  }
-  .pocket[aria-pressed='true'] {
-    border-color: var(--shadow-ink);
-    background: var(--c);
-    color: var(--ink);
-    box-shadow: 3px 3px 0 var(--shadow-ink);
-    translate: -1px -1px;
-  }
-  .pocket[aria-pressed='true']::before {
-    background: #fff;
-    box-shadow: 0 0 0 2px var(--ink);
-  }
-  .pocket[aria-pressed='true'] b {
-    background: rgba(5, 15, 28, 0.18);
-  }
-  .pocket:focus-visible,
-  .sort button:focus-visible,
-  .toggle:focus-visible,
-  .bag-row:focus-visible {
-    outline: 3px solid #fff;
-    outline-offset: 2px;
-  }
-
-  /* ── toolbar ── */
-  .bag-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .sort {
-    display: inline-grid;
-    grid-auto-flow: column;
-    padding: 3px;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.28);
-  }
-  .sort button {
-    min-height: 36px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 9px;
-    background: none;
-    color: var(--dim-text);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
+  .sort-label {
+    display: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .sort button[aria-pressed='true'] {
+    flex: 1 1 0;
     background: #fff;
     color: var(--ink);
+    box-shadow: 0 2px 0 var(--shadow-ink);
   }
-  .toggle {
-    display: inline-flex;
+  .sort button[aria-pressed='true'] .sort-label {
+    display: block;
+  }
+  .sort button:not([aria-pressed='true']):hover {
+    color: #fff;
+  }
+  /* the catalogue's silhouettes, on or off */
+  .seek {
+    display: flex;
+    flex: 0 0 104px;
     align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 0 4px;
-    border: none;
-    background: none;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.25);
     color: var(--dim-text);
     font: inherit;
     font-size: 13px;
     font-weight: 800;
+    line-height: 16px;
+    white-space: nowrap;
     cursor: pointer;
   }
-  .toggle span {
-    position: relative;
-    width: 38px;
-    height: 22px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.16);
-    transition: background-color 160ms ease-out;
+  span.seek {
+    padding: 0;
+    border: none;
   }
-  .toggle span::after {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 3px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #fff;
-    transition: translate 160ms ease-out;
+  .seek-glyph {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
   }
-  .toggle[aria-pressed='true'] {
-    color: #fff;
-  }
-  .toggle[aria-pressed='true'] span {
+  .seek[aria-pressed='true'] {
+    border-color: var(--shadow-ink);
     background: var(--pocket);
+    color: var(--ink);
+    box-shadow: 0 3px 0 var(--shadow-ink);
   }
-  .toggle[aria-pressed='true'] span::after {
-    translate: 16px 0;
+  .bag-tool-link {
+    display: inline-flex;
+    justify-self: start;
+    align-items: center;
+    height: 44px;
+    padding: 0 16px;
+    border: 3px solid var(--shadow-ink);
+    border-radius: 14px;
+    background: var(--pocket);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 16px;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 3px 3px 0 var(--shadow-ink);
   }
 
-  /* ── the list, the games' menu ── */
+  /* ── the inventory: a grid of wells, count stickers on them ── */
   .bag-body {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     align-items: start;
   }
-  .bag-list {
+  .bag-grid {
     display: grid;
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 10px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  .bag-row {
-    position: relative;
-    display: grid;
-    grid-template-columns: 52px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    height: 68px;
-    padding: 8px 12px 8px 26px;
-    border: none;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.08);
-    color: #fff;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    animation: bag-row-in 360ms cubic-bezier(0.3, 1.4, 0.5, 1)
-      calc(min(var(--i), 12) * 28ms) both;
-    transition:
-      background-color 140ms ease-out,
-      box-shadow 140ms ease-out;
-  }
-  /* the cursor */
-  .bag-row::before {
-    content: '';
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    width: 0;
-    height: 0;
-    margin-top: -7px;
-    border: 7px solid transparent;
-    border-left: 10px solid var(--lose);
-    border-right: none;
-    opacity: 0;
-    translate: -4px 0;
-    transition:
-      opacity 140ms ease-out,
-      translate 140ms ease-out;
-  }
-  .bag-row:hover,
-  .bag-row[aria-current='true'] {
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tier) 70%, transparent);
-  }
-  .bag-row:hover::before,
-  .bag-row:focus-visible::before,
-  .bag-row[aria-current='true']::before {
-    opacity: 1;
-    translate: 0 0;
-  }
-  .bag-row[aria-current='true']::before {
-    animation: bag-cursor 900ms ease-in-out infinite;
+  .bag-grid > li {
+    min-width: 0;
   }
   .slot {
+    --tier: #7fdcae;
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #fff;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .slot[data-bone] {
+    cursor: default;
+  }
+  .slot-well {
+    position: relative;
     display: grid;
     place-items: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    aspect-ratio: 1;
+    border-radius: 22px;
     background:
       radial-gradient(
-        circle,
-        color-mix(in srgb, var(--tier) 45%, transparent),
-        transparent 70%
+        circle at 50% 42%,
+        color-mix(in srgb, var(--tier) 55%, transparent),
+        transparent 62%
       ),
+      linear-gradient(rgba(255, 255, 255, 0.12), transparent 45%),
+      #0a1628;
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--tier) 80%, transparent),
+      inset 0 -6px 0 rgba(0, 0, 0, 0.35),
+      0 0 0 2px var(--shadow-ink),
+      0 4px 0 2px var(--shadow-ink);
+    transition:
+      translate 160ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      box-shadow 160ms ease-out;
+  }
+  .slot[data-bone] .slot-well {
+    background: #0a1628;
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+      0 0 0 2px var(--shadow-ink),
+      0 4px 0 2px var(--shadow-ink);
+  }
+  .slot-well .catch-ball {
+    width: 38%;
+    opacity: 0.55;
+  }
+  .slot-well img {
+    width: 62%;
+    height: 62%;
+    image-rendering: pixelated;
+    filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
+      drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)
+      drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5));
+  }
+  .slot-stars {
+    position: absolute;
+    left: 9px;
+    top: 7px;
+    font-size: 9px;
+    line-height: 10px;
+    letter-spacing: -0.06em;
+    color: var(--tier);
+    text-shadow: 0 1px 0 var(--shadow-ink);
+  }
+  /* the count: a white sticker stuck on the corner */
+  .slot-count {
+    position: absolute;
+    right: -6px;
+    bottom: -4px;
+    min-width: 30px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 13px;
+    line-height: 24px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    box-shadow:
+      0 0 0 2px var(--shadow-ink),
+      2px 3px 0 1px var(--shadow-ink);
+    rotate: -6deg;
+  }
+  .slot-name {
+    display: -webkit-box;
+    height: 28px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 14px !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+  .slot-name .bone {
+    width: 72%;
+    height: 9px;
+    margin: 3px auto 0;
+  }
+  .slot:hover .slot-well {
+    translate: 0 -3px;
+  }
+  .slot[aria-current='true'] .slot-well {
+    translate: 0 -4px;
+    box-shadow:
+      inset 0 0 0 3px var(--tier),
+      inset 0 -6px 0 rgba(0, 0, 0, 0.35),
+      0 0 0 3px #fff,
+      0 0 0 6px var(--shadow-ink),
+      0 7px 0 5px var(--shadow-ink),
+      0 0 32px 6px color-mix(in srgb, var(--tier) 60%, transparent);
+  }
+  .slot[aria-current='true'] .slot-well img {
+    animation: slot-bob 1.4s ease-in-out infinite;
+  }
+  .slot[aria-current='true'] .slot-name {
+    color: var(--tier);
+  }
+  /* not found yet: who's that item? */
+  .slot[data-missing] .slot-well {
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.06), transparent 45%),
+      #0a1628;
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+      0 0 0 2px var(--shadow-ink),
+      0 4px 0 2px var(--shadow-ink);
+  }
+  .slot[data-missing] img {
+    filter: brightness(0) drop-shadow(0 0 1.5px rgba(160, 230, 255, 0.9));
+    opacity: 0.75;
+  }
+  .slot[data-missing] .slot-count {
+    min-width: 24px;
+    padding: 0;
+    background: #33455e;
+    color: #fff;
+  }
+  .slot[data-missing] .slot-name {
+    color: var(--dim-text);
+  }
+  .bag-grid[data-moved] .slot {
+    animation: slot-pop 420ms cubic-bezier(0.3, 1.6, 0.5, 1)
+      calc(min(var(--i), 15) * 22ms) both;
+  }
+
+  .bag-detail {
+    display: none;
+  }
+  .bag-detail-bone {
+    height: 560px;
+    border-radius: 28px;
+  }
+
+  /* ── the dock (phones): the chosen item's touch screen ── */
+  .dock {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    display: grid;
+    gap: 10px;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 10px 10px 12px;
+    border: 3px solid var(--shadow-ink);
+    border-radius: 24px;
+    background:
+      linear-gradient(color-mix(in srgb, var(--tier) 30%, transparent), transparent 60%),
+      #0f2240;
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--tier) 60%, transparent),
+      0 6px 0 var(--shadow-ink),
+      0 18px 40px rgba(0, 0, 0, 0.55);
+    animation: dock-in 340ms cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  .dock-head {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto 40px;
+    align-items: center;
+    gap: 10px;
+  }
+  .dock-well {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--tier) 50%, transparent), transparent 70%),
       #0a1628;
     box-shadow: inset 0 0 0 2px var(--tier);
   }
-  .slot img {
-    width: 40px;
-    height: 40px;
+  .dock-well img {
+    width: 36px;
+    height: 36px;
     image-rendering: pixelated;
-    filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff)
-      drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff);
   }
-  .row-text {
+  .dock-text {
     display: grid;
-    gap: 2px;
     min-width: 0;
   }
-  /* the whole name, on two lines if it must (the row keeps its height) */
-  .row-name {
-    display: -webkit-box;
+  .dock-text strong {
+    height: 20px;
     overflow: hidden;
     font-size: 15px;
-    font-weight: 800;
-    line-height: 1.15;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    font-weight: 900;
+    line-height: 20px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
-  .row-meta {
+  .dock-text span {
+    height: 16px;
     overflow: hidden;
     font-size: 11px;
     font-weight: 700;
-    text-overflow: ellipsis;
+    line-height: 16px;
     white-space: nowrap;
     color: var(--dim-text);
   }
-  .row-meta b {
+  .dock-text b {
     color: var(--tier);
   }
-  .row-count {
-    min-width: 54px;
-    padding: 4px 9px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.3);
+  .dock-count {
     font-family: var(--font-display);
-    font-size: 17px;
-    line-height: 1.1 !important;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+    font-size: 18px;
+    line-height: 24px;
     white-space: nowrap;
   }
-  .row-count small {
-    font-size: 11px;
-    color: var(--dim-text);
+  .dock-close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
   }
-  /* not found yet: a silhouette, who's that item? */
-  .bag-row[data-missing] {
-    background: rgba(255, 255, 255, 0.025);
+  .dock-close svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
   }
-  .bag-row[data-missing] .slot {
-    background: #0a1628;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
-  }
-  .bag-row[data-missing] .slot img {
-    filter: brightness(0) drop-shadow(0 0 1px rgba(160, 230, 255, 0.9));
-    opacity: 0.7;
-  }
-  .bag-row[data-missing] .row-name {
-    color: var(--dim-text);
-  }
-  .bag-row[data-missing] .row-count {
-    background: none;
-    color: var(--dim-text);
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 800;
-  }
-
-  /* the chosen item's commands: a drawer that slides out of its row, the
-     row and the drawer one card; inside, tiles in the style of the DS
-     games' touch battle menu (glossy, colour-coded, ink-rimmed) */
-  .bag-list li[data-open] .bag-row {
-    border-radius: 16px 16px 0 0;
-  }
-  .row-actions {
-    position: relative;
+  .dock-commands,
+  .bag-detail-commands {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 10px;
-    margin-top: -2px;
-    padding: 14px 12px 12px;
-    border-radius: 0 0 18px 18px;
-    background:
-      linear-gradient(
-        color-mix(in srgb, var(--tier) 16%, transparent),
-        transparent 70%
-      ),
-      rgba(255, 255, 255, 0.06);
-    box-shadow:
-      inset 2px 0 0 color-mix(in srgb, var(--tier) 70%, transparent),
-      inset -2px 0 0 color-mix(in srgb, var(--tier) 70%, transparent),
-      inset 0 -2px 0 color-mix(in srgb, var(--tier) 70%, transparent);
-    transform-origin: 50% 0;
-    animation: bag-drawer 300ms cubic-bezier(0.2, 1.2, 0.4, 1);
   }
-  /* a notch pointing up at the row */
-  .row-actions::before {
-    content: '';
-    position: absolute;
-    left: 36px;
-    top: -1px;
-    width: 14px;
-    height: 8px;
-    background: var(--tier);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-  }
+
   .command {
     --c: #4aa8ff;
     --c-dark: #1d5fae;
@@ -653,22 +1050,50 @@ export const BagStyle = styled.section`
     box-shadow: 0 1px 0 var(--shadow-ink);
   }
 
-  .bag-detail {
-    display: none;
-  }
-  .bag-detail .card {
-    max-height: none;
-  }
-
   /* ── empty ── */
   .bag-empty {
     display: grid;
     justify-items: center;
     gap: 10px;
-    padding: 28px 16px;
-    border: 2px dashed rgba(255, 255, 255, 0.16);
+    padding: 24px 16px 20px;
     border-radius: 22px;
+    background:
+      radial-gradient(
+        60% 50% at 50% 0%,
+        color-mix(in srgb, var(--pocket) 22%, transparent),
+        transparent 70%
+      ),
+      rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
     text-align: center;
+  }
+  /* the bag, flat on its back and empty */
+  .bag-empty-art {
+    width: 92px;
+    aspect-ratio: 1;
+    rotate: -12deg;
+    filter: saturate(0.5) drop-shadow(0 8px 8px rgba(0, 0, 0, 0.4));
+  }
+  .bag-empty-art svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .bag-empty-art .bag-body {
+    fill: var(--pocket);
+  }
+  .bag-empty-more {
+    min-height: 44px;
+    padding: 0 8px;
+    border: none;
+    background: none;
+    color: var(--dim-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
   .bag-empty strong {
     font-family: var(--font-display);
@@ -710,74 +1135,250 @@ export const BagStyle = styled.section`
     text-decoration: underline;
     text-underline-offset: 3px;
   }
+
   .bag-note {
     margin: 0;
     font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
   }
 
+  @media (min-width: 480px) {
+    .bag-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .bag-head {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+    .bag-tools {
+      width: 300px;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .bag-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .tag-card {
+      height: 62px;
+    }
+    .tag-glyph {
+      width: 28px;
+      height: 28px;
+    }
+    .tag-glyph svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
   @media (max-width: 359px) {
     .bag-hero {
-      gap: 10px;
-      padding: 14px 10px;
+      gap: 12px 10px;
+      padding: 12px 10px 14px;
     }
-    .bag-row {
-      grid-template-columns: 46px minmax(0, 1fr) auto;
-      gap: 10px;
-      padding-right: 10px;
+    .stickers {
+      gap: 8px;
     }
-    .slot {
-      width: 46px;
-      height: 46px;
+    .sticker {
+      padding: 0 7px;
     }
-    .slot img {
-      width: 34px;
-      height: 34px;
+    .sticker dd,
+    .sticker-dd {
+      font-size: 19px;
     }
-    .row-count {
-      min-width: 0;
-      font-size: 15px;
+    .pockets {
+      gap: 3px;
+      padding: 0 2px;
     }
-    .command-label {
+    .tag-glyph {
+      width: 22px;
+      height: 22px;
+    }
+    .pocket-panel {
+      padding: 12px 10px 14px;
+    }
+    .bag-grid {
+      gap: 12px 8px;
+    }
+    .slot-name {
       font-size: 11px;
-      letter-spacing: 0.04em;
     }
-    /* the stars say it; the tier's name is on the item's card */
-    .row-tier {
+    .seek {
+      flex-basis: 44px;
+      padding: 0;
+    }
+    .seek > span {
       display: none;
-    }
-    .sort button {
-      padding: 0 9px;
     }
   }
 
   @media (min-width: 900px) {
-    gap: 20px;
+    gap: 16px;
     padding: 28px 24px 56px;
 
+    &[data-docked] {
+      padding-bottom: 56px;
+    }
     .bag-hero {
-      gap: 28px;
-      padding: 22px 28px;
+      grid-template-columns: 200px minmax(0, 1fr) auto;
+      grid-template-areas:
+        'art name stickers'
+        'art tiers stickers';
+      gap: 14px 28px;
+      padding: 22px 32px 22px 28px;
       border-radius: 32px;
     }
-    .bag-stats dd {
-      font-size: 30px;
+    .bag-hero::before {
+      left: -20%;
+      top: -90%;
+      width: 60%;
+    }
+    .bag-art {
+      width: 200px;
+    }
+    .bag-title {
+      font-size: clamp(44px, 4.6vw, 64px);
+    }
+    .bag-name {
+      align-self: end;
+    }
+    .bag-tiers {
+      align-self: start;
+    }
+    .stickers {
+      grid-template-columns: repeat(3, 148px);
+      gap: 18px;
+    }
+    .sticker {
+      height: 104px;
+      padding: 0 16px;
+      border-radius: 22px;
+    }
+    .sticker dt,
+    .sticker-dt {
+      font-size: 12px;
+    }
+    .sticker dd,
+    .sticker-dd {
+      height: 48px;
+      font-size: 32px;
+      line-height: 48px !important;
+    }
+    .sticker small {
+      font-size: 16px;
+    }
+    .sticker-dd .bone {
+      height: 32px;
+      margin-top: 8px;
+    }
+    .pockets {
+      gap: 10px;
+      height: 92px;
+      padding: 0 10px;
+    }
+    .tag {
+      height: 92px;
+    }
+    .tag-card {
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      justify-items: start;
+      gap: 8px;
+      height: 52px;
+      padding: 8px 10px 0;
+      top: 28px;
+    }
+    .tag-card::before {
+      top: 4px;
+    }
+    .tag-glyph {
+      width: 30px;
+      height: 30px;
+    }
+    .tag-label {
+      display: block;
+      width: 100%;
+      height: 16px;
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 16px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+    .tag-label .bone {
+      width: 80%;
+      height: 10px;
+      margin-top: 3px;
+    }
+    .tag-count {
+      position: absolute;
+      right: -6px;
+      top: -8px;
+      width: auto;
+      min-width: 26px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      line-height: 20px;
+      box-shadow: 0 0 0 2px var(--shadow-ink);
+      rotate: 8deg;
+    }
+    .tag-count .bone {
+      margin-top: 6px;
+    }
+    .tag[aria-pressed='true'] .tag-label {
+      color: var(--ink);
+    }
+    .tag-card {
+      rotate: 2deg;
+    }
+    .tag:nth-child(even) .tag-card {
+      rotate: -2deg;
+    }
+    .pocket-panel {
+      gap: 20px;
+      padding: 22px 24px 26px;
+      border-radius: 30px;
+    }
+    .bag-pocket {
+      height: 44px;
+      font-size: 38px;
+      line-height: 44px !important;
+    }
+    .bag-pocket > .bone {
+      height: 32px;
+      width: 30%;
+    }
+    .bag-pocket-count {
+      font-size: 20px;
+    }
+    .bag-tools {
+      width: 360px;
     }
     .bag-body {
-      grid-template-columns: minmax(0, 1fr) 400px;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 24px;
+    }
+    .bag-grid {
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+      gap: 18px 14px;
     }
     .bag-detail {
       position: sticky;
       top: 90px;
-      display: block;
+      display: grid;
+      gap: 12px;
     }
-    /* the card is already beside the list */
-    .command[data-command='info'] {
-      display: none;
+    .bag-detail .card {
+      max-height: calc(100svh - 240px);
     }
-    /* tiles keep a tile's size on a wide list */
-    .row-actions {
-      grid-template-columns: repeat(auto-fit, 150px);
+    .bag-detail-commands .command {
+      min-height: 72px;
     }
   }
 
@@ -818,6 +1419,39 @@ export const BagStyle = styled.section`
       opacity: 0;
       scale: 0.6;
       rotate: 90deg;
+    }
+  }
+  @keyframes slot-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6) translateY(8px);
+    }
+  }
+  @keyframes slot-bob {
+    50% {
+      translate: 0 -3px;
+      rotate: -4deg;
+    }
+  }
+  @keyframes tag-swing {
+    0% {
+      rotate: 0deg;
+      translate: 0 0;
+    }
+    25% {
+      rotate: -14deg;
+    }
+    50% {
+      rotate: 9deg;
+    }
+    75% {
+      rotate: -4deg;
+    }
+  }
+  @keyframes dock-in {
+    from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.96);
     }
   }
   @keyframes bag-row-in {

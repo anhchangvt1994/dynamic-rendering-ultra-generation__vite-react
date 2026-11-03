@@ -50,7 +50,7 @@ export const QuizStyle = styled.section`
     display: grid;
     justify-items: start;
     font-family: var(--font-display);
-    font-size: clamp(26px, 8vw, 38px);
+    font-size: clamp(23px, 7.4vw, 38px);
     line-height: 0.95 !important;
     letter-spacing: -0.01em;
     text-transform: uppercase;
@@ -477,16 +477,29 @@ export const QuizStyle = styled.section`
     background: rgba(0, 0, 0, 0.25);
   }
   .mode button {
-    min-height: 44px;
-    padding: 0 10px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 4px 8px;
     border: none;
     border-radius: 11px;
     background: none;
     color: var(--dim-text);
     font: inherit;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
     cursor: pointer;
+  }
+  .mode button small {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.85;
+    text-wrap: balance;
   }
   .mode button[aria-pressed='true'] {
     background: var(--sun);
@@ -1436,13 +1449,16 @@ export const QuizStyle = styled.section`
   }
   .verdict-head {
     display: grid;
-    gap: 2px;
+    gap: 6px;
   }
+  /* Vietnamese capitals stack their marks above the cap height (HẾT GIỜ):
+     the line box leaves them room, and the 3px ink shadow its own */
   .verdict-title {
     margin: 0;
+    padding-top: 2px;
     font-family: var(--font-display);
     font-size: clamp(28px, 9vw, 40px);
-    line-height: 1 !important;
+    line-height: 1.16 !important;
     text-transform: uppercase;
     color: var(--tone);
     -webkit-text-stroke: 1.5px var(--shadow-ink);
@@ -1545,7 +1561,8 @@ export const QuizStyle = styled.section`
   .next {
     flex: 1 1 auto;
     min-width: 0;
-    white-space: nowrap;
+    text-wrap: balance;
+    line-height: 1.05 !important;
     display: flex;
     align-items: center;
     justify-content: center;

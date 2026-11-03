@@ -55,7 +55,10 @@ function useTypeDetails(pokemon: any) {
   const first = useGetPokemonTypeQuery(names[0] || '', { skip: !names[0] })
   const second = useGetPokemonTypeQuery(names[1] || '', { skip: !names[1] })
   const details = [first.currentData, second.currentData].slice(0, names.length)
-  return details.every(Boolean) ? details : []
+  return {
+    details: details.every(Boolean) ? details : [],
+    failed: first.isError || second.isError,
+  }
 }
 
 /** "Ai khắc ai?": each side's best same-type hit on the other. */
@@ -63,10 +66,40 @@ function Matchup({ a, b }: { a: any; b: any }) {
   const typesA = useTypeDetails(a)
   const typesB = useTypeDetails(b)
   const hits = [
-    { side: 'a' as Side, from: a, to: b, hit: bestHit(typeNames(a), typesB) },
-    { side: 'b' as Side, from: b, to: a, hit: bestHit(typeNames(b), typesA) },
+    {
+      side: 'a' as Side,
+      from: a,
+      to: b,
+      hit: bestHit(typeNames(a), typesB.details),
+    },
+    {
+      side: 'b' as Side,
+      from: b,
+      to: a,
+      hit: bestHit(typeNames(b), typesA.details),
+    },
   ]
-  if (hits.some(({ hit }) => !hit)) return null
+  if (typesA.failed || typesB.failed) return null
+  // the type chart arrives after the duel: its space is held, so the stat
+  // ropes below never jump when it lands
+  if (hits.some(({ hit }) => !hit))
+    return (
+      <section className="matchup" aria-busy="true">
+        <h2>Ai khắc ai?</h2>
+        <div className="matchup-grid" aria-hidden="true">
+          {(['a', 'b'] as Side[]).map((side) => (
+            <div key={side} className={`hit hit--${side} hit--loading`}>
+              <span className="hit-bone hit-bone--who" />
+              <span className="hit-bone hit-bone--power" />
+              <span className="hit-bone hit-bone--type" />
+            </div>
+          ))}
+        </div>
+        <p className="matchup-note">
+          Chiêu cùng hệ với chính nó, chưa tính khả năng và vật phẩm.
+        </p>
+      </section>
+    )
   return (
     <section className="matchup" aria-labelledby="matchup-heading">
       <h2 id="matchup-heading">Ai khắc ai?</h2>

@@ -55,6 +55,9 @@ export default function KitchenHeader({
               )
             }
           )}
+          <li style={{ '--c': STATS.friendship.color } as CSSProperties}>
+            Mọi vị → <b>{STATS.friendship.label}</b>
+          </li>
         </ul>
         <p className="kitchen-found">
           Đã khám phá <b>{`${found}/${total}`}</b> món bí ẩn

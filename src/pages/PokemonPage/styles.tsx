@@ -53,6 +53,12 @@ export const PokemonPageStyle = styled.div`
   }
   }
 
+  .first-stage {
+    display: grid;
+    align-items: center;
+    height: 196px;
+  }
+
   .image-wrapper {
     display: flex;
     justify-content: center;
