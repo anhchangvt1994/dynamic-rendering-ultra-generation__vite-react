@@ -27,7 +27,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     align-items: center;
     gap: 18px;
     max-width: 1180px;
-    height: 60px;
+    height: 68px;
     margin-inline: auto;
   }
   .rail-back {
@@ -67,13 +67,15 @@ export const BlogDetailStyle = styled(BlogStyle)`
     rotate: 135deg;
   }
   /* the trail: a dashed path, inked where the ball has been. At its end a
-     Pikachu waits (44px kept free for it); the ball rolls up to it, catches it
-     and, shaking, a star jumps out. --p is the way travelled (0 to 1) */
+     random animated Pokémon waits in a 72px slot, a "Who's that Pokémon?"
+     silhouette that shows its colours as the ball nears; the ball catches it
+     (flash, drawn in, three shakes, click, stars). --p is the way travelled */
   .read-trail {
+    --slot: 72px;
     position: relative;
     flex: 1;
-    height: 28px;
-    margin-inline: 14px 8px;
+    height: 60px;
+    margin-inline: 14px 0;
   }
   .read-trail::before,
   .trail-fill {
@@ -88,52 +90,154 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .trail-fill {
     right: auto;
-    width: calc(var(--p, 0) * (100% - 44px) + 14px);
+    width: calc(var(--p, 0) * (100% - var(--slot)) + 15px);
     border-top: 4px solid var(--berry);
     border-radius: 2px;
   }
-  .read-ball {
+  .ball-rig {
     position: absolute;
-    z-index: 2;
-    top: 0;
-    left: calc(var(--p, 0) * (100% - 44px));
-    width: 28px;
-    height: 28px;
+    z-index: 3;
+    top: 50%;
+    left: calc(var(--p, 0) * (100% - var(--slot)));
+    width: 30px;
+    height: 30px;
+    margin-top: -15px;
+  }
+  .read-ball {
+    display: block;
+    width: 100%;
+    height: 100%;
     rotate: var(--r, 0deg);
+    filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.3));
+  }
+  .ball-led {
+    transition: fill 120ms;
   }
   .trail-mon {
     position: absolute;
-    top: -6px;
+    z-index: 2;
+    top: 0;
     right: 0;
-    width: 40px;
-    height: 40px;
-    transform-origin: 25% 70%;
-    overflow: visible;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--slot);
+    opacity: 0;
+    transition: opacity 240ms ease-out;
+  }
+  .trail-mon[data-ready='true'] {
+    opacity: 1;
+  }
+  .mon-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: 50% 80%;
+    /* "Who's that Pokémon?": the dex's silhouette until the ball is near */
+    filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
+      drop-shadow(0 0 10px rgba(80, 170, 255, 0.5));
+    transition: filter 600ms ease-out;
+  }
+  [data-reveal='1'] .mon-body {
+    filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
+  }
+  .mon-body img {
+    display: block;
+    max-width: none;
+  }
+  [data-pixel='true'] .mon-body img {
+    image-rendering: pixelated;
+  }
+  .mon-shadow {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    width: 44px;
+    height: 8px;
+    margin-left: -22px;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgba(23, 45, 69, 0.28),
+      rgba(23, 45, 69, 0)
+    );
+    transition: opacity 240ms;
+  }
+  .fx-flash,
+  .fx-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .fx-flash {
+    width: 84px;
+    height: 84px;
+    margin: -42px 0 0 -42px;
+    background: radial-gradient(
+      circle,
+      #fff 0,
+      rgba(255, 244, 205, 0.9) 28%,
+      rgba(255, 150, 110, 0.4) 55%,
+      transparent 72%
+    );
+  }
+  .fx-ring {
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid #ffd23f;
+  }
+  .sparks i {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    margin: -5.5px;
+    background: linear-gradient(135deg, #fff7c2, #ffb800);
+    clip-path: polygon(
+      50% 0,
+      62% 38%,
+      100% 50%,
+      62% 62%,
+      50% 100%,
+      38% 62%,
+      0 50%,
+      38% 38%
+    );
+    opacity: 0;
+    pointer-events: none;
   }
   .catch-star {
     position: absolute;
-    z-index: 3;
-    top: -16px;
-    left: calc(100% - 44px + 1px);
+    top: -17px;
+    left: 50%;
     width: 26px;
     height: 26px;
+    margin-left: -13px;
     opacity: 0;
     scale: 0;
     pointer-events: none;
+    filter: drop-shadow(0 2px 2px rgba(23, 45, 69, 0.3));
   }
-  /* the end states, whatever the motion: caught = the Pikachu is in the ball
-     and the star is out */
+  /* the end states, whatever the motion: caught = the Pokémon is in the ball,
+     the star is out and the ball's light is on */
   [data-state='caught'] .read-ball {
     rotate: 0deg;
   }
+  [data-state='caught'] .ball-led {
+    fill: #7dffb0;
+  }
   [data-state='caught'] .trail-mon {
     opacity: 0;
-    scale: 0;
   }
   [data-state='caught'] .catch-star {
     opacity: 1;
     scale: 1;
-    translate: 0 -3px;
   }
   @media (prefers-reduced-motion: reduce) {
     .read-ball {
@@ -141,40 +245,85 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
   }
   @media (prefers-reduced-motion: no-preference) {
-    [data-state='caught'] .trail-mon {
-      animation: mon-in 480ms cubic-bezier(0.5, 0, 0.9, 0.4) both;
+    /* the Pokémon: flashes white, goes red, is pulled into the ball */
+    [data-state='caught'] .mon-body {
+      animation: mon-in 560ms cubic-bezier(0.55, 0, 0.8, 0.5) both;
     }
+    [data-state='caught'] .mon-shadow {
+      opacity: 0;
+    }
+    [data-state='caught'] .fx-flash {
+      animation: fx-flash 420ms 120ms ease-out both;
+    }
+    /* the ball: closes with a squash, shakes three times, light blinks,
+       clicks shut (ring + sparks + star) */
     [data-state='caught'] .read-ball {
-      animation: ball-shake 1050ms 520ms ease-in-out both;
+      animation: ball-shake 1200ms 620ms ease-in-out both;
+    }
+    [data-state='caught'] .ball-led {
+      animation: led 1200ms 620ms steps(1, end) both;
+    }
+    [data-state='caught'] .fx-ring {
+      animation: fx-ring 560ms 1840ms ease-out both;
+    }
+    [data-state='caught'] .sparks i {
+      animation: spark 640ms 1840ms cubic-bezier(0.1, 0.8, 0.3, 1) both;
     }
     [data-state='caught'] .catch-star {
-      animation: star-pop 620ms 1620ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+      animation: star-pop 700ms 1840ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
     }
-    [data-state='release'] .trail-mon {
-      animation: mon-out 560ms 160ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
-    }
+    /* let out */
     [data-state='release'] .read-ball {
-      animation: ball-hop 360ms ease-out;
+      animation: ball-open 460ms ease-out both;
     }
-    [data-state='release'] .catch-star {
-      animation: star-out 200ms ease-in both;
+    [data-state='release'] .fx-flash {
+      animation: fx-flash 520ms 140ms ease-out both;
+    }
+    [data-state='release'] .mon-body {
+      animation: mon-out 640ms 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    }
+    [data-state='release'] .sparks i {
+      animation: spark 520ms 160ms cubic-bezier(0.1, 0.8, 0.3, 1) both;
     }
   }
-  /* drawn in: a white glow, then pulled into the ball (on its left) */
   @keyframes mon-in {
     0% {
-      filter: brightness(1) invert(0) drop-shadow(0 0 0 rgba(255, 90, 60, 0));
+      filter: none;
     }
-    40% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
-      scale: 1.06;
-      translate: -2px 0;
+    30% {
+      filter: brightness(4) saturate(0);
+      scale: 1.08;
+    }
+    62% {
+      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
+      scale: 0.7;
+      opacity: 1;
     }
     100% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
+      translate: -26px 2px;
       scale: 0;
-      translate: -16px 4px;
       opacity: 0;
+    }
+  }
+  @keyframes mon-out {
+    0% {
+      filter: brightness(4) saturate(0) drop-shadow(0 0 8px #fff);
+      translate: -26px 2px;
+      scale: 0;
+      opacity: 0;
+    }
+    45% {
+      filter: brightness(1.6) sepia(1) hue-rotate(-50deg) saturate(8);
+      scale: 1.12;
+      translate: 0 0;
+      opacity: 1;
+    }
+    100% {
+      filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
+      scale: 1;
+      translate: 0 0;
+      opacity: 1;
     }
   }
   /* three shakes, each smaller, then still */
@@ -183,91 +332,130 @@ export const BlogDetailStyle = styled(BlogStyle)`
     100% {
       rotate: 0deg;
       translate: 0 0;
-    }
-    8% {
-      scale: 1.14 0.9;
-    }
-    16% {
       scale: 1;
     }
-    22% {
-      rotate: -26deg;
+    6% {
+      scale: 1.18 0.86;
+    }
+    12% {
+      scale: 1;
+    }
+    24% {
+      rotate: -28deg;
       translate: -2px 0;
     }
     38% {
-      rotate: 22deg;
+      rotate: 24deg;
       translate: 2px 0;
     }
-    50% {
+    52% {
       rotate: -18deg;
       translate: -1px 0;
     }
-    62% {
+    64% {
       rotate: 14deg;
       translate: 1px 0;
     }
     76% {
-      rotate: -8deg;
+      rotate: -7deg;
     }
     88% {
-      rotate: 3deg;
+      rotate: 2deg;
+    }
+    94% {
+      scale: 1.12;
+    }
+  }
+  @keyframes led {
+    0%,
+    24% {
+      fill: #fff;
+    }
+    25%,
+    36% {
+      fill: #ff5a3c;
+    }
+    37%,
+    52% {
+      fill: #fff;
+    }
+    53%,
+    64% {
+      fill: #ff5a3c;
+    }
+    65%,
+    100% {
+      fill: #fff;
+    }
+  }
+  @keyframes fx-flash {
+    0% {
+      opacity: 0;
+      scale: 0.3;
+    }
+    35% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1.3;
+    }
+  }
+  @keyframes fx-ring {
+    0% {
+      opacity: 0.9;
+      scale: 0.6;
+    }
+    100% {
+      opacity: 0;
+      scale: 2.6;
+    }
+  }
+  @keyframes spark {
+    0% {
+      opacity: 0;
+      transform: rotate(var(--a)) translateY(0) scale(0.4);
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1);
     }
   }
   @keyframes star-pop {
     0% {
       opacity: 0;
       scale: 0;
-      rotate: -90deg;
-      translate: 0 14px;
+      rotate: -120deg;
+      translate: 0 20px;
     }
     55% {
       opacity: 1;
-      scale: 1.35;
-      rotate: 12deg;
-      translate: 0 -8px;
+      scale: 1.3;
+      rotate: 14deg;
+      translate: 0 -4px;
     }
     100% {
       opacity: 1;
       scale: 1;
       rotate: 0deg;
-      translate: 0 -3px;
-    }
-  }
-  @keyframes star-out {
-    from {
-      opacity: 1;
-      scale: 1;
-      translate: 0 -3px;
-    }
-    to {
-      opacity: 0;
-      scale: 0;
-      translate: 0 12px;
-    }
-  }
-  /* let out: a white flash that grows out of the ball into the Pikachu */
-  @keyframes mon-out {
-    0% {
-      opacity: 1;
-      scale: 0;
-      translate: -16px 4px;
-      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
-    }
-    55% {
-      scale: 1.12;
       translate: 0 0;
-      filter: brightness(0) invert(1) drop-shadow(0 0 6px rgb(255, 90, 60));
+    }
+  }
+  @keyframes ball-open {
+    0% {
+      translate: 0 0;
+      scale: 1;
+    }
+    30% {
+      translate: 0 -7px;
+      scale: 1.12;
     }
     100% {
-      opacity: 1;
-      scale: 1;
       translate: 0 0;
-      filter: brightness(1) invert(0) drop-shadow(0 0 0 rgba(255, 90, 60, 0));
-    }
-  }
-  @keyframes ball-hop {
-    40% {
-      translate: 0 -5px;
+      scale: 1;
     }
   }
   .blog-article {
@@ -382,7 +570,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .blog-body h2,
   .blog-body h3 {
-    scroll-margin-top: 84px; /* clears the sticky reading rail */
+    scroll-margin-top: 92px; /* clears the sticky reading rail */
     margin: 1.6em 0 0.5em;
     font-family: var(--font-display);
     font-weight: 400;
