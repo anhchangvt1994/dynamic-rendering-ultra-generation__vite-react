@@ -24,16 +24,13 @@ const scrollerOf = (node: HTMLElement | null) => {
  * rail. The roll is written as CSS variables and the catch is a data-state
  * (roll / caught / release) the CSS animates: no re-render while scrolling.
  */
-// where the Pokémon waits along the trail (share of the way). The ball touches
-// it (CATCH), draws it in, and rolls on to the very end of the trail; read
-// back above FREE it lets the Pokémon out again: any number of times
-const POS = 0.88
-// the ball catches it when this close (px, centre to centre)
-const REACH = 46
-// let out again this much further back (px): a gap against flicker
-const GAP = 36
-// the silhouette shows its colours from here
-const REVEAL = POS - 0.3
+// the Pokémon stands at the very end of the trail. The ball catches it when
+// the article is read to within CATCH px of its end, and lets it out when read
+// back past FREE px from the end: any number of times
+const CATCH = 16
+const FREE = 56
+// the silhouette shows its colours from this share of the way
+const REVEAL = 0.7
 const TRIES = 4
 const BOX = 68
 
@@ -69,8 +66,6 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
     if (!root || !scroller) return
     let frame = 0
     let caught = false
-    const trail = root.querySelector<HTMLElement>('.read-trail')
-    if (!trail) return
     // the Pokémon is drawn towards the ball (and let out of it): the way
     const aim = () => {
       const ball = root.querySelector('.ball-roll')?.getBoundingClientRect()
@@ -93,7 +88,6 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
     }
     const update = () => {
       frame = 0
-      const lane = Math.max(1, trail.offsetWidth - 30)
       const room = scroller.scrollHeight - scroller.clientHeight
       const progress =
         room > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / room)) : 0
@@ -101,15 +95,13 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
       root.style.setProperty('--r', `${progress * 1440}deg`)
       const reveal = progress >= REVEAL ? '1' : '0'
       if (root.dataset.reveal !== reveal) root.dataset.reveal = reveal
-      if (!caught && progress >= POS - Math.min(REACH, lane * 0.1) / lane) {
+      const left = room - scroller.scrollTop
+      if (!caught && room > 0 && left <= CATCH) {
         caught = true
         aim()
         root.dataset.state = 'caught'
         ripple(0.15)
-      } else if (
-        caught &&
-        progress < POS - Math.min(REACH + GAP, lane * 0.2) / lane
-      ) {
+      } else if (caught && left > FREE) {
         caught = false
         aim()
         root.dataset.state = 'release'
@@ -135,30 +127,26 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
           <span className="chev" aria-hidden="true" />
           Sổ tay
         </button>
-        <div
-          className="read-trail"
-          aria-hidden="true"
-          style={{ '--pos': POS } as CSSProperties}
-        >
+        <div className="read-trail" aria-hidden="true">
           <svg width="0" height="0" style={{ position: 'absolute' }}>
             <defs>
               <filter
                 id="rr-ripple"
-                x="-30%"
-                y="-30%"
-                width="160%"
-                height="160%"
+                x="-60%"
+                y="-60%"
+                width="220%"
+                height="220%"
               >
                 <feTurbulence
                   type="fractalNoise"
-                  baseFrequency="0.012 0.07"
+                  baseFrequency="0.01 0.04"
                   numOctaves="1"
                   result="n"
                 >
                   <animate
                     className="ripple-anim"
                     attributeName="baseFrequency"
-                    values="0.012 0.05;0.02 0.12;0.012 0.05"
+                    values="0.01 0.03;0.016 0.07;0.01 0.03"
                     dur="0.7s"
                     begin="indefinite"
                   />
@@ -169,15 +157,25 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
                   scale="0"
                   xChannelSelector="R"
                   yChannelSelector="G"
+                  result="d"
                 >
                   <animate
                     className="ripple-anim"
                     attributeName="scale"
-                    values="0;22;14;20;0"
+                    values="0;50;30;46;0"
                     dur="0.7s"
                     begin="indefinite"
                   />
                 </feDisplacementMap>
+                <feGaussianBlur in="d" stdDeviation="0">
+                  <animate
+                    className="ripple-anim"
+                    attributeName="stdDeviation"
+                    values="0;2;1.2;1.8;0"
+                    dur="0.7s"
+                    begin="indefinite"
+                  />
+                </feGaussianBlur>
               </filter>
               <symbol id="rr-st" viewBox="0 0 40 40" overflow="visible">
                 <path d="M20 3l4.8 10.4 11.4 1.3-8.4 7.8 2.3 11.2L20 28l-10.1 5.7 2.3-11.2-8.4-7.8 11.4-1.3z" />
@@ -194,8 +192,6 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
             data-pixel={mon?.pixel}
           >
             <span className="mon-shadow" />
-            <span className="mon-wave" />
-            <span className="mon-wave" />
             <span className="mon-body">
               <span className="mon-ripple">
                 {mon && (

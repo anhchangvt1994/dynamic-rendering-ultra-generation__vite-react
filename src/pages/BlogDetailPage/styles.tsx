@@ -67,14 +67,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     rotate: 135deg;
   }
   /* the trail: a dashed path, inked where the ball has been. A random
-     animated Pokémon waits on it at --pos, a "Who's that Pokémon?" silhouette
+     animated Pokémon waits at its end, a "Who's that Pokémon?" silhouette
      that shows its colours as the ball nears. The ball opens, catches it, goes
      on to the end. --p is the way read (0 to 1) */
   .read-trail {
     position: relative;
     flex: 1;
     height: 68px;
-    margin-inline: 14px 16px;
+    margin-inline: 14px 8px;
   }
   .read-trail::before,
   .trail-fill {
@@ -144,7 +144,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     z-index: 2;
     top: 0;
     bottom: 0;
-    left: calc(var(--pos, 0.88) * (100% - 30px) + 15px);
+    left: calc(100% - 4px);
     margin-left: -48px;
     display: flex;
     align-items: center;
@@ -159,54 +159,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
   .mon-ripple {
     display: flex;
   }
-  /* rings on the water at the Pokémon's feet */
-  .mon-wave {
-    position: absolute;
-    bottom: 5px;
-    left: 50%;
-    width: 36px;
-    height: 9px;
-    margin-left: -18px;
-    border: 2px solid rgba(110, 195, 255, 0.9);
-    border-radius: 50%;
-    opacity: 0;
-    pointer-events: none;
-  }
-  .mon-body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform-origin: 50% 80%;
-    /* "Who's that Pokémon?": the dex's silhouette until the ball is near */
-    filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.55))
-      drop-shadow(0 0 10px rgba(80, 170, 255, 0.5));
-    transition: filter 600ms ease-out;
-  }
-  [data-reveal='1'] .mon-body {
-    filter: drop-shadow(0 3px 3px rgba(23, 45, 69, 0.25));
-  }
-  .mon-body img {
-    display: block;
-    max-width: none;
-  }
-  [data-pixel='true'] .mon-body img {
-    image-rendering: pixelated;
-  }
-  .mon-shadow {
-    position: absolute;
-    bottom: 5px;
-    left: 50%;
-    width: 64px;
-    height: 9px;
-    margin-left: -32px;
-    border-radius: 50%;
-    background: radial-gradient(
-      closest-side,
-      rgba(23, 45, 69, 0.3),
-      rgba(23, 45, 69, 0)
-    );
-  }
-  /* ── the catch: light, beam, rays, rings, stars thrown in arcs ── */
   .fx {
     position: absolute;
     top: 50%;
@@ -323,12 +275,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
     [data-state='caught'] .mon-shadow {
       animation: shadow-out 1400ms both;
     }
-    [data-state='caught'] .mon-wave {
-      animation: wave-ring 800ms 100ms ease-out 2 both;
-    }
-    [data-state='caught'] .mon-wave + .mon-wave {
-      animation-delay: 380ms;
-    }
     [data-state='caught'] .ball-fx {
       animation: ball-catch 2300ms ease-in-out both;
     }
@@ -367,12 +313,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     [data-state='release'] .mon-shadow {
       animation: shadow-in 1300ms both;
-    }
-    [data-state='release'] .mon-wave {
-      animation: wave-ring 800ms 450ms ease-out 2 both;
-    }
-    [data-state='release'] .mon-wave + .mon-wave {
-      animation-delay: 830ms;
     }
     [data-state='release'] .ball-fx {
       animation: ball-release 900ms ease-in-out both;
@@ -536,16 +476,6 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     100% {
       opacity: 1;
-    }
-  }
-  @keyframes wave-ring {
-    0% {
-      opacity: 0.9;
-      scale: 0.3;
-    }
-    100% {
-      opacity: 0;
-      scale: 3;
     }
   }
   @keyframes led {
