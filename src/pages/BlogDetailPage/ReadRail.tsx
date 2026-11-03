@@ -193,7 +193,14 @@ export default function ReadRail({ onBack }: { onBack: () => void }) {
           >
             <span className="mon-shadow" />
             <span className="mon-body">
-              <span className="mon-ripple">
+              <span
+                className="mon-ripple"
+                style={
+                  mon
+                    ? ({ '--art': `url("${mon.src}")` } as CSSProperties)
+                    : undefined
+                }
+              >
                 {mon && (
                   <img
                     key={mon.src}

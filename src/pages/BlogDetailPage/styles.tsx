@@ -25,7 +25,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   .read-inner {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 8px;
     /* starts with the 1180px column, runs on to the rail's right edge */
     height: 76px;
     margin-left: max(0px, calc((100% - 1180px) / 2));
@@ -74,18 +74,18 @@ export const BlogDetailStyle = styled(BlogStyle)`
     position: relative;
     flex: 1;
     height: 68px;
-    margin-inline: 14px 8px;
+    margin-inline: 8px;
   }
   .read-trail::before,
   .trail-fill {
     content: '';
     position: absolute;
     top: 50%;
-    right: 0;
-    left: 0;
+    left: 2px;
     height: 0;
     border-top: 3px dashed rgba(23, 45, 69, 0.3);
-    translate: 0 -50%;
+    width: calc(100% - 4px);
+    transform: translateY(-50%);
   }
   .trail-fill {
     right: auto;
@@ -157,7 +157,31 @@ export const BlogDetailStyle = styled(BlogStyle)`
     opacity: 1;
   }
   .mon-ripple {
+    position: relative;
     display: flex;
+  }
+  /* the white Pokémon is filled with a flowing seven-colour gradient: the
+     artwork itself is the mask, so the rainbow takes its exact shape */
+  .mon-ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      #ff3b5c,
+      #ff9f1c,
+      #ffe14d,
+      #3ddc84,
+      #2ec4ff,
+      #5b6cff,
+      #c158ff,
+      #ff3b5c
+    );
+    background-size: 220% 220%;
+    -webkit-mask: var(--art) center / 100% 100% no-repeat;
+    mask: var(--art) center / 100% 100% no-repeat;
   }
   .fx {
     position: absolute;
@@ -275,6 +299,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     [data-state='caught'] .mon-shadow {
       animation: shadow-out 1400ms both;
     }
+    [data-state='caught'] .mon-ripple img {
+      animation: img-in 1400ms both;
+    }
+    [data-state='caught'] .mon-ripple::after {
+      animation:
+        rainbow-in 1400ms both,
+        rainbow-flow 1100ms linear infinite;
+    }
     [data-state='caught'] .ball-fx {
       animation: ball-catch 2300ms ease-in-out both;
     }
@@ -313,6 +345,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     [data-state='release'] .mon-shadow {
       animation: shadow-in 1300ms both;
+    }
+    [data-state='release'] .mon-ripple img {
+      animation: img-out 1300ms both;
+    }
+    [data-state='release'] .mon-ripple::after {
+      animation:
+        rainbow-out 1300ms both,
+        rainbow-flow 1100ms linear infinite;
     }
     [data-state='release'] .ball-fx {
       animation: ball-release 900ms ease-in-out both;
@@ -394,12 +434,14 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     11%,
     50% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      filter: brightness(1) invert(0)
+        drop-shadow(0 0 10px rgba(255, 140, 230, 0.75));
       scale: 1.06;
       opacity: 1;
     }
     100% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      filter: brightness(1) invert(0)
+        drop-shadow(0 0 10px rgba(255, 140, 230, 0.75));
       translate: var(--dx, 0px) var(--dy, 0px);
       scale: 0.06 0.2;
       opacity: 0;
@@ -408,7 +450,8 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   @keyframes mon-out {
     0% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      filter: brightness(1) invert(0)
+        drop-shadow(0 0 10px rgba(255, 140, 230, 0.75));
       translate: var(--dx, 0px) var(--dy, 0px);
       scale: 0.06 0.2;
       opacity: 0;
@@ -418,7 +461,8 @@ export const BlogDetailStyle = styled(BlogStyle)`
     }
     30%,
     74% {
-      filter: brightness(0) invert(1) drop-shadow(0 0 12px #bfe6ff);
+      filter: brightness(1) invert(0)
+        drop-shadow(0 0 10px rgba(255, 140, 230, 0.75));
       translate: 0 0;
       scale: 1.06;
       opacity: 1;
@@ -458,6 +502,53 @@ export const BlogDetailStyle = styled(BlogStyle)`
     79%,
     100% {
       filter: none;
+    }
+  }
+  @keyframes rainbow-in {
+    0% {
+      opacity: 0;
+    }
+    11%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes rainbow-out {
+    0%,
+    74% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  /* the sprite itself steps aside while the rainbow wears its shape */
+  @keyframes img-in {
+    0%,
+    11% {
+      opacity: 1;
+    }
+    12%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes img-out {
+    0%,
+    74% {
+      opacity: 0;
+    }
+    75%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes rainbow-flow {
+    from {
+      background-position: 0% 0%;
+    }
+    to {
+      background-position: 220% 220%;
     }
   }
   @keyframes shadow-out {
