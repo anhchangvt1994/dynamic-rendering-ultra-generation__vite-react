@@ -5,6 +5,21 @@ const BlogSkeletonStyle = styled(BlogStyle)`
   ${boneCss}
   /* blocks only: every row is held by BlogStyle's fixed line heights, the
      same boxes as the loaded page */
+  .hero-title::after,
+  .nb-badge {
+    display: none;
+  }
+  /* the intro belongs to the loaded page: the skeleton holds still */
+  .blog-notebook,
+  .blog-grid > li {
+    animation: none;
+  }
+  .hero-title {
+    width: 100%;
+  }
+  .hero-title > span:first-child {
+    height: 100%;
+  }
   .hero-title .bone {
     width: min(380px, 80%);
     height: 100%;
@@ -51,8 +66,12 @@ const BlogSkeletonStyle = styled(BlogStyle)`
     height: 12px;
   }
   .nb-cta.bone {
-    width: 120px;
+    width: 100%;
+    max-width: 150px;
     padding: 0;
+  }
+  .nb-cta.bone::after {
+    display: none;
   }
   .card-title,
   .card-excerpt {
@@ -78,7 +97,9 @@ export default function BlogSkeleton() {
     >
       <header className="blog-hero" aria-hidden="true">
         <div className="hero-title">
-          <span className="bone" />
+          <span>
+            <span className="bone" />
+          </span>
         </div>
         <div className="hero-count">
           <span className="bone" />
@@ -106,10 +127,12 @@ export default function BlogSkeleton() {
               <span className="bone" />
               <span className="bone" />
             </span>
-            <span className="nb-meta">
-              <span className="bone" />
+            <span className="nb-foot">
+              <span className="nb-meta">
+                <span className="bone" />
+              </span>
+              <span className="nb-cta bone" />
             </span>
-            <span className="nb-cta bone" />
           </span>
         </span>
       </div>

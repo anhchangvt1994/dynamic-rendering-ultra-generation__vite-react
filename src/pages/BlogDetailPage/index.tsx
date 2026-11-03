@@ -12,10 +12,12 @@ import BattleMessage from 'components/common/BattleMessage'
 import BlogDetailSkeleton from 'components/PageSkeleton/BlogDetailSkeleton'
 import Cover from 'pages/BlogPage/Cover'
 import Stamp from 'pages/BlogPage/Stamp'
-import { formatDate, readLabel } from 'pages/BlogPage/text.mjs'
+import { formatDate, noLabel, readLabel } from 'pages/BlogPage/text.mjs'
 import { parseMarkdown } from 'pages/BlogPage/markdown.mjs'
-import Markdown from './Markdown'
+import CopyLink from './CopyLink'
+import Markdown, { outlineOf } from './Markdown'
 import type { Block } from './Markdown'
+import Outline from './Outline'
 import ReadBall from './ReadBall'
 import Related, { nextTwo } from './Related'
 import { BlogDetailStyle } from './styles'
@@ -46,6 +48,7 @@ export default function BlogDetailPage() {
     () => parseMarkdown(article?.body ?? '') as Block[],
     [article]
   )
+  const outline = useMemo(() => outlineOf(blocks), [blocks])
   const related = useMemo(
     () =>
       nextTwo(Array.isArray(list) ? (list as ArticleCard[]) : [], slug),
@@ -114,6 +117,10 @@ export default function BlogDetailPage() {
       </BattleMessage>
     )
 
+  const allList = Array.isArray(list) ? (list as ArticleCard[]) : []
+  const at = allList.findIndex((a) => a.slug === slug)
+  const no = at >= 0 ? noLabel(allList.length, at) : ''
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -144,6 +151,7 @@ export default function BlogDetailPage() {
         <header className="blog-head">
           <div className="blog-tagrow">
             {article.tags[0] && <Stamp tag={article.tags[0]} />}
+            {no && <span className="blog-no">{no}</span>}
           </div>
           <h1 className="blog-title">{article.title}</h1>
           <p className="blog-meta">
@@ -154,8 +162,20 @@ export default function BlogDetailPage() {
             {article.author_name && <span>Bởi {article.author_name}</span>}
           </p>
         </header>
+        <aside className="blog-aside">
+          <Outline items={outline} />
+        </aside>
         <div className="blog-body">
           <Markdown blocks={blocks} />
+          <footer className="blog-end">
+            <p>Thấy hữu ích? Gửi nó cho một huấn luyện viên khác.</p>
+            <div>
+              <CopyLink />
+              <button type="button" className="blog-all" onClick={back}>
+                Về sổ tay
+              </button>
+            </div>
+          </footer>
         </div>
         <script
           type="application/ld+json"
@@ -165,7 +185,7 @@ export default function BlogDetailPage() {
           }}
         />
       </article>
-      <Related articles={related} />
+      <Related articles={related} all={allList} />
     </BlogDetailStyle>
   )
 }

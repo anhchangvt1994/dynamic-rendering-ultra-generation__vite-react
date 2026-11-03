@@ -9,6 +9,7 @@ import BattleMessage from 'components/common/BattleMessage'
 import BlogSkeleton from 'components/PageSkeleton/BlogSkeleton'
 import Notebook from './Notebook'
 import Specimen from './Specimen'
+import { noLabel } from './text.mjs'
 import { BlogStyle } from './styles'
 
 const tagsOf = (articles: ArticleCard[]) => [
@@ -84,7 +85,14 @@ export default function BlogPage() {
   return (
     <BlogStyle className="blog-page">
       <header className="blog-hero">
-        <h1 className="hero-title">Sổ tay thực địa</h1>
+        <svg className="hero-ball" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#172d45" strokeWidth="6" />
+          <path d="M4 50h92" stroke="#172d45" strokeWidth="6" />
+          <circle cx="50" cy="50" r="13" fill="none" stroke="#172d45" strokeWidth="6" />
+        </svg>
+        <h1 className="hero-title">
+          <span>Sổ tay thực địa</span>
+        </h1>
         <p className="hero-count">{articles.length} ghi chú, mới nhất ở đầu</p>
       </header>
 
@@ -94,7 +102,7 @@ export default function BlogPage() {
           aria-pressed={!tag}
           onClick={() => setTag('')}
         >
-          Tất cả
+          Tất cả <span className="n">{articles.length}</span>
         </button>
         {tags.map((name) => (
           <button
@@ -103,18 +111,29 @@ export default function BlogPage() {
             aria-pressed={tag === name}
             onClick={() => setTag(name)}
           >
-            {name}
+            {name}{' '}
+            <span className="n">
+              {articles.filter((article) => article.tags?.includes(name)).length}
+            </span>
           </button>
         ))}
       </div>
 
       {newest ? (
         <>
-          <Notebook article={newest} />
+          <Notebook
+            article={newest}
+            no={noLabel(articles.length, articles.indexOf(newest))}
+          />
           {rest.length > 0 && (
             <ul className="blog-grid">
-              {rest.map((article) => (
-                <Specimen key={article.slug} article={article} />
+              {rest.map((article, i) => (
+                <Specimen
+                  key={article.slug}
+                  article={article}
+                  index={i}
+                  no={noLabel(articles.length, articles.indexOf(article))}
+                />
               ))}
             </ul>
           )}

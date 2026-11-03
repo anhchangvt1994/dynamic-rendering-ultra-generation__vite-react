@@ -1,5 +1,6 @@
 import type { ArticleCard } from 'app/apis/blog'
 import Specimen from 'pages/BlogPage/Specimen'
+import { noLabel } from 'pages/BlogPage/text.mjs'
 
 // the two articles after this one, older first; the newest wraps to the start
 export const nextTwo = (articles: ArticleCard[], slug: string) => {
@@ -11,14 +12,25 @@ export const nextTwo = (articles: ArticleCard[], slug: string) => {
 }
 
 /** "Đọc tiếp": two more specimens from the desk. */
-export default function Related({ articles }: { articles: ArticleCard[] }) {
+export default function Related({
+  articles,
+  all,
+}: {
+  articles: ArticleCard[]
+  all: ArticleCard[]
+}) {
   if (!articles.length) return null
   return (
     <section className="blog-related" aria-labelledby="blog-related-title">
       <h2 id="blog-related-title">Đọc tiếp</h2>
       <ul className="blog-grid">
-        {articles.map((article) => (
-          <Specimen key={article.slug} article={article} />
+        {articles.map((article, i) => (
+          <Specimen
+            key={article.slug}
+            article={article}
+            index={i}
+            no={noLabel(all.length, all.indexOf(article))}
+          />
         ))}
       </ul>
     </section>

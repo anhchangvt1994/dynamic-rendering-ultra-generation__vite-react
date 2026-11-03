@@ -39,6 +39,19 @@ const inline = (nodes: Inline[]): ReactNode[] =>
     }
   })
 
+const textOf = (nodes: Inline[]): string =>
+  nodes
+    .map((node) => ('v' in node ? node.v : textOf(node.c)))
+    .join('')
+
+export const headingId = (index: number) => `sec-${index}`
+
+/** The h2 headings, for the table of contents. */
+export const outlineOf = (blocks: Block[]) =>
+  blocks.flatMap((block, i) =>
+    block.type === 'h2' ? [{ id: headingId(i), text: textOf(block.inline) }] : []
+  )
+
 /** An article's blocks as React elements: never HTML, only the Markdown subset. */
 export default function Markdown({ blocks }: { blocks: Block[] }) {
   return (
@@ -46,7 +59,11 @@ export default function Markdown({ blocks }: { blocks: Block[] }) {
       {blocks.map((block, i) => {
         switch (block.type) {
           case 'h2':
-            return <h2 key={i}>{inline(block.inline)}</h2>
+            return (
+              <h2 key={i} id={headingId(i)}>
+                {inline(block.inline)}
+              </h2>
+            )
           case 'h3':
             return <h3 key={i}>{inline(block.inline)}</h3>
           case 'p':

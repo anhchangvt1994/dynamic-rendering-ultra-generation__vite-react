@@ -51,3 +51,6 @@ export const formatDate = (iso) => {
 
 export const readLabel = (minutes) =>
   `${Math.max(1, Math.round(minutes))} phút đọc`
+
+// the log number of a note: the oldest is Nº 1, the newest the highest
+export const noLabel = (total, index) => `Nº ${total - index}`

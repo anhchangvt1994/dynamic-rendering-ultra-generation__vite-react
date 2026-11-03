@@ -8,13 +8,17 @@ import { formatDate, hashAngle, readLabel } from './text.mjs'
 /** A card of the desk: a specimen taped to the page, tilted a little. */
 export default function Specimen({
   article,
+  no,
+  index = 0,
   priority = false,
 }: {
   article: ArticleCard
+  no?: string
+  index?: number
   priority?: boolean
 }) {
   return (
-    <li>
+    <li style={{ '--i': index } as CSSProperties}>
       <LinkCustom
         to={articleHref(article.slug)}
         className="blog-card"
@@ -27,7 +31,9 @@ export default function Specimen({
           color={article.cover_color}
           priority={priority}
           className="card-cover"
-        />
+        >
+          {no && <span className="no-tag">{no}</span>}
+        </Cover>
         {article.tags[0] && <Stamp tag={article.tags[0]} className="on-card" />}
         <h3 className="card-title">{article.title}</h3>
         <p className="card-excerpt">{article.excerpt}</p>
@@ -36,6 +42,7 @@ export default function Specimen({
             {formatDate(article.published_at)}
           </time>
           <span>{readLabel(article.read_minutes)}</span>
+          <span className="go" aria-hidden="true" />
         </p>
       </LinkCustom>
     </li>

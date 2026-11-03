@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 
 /**
@@ -17,6 +17,7 @@ interface CoverProps {
   color: string
   priority?: boolean
   className?: string
+  children?: ReactNode
 }
 
 function CoverBox({
@@ -25,6 +26,7 @@ function CoverBox({
   color,
   priority = false,
   className = '',
+  children,
 }: CoverProps) {
   const [state, setState] = useState<'wait' | 'loaded' | 'failed'>('wait')
   // a picture the browser had before React took over never fires onLoad
@@ -49,6 +51,7 @@ function CoverBox({
           onError={() => setState('failed')}
         />
       )}
+      {children}
     </span>
   )
 }

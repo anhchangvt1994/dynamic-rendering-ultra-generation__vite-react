@@ -57,6 +57,7 @@ export default function BlogDetailSkeleton() {
             <span className="bone" />
           </div>
         </div>
+        <aside className="blog-aside" />
         <div className="blog-body">
           {Array.from({ length: 8 }, (_, i) => (
             <span key={i} className="bone" />

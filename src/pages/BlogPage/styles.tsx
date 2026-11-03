@@ -30,24 +30,43 @@ export const BlogStyle = styled.div`
     text-decoration: none;
   }
 
-  /* ── the heading ── */
+  /* ── the heading: the title, a marker line drawn under it, a ball on the desk ── */
   .blog-hero {
+    position: relative;
     display: grid;
     gap: 6px;
     padding: 4px 0;
   }
   .hero-title {
+    position: relative;
+    width: fit-content;
     max-width: 100%;
     height: 1.5em;
     margin: 0;
-    overflow: hidden;
     font-family: var(--font-display);
-    font-size: clamp(24px, 7.4vw, 46px);
+    font-size: clamp(26px, 8vw, 52px);
     font-weight: 400;
     /* room for the marks above and the dots below Vietnamese letters */
     line-height: 1.5;
     white-space: nowrap;
+  }
+  .hero-title > span:first-child {
+    display: block;
+    overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .hero-title::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    right: -6px;
+    bottom: 0.22em;
+    left: -6px;
+    height: 0.3em;
+    border-radius: 3px;
+    background: rgba(255, 203, 5, 0.85);
+    transform-origin: 0 50%;
+    rotate: -0.8deg;
   }
   .hero-count {
     height: 24px;
@@ -56,41 +75,93 @@ export const BlogStyle = styled.div`
     line-height: 24px;
     color: var(--muted);
   }
+  .hero-ball {
+    position: absolute;
+    top: -14px;
+    right: -26px;
+    width: 120px;
+    height: 120px;
+    opacity: 0.1;
+    rotate: -18deg;
+    pointer-events: none;
+  }
+  @media (min-width: 900px) {
+    .hero-ball {
+      top: -40px;
+      right: 20px;
+      width: 190px;
+      height: 190px;
+    }
+  }
 
-  /* ── tags: one row of stamps, sideways on a phone ── */
+  /* ── tags: one row of stamps, sideways when it does not fit; a fade says there is more ── */
   .blog-tags {
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
-    height: 56px;
-    padding: 6px 4px;
-    margin-top: 8px;
+    height: 60px;
+    padding: 8px 4px 8px;
+    margin-top: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+  @media (min-width: 900px) {
+    .blog-tags {
+      mask-image: none;
+    }
   }
   .blog-tags::-webkit-scrollbar {
     display: none;
   }
   .blog-tags button {
+    display: inline-flex;
     flex: none;
+    align-items: center;
+    gap: 8px;
     height: 44px;
-    padding: 0 16px;
+    padding: 0 8px 0 16px;
     border: 2px solid var(--ink);
     border-radius: 999px;
     background: var(--paper);
     color: var(--ink);
     font-size: 14px;
     font-weight: 700;
+    cursor: pointer;
     box-shadow: 2px 2px 0 var(--ink);
     transition:
       transform 120ms ease-out,
       box-shadow 120ms ease-out;
+  }
+  .blog-tags button:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .blog-tags button:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+  .blog-tags button .n {
+    display: grid;
+    place-items: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(23, 45, 69, 0.1);
+    font-size: 12px;
+    line-height: 1;
   }
   .blog-tags button[aria-pressed='true'] {
     background: var(--ink);
     color: var(--paper);
     box-shadow: none;
     transform: translate(2px, 2px);
+  }
+  .blog-tags button[aria-pressed='true'] .n {
+    background: #ffcb05;
+    color: var(--ink);
   }
 
   /* ── a cover: its colour first, the picture fades in over it ── */
@@ -107,7 +178,13 @@ export const BlogStyle = styled.div`
     height: 100%;
     object-fit: contain;
     opacity: 0;
-    transition: opacity 260ms ease-out;
+    transition:
+      opacity 260ms ease-out,
+      transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  a:hover .cover img,
+  a:focus-visible .cover img {
+    transform: scale(1.05);
   }
   .cover[data-state='loaded'] img {
     opacity: 1;
@@ -198,10 +275,22 @@ export const BlogStyle = styled.div`
     width: 2px;
     background: rgba(217, 65, 54, 0.45);
   }
+  .nb-page {
+    display: flex;
+  }
   .nb-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+  }
+  .nb-foot {
     display: grid;
     gap: 10px;
-    justify-items: start;
+    width: 100%;
+    margin-top: auto;
   }
   .nb-kicker {
     display: flex;
@@ -219,13 +308,13 @@ export const BlogStyle = styled.div`
     color: var(--muted);
   }
   .nb-title {
-    --n: 5;
+    --n: 3;
     width: 100%;
     height: calc(1.25em * var(--n));
     margin: 0;
     overflow: hidden;
     font-family: var(--font-display);
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 400;
     line-height: 1.25;
     display: -webkit-box;
@@ -259,14 +348,63 @@ export const BlogStyle = styled.div`
   .nb-cta {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    gap: 10px;
     height: 44px;
-    margin-top: 4px;
     padding: 0 22px;
     border-radius: 999px;
     background: var(--berry);
     color: #fff;
     font-weight: 800;
     box-shadow: 0 3px 0 #a52a4b;
+    transition:
+      translate 140ms ease-out,
+      box-shadow 140ms ease-out;
+  }
+  .nb-cta::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border: solid currentColor;
+    border-width: 2.5px 2.5px 0 0;
+    rotate: 45deg;
+    transition: translate 160ms ease-out;
+  }
+  a.blog-notebook:hover .nb-cta::after,
+  a.blog-notebook:focus-visible .nb-cta::after {
+    translate: 4px 0;
+  }
+  a.blog-notebook:active .nb-cta {
+    translate: 0 3px;
+    box-shadow: none;
+  }
+  /* the badge: the ring of words turns, the number in the middle stays */
+  .nb-badge {
+    position: absolute;
+    z-index: 3;
+    top: -30px;
+    right: -12px;
+    width: 92px;
+    height: 92px;
+    rotate: 10deg;
+    filter: drop-shadow(2px 3px 0 rgba(23, 45, 69, 0.35));
+    pointer-events: none;
+  }
+  .nb-badge .ring {
+    transform-origin: 50px 50px;
+  }
+  .no-tag {
+    position: absolute;
+    z-index: 1;
+    bottom: 8px;
+    left: 8px;
+    padding: 2px 9px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: 12px;
+    line-height: 1.6;
   }
   @media (min-width: 900px) {
     .blog-notebook {
@@ -313,6 +451,21 @@ export const BlogStyle = styled.div`
     .nb-title {
       --n: 3;
       font-size: 28px;
+    }
+    .nb-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .nb-cta {
+      width: auto;
+    }
+    .nb-badge {
+      top: -34px;
+      right: -20px;
+      width: 112px;
+      height: 112px;
     }
     .nb-excerpt {
       height: 96px;
@@ -383,6 +536,15 @@ export const BlogStyle = styled.div`
     height: 20px;
     background: rgba(255, 218, 85, 0.8);
     transform: translateX(-50%) rotate(-3deg);
+    transition: transform 220ms ease-out;
+  }
+  .blog-card:hover .tape,
+  .blog-card:focus-visible .tape {
+    transform: translateX(-50%) rotate(-9deg) translateY(-3px);
+  }
+  .blog-card:hover,
+  .blog-card:focus-visible {
+    box-shadow: 6px 8px 0 rgba(23, 45, 69, 0.28);
   }
   .card-cover {
     aspect-ratio: 16 / 9;
@@ -393,6 +555,37 @@ export const BlogStyle = styled.div`
     top: 24px;
     right: 22px;
     rotate: 6deg;
+  }
+  .card-meta .go {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-left: auto;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    color: var(--ink);
+    transition:
+      background 140ms ease-out,
+      color 140ms ease-out,
+      translate 160ms ease-out;
+  }
+  .card-meta .go::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin-left: -2px;
+    border: solid currentColor;
+    border-width: 2px 2px 0 0;
+    rotate: 45deg;
+  }
+  .blog-card:hover .go,
+  .blog-card:focus-visible .go {
+    translate: 3px 0;
+    background: var(--berry);
+    border-color: var(--berry);
+    color: #fff;
   }
   .card-title {
     height: 2.6em;
@@ -415,6 +608,58 @@ export const BlogStyle = styled.div`
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  /* ── the one orchestrated moment: the marker is drawn, the cards are pinned
+        one after another, the badge is stamped on. Nothing moves otherwise. ── */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-title::after {
+      animation: blog-marker 520ms 120ms cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
+    }
+    .blog-notebook {
+      animation: blog-pin 520ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    }
+    .blog-grid > li {
+      animation: blog-pin 480ms calc(220ms + var(--i, 0) * 90ms)
+        cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    }
+    .nb-badge {
+      animation: blog-stamp 420ms 520ms cubic-bezier(0.3, 1.4, 0.4, 1) backwards;
+    }
+    .nb-badge .ring {
+      animation: blog-spin 28s linear infinite;
+    }
+    .cover img {
+      transition: opacity 260ms ease-out;
+    }
+    a:hover .cover img,
+    a:focus-visible .cover img {
+      transform: none;
+    }
+  }
+  @keyframes blog-marker {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes blog-pin {
+    from {
+      opacity: 0;
+      translate: 0 -16px;
+      scale: 1.03;
+    }
+  }
+  @keyframes blog-stamp {
+    from {
+      opacity: 0;
+      scale: 2.2;
+      rotate: -40deg;
+    }
+  }
+  @keyframes blog-spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* ── no note with that tag ── */
