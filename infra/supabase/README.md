@@ -7,7 +7,8 @@
 2. on the first run, writes `infra/supabase/.env` (mode 600, never committed):
    database password, JWT secret, anon key (public) and service-role key (server only),
 3. `docker compose up -d --wait`: Postgres, Auth (GoTrue), Data API (PostgREST),
-   the email templates and a send-only mail server (docker-mailserver),
+   Studio (+ postgres-meta, loopback only), the email templates and a
+   send-only mail server (docker-mailserver),
 4. on the first run, generates the DKIM key of `MAIL_DOMAIN`,
 5. applies `supabase/migrations` (pinned Supabase CLI, `migration up`),
 6. waits for Auth and the Data API, checks `SUPABASE_PUBLIC_URL`,
@@ -16,7 +17,12 @@
 
 Steps 6 and 7 only warn: the site starts anyway.
 
-No Studio, Realtime, Storage, Edge Functions, Analytics or Kong. About 0.7 GB RAM.
+No Realtime, Storage, Edge Functions, Analytics or Kong. About 1.2 GB RAM with Studio.
+
+Studio (where the blog's articles are written) has no login: it listens on
+`127.0.0.1:54323` only and nginx never routes it. From your machine:
+`ssh -L 54323:127.0.0.1:54323 <user>@<vps>`, then open
+`http://127.0.0.1:54323/project/default/editor`. See `docs/blog.md`.
 
 `yarn dev` is not concerned: it runs the CLI's local stack, emails go to Mailpit.
 

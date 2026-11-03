@@ -1,9 +1,10 @@
 # NOTE - Self-hosted Supabase for yarn start (ENABLE_SUPABASE=true), started by
-# config/utils/Supabase.mjs: only Auth, the Data API, their database and a
-# send-only mail server. No Studio, Realtime, Storage, Edge Functions,
-# Analytics or Kong: the host's nginx (scripts/vps-setup/setup.sh --site-only)
-# routes <SUPABASE_PUBLIC_URL>/auth/v1/ and /rest/v1/ to the two loopback
-# ports below.
+# config/utils/Supabase.mjs: Auth, the Data API, their database, a send-only
+# mail server and Studio (the blog's articles are written there, docs/blog.md).
+# No Realtime, Storage, Edge Functions, Analytics or Kong: the host's nginx
+# (scripts/vps-setup/setup.sh --site-only) routes <SUPABASE_PUBLIC_URL>/auth/v1/
+# and /rest/v1/ to the loopback ports below. Studio has no login of its own:
+# it is never routed by nginx, only reached through an SSH tunnel.
 #
 # Images are the versions the pinned Supabase CLI (config/build-tool-packages) runs locally.
 # Secrets come from infra/supabase/.env (generated, never committed); the
@@ -118,6 +119,46 @@ services:
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_MAX_ROWS: 1000
       PGRST_JWT_SECRET: ${JWT_SECRET}
+
+  # NOTE - Studio's Table Editor: postgres-meta reads the database, Studio
+  # talks to it. Only Studio is published, on the loopback: open it through
+  # `ssh -L 54323:127.0.0.1:54323 <user>@<vps>`. Same versions as the CLI's
+  # local stack (supabase/config.toml [studio]).
+  meta:
+    image: public.ecr.aws/supabase/postgres-meta:v0.100.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    mem_limit: 256m
+
+  studio:
+    image: public.ecr.aws/supabase/studio:2026.10.12-sha-3699278
+    restart: unless-stopped
+    depends_on:
+      - meta
+    ports:
+      - 127.0.0.1:${SUPABASE_STUDIO_PORT:-54323}:3000
+    environment:
+      HOSTNAME: 0.0.0.0
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: Pokédex
+      DEFAULT_PROJECT_NAME: Pokédex
+      SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:-}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      NEXT_PUBLIC_ENABLE_LOGS: 'false'
+    mem_limit: 768m
 
   # the email templates, for Auth (it reads them over HTTP)
   templates:

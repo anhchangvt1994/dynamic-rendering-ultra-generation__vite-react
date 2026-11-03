@@ -87,7 +87,8 @@ allowed_cidrs_v6 = ["::/0"]
 # enabled = true
 
 # NOTE - Only Auth and the Data API run (yarn dev with ENABLE_SUPABASE=true):
-# realtime, studio, storage, edge functions and analytics stay off
+# realtime, storage, edge functions and analytics stay off. Studio is on: it
+# is how articles are written (docs/blog.md)
 [realtime]
 enabled = false
 # Bind realtime via either IPv4 or IPv6. (default: IPv4)
@@ -96,7 +97,7 @@ enabled = false
 # max_header_length = 4096
 
 [studio]
-enabled = false
+enabled = true
 # Port to use for Supabase Studio.
 port = 54323
 # External URL of the API server that frontend connects to.

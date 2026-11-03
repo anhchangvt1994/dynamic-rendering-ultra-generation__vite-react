@@ -373,6 +373,7 @@ const stackEnv = (env) => {
     SUPABASE_DB_PORT: String(env.SUPABASE_DB_PORT || 54322),
     SUPABASE_AUTH_PORT: String(env.SUPABASE_AUTH_PORT || 54331),
     SUPABASE_REST_PORT: String(env.SUPABASE_REST_PORT || 54332),
+    SUPABASE_STUDIO_PORT: String(env.SUPABASE_STUDIO_PORT || 54323),
     MAIL_HOSTNAME: required('MAIL_HOSTNAME'),
     MAIL_DOMAIN: mailDomain,
     MAIL_FROM: mailFrom,
