@@ -26,9 +26,9 @@ export const BlogDetailStyle = styled(BlogStyle)`
     display: flex;
     align-items: center;
     gap: 18px;
-    max-width: 1180px;
+    /* starts with the 1180px column, runs on to the rail's right edge */
     height: 76px;
-    margin-inline: auto;
+    margin-left: max(0px, calc((100% - 1180px) / 2));
   }
   .rail-back {
     display: inline-flex;
