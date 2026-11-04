@@ -13,6 +13,8 @@ type Props = {
   celebrating?: boolean
   /** a freshly finished stone: it lands with a burst */
   arrive?: boolean
+  /** the newest owned shard has just fallen into place */
+  fresh?: boolean
 }
 const path = (points: number[][]) =>
   `M${points.map(([x, y]) => `${x.toFixed(3)} ${y.toFixed(3)}`).join('L')}Z`
@@ -38,6 +40,7 @@ export default function AmberCard({
   complete = false,
   celebrating = false,
   arrive = false,
+  fresh = false,
 }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const [failed, setFailed] = useState(false)
@@ -624,6 +627,9 @@ export default function AmberCard({
                 className="amber-piece"
                 data-joined={joined || undefined}
                 data-owned={owned || undefined}
+                data-fresh={
+                  (fresh && owned && p.rank === open - 1) || undefined
+                }
                 style={
                   {
                     '--dx': p.offset[0] * 150,

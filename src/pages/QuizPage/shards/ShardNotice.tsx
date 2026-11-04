@@ -12,8 +12,13 @@ const Notice = styled.p`
   font-size: 14px;
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.9);
+  /* the dropped shard shows as a card (ShardDrop): this stays for readers */
   &[data-state='awarded'] {
-    color: #ffe08a;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
   button {
     font: inherit;
@@ -53,6 +58,17 @@ export function useShardClaim(
   return { claim, retry }
 }
 
+function useSlow(on: boolean) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    setSlow(false)
+    if (!on) return
+    const timer = window.setTimeout(() => setSlow(true), 500)
+    return () => window.clearTimeout(timer)
+  }, [on])
+  return slow
+}
+
 export default function ShardNotice({
   claim,
   name,
@@ -62,12 +78,17 @@ export default function ShardNotice({
   name: string
   onRetry: () => void
 }) {
+  // a verdict's claim usually settles in a blink: no flash of "checking"
+  const slow = useSlow(claim?.kind === 'claiming')
   // the live region stays mounted, its text changes: screen readers announce it
-  const text = claim
-    ? claim.kind === 'error'
-      ? 'Chưa xác nhận được mảnh.'
-      : shardMessage(claim, name)
-    : null
+  const text =
+    claim?.kind === 'claiming' && !slow
+      ? null
+      : claim
+        ? claim.kind === 'error'
+          ? 'Chưa xác nhận được mảnh.'
+          : shardMessage(claim, name)
+        : null
   if (!claim && !text) return <Notice role="status" hidden />
   return (
     <Notice

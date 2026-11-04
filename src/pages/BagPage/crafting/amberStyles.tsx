@@ -24,6 +24,31 @@ export const AmberStyle = styled.span`
     transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px));
     transition: transform 820ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
   }
+  /* the shard that just fell out of an answer drops into its place */
+  .amber-piece[data-fresh] {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: amber-fall 900ms cubic-bezier(0.3, 1.2, 0.5, 1) 450ms both;
+  }
+  @keyframes amber-fall {
+    0% {
+      opacity: 0;
+      transform: translate(0, -90px) rotate(-40deg) scale(1.5);
+      filter: brightness(2.4);
+    }
+    45% {
+      opacity: 1;
+    }
+    70% {
+      transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px + 5px))
+        rotate(6deg) scale(1.08);
+      filter: brightness(1.6);
+    }
+    100% {
+      transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px));
+      filter: none;
+    }
+  }
   .amber-piece[data-joined] {
     transform: none;
   }
@@ -380,7 +405,8 @@ export const AmberStyle = styled.span`
     .amber-whole,
     .amber-piece,
     .amber-ghost,
-    &[data-arrive] {
+    &[data-arrive],
+    .amber-piece[data-fresh] {
       animation: none !important;
     }
     .amber-spark {

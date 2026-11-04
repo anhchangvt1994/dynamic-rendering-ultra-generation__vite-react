@@ -47,6 +47,7 @@ import { QuizStyle } from './styles'
 import { fitText } from './fitText'
 import { flyTo } from './flight'
 import ShardNotice, { useShardClaim } from './shards/ShardNotice'
+import ShardDrop from './shards/ShardDrop'
 import Fx from './Fx'
 import type { FxHandle } from './Fx'
 import Veil, { VEIL_LABEL } from './Veil'
@@ -1484,6 +1485,7 @@ export default function QuizPage() {
                 onOpen={setItemOpen}
               />
             ) : null}
+            <ShardDrop claim={shard.claim} name={answerName} />
             <div className="actions">
               {/* resting, the stage is Snorlax's: no Pokémon left to catch */}
               {correct && !restUntil && (
