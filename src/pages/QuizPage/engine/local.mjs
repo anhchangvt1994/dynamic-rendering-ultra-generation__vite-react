@@ -31,6 +31,11 @@ import {
   timeState,
   verdictOf,
 } from './rules.mjs'
+import {
+  CATALOG_VERSION,
+  RULE_VERSION,
+  createShardJournal,
+} from '../shards/local.mjs'
 
 export const KEYS = {
   turns: 'pokedex:quiz-turns',
@@ -52,6 +57,9 @@ export function createLocalEngine({
   now = () => Date.now(),
   // the species the player has caught: the answers are drawn from them
   collection = () => getCaught(storage),
+  // the shard drop has its own RNG and journal: the gifts never depend on it
+  shardRandom = Math.random,
+  shards = createShardJournal({ storage }),
 } = {}) {
   const read = (key, fallback) => readJSON(key, fallback, storage)
   const save = (key, value) => saveJSON(key, value, storage)
@@ -105,6 +113,9 @@ export function createLocalEngine({
       ...drawn,
       ...kept,
       id: `local-${now()}-${drawn.answerId}`,
+      shardRuleVersion: RULE_VERSION,
+      shardCatalogVersion: CATALOG_VERSION,
+      shardRoll: kept.shardRoll ?? shardRandom(),
       from,
       to,
       startedAt: now(),
@@ -134,7 +145,11 @@ export function createLocalEngine({
       if ((value.rerolls ?? 0) >= MAX_REROLLS) throw new Error('no_rerolls')
       save(KEYS.turns, { ...value, rerolls: (value.rerolls ?? 0) + 1 })
       // the same gifts: a swap is no second draw at them
-      return newRound(pending, { gifts: pending.gifts, bonus: pending.bonus })
+      return newRound(pending, {
+        gifts: pending.gifts,
+        bonus: pending.bonus,
+        shardRoll: pending.shardRoll,
+      })
     },
     async timeStop(round) {
       const pending = read(KEYS.round, null)
@@ -167,12 +182,24 @@ export function createLocalEngine({
     async answer(round, choice) {
       const pending = read(KEYS.round, null)
       if (!pending || pending.id !== round.id) throw new Error('answered')
-      save(KEYS.round, null)
       const result = verdictOf(
         pending,
         choice,
         roundClock(now() - pending.startedAt, pending.frozenAtMs ?? null)
       )
+      // the verdict goes in the journal while the round is still stored, so a
+      // failed reward write below can not lose the entitlement; a journal that
+      // fails never takes the original gift away
+      const shard = await shards
+        .recordLocalOutcome(pending, result.outcome)
+        .catch(() => ({
+          roundId: pending.id,
+          speciesId: pending.answerId,
+          state: 'unavailable',
+        }))
+      // two answers in flight: only the first still finds its round
+      if (read(KEYS.round, null)?.id !== pending.id) throw new Error('answered')
+      save(KEYS.round, null)
       let value = turns()
       const chests = []
       if (result.outcome === 'right') {
@@ -200,9 +227,14 @@ export function createLocalEngine({
       return {
         ...result,
         answerId: pending.answerId,
+        shard,
         chests,
         status: status(value),
       }
+    },
+    claimShard: (roundId) => shards.claimLocalShard(roundId),
+    async reconcileShards() {
+      return []
     },
     art: (round) => getPokemonImage(round.answerId),
     cry: (round) => cryOf(round.answerId),

@@ -71,6 +71,8 @@ DEPLOYMENT.md
 .claude
 .compare-engines
 .superpowers
+.playwright-mcp
+docs
 
 # Supabase self-host: generated secrets and keys (config/utils/Supabase.mjs)
 infra/supabase/.env

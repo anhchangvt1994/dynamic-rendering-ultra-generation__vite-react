@@ -315,7 +315,7 @@ export const BlogStyle = styled.div`
   .nb-title {
     --n: 3;
     width: 100%;
-    height: calc(1.25em * var(--n));
+    height: calc(1.5em * var(--n));
     margin: 0;
     overflow: hidden;
     font-family: var(--font-display);

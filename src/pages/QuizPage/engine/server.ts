@@ -1,4 +1,5 @@
 import type { PlayRound, QuizEngine, Status, Verdict } from './types'
+import { parseReceipt } from '../shards/receipt.mjs'
 import { freezeLeft, roundClock } from './rules.mjs'
 
 // the RPCs of supabase/migrations/20261101000000_quiz_game.sql and
@@ -95,6 +96,14 @@ export function createServerEngine(supabase: Client): QuizEngine {
         chests: data.chests ?? [],
         status: toStatus({ ...data, pending: null }),
       }
+    },
+    async claimShard(roundId) {
+      return parseReceipt(await call('quiz_claim_shard', { p_round: roundId }))
+    },
+    async reconcileShards() {
+      const data = await call('quiz_reconcile_shards')
+      if (!Array.isArray(data)) throw new Error('bad_receipt')
+      return data.map(parseReceipt)
     },
     art: (round) => `/api/quiz-art/${round.id}`,
     cry: (round) => `/api/quiz-cry/${round.id}`,

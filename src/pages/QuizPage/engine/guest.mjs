@@ -95,6 +95,20 @@ export function createGuestEngine({
         status: NEUTRAL,
       }
     },
+    // guests earn nothing: no journal, no call
+    async claimShard(roundId) {
+      return {
+        roundId,
+        speciesId: 1,
+        state: 'ineligible',
+        count: 0,
+        required: null,
+        drop: null,
+      }
+    },
+    async reconcileShards() {
+      return []
+    },
     art: (round) => getPokemonImage(round.answerId),
     cry: (round) => cryOf(round.answerId),
   }

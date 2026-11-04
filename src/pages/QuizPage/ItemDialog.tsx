@@ -1,7 +1,8 @@
-import styled from 'styled-components'
-import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
+import type { CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import styled from 'styled-components'
+import Flavors from './Flavors'
 import {
   GROUPS,
   TIERS,
@@ -10,9 +11,9 @@ import {
   itemSprite,
   kindLabel,
 } from './items.mjs'
-import { dialogCss, useModal } from './useModal'
 import { fullCount } from './progress.mjs'
-import Flavors from './Flavors'
+import { dialogCss, useModal } from './useModal'
+import { isItemNameStuck } from './itemCardScroll.mjs'
 
 type Props = {
   id: string | null
@@ -464,10 +465,20 @@ export function ItemCard({ id, count, headingId, onClose }: CardProps) {
     const scroll = scrollRef.current
     const name = nameRef.current
     if (!scroll || !name) return
-    const update = () => setStuck(scroll.scrollTop > name.offsetTop - BAR)
+    const update = () => setStuck(isItemNameStuck(scroll, name, BAR))
+    // Hidden dialogs have no geometry; observe their layout when opened too.
+    const resize = new ResizeObserver(update)
+    resize.observe(scroll)
+    resize.observe(name)
+    if (name.parentElement) resize.observe(name.parentElement)
     update()
     scroll.addEventListener('scroll', update, { passive: true })
-    return () => scroll.removeEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      resize.disconnect()
+      scroll.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
   }, [id])
 
   return (

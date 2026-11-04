@@ -1,0 +1,146 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-00009e3779b1",
+    "traits": {
+      "personality": 10,
+      "appearance": {
+        "v": 1,
+        "hue": -4,
+        "sat": 7,
+        "light": -1,
+        "mark": {
+          "kind": "patch",
+          "x": 45,
+          "y": 67,
+          "size": 24,
+          "rot": 58
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-3, 3, 3, -3, 5, -5],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00003c6ef362",
+    "traits": {
+      "personality": 2,
+      "appearance": {
+        "v": 1,
+        "hue": -6,
+        "sat": -3,
+        "light": -4,
+        "mark": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [5, 1, 1, 2, 3, -3],
+        "stars": 4
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000daa66d13",
+    "traits": {
+      "personality": 8,
+      "appearance": {
+        "v": 1,
+        "hue": -9,
+        "sat": 8,
+        "light": 2,
+        "mark": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [2, 5, 2, 5, 3, 2],
+        "stars": 5
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000078dde6c4",
+    "traits": {
+      "personality": 7,
+      "appearance": {
+        "v": 1,
+        "hue": 4,
+        "sat": 7,
+        "light": 1,
+        "mark": {
+          "kind": "star",
+          "x": 64,
+          "y": 36,
+          "size": 24,
+          "rot": 314
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [3, 1, 3, -5, -5, -2],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00006a99b44c",
+    "traits": {
+      "personality": 2,
+      "appearance": {
+        "v": 1,
+        "hue": 10,
+        "sat": -7,
+        "light": 2,
+        "mark": {
+          "kind": "patch",
+          "x": 70,
+          "y": 49,
+          "size": 20,
+          "rot": 283
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-5, 1, 0, -3, -2, -1],
+        "stars": 2
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000081af14c1",
+    "traits": {
+      "personality": 7,
+      "appearance": {
+        "v": 1,
+        "hue": -10,
+        "sat": -4,
+        "light": -2,
+        "mark": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [5, -3, 5, 2, -4, -3],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00003ba366f2",
+    "traits": {
+      "personality": 2,
+      "appearance": {
+        "v": 1,
+        "hue": -8,
+        "sat": -5,
+        "light": 3,
+        "mark": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-3, -1, -3, -5, -2, -4],
+        "stars": 1
+      }
+    }
+  }
+]

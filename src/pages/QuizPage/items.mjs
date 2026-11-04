@@ -18,7 +18,7 @@ export const isValuable = (item) => item.tier >= VALUABLE
 /** What a group of items will be for, once the feature exists. */
 export const GROUPS = {
   stat: {
-    label: 'Tăng chỉ số',
+    label: 'Chỉ số',
     use: 'Nuôi dưỡng: tăng cấp và chỉ số cho Pokémon trong bộ sưu tập.',
   },
   friend: {

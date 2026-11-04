@@ -6,6 +6,7 @@ import { createLocalEngine } from './local.mjs'
 import { createGuestEngine } from './guest.mjs'
 import { drawRound, veilElapsed, veilSeed, verdictOf } from './rules.mjs'
 import { findGuess } from '../quiz.mjs'
+import { createShardJournal, SHARD_KEY } from '../shards/local.mjs'
 
 const memory = () => {
   const data = new Map()
@@ -353,4 +354,143 @@ test('a typed name finds its Pokémon, whatever the punctuation', () => {
   assert.equal(findGuess('mr mime', species), 122)
   assert.equal(findGuess('PIKACHU', species), 25)
   assert.equal(findGuess('raichu', species), -1)
+})
+
+const lockless = () => {
+  let tail = Promise.resolve()
+  return (name, fn) => {
+    const run = tail.then(fn)
+    tail = run.catch(() => {})
+    return run
+  }
+}
+const shardedEngine = (storage, shardRandom, extra = {}) =>
+  createLocalEngine({
+    storage,
+    random: seeded(2),
+    now: clock().now,
+    shardRandom,
+    shards: createShardJournal({
+      storage,
+      lock: lockless(),
+      catalog: async () => undefined,
+    }),
+    ...extra,
+  })
+
+test('shards: a round carries the feature versions and a roll from its own RNG', async () => {
+  const storage = memory()
+  const round = await shardedEngine(storage, () => 0.37).start(KANTO)
+  const stored = JSON.parse(storage.getItem('pokedex:quiz-round'))
+  assert.equal(stored.shardRuleVersion, 1)
+  assert.equal(stored.shardCatalogVersion, 1)
+  assert.equal(stored.shardRoll, 0.37)
+  assert.equal(round.id, stored.id)
+})
+test('shards: the shard roll never changes the draw, the gifts or the bag', async () => {
+  const run = async (roll) => {
+    const storage = memory()
+    const engine = shardedEngine(storage, () => roll)
+    const round = await engine.start(KANTO)
+    const verdict = await engine.answer(round, round.answerId)
+    return {
+      round: { ...round, id: 0, shardRoll: 0 },
+      gift: verdict.gift,
+      chests: verdict.chests,
+      bag: storage.getItem('pokedex:bag'),
+    }
+  }
+  assert.deepEqual(await run(0.01), await run(0.99))
+})
+test('shards: a right answer is journaled pending before the round is dropped; wrong is ineligible', async () => {
+  const storage = memory()
+  const engine = shardedEngine(storage, () => 0.2)
+  const round = await engine.start(KANTO)
+  const verdict = await engine.answer(round, round.answerId)
+  assert.equal(verdict.shard.state, 'pending')
+  assert.equal(
+    JSON.parse(storage.getItem(SHARD_KEY)).events[round.id].roll,
+    0.2
+  )
+  const other = shardedEngine(memory(), () => 0.2)
+  const second = await other.start(KANTO)
+  const wrong = await other.answer(
+    second,
+    second.options.find((o) => o !== second.answerId)
+  )
+  assert.equal(wrong.shard.state, 'ineligible')
+})
+test('shards: the journal is written while the round is still stored', async () => {
+  const storage = memory()
+  let seen
+  const engine = shardedEngine(storage, () => 0.2, {
+    shards: {
+      recordLocalOutcome: async (round) => {
+        seen = storage.getItem('pokedex:quiz-round')
+        return { roundId: round.id, state: 'pending' }
+      },
+    },
+  })
+  const round = await engine.start(KANTO)
+  await engine.answer(round, round.answerId)
+  assert.ok(seen && JSON.parse(seen).id === round.id)
+})
+test('shards: a journal that fails never takes the original gift away', async () => {
+  const storage = memory()
+  const engine = shardedEngine(storage, () => 0.2, {
+    shards: {
+      recordLocalOutcome: async () => {
+        throw new Error('full')
+      },
+    },
+  })
+  const round = await engine.start(KANTO)
+  const verdict = await engine.answer(round, round.answerId)
+  assert.equal(verdict.outcome, 'right')
+  assert.equal(JSON.parse(storage.getItem('pokedex:bag'))[verdict.gift], 1)
+  assert.equal(verdict.shard.state, 'unavailable')
+})
+test("shards: a swap keeps the round's roll; the guest never writes the journal", async () => {
+  const storage = memory()
+  const engine = shardedEngine(
+    storage,
+    (() => {
+      let n = 0
+      return () => [0.11, 0.99][n++ % 2]
+    })()
+  )
+  const round = await engine.start(KANTO)
+  const again = await engine.reroll(round)
+  assert.equal(
+    JSON.parse(storage.getItem('pokedex:quiz-round')).shardRoll,
+    0.11
+  )
+  assert.ok(again.id)
+  const guestStorage = memory()
+  const guest = createGuestEngine({ random: seeded(3), collection: () => [] })
+  const g = await guest.start(KANTO)
+  await guest.answer(g, g.answerId)
+  assert.equal(guestStorage.getItem(SHARD_KEY), null)
+  assert.equal(storage.getItem('pokedex:quiz-shards-v1'), null)
+})
+
+test('shards: two answers in flight reward once', async () => {
+  const storage = memory()
+  const engine = shardedEngine(storage, () => 0.2)
+  const round = await engine.start(KANTO)
+  const results = await Promise.allSettled([
+    engine.answer(round, round.answerId),
+    engine.answer(round, round.answerId),
+  ])
+  assert.deepEqual(results.map((r) => r.status).sort(), [
+    'fulfilled',
+    'rejected',
+  ])
+  assert.equal(
+    Object.values(JSON.parse(storage.getItem('pokedex:bag'))).reduce(
+      (a, b) => a + b,
+      0
+    ),
+    1
+  )
 })

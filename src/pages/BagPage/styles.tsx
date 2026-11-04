@@ -1,5 +1,5 @@
-import styled from 'styled-components'
 import { boneCss } from 'components/PageSkeleton/bone'
+import styled from 'styled-components'
 
 /*
  * Inside the trainer's backpack. The hero is the bag with its stats as
@@ -44,7 +44,7 @@ export const BagStyle = styled.section`
       'stickers stickers'
       'tiers tiers';
     align-items: center;
-    gap: 14px 14px;
+    gap: 24px 14px;
     padding: 14px 14px 16px;
     overflow: hidden;
     border: 3px solid var(--shadow-ink);
@@ -122,7 +122,16 @@ export const BagStyle = styled.section`
     width: 14px;
     height: 14px;
     background: #fff;
-    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    clip-path: polygon(
+      50% 0,
+      62% 38%,
+      100% 50%,
+      62% 62%,
+      50% 100%,
+      38% 62%,
+      0 50%,
+      38% 38%
+    );
     opacity: 0;
   }
   .bag-art[data-moved] i {
@@ -241,11 +250,11 @@ export const BagStyle = styled.section`
   .sticker dd,
   .sticker-dd {
     display: block;
-    height: 30px;
+    height: 35px;
     margin: 0;
     overflow: hidden;
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: clamp(18px, 4.6vw, 36px);
     line-height: 30px !important;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -324,7 +333,7 @@ export const BagStyle = styled.section`
   .pockets {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 4px;
     height: 96px;
     padding: 0 4px;
@@ -337,7 +346,12 @@ export const BagStyle = styled.section`
     height: 14px;
     border-radius: 999px;
     background:
-      repeating-linear-gradient(90deg, #c8d3e2 0 3px, #6d7d93 3px 4px, transparent 4px 7px)
+      repeating-linear-gradient(
+          90deg,
+          #c8d3e2 0 3px,
+          #6d7d93 3px 4px,
+          transparent 4px 7px
+        )
         center / 100% 6px no-repeat,
       #0a1628;
     box-shadow:
@@ -456,8 +470,7 @@ export const BagStyle = styled.section`
     translate: 0 10px;
     rotate: 0deg;
     background:
-      linear-gradient(rgba(255, 255, 255, 0.45), transparent 55%),
-      var(--c);
+      linear-gradient(rgba(255, 255, 255, 0.45), transparent 55%), var(--c);
   }
   .tag[aria-pressed='true'] .tag-count {
     color: var(--ink);
@@ -491,8 +504,16 @@ export const BagStyle = styled.section`
     border: 3px solid var(--shadow-ink);
     border-radius: 24px;
     background:
-      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 6px),
-      repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.025) 0 2px,
+        transparent 2px 6px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.08) 0 2px,
+        transparent 2px 6px
+      ),
       linear-gradient(
         color-mix(in srgb, var(--pocket) 24%, #0d1c33),
         color-mix(in srgb, var(--pocket) 8%, #0a1628) 260px
@@ -708,8 +729,7 @@ export const BagStyle = styled.section`
         color-mix(in srgb, var(--tier) 55%, transparent),
         transparent 62%
       ),
-      linear-gradient(rgba(255, 255, 255, 0.12), transparent 45%),
-      #0a1628;
+      linear-gradient(rgba(255, 255, 255, 0.12), transparent 45%), #0a1628;
     box-shadow:
       inset 0 0 0 2px color-mix(in srgb, var(--tier) 80%, transparent),
       inset 0 -6px 0 rgba(0, 0, 0, 0.35),
@@ -807,8 +827,7 @@ export const BagStyle = styled.section`
   /* not found yet: who's that item? */
   .slot[data-missing] .slot-well {
     background:
-      linear-gradient(rgba(255, 255, 255, 0.06), transparent 45%),
-      #0a1628;
+      linear-gradient(rgba(255, 255, 255, 0.06), transparent 45%), #0a1628;
     box-shadow:
       inset 0 0 0 2px rgba(255, 255, 255, 0.1),
       0 0 0 2px var(--shadow-ink),
@@ -855,7 +874,10 @@ export const BagStyle = styled.section`
     border: 3px solid var(--shadow-ink);
     border-radius: 24px;
     background:
-      linear-gradient(color-mix(in srgb, var(--tier) 30%, transparent), transparent 60%),
+      linear-gradient(
+        color-mix(in srgb, var(--tier) 30%, transparent),
+        transparent 60%
+      ),
       #0f2240;
     box-shadow:
       inset 0 0 0 2px color-mix(in srgb, var(--tier) 60%, transparent),
@@ -876,7 +898,11 @@ export const BagStyle = styled.section`
     height: 48px;
     border-radius: 14px;
     background:
-      radial-gradient(circle, color-mix(in srgb, var(--tier) 50%, transparent), transparent 70%),
+      radial-gradient(
+        circle,
+        color-mix(in srgb, var(--tier) 50%, transparent),
+        transparent 70%
+      ),
       #0a1628;
     box-shadow: inset 0 0 0 2px var(--tier);
   }
@@ -1185,7 +1211,7 @@ export const BagStyle = styled.section`
     }
     .sticker dd,
     .sticker-dd {
-      font-size: 19px;
+      font-size: 18px;
     }
     .pockets {
       gap: 3px;
@@ -1213,7 +1239,7 @@ export const BagStyle = styled.section`
     }
   }
 
-  @media (min-width: 900px) {
+  @media (min-width: 1024px) {
     gap: 16px;
     padding: 28px 24px 56px;
 
@@ -1261,9 +1287,9 @@ export const BagStyle = styled.section`
     }
     .sticker dd,
     .sticker-dd {
-      height: 48px;
-      font-size: 32px;
-      line-height: 48px !important;
+      height: 44px;
+      font-size: 28px;
+      line-height: 44px !important;
     }
     .sticker small {
       font-size: 16px;
@@ -1286,7 +1312,7 @@ export const BagStyle = styled.section`
       justify-items: start;
       gap: 8px;
       height: 52px;
-      padding: 8px 10px 0;
+      padding: 11px 10px 0;
       top: 28px;
     }
     .tag-card::before {
@@ -1301,7 +1327,7 @@ export const BagStyle = styled.section`
       width: 100%;
       height: 16px;
       overflow: hidden;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
       line-height: 16px;
       white-space: nowrap;
@@ -1346,9 +1372,9 @@ export const BagStyle = styled.section`
       border-radius: 30px;
     }
     .bag-pocket {
-      height: 44px;
+      height: 56px;
       font-size: 38px;
-      line-height: 44px !important;
+      line-height: 56px !important;
     }
     .bag-pocket > .bone {
       height: 32px;
@@ -1370,15 +1396,21 @@ export const BagStyle = styled.section`
     }
     .bag-detail {
       position: sticky;
-      top: 90px;
+      top: 30px;
       display: grid;
       gap: 12px;
     }
     .bag-detail .card {
       max-height: calc(100svh - 240px);
     }
+    .bag-detail-commands {
+      position: sticky;
+      bottom: 30px;
+      z-index: 10;
+    }
     .bag-detail-commands .command {
       min-height: 72px;
+      opacity: 1;
     }
   }
 

@@ -6,7 +6,7 @@ export default function BagBones({ slots = 12 }: { slots?: number }) {
       <ol className="bag-grid">
         {Array.from({ length: slots }, (_, i) => (
           <li key={i}>
-            <span className="slot" data-bone style={{ ["--i" as string]: i }}>
+            <span className="slot" data-bone style={{ ['--i' as string]: i }}>
               <span className="slot-well">
                 <span className="catch-ball" />
               </span>

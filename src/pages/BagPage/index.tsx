@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useAccount } from 'app/supabase/account'
+import DishShelf from 'pages/KitchenPage/DishShelf'
+import { useDishes } from 'pages/KitchenPage/useDishes'
+import ItemDialog, { ItemCard } from 'pages/QuizPage/ItemDialog'
 import { TIERS, itemById, itemSprite } from 'pages/QuizPage/items.mjs'
 import { COMBO_AT, badgeCount, fullCount } from 'pages/QuizPage/progress.mjs'
-import { useAccount } from 'app/supabase/account'
-import { useBagStore } from './bagStore'
-import ItemDialog, { ItemCard } from 'pages/QuizPage/ItemDialog'
+import type { CSSProperties } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Backpack, MissingGlyph, PocketGlyph, SortGlyph } from './BagArt'
+import BagBones from './BagBones'
+import ShardShelf from './ShardShelf'
 import {
   POCKETS,
   SORTS,
@@ -13,14 +17,19 @@ import {
   pocketOf,
   rowCount,
 } from './bag.mjs'
+import { useBagStore } from './bagStore'
+import { useCardCraft } from './crafting/useCardCraft'
+import { useIndividuals } from './individuals/useIndividuals'
+import { useShardStore } from './shardStore'
 import { BagStyle } from './styles'
-import BagBones from './BagBones'
-import { useDishes } from 'pages/KitchenPage/useDishes'
-import DishShelf from 'pages/KitchenPage/DishShelf'
-import { Backpack, PocketGlyph, SortGlyph, MissingGlyph } from './BagArt'
 
-const WIDE = '(min-width: 900px)'
+const WIDE = '(min-width: 1024px)'
 const DISHES_POCKET = { id: 'dishes', label: 'Món ăn', color: '#f07cb4' }
+const SHARDS_POCKET = {
+  id: 'shards',
+  label: 'Mảnh & hổ phách',
+  color: '#c38bff',
+}
 
 /** From 900px the chosen item's card stands beside the grid. */
 function useWide() {
@@ -144,16 +153,33 @@ export default function BagPage() {
   )
   // the kitchen's dishes: a pocket of their own, after the quiz's
   const onDishes = pocket === DISHES_POCKET.id
+  const onShards = pocket === SHARDS_POCKET.id
+  const shards = useShardStore(true)
+  const crafting = useCardCraft(true)
+  const individuals = useIndividuals(true)
   const { dishes, menu } = useDishes(onDishes)
+  // the pocket's badge counts shards and cards together
+  const shardTotal = (shards.rows ?? []).reduce(
+    (sum, r) => sum + r.count + r.cardCount,
+    0
+  )
   const dishTotal = Object.values(dishes ?? {}).reduce((sum, n) => sum + n, 0)
-  const current = onDishes ? DISHES_POCKET : pocketOf(pocket)
+  const current = onDishes
+    ? DISHES_POCKET
+    : onShards
+      ? SHARDS_POCKET
+      : pocketOf(pocket)
   const wide = useWide()
   // the card beside the grid shows the chosen item, else the first one
   const shown =
     rows.find((row) => row.item.id === selected)?.item.id ?? rows[0]?.item.id
   // phones: the chosen item's dock, the DS games' bottom screen
   const docked =
-    !wide && !onDishes && selected && rows.some((r) => r.item.id === selected)
+    !wide &&
+    !onDishes &&
+    !onShards &&
+    selected &&
+    rows.some((r) => r.item.id === selected)
       ? itemById(selected)
       : null
   const choose = (id: string) =>
@@ -162,11 +188,21 @@ export default function BagPage() {
   const tabs = [
     ...POCKETS.map((p) => ({ ...p, count: stats.pockets[p.id] ?? 0 })),
     { ...DISHES_POCKET, count: dishTotal },
+    { ...SHARDS_POCKET, count: shards.rows ? shardTotal : 0 },
   ]
-  const shownCount = onDishes ? dishTotal : (stats.pockets[pocket] ?? 0)
+  const shownCount = onDishes
+    ? dishTotal
+    : onShards
+      ? shardTotal
+      : (stats.pockets[pocket] ?? 0)
   const stickers = [
     { label: 'Vật phẩm', value: stats.total, color: '#ffda55' },
-    { label: 'Sưu tầm', value: stats.kinds, of: stats.catalogue, color: '#4fd18b' },
+    {
+      label: 'Sưu tầm',
+      value: stats.kinds,
+      of: stats.catalogue,
+      color: '#4fd18b',
+    },
     { label: 'Quý hiếm+', value: stats.valuable, color: '#c38bff' },
   ]
 
@@ -275,7 +311,7 @@ export default function BagPage() {
               {bag ? fullCount(shownCount) : '—'}
             </span>
           </h2>
-          {mode === 'guest' ? null : onDishes ? (
+          {mode === 'guest' || onShards ? null : onDishes ? (
             <LinkCustom className="bag-tool-link" to="/che-bien">
               Vào bếp ►
             </LinkCustom>
@@ -317,9 +353,8 @@ export default function BagPage() {
           <div className="bag-empty bag-guest">
             <strong>Đăng nhập để có túi đồ</strong>
             <p>
-              Quà từ Who’s That Pokémon? được cất vào túi đồ của tài khoản:
-              Rare Candy, đá tiến hoá, TM… không ai sửa được, không mất khi đổi
-              máy.
+              Quà từ Who’s That Pokémon? được cất vào túi đồ của tài khoản: Rare
+              Candy, đá tiến hoá, TM… không ai sửa được, không mất khi đổi máy.
             </p>
             {accounts && (
               <LinkCustom
@@ -334,6 +369,13 @@ export default function BagPage() {
               Chơi thử không cần đăng nhập
             </LinkCustom>
           </div>
+        ) : onShards ? (
+          <ShardShelf
+            {...shards}
+            states={crafting.states}
+            craft={crafting.available ? crafting.craft : undefined}
+            individuals={individuals}
+          />
         ) : onDishes ? (
           // the menu names the dishes: none cooked needs no menu
           dishes && (menu || !dishTotal) ? (

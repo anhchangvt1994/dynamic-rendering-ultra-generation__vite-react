@@ -53,6 +53,15 @@ export type Verdict = {
   status: Status
 }
 
+export type ShardReceipt = {
+  roundId: string
+  speciesId: number
+  state: 'pending' | 'awarded' | 'not_awarded' | 'ineligible'
+  count: number
+  required: number | null
+  drop: number | null
+}
+
 export type StartOptions = { from: number; to: number; hard: boolean }
 
 /** The game behind the page: in this browser, on the account, or as a guest. */
@@ -68,6 +77,10 @@ export interface QuizEngine {
   timeStop(round: PlayRound): Promise<PlayRound>
   /** the Roar of Time out of turns: a new window at once */
   timeRefill(): Promise<Status>
+  /** settles the shard of an answered round (once; a retry is the same receipt) */
+  claimShard(roundId: string): Promise<ShardReceipt>
+  /** settles the caller's pending shards (a catalog that came late) */
+  reconcileShards(): Promise<ShardReceipt[]>
   art(round: PlayRound): string
   cry(round: PlayRound): string
 }

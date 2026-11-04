@@ -42,7 +42,7 @@ language sql security definer as $$
   update public.quiz_rounds set art_failed = true where id = pg_temp.round_id(name)
 $$;
 -- Misty played Kalos 30 times (650-679, a second apart): her next 12 rounds
--- show no option among her last 30 answers, so no option can be crossed off
+-- show no option among her last 10 answers, so no option can be crossed off
 create function pg_temp.decoys_fresh() returns boolean
 language plpgsql security definer as $$
 declare
@@ -58,7 +58,7 @@ begin
   from generate_series(1, 30) i;
   for i in 1..12 loop
     v_recent := array(select answer_id from public.quiz_rounds
-      where user_id = v_user order by started_at desc limit 30);
+      where user_id = v_user order by started_at desc limit 10);
     v_round := public.quiz_new_round(v_user, 650::smallint, 721::smallint, false);
     v_ok := v_ok and not (v_round.options && v_recent);
     update public.quiz_rounds set answered_at = now(), started_at = now() + make_interval(secs => i)

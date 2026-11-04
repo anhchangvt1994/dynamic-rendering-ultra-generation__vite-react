@@ -1,3 +1,40 @@
+// the owned badge is a button: it sits beside the card's link, never inside it
+export const CardWrap = styled.div`
+  position: relative;
+  min-width: 0;
+  display: flex;
+  & > a {
+    flex: 1;
+  }
+  .owned-badge {
+    position: absolute;
+    z-index: 2;
+    right: 4px;
+    top: 36px;
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+  .owned-badge span {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a2706;
+    background: linear-gradient(180deg, #ffe7a0, #f2a93b);
+    box-shadow: 0 2px 6px #172d4522;
+  }
+  .owned-badge:focus-visible {
+    outline: 3px solid #172d45;
+    outline-offset: -2px;
+    border-radius: 12px;
+  }
+`
+
 export const PokemonCardStyle = styled(LinkCustom)`
   position: relative;
   min-width: 0;

@@ -14,6 +14,7 @@ import AppSelect from 'components/common/Select'
 import { Pokeball } from 'components/common/FieldIcon'
 import { GENERATIONS } from 'pages/HomePage/catalog.mjs'
 import { refreshBag, useBagStore } from 'pages/BagPage/bagStore'
+import { refreshShards } from 'pages/BagPage/shardStore'
 import { useAccount } from 'app/supabase/account'
 import {
   findGuess,
@@ -45,6 +46,7 @@ import type { PlayRound, Status, Verdict } from './engine'
 import { QuizStyle } from './styles'
 import { fitText } from './fitText'
 import { flyTo } from './flight'
+import ShardNotice, { useShardClaim } from './shards/ShardNotice'
 import Fx from './Fx'
 import type { FxHandle } from './Fx'
 import Veil, { VEIL_LABEL } from './Veil'
@@ -59,6 +61,8 @@ import ChestDialog from './ChestDialog'
 import type { Chest } from './ChestDialog'
 import Recharge, { Recap, clock } from './Recharge'
 import QuickLinks from './QuickLinks'
+import ReadyScreen from './ReadyScreen'
+import { readyAction } from './ready.mjs'
 
 type Won = { slot: number; id: string; bonus: boolean }
 
@@ -150,7 +154,12 @@ export default function QuizPage() {
   const { bag } = useBagStore()
   const rewards = engine?.rewards ?? mode !== 'guest'
 
+  const [phase, setPhase] = useState<'ready' | 'playing'>('ready')
+  const [starting, setStarting] = useState(false)
+  const startLock = useRef(false)
+  const engineEpoch = useRef(0)
   const [status, setStatus] = useState<Status | null>(null)
+  const [statusFailed, setStatusFailed] = useState(false)
   // NOTE - Every status the page shows takes a ticket when it is asked for:
   // one asked before a newer write (a verdict) is dropped when it lands
   const latest = useRef(createLatest())
@@ -219,6 +228,12 @@ export default function QuizPage() {
   const audio = useRef<HTMLAudioElement | null>(null)
 
   const revealed = verdict !== null
+  // the shard of a right answer is claimed apart from the verdict
+  const shard = useShardClaim(
+    engine,
+    verdict?.outcome === 'right' && round ? round.id : null,
+    refreshShards
+  )
   const correct = verdict?.outcome === 'right'
   const timeUp = verdict?.outcome === 'time'
   const answerId = round?.answerId ?? verdict?.answerId
@@ -249,7 +264,9 @@ export default function QuizPage() {
     }
     setStoppedId(playing.frozenAtMs === null ? null : playing.id)
     // the particles hold still only while this round's time is stopped
-    fxRef.current?.hold(playing.freezeLeftMs > 0 ? at + playing.freezeLeftMs : 0)
+    fxRef.current?.hold(
+      playing.freezeLeftMs > 0 ? at + playing.freezeLeftMs : 0
+    )
     setFreeze(
       playing.freezeLeftMs > 0
         ? { until: at + playing.freezeLeftMs, fresh: false, phase: 'hold' }
@@ -263,28 +280,31 @@ export default function QuizPage() {
     )
   }, [])
 
-  const showRound = useCallback((playing: PlayRound) => {
-    audio.current?.pause()
-    veilLeft.current = 1
-    veilElapsed.current = playing.elapsedMs
-    roundAt.current = performance.now()
-    takeStop(playing, roundAt.current)
-    setTimeNote('')
-    roundId.current = playing.id
-    setPalkiaNote('')
-    // moving on from the result with the keyboard: keep the player in the
-    // game instead of dropping focus back to the top of the page
-    focusFirstOption.current = document.activeElement === nextRef.current
-    setRound(playing)
-    setChosen(null)
-    setVerdict(null)
-    setCatchPhase('')
-    setLoaded(false)
-    setGuess('')
-    setChests([])
-    setOutOfTurns(false)
-    fxRef.current?.clear()
-  }, [takeStop])
+  const showRound = useCallback(
+    (playing: PlayRound) => {
+      audio.current?.pause()
+      veilLeft.current = 1
+      veilElapsed.current = playing.elapsedMs
+      roundAt.current = performance.now()
+      takeStop(playing, roundAt.current)
+      setTimeNote('')
+      roundId.current = playing.id
+      setPalkiaNote('')
+      // moving on from the result with the keyboard: keep the player in the
+      // game instead of dropping focus back to the top of the page
+      focusFirstOption.current = document.activeElement === nextRef.current
+      setRound(playing)
+      setChosen(null)
+      setVerdict(null)
+      setCatchPhase('')
+      setLoaded(false)
+      setGuess('')
+      setChests([])
+      setOutOfTurns(false)
+      fxRef.current?.clear()
+    },
+    [takeStop]
+  )
 
   // NOTE - A round costs its turn when it starts and is kept until answered
   // (by the engine): reloading brings the same Pokémon back, its clock still
@@ -292,15 +312,19 @@ export default function QuizPage() {
   const next = useCallback(async () => {
     if (!engine) return
     const range = generation ?? ALL
+    const epoch = engineEpoch.current
     try {
       const playing = await engine.start({
         from: range.start,
         to: range.end,
         hard,
       })
+      if (epoch !== engineEpoch.current) return
       showRound(playing)
+      setPhase('playing')
       if (engine.rewards) await askStatus()
     } catch (error) {
+      if (epoch !== engineEpoch.current) return
       if ((error as Error).message === 'no_turns') {
         setRound(null)
         setVerdict(null)
@@ -310,22 +334,44 @@ export default function QuizPage() {
     }
   }, [engine, generation, hard, showRound, askStatus])
 
-  // the game's state: its waiting round, else a new one if a turn is left
+  const onReady = useCallback(async () => {
+    if (startLock.current || !engine || !status) return
+    const action = readyAction(status, outOfTurns)
+    if (action !== 'start' && action !== 'resume') return
+    const epoch = engineEpoch.current
+    startLock.current = true
+    setStarting(true)
+    try {
+      await next()
+    } finally {
+      if (epoch === engineEpoch.current) {
+        startLock.current = false
+        setStarting(false)
+      }
+    }
+  }, [engine, status, outOfTurns, next])
+
+  // Read state only. A waiting round is shown after the player continues.
   const resume = useCallback(
     (live: () => boolean = () => true) =>
       askStatus()
         .then((value) => {
           if (!live()) return
-          if (value.pending) showRound(value.pending)
-          else if (value.left > 0) next()
-          else setOutOfTurns(true)
+          setStatusFailed(false)
+          setOutOfTurns(!value.pending && value.left <= 0)
         })
-        .catch(() => live() && setImageFailed(true)),
-    [askStatus, showRound, next]
+        .catch(() => live() && setStatusFailed(true)),
+    [askStatus]
   )
 
   // a new engine (signed in or out): its state, its waiting round or a new one
   useEffect(() => {
+    engineEpoch.current += 1
+    startLock.current = false
+    setPhase('ready')
+    setStarting(false)
+    setRound(null)
+    setStatus(null)
     if (!engine) return
     let live = true
     setRound(null)
@@ -338,6 +384,7 @@ export default function QuizPage() {
     resume(() => live)
     return () => {
       live = false
+      engineEpoch.current += 1
     }
     // the first round only: later ones come from the player
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -833,18 +880,66 @@ export default function QuizPage() {
     }
   }
 
-  if (isError || imageFailed || lost) {
+  const settings = (
+    <div
+      id="quiz-settings"
+      className="settings"
+      data-open={phase === 'ready' || settingsOpen || undefined}
+    >
+      <AppSelect
+        label="Thế hệ"
+        value={generation?.id ?? 'all'}
+        options={[
+          { value: 'all', label: 'Mọi thế hệ' },
+          ...GENERATIONS.map((gen) => ({
+            value: gen.id,
+            label: `${gen.name} (#${gen.start}–${gen.end})`,
+          })),
+        ]}
+        onValueChange={(value) =>
+          setSetting('gen', value === 'all' ? '' : value)
+        }
+      />
+      <div className="mode" role="group" aria-label="Độ khó">
+        <button
+          type="button"
+          aria-pressed={!hard}
+          onClick={() => setSetting('mode', '')}
+        >
+          <b>Dễ</b>
+          <small>4 lựa chọn</small>
+        </button>
+        <button
+          type="button"
+          aria-pressed={hard}
+          onClick={() => setSetting('mode', 'hard')}
+        >
+          <b>Khó</b>
+          <small>tự gõ tên, có TM/HM</small>
+        </button>
+      </div>
+      <p className="settings-note">
+        {phase === 'ready'
+          ? 'Áp dụng khi bạn bấm Sẵn sàng.'
+          : 'Thay đổi áp dụng từ lượt sau.'}
+      </p>
+    </div>
+  )
+
+  if (isError || statusFailed || imageFailed || lost) {
     return (
       <QuizStyle className="quiz-page">
         <div className="arena">
           <div className="stage stage--empty">
-            {!isError && !lost && <WildGrass fled />}
+            {!isError && !statusFailed && !lost && <WildGrass fled />}
             <p>
               {isError
                 ? 'Không tải được danh sách Pokémon.'
-                : lost
-                  ? 'Không nhận được kết quả lượt này. Quà nếu có đã vào túi đồ.'
-                  : 'Nó chạy mất rồi! Không tải được hình Pokémon.'}
+                : statusFailed
+                  ? 'Không tải được trạng thái trò chơi. Vui lòng thử lại.'
+                  : lost
+                    ? 'Không nhận được kết quả lượt này. Quà nếu có đã vào túi đồ.'
+                    : 'Nó chạy mất rồi! Không tải được hình Pokémon.'}
             </p>
             <button
               type="button"
@@ -854,8 +949,12 @@ export default function QuizPage() {
                 setImageFailed(false)
                 setLost(false)
                 if (isError) refetch()
-                else if (lost) {
+                else if (statusFailed) {
+                  setStatusFailed(false)
+                  resume()
+                } else if (lost) {
                   setRound(null)
+                  setPhase('ready')
                   resume()
                 } else if (round && engine)
                   engine
@@ -871,6 +970,39 @@ export default function QuizPage() {
               {lost ? 'Lượt tiếp' : 'Thử lại'}
             </button>
           </div>
+        </div>
+      </QuizStyle>
+    )
+  }
+
+  const action = readyAction(status, outOfTurns)
+  if (phase === 'ready' && action !== 'rest') {
+    return (
+      <QuizStyle className="quiz-page" data-phase="ready">
+        <div className="arena">
+          {action === 'loading' ? (
+            <div className="ready-screen" role="status" aria-busy="true">
+              Đang chuẩn bị câu đố…
+            </div>
+          ) : (
+            <ReadyScreen
+              action={action}
+              busy={starting}
+              onGo={onReady}
+              rewards={rewards}
+            />
+          )}
+          {action === 'start' && settings}
+          {!rewards && accounts && (
+            <LinkCustom
+              className="guest-call"
+              to="/dang-nhap"
+              state={{ from: location.pathname + location.search }}
+            >
+              Đăng nhập để chơi kèm phần thưởng
+            </LinkCustom>
+          )}
+          <QuickLinks bagCount={bagSize(bag ?? {})} />
         </div>
       </QuizStyle>
     )
@@ -1063,46 +1195,7 @@ export default function QuizPage() {
           </LinkCustom>
         ) : null}
 
-        <div
-          id="quiz-settings"
-          className="settings"
-          data-open={settingsOpen || undefined}
-        >
-          <AppSelect
-            label="Thế hệ"
-            value={generation?.id ?? 'all'}
-            options={[
-              // Radix Select reads '' as "nothing chosen" and shows a blank box
-              { value: 'all', label: 'Mọi thế hệ' },
-              ...GENERATIONS.map((gen) => ({
-                value: gen.id,
-                label: `${gen.name} (#${gen.start}–${gen.end})`,
-              })),
-            ]}
-            onValueChange={(value) =>
-              setSetting('gen', value === 'all' ? '' : value)
-            }
-          />
-          <div className="mode" role="group" aria-label="Độ khó">
-            <button
-              type="button"
-              aria-pressed={!hard}
-              onClick={() => setSetting('mode', '')}
-            >
-              <b>Dễ</b>
-              <small>4 lựa chọn</small>
-            </button>
-            <button
-              type="button"
-              aria-pressed={hard}
-              onClick={() => setSetting('mode', 'hard')}
-            >
-              <b>Khó</b>
-              <small>tự gõ tên, có TM/HM</small>
-            </button>
-          </div>
-          <p className="settings-note">Thay đổi áp dụng từ lượt sau.</p>
-        </div>
+        {settings}
 
         <div
           className="stage-wrap"
@@ -1368,6 +1461,11 @@ export default function QuizPage() {
                   </>
                 )}
               </p>
+              <ShardNotice
+                claim={shard.claim}
+                name={answerName}
+                onRetry={shard.retry}
+              />
             </div>
             {won ? (
               <Loot

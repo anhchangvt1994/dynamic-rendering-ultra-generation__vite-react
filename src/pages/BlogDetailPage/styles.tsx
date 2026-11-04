@@ -29,6 +29,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
     /* starts with the 1180px column, runs on to the rail's right edge */
     height: 76px;
     margin-left: max(0px, calc((100% - 1180px) / 2));
+    max-width: 1180px;
   }
   .rail-back {
     display: inline-flex;
@@ -949,7 +950,7 @@ export const BlogDetailStyle = styled(BlogStyle)`
   }
   .blog-outline {
     position: sticky;
-    top: 24px;
+    top: 40px;
     padding: 14px 0 14px 16px;
     border-left: 2px dashed rgba(23, 45, 69, 0.35);
   }

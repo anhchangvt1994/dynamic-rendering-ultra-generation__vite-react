@@ -36,6 +36,45 @@ export const QuizStyle = styled.section`
     padding: 12px 12px 32px;
   }
 
+  .ready-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    min-height: min(70svh, 620px);
+    padding: 32px 16px;
+    text-align: center;
+    border: 2px solid #355c85;
+    border-radius: 24px;
+    background: radial-gradient(ellipse at top, #244e78, #091a30 75%);
+  }
+  .ready-screen .title {
+    flex: none;
+    justify-items: center;
+  }
+  .ready-screen p {
+    max-width: 440px;
+    margin: 0;
+    line-height: 1.7;
+  }
+  .ready-screen .next {
+    flex: none;
+    width: auto;
+    min-width: 180px;
+    min-height: 56px;
+    background: var(--sun);
+    color: var(--ink);
+  }
+  .ready-ball {
+    width: 88px;
+    height: 88px;
+    border: 5px solid var(--ink);
+    border-radius: 50%;
+    background: linear-gradient(#eb5448 46%, var(--ink) 46% 54%, #fff 54%);
+    box-shadow: 0 8px 0 var(--shadow-ink);
+  }
+
   /* ── HUD: title, bag, settings ── */
   .hud {
     display: flex;
@@ -1692,6 +1731,20 @@ export const QuizStyle = styled.section`
       align-items: start;
       gap: 18px 36px;
       padding: 28px 24px 48px;
+    }
+    &[data-phase='ready'] .arena {
+      grid-template-areas:
+        'ready settings'
+        'ready status'
+        'ready links';
+      grid-template-rows: auto auto 1fr;
+    }
+    &[data-phase='ready'] .ready-screen {
+      grid-area: ready;
+      min-width: 0;
+    }
+    &[data-phase='ready'] .quick {
+      grid-area: links;
     }
     .hud {
       grid-area: hud;

@@ -114,11 +114,11 @@ export function Backpack() {
 const GLYPHS: Record<string, string> = {
   all: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   stat: 'M12 2.5 21 12h-5.5v9.5h-7V12H3z',
-  friend:
-    'M12 21s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z',
+  friend: 'M12 21s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z',
   evo: 'M7 3h10l4.5 6.5L12 21.5 2.5 9.5zM7.6 9.5h8.8L12 4.8z',
   heal: 'M9 2.5h6v6.5h6.5v6H15v6.5H9V15H2.5V9H9z',
   move: 'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 6.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z',
+  shards: 'M12 2 20 8.5 17 21H7L4 8.5z',
   dishes:
     'M2 11.5h20c0 4.6-3.3 8.4-7.5 9.3V22h-5v-1.2C5.3 19.9 2 16.1 2 11.5zM8 2.5h2.2v7H8zM13.8 2.5H16v7h-2.2z',
 }
@@ -135,12 +135,13 @@ export function PocketGlyph({ id }: { id: string }) {
 /** The pockets as the skeleton draws them (bag.mjs would bring the catalogue). */
 export const POCKET_TABS = [
   { id: 'all', label: 'Tất cả', color: '#ffda55' },
-  { id: 'stat', label: 'Tăng chỉ số', color: '#ff6a4a' },
+  { id: 'stat', label: 'Chỉ số', color: '#ff6a4a' },
   { id: 'friend', label: 'Thân thiện', color: '#ff8fc8' },
   { id: 'evo', label: 'Tiến hoá', color: '#ffb02e' },
   { id: 'heal', label: 'Hồi phục', color: '#4fd18b' },
   { id: 'move', label: 'Chiêu thức', color: '#4aa8ff' },
   { id: 'dishes', label: 'Món ăn', color: '#f07cb4' },
+  { id: 'shards', label: 'Mảnh & hổ phách', color: '#c38bff' },
 ]
 
 const SORT_GLYPHS: Record<string, string> = {
