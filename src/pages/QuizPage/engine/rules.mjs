@@ -2,6 +2,7 @@
 // (supabase/migrations/20261101000000_quiz_game.sql): keep the two in step.
 import { SLOT_AT, roundGifts } from '../items.mjs'
 import { pickVeil } from '../quiz.mjs'
+import { ANSWER_MEMORY, pickAnswer } from './collection.mjs'
 import { LETTERS } from './letters.mjs'
 
 // the network's share of a server answer's time, granted to every answer
@@ -41,21 +42,32 @@ export function verdictOf(round, choice, elapsedMs) {
 }
 
 /**
- * A new round in the Pokédex range: four options, none among the recent
- * answers (one of those would give the answer away), one of them the
- * answer; a veil unlike the last, the gifts.
+ * A new round in the Pokédex range: the answer by the collection's rule
+ * (collection.mjs), three other options none of which is among the last
+ * ANSWER_MEMORY answers (an answer is not drawn again that soon, so one of
+ * those could be crossed off) when the range has enough others, the options in a random order; a veil unlike the last, the
+ * gifts.
  */
-export function drawRound(random, { from, to, hard, recent = [], lastVeil }) {
+export function drawRound(
+  random,
+  { from, to, hard, recent = [], lastVeil, collection = [] }
+) {
   const ids = Array.from({ length: to - from + 1 }, (_, i) => from + i)
-  const pick = (pool) => pool[Math.floor(random() * pool.length)]
-  const fresh = ids.filter((id) => !recent.includes(id))
-  const pool = fresh.length >= 4 ? fresh : ids
-  const options = []
-  while (options.length < 4) {
-    const id = pick(pool)
-    if (!options.includes(id)) options.push(id)
+  const lately = recent.slice(0, ANSWER_MEMORY)
+  const answerId = pickAnswer(random, { from, to, collection, recent: lately })
+  const others = ids.filter((id) => id !== answerId)
+  const fresh = others.filter((id) => !lately.includes(id))
+  const options = [answerId]
+  for (const pool of [fresh, others]) {
+    const left = pool.filter((id) => !options.includes(id))
+    while (options.length < 4 && left.length)
+      options.push(left.splice(Math.floor(random() * left.length), 1)[0])
   }
-  const answerId = pick(options)
+  // the answer's place among the four is the last draw of the shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[options[i], options[j]] = [options[j], options[i]]
+  }
   return {
     answerId,
     options,

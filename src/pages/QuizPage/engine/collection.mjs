@@ -21,9 +21,7 @@ export function inShare(inCount) {
  * has the newest answer first.
  */
 export function pickAnswer(random, { from, to, collection, recent }) {
-  const owned = new Set(
-    [...collection].filter((id) => id >= from && id <= to)
-  )
+  const owned = new Set([...collection].filter((id) => id >= from && id <= to))
   const share = inShare(owned.size)
   const ids = Array.from({ length: to - from + 1 }, (_, i) => from + i)
   const pick = (pool) => pool[Math.floor(random() * pool.length)]

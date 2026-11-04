@@ -115,15 +115,17 @@ test('a drawn round: 4 options in range, the answer among them, not a recent one
   })
   assert.equal(round.options.length, 4)
   assert.ok(round.options.includes(round.answerId))
-  assert.ok(round.answerId > 30)
+  // the last 10 answers are not drawn again: not as the answer, not as options
+  assert.ok(round.answerId > 10)
+  assert.ok(round.options.every((id) => id > 10))
   assert.ok(round.options.every((id) => id >= 1 && id <= 40))
   assert.notEqual(round.veil, 'warp')
   assert.equal(round.durationMs, 14000)
   assert.equal(round.gifts.length, 4)
 })
 
-test('no option is a recent answer: none of them can be crossed off', () => {
-  const recent = Array.from({ length: 30 }, (_, i) => 650 + i)
+test('no option is one of the last 10 answers: none of them can be crossed off', () => {
+  const recent = Array.from({ length: 10 }, (_, i) => 650 + i)
   for (let seed = 1; seed <= 40; seed++) {
     const round = drawRound(seeded(seed), {
       from: 650,
@@ -133,6 +135,78 @@ test('no option is a recent answer: none of them can be crossed off', () => {
     })
     assert.ok(round.options.every((id) => !recent.includes(id)))
   }
+})
+
+const mine = (n) => Array.from({ length: n }, (_, i) => i + 1)
+// the first draw says "from the collection" (0.1), the rest is seeded
+const inside = (seed) => {
+  const rest = seeded(seed)
+  let first = true
+  return () => (first ? ((first = false), 0.1) : rest())
+}
+
+test('a round asks about the collection about 70% of the time (10+ species)', () => {
+  let hits = 0
+  for (let seed = 1; seed <= 400; seed++) {
+    const round = drawRound(seeded(seed), {
+      from: 1,
+      to: 151,
+      hard: false,
+      collection: mine(10),
+    })
+    if (round.answerId <= 10) hits++
+  }
+  assert.ok(hits / 400 > 0.62 && hits / 400 < 0.78, `share ${hits / 400}`)
+})
+
+test('the other options never include a last-10 answer, nor the answer twice', () => {
+  const recent = mine(10)
+  for (let seed = 1; seed <= 60; seed++) {
+    const round = drawRound(seeded(seed), {
+      from: 1,
+      to: 151,
+      hard: false,
+      recent,
+      collection: mine(10),
+    })
+    const others = round.options.filter((id) => id !== round.answerId)
+    assert.equal(new Set(round.options).size, 4)
+    assert.ok(round.options.includes(round.answerId))
+    assert.ok(others.every((id) => !recent.includes(id)))
+  }
+})
+
+test('local engine: the answer comes from the browser collection', async () => {
+  const storage = memory()
+  storage.setItem('pokedex:caught', JSON.stringify([3]))
+  const engine = createLocalEngine({
+    storage,
+    now: clock().now,
+    random: inside(1),
+  })
+  // 1 species: the share is 20%, and 0.1 asks for the collection
+  assert.equal((await engine.start(KANTO)).answerId, 3)
+})
+
+test('local engine: a collection given by the caller is the one used', async () => {
+  const engine = createLocalEngine({
+    storage: memory(),
+    now: clock().now,
+    random: inside(2),
+    collection: () => new Set(mine(10)),
+  })
+  assert.ok((await engine.start(KANTO)).answerId <= 10)
+})
+
+test('guest engine: picks from the collection too, with no rewards', async () => {
+  const engine = createGuestEngine({
+    random: inside(3),
+    collection: () => mine(10),
+  })
+  const round = await engine.start(KANTO)
+  assert.ok(round.answerId <= 10)
+  assert.equal(engine.rewards, false)
+  assert.deepEqual(round.gifts, [])
 })
 
 test('the veil starts where the clock is when the artwork shows', () => {

@@ -1,5 +1,6 @@
 // The browser game (yarn dev without a session): the rules of rules.mjs with
 // everything kept in this browser's storage. Production never runs it.
+import { getCaught } from '../../../utils/caught.mjs'
 import { getPokemonImage } from '../../PokemonPage/navigation.mjs'
 import { comboGifts, specialGifts } from '../items.mjs'
 import {
@@ -49,6 +50,8 @@ export function createLocalEngine({
   storage = globalThis.localStorage,
   random = Math.random,
   now = () => Date.now(),
+  // the species the player has caught: the answers are drawn from them
+  collection = () => getCaught(storage),
 } = {}) {
   const read = (key, fallback) => readJSON(key, fallback, storage)
   const save = (key, value) => saveJSON(key, value, storage)
@@ -92,6 +95,7 @@ export function createLocalEngine({
       hard,
       recent: recent.ids,
       lastVeil: recent.veil,
+      collection: collection(),
     })
     save(KEYS.recent, {
       ids: [drawn.answerId, ...recent.ids].slice(0, RECENT),

@@ -1,5 +1,6 @@
 // Not signed in (production): the quiz as a plain game. No turns, gifts,
 // streak or bag, nothing stored; the rounds follow the same rules.
+import { getCaught } from '../../../utils/caught.mjs'
 import { getPokemonImage } from '../../PokemonPage/navigation.mjs'
 import { cryOf } from './local.mjs'
 import { drawRound, verdictOf } from './rules.mjs'
@@ -23,6 +24,8 @@ const NEUTRAL = {
 export function createGuestEngine({
   random = Math.random,
   now = () => Date.now(),
+  // what the player caught in this browser picks the answers (no rewards)
+  collection = () => getCaught(),
 } = {}) {
   let current = null
   let recent = { ids: [], veil: undefined }
@@ -33,6 +36,7 @@ export function createGuestEngine({
       hard,
       recent: recent.ids,
       lastVeil: recent.veil,
+      collection: collection(),
     })
     recent = {
       ids: [drawn.answerId, ...recent.ids].slice(0, 30),
