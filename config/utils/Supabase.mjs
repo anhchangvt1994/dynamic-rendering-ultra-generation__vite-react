@@ -20,6 +20,7 @@ import fs from 'fs'
 import net from 'net'
 import { fileURLToPath } from 'url'
 import { isEnabled, loadEnv } from './ServerEnv.mjs'
+import { loadSeeds, seedFiles } from './Seeds.mjs'
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const CLI = `${ROOT}node_modules/.bin/supabase`
@@ -273,6 +274,7 @@ export async function ensureLocalSupabase() {
     'supabase status'
   )
   await waitForHealth(url, publishableKey)
+  seedLocal()
 
   const mailUrl = status.MAILPIT_URL || status.INBUCKET_URL
   log(`Ready at ${url}${mailUrl ? ` (emails: ${mailUrl})` : ''}`)
@@ -356,13 +358,21 @@ const stackEnv = (env) => {
   if (relayHost) {
     if (!/^[a-zA-Z0-9.-]+$/.test(relayHost))
       throw new Error('MAIL_RELAY_HOST must be a hostname (no URL or port)')
-    if (!/^\d{1,5}$/.test(relayPort) || Number(relayPort) < 1 || Number(relayPort) > 65535)
+    if (
+      !/^\d{1,5}$/.test(relayPort) ||
+      Number(relayPort) < 1 ||
+      Number(relayPort) > 65535
+    )
       throw new Error('MAIL_RELAY_PORT must be an integer from 1 to 65535')
     if (!relayUser || !relayPassword)
-      throw new Error('MAIL_RELAY_HOST requires MAIL_RELAY_USER and MAIL_RELAY_PASSWORD')
+      throw new Error(
+        'MAIL_RELAY_HOST requires MAIL_RELAY_USER and MAIL_RELAY_PASSWORD'
+      )
     // Postfix map syntax uses whitespace and a colon as delimiters.
     if (/[\s:]/.test(relayUser) || /[\r\n]/.test(relayPassword))
-      throw new Error('SMTP relay credentials contain unsupported Postfix map delimiters')
+      throw new Error(
+        'SMTP relay credentials contain unsupported Postfix map delimiters'
+      )
   } else if (relayUser || relayPassword) {
     throw new Error('MAIL_RELAY_USER/PASSWORD require MAIL_RELAY_HOST')
   }
@@ -385,9 +395,15 @@ const stackEnv = (env) => {
     MAIL_RELAY_PORT: relayPort,
     MAIL_RELAY_USER: relayUser,
     MAIL_RELAY_PASSWORD: relayPassword,
-    MAIL_RELAY_SPF_DOMAIN: String(env.MAIL_RELAY_SPF_DOMAIN || `send.${mailDomain}`),
-    MAIL_RELAY_SPF_INCLUDE: String(env.MAIL_RELAY_SPF_INCLUDE || 'amazonses.com'),
-    MAIL_RELAY_DKIM_HOST: String(env.MAIL_RELAY_DKIM_HOST || `resend._domainkey.${mailDomain}`),
+    MAIL_RELAY_SPF_DOMAIN: String(
+      env.MAIL_RELAY_SPF_DOMAIN || `send.${mailDomain}`
+    ),
+    MAIL_RELAY_SPF_INCLUDE: String(
+      env.MAIL_RELAY_SPF_INCLUDE || 'amazonses.com'
+    ),
+    MAIL_RELAY_DKIM_HOST: String(
+      env.MAIL_RELAY_DKIM_HOST || `resend._domainkey.${mailDomain}`
+    ),
     DEFAULT_RELAY_HOST: relayHost ? `[${relayHost}]:${relayPort}` : '',
   }
 } // stackEnv
@@ -536,21 +552,31 @@ const checkMail = async (stack, dkim) => {
   }
 
   if (stack.MAIL_RELAY_HOST) {
-    const reachable = await canReach(stack.MAIL_RELAY_HOST, Number(stack.MAIL_RELAY_PORT))
+    const reachable = await canReach(
+      stack.MAIL_RELAY_HOST,
+      Number(stack.MAIL_RELAY_PORT)
+    )
     check(
       reachable,
       `SMTP relay ${stack.MAIL_RELAY_HOST}:${stack.MAIL_RELAY_PORT}`,
       `Allow outbound TCP ${stack.MAIL_RELAY_PORT} from this VPS to ${stack.MAIL_RELAY_HOST}`
     )
     check(
-      fs.existsSync(RELAY_CREDENTIALS_FILE) && (fs.statSync(RELAY_CREDENTIALS_FILE).mode & 0o777) === 0o600,
+      fs.existsSync(RELAY_CREDENTIALS_FILE) &&
+        (fs.statSync(RELAY_CREDENTIALS_FILE).mode & 0o777) === 0o600,
       'SMTP relay credentials file exists with mode 0600',
       'Re-run the Supabase startup command to regenerate the private relay credentials file'
     )
 
-    const spf = (await txt(stack.MAIL_RELAY_SPF_DOMAIN)).find((value) => value.startsWith('v=spf1'))
+    const spf = (await txt(stack.MAIL_RELAY_SPF_DOMAIN)).find((value) =>
+      value.startsWith('v=spf1')
+    )
     check(
-      Boolean(spf && (!stack.MAIL_RELAY_SPF_INCLUDE || spf.includes(stack.MAIL_RELAY_SPF_INCLUDE))),
+      Boolean(
+        spf &&
+        (!stack.MAIL_RELAY_SPF_INCLUDE ||
+          spf.includes(stack.MAIL_RELAY_SPF_INCLUDE))
+      ),
       `SPF ${stack.MAIL_RELAY_SPF_DOMAIN}: ${spf || 'missing'}`,
       `Add/merge the Resend-provided SPF record at ${stack.MAIL_RELAY_SPF_DOMAIN}; do not publish multiple SPF records at the same DNS name`
     )
@@ -561,15 +587,21 @@ const checkMail = async (stack, dkim) => {
       `DKIM ${stack.MAIL_RELAY_DKIM_HOST}`,
       `Add the exact DKIM record (TXT or CNAME) shown by Resend at ${stack.MAIL_RELAY_DKIM_HOST}`
     )
-    const dmarc = (await txt(`_dmarc.${domain}`)).find((value) => value.startsWith('v=DMARC1'))
+    const dmarc = (await txt(`_dmarc.${domain}`)).find((value) =>
+      value.startsWith('v=DMARC1')
+    )
     check(
       Boolean(dmarc),
       `DMARC _dmarc.${domain}: ${dmarc || 'missing'}`,
       `TXT   _dmarc.${domain}  =  "v=DMARC1; p=none; adkim=s; rua=mailto:<your email>"`
     )
-    log(`Mail (${stack.MAIL_FROM} via ${stack.MAIL_RELAY_HOST}:${stack.MAIL_RELAY_PORT}):\n${lines.join('\n')}`)
+    log(
+      `Mail (${stack.MAIL_FROM} via ${stack.MAIL_RELAY_HOST}:${stack.MAIL_RELAY_PORT}):\n${lines.join('\n')}`
+    )
     if (todo.length)
-      log(`Until these are in place, mail may go to spam or be refused:\n${todo.map((line) => `    ${line}`).join('\n')}`)
+      log(
+        `Until these are in place, mail may go to spam or be refused:\n${todo.map((line) => `    ${line}`).join('\n')}`
+      )
     return
   }
 
@@ -641,17 +673,113 @@ const checkMail = async (stack, dkim) => {
     )
 } // checkMail
 
+/**
+ * Migrations, then every supabase/seed/*.sql (the amber catalog among them;
+ * idempotent, so safe on every start). The stack's db must be running.
+ */
+const migrateSelfHosted = (secrets, stack) => {
+  if (!fs.existsSync(CLI))
+    throw new Error(
+      'The Supabase CLI is missing (it applies the migrations): yarn install --production=false'
+    )
+  const dbUrl = `postgresql://postgres:${encodeURIComponent(secrets.POSTGRES_PASSWORD)}@127.0.0.1:${stack.SUPABASE_DB_PORT}/postgres?sslmode=disable`
+  const migrate = supabase(['migration', 'up', '--db-url', dbUrl], {
+    stdio: 'inherit',
+  })
+  if (migrate.status !== 0)
+    throw new Error('Applying supabase/migrations failed (see above)')
+  const loaded = loadSeeds(seedFiles(), (sql) =>
+    compose(
+      [
+        'exec',
+        '-T',
+        'db',
+        'psql',
+        '-v',
+        'ON_ERROR_STOP=1',
+        '-q',
+        '-U',
+        'supabase_admin',
+        '-d',
+        'postgres',
+      ],
+      stack,
+      { input: sql, stdio: ['pipe', 'inherit', 'inherit'] }
+    )
+  )
+  if (loaded.length) log(`Seeds loaded: ${loaded.join(', ')}`)
+} // migrateSelfHosted
+
+/** yarn migrate: migrations + seeds on a stack that is already up */
+export async function migrateSelfHostedSupabase(env) {
+  await ensureDocker()
+  const secrets = ensureSupabaseSecrets()
+  const stack = stackEnv(env)
+  if (!compose(['ps', '-q', 'db'], stack).stdout?.trim())
+    throw new Error(
+      'The database is not running: yarn start (or docker compose up -d)'
+    )
+  migrateSelfHosted(secrets, stack)
+  log('Database is up to date')
+} // migrateSelfHostedSupabase
+
+/** yarn migrate --local: the same, on the CLI stack of yarn dev */
+export async function migrateLocalSupabase() {
+  if (!fs.existsSync(CLI))
+    throw new Error('The Supabase CLI is missing: yarn install')
+  await ensureDocker()
+  if (!localStatus()?.API_URL)
+    throw new Error(
+      'The local stack is not running: yarn dev (ENABLE_SUPABASE=true)'
+    )
+  const migrate = supabase(['migration', 'up', '--local'], { stdio: 'inherit' })
+  if (migrate.status !== 0)
+    throw new Error('Applying supabase/migrations failed (see above)')
+  seedLocal()
+  log('Local database is up to date')
+} // migrateLocalSupabase
+
+/** The CLI stack's db container is supabase_db_<project_id> */
+const seedLocal = () => {
+  const loaded = loadSeeds(seedFiles(), (sql) =>
+    spawnSync(
+      'docker',
+      [
+        'exec',
+        '-i',
+        'supabase_db_pokedex',
+        'psql',
+        '-v',
+        'ON_ERROR_STOP=1',
+        '-q',
+        '-U',
+        'postgres',
+        '-d',
+        'postgres',
+      ],
+      { input: sql, stdio: ['pipe', 'inherit', 'inherit'], encoding: 'utf8' }
+    )
+  )
+  if (loaded.length) log(`Seeds loaded: ${loaded.join(', ')}`)
+} // seedLocal
+
 /** yarn start with ENABLE_SUPABASE=true (preflight) */
 export async function ensureSelfHostedSupabase(env) {
   await ensureDocker()
   const secrets = ensureSupabaseSecrets()
   const stack = stackEnv(env)
   const relayCredentialsChanged = ensureRelayCredentials(stack)
-  const previousMailContainer = compose(['ps', '-q', 'mail'], stack).stdout?.trim()
+  const previousMailContainer = compose(
+    ['ps', '-q', 'mail'],
+    stack
+  ).stdout?.trim()
 
   log('Starting the self-hosted stack (the first run downloads its images)...')
   composeOrThrow(['up', '-d', '--wait'], stack, 'Starting the stack')
-  const currentMailContainer = compose(['ps', '-q', 'mail'], stack).stdout?.trim()
+  const currentMailContainer = compose(
+    ['ps', '-q', 'mail'],
+    stack
+  ).stdout?.trim()
   // Compose cannot detect changes to a bind-mounted file's contents. If the
   // mail container stayed running across the normal `up`, recreate just it so
   // Docker Mailserver reloads the SASL map (key rotation / relay toggle).
@@ -668,16 +796,7 @@ export async function ensureSelfHostedSupabase(env) {
 
   const dkim = ensureDkim(stack)
 
-  if (!fs.existsSync(CLI))
-    throw new Error(
-      'The Supabase CLI is missing (it applies the migrations): yarn install --production=false'
-    )
-  const dbUrl = `postgresql://postgres:${encodeURIComponent(secrets.POSTGRES_PASSWORD)}@127.0.0.1:${stack.SUPABASE_DB_PORT}/postgres?sslmode=disable`
-  const migrate = supabase(['migration', 'up', '--db-url', dbUrl], {
-    stdio: 'inherit',
-  })
-  if (migrate.status !== 0)
-    throw new Error('Applying supabase/migrations failed (see above)')
+  migrateSelfHosted(secrets, stack)
 
   const headers = {
     apikey: secrets.ANON_KEY,
