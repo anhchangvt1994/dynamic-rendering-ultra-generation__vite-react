@@ -11,6 +11,7 @@ var _InitEnv = require('../utils/InitEnv');
 var _ResourceBudget = require('../utils/ResourceBudget');
 var _crypto = require('crypto');
 var _indexuws = require('./routes/lighthouse/index.uws'); var _indexuws2 = _interopRequireDefault(_indexuws);
+var _indexuws3 = require('./routes/quiz/index.uws'); var _indexuws4 = _interopRequireDefault(_indexuws3);
 var _FetchManager = require('./utils/FetchManager');
 var _HostHealth = require('./utils/HostHealth');
 var _StringHelper = require('./utils/StringHelper');
@@ -518,6 +519,8 @@ const apiService = (async () => {
 
       // NOTE - Handle API Lighthouse
       _indexuws2.default.init(app)
+      // NOTE - Handle API Quiz (round media)
+      _indexuws4.default.init(app)
 
       _app = {
         all: (pattern, handler) => {

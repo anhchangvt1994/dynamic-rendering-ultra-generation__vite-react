@@ -15,6 +15,7 @@ var _utils = require('./utils/CacheManager/utils');
 var _FetchManager = require('./utils/FetchManager');
 var _StringHelper = require('./utils/StringHelper');
 var _constants = require('../constants');
+var _indexfastify = require('./routes/quiz/index.fastify'); var _indexfastify2 = _interopRequireDefault(_indexfastify);
 
 // NOTE - Wait for the cache of a request that another request is fetching.
 // It polls until the fetch timeout: a fetch that never stores its result
@@ -246,6 +247,10 @@ const apiService = (async () => {
                         isCompress: false,
                       }
                     )
+
+                    // NOTE - the client is served the compressed copy, so a
+                    // renewed entry must replace it too
+                    _CacheManager.compressData.call(void 0, requestInfo.cacheKey, data)
                   }
                 })
               }
@@ -324,6 +329,10 @@ const apiService = (async () => {
   return {
     init(app) {
       if (!app) return _ConsoleHandler2.default.warn('You need provide fastify app!')
+
+      // NOTE - Handle API Quiz (round media)
+      _indexfastify2.default.init(app)
+
       _app = app
       _allRequestHandler()
     },

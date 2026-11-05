@@ -1,4 +1,5 @@
 "use strict";Object.defineProperty(exports, "__esModule", {value: true}); function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }var _path = require('path'); var _path2 = _interopRequireDefault(_path);
+var _fs = require('fs'); var _fs2 = _interopRequireDefault(_fs);
 
 const dotenv = require('dotenv')
 
@@ -27,6 +28,40 @@ const envModeList = {
   production_production: 'production',
 }
  const ENV_MODE = envModeList[`${exports.ENV}_${exports.MODE}`] 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -82,7 +117,16 @@ const envModeList = {
       break
   }
 
-  const tmpProcessEnv = { ...(process.env ) }
+  // Add private per-machine settings to the app config only. In particular,
+  // do not place an SMTP API key on process.env, which child processes inherit.
+  const localEnvPath = _path2.default.resolve(__dirname, '../../.env.local')
+  const localEnv = _fs2.default.existsSync(localEnvPath)
+    ? dotenv.parse(_fs2.default.readFileSync(localEnvPath))
+    : {}
+  const tmpProcessEnv = {
+    ...(process.env ),
+    ...localEnv,
+  } 
 
   tmpProcessEnv.BUILD_TOOL = 'vite'
   tmpProcessEnv.RESET_RESOURCE = true
@@ -119,6 +163,10 @@ const envModeList = {
       : ['true', '1'].includes(
           (process.env.ENABLE_URL_TESTING || '').toLowerCase()
         )
+
+  tmpProcessEnv.ENABLE_SUPABASE = ['true', '1'].includes(
+    (process.env.ENABLE_SUPABASE || '').toLowerCase()
+  )
 
   tmpProcessEnv.REDIS =
     process.env.REDIS === undefined

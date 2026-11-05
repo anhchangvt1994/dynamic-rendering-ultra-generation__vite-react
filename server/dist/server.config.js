@@ -24,16 +24,37 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
             name: 'pokemon-page',
           },
         }
-      else if (pathSlitted[1] === 'ai-day')
+      else if (
+        pathSlitted[1] === 'whos-that-pokemon' ||
+        pathSlitted[1] === 'ai-day'
+      )
         return {
           loader: {
-            name: 'ai-day-page',
+            name: 'whos-that-pokemon-page',
+          },
+        }
+      else if (pathSlitted[1] === 'tui-do')
+        return {
+          loader: {
+            name: 'tui-do-page',
+          },
+        }
+      else if (pathSlitted[1] === 'che-bien')
+        return {
+          loader: {
+            name: 'che-bien-page',
           },
         }
       else if (pathSlitted[1] === 'so-sanh')
         return {
           loader: {
             name: 'so-sanh-page',
+          },
+        }
+      else if (pathSlitted[1] === 'dang-nhap')
+        return {
+          loader: {
+            name: 'dang-nhap-page',
           },
         }
       else if (pathSlitted[1] === 'blogs') {
@@ -61,14 +82,7 @@ const ServerConfig = _ServerConfigHandler.defineServerConfig.call(void 0, {
     },
   },
   api: {
-    list: {
-      'https://anhchangvt1994.com/strapi': {
-        headers: {
-          authorization:
-            'Bearer c1951c660728c656f71290bbfb650a092901ecb7f0be5aec61510a264b5e19cd9d39ce629250a0fc80c51de8585e54881c738d93f9dc9abdc48e8268ce9743452b2fac9fe8ca4141b9c9a00f9be6813f3082468284076a1b07386655f936089a88cd0afde66cbb30f7e9b4f130bdf245bae79508181551afcbd34d24605ce67c',
-        },
-      },
-    },
+    list: {},
   },
 })
 

@@ -1,0 +1,2 @@
+# Add standards-required headers when SMTP clients omit them.
+always_add_missing_headers = yes
