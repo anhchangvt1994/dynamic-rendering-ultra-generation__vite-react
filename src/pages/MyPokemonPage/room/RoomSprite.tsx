@@ -133,7 +133,8 @@ export default function RoomSprite({
     key: string
     state: CanvasState
   } | null>(null)
-  const canvasKey = `${speciesId}`
+  // a new look gets a new <canvas>: a disposed one has lost its context
+  const canvasKey = `${speciesId}:${JSON.stringify(appearance ?? null)}`
   const tryCanvas =
     !!appearance &&
     phase === 'primary' &&
@@ -209,6 +210,7 @@ export default function RoomSprite({
           {tryCanvas && appearance && (
             <Suspense fallback={null}>
               <RoomCanvas
+                key={canvasKey}
                 speciesId={speciesId}
                 appearance={appearance}
                 mood={mood}

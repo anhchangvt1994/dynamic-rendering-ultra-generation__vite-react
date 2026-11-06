@@ -23,6 +23,7 @@ import {
   stillFor,
   withSlot,
 } from '../serve'
+import { workerJob } from '../job'
 import { RIG_VERSION } from './build'
 
 const FILES: Record<string, string> = {
@@ -63,32 +64,15 @@ const buildInWorker = (data: {
         resourceLimits: { maxOldGenerationSizeMb: 512 },
       }
     )
-    const timer = setTimeout(
-      () => reject(new Error('rig build timed out')),
-      JOB_TIMEOUT_MS
-    )
-    const end = () => {
-      clearTimeout(timer)
-      worker.terminate()
-    }
-    worker.once('message', (message) => {
-      end()
-      if (message.error) reject(new Error(message.error))
-      else
+    workerJob(worker, JOB_TIMEOUT_MS, 'rig build').then(
+      (message) =>
         resolve({
           json: message.json,
           sheet: Buffer.from(message.sheet),
           flow: Buffer.from(message.flow),
-        })
-    })
-    worker.once('error', (err) => {
-      end()
-      reject(err)
-    })
-    worker.once('exit', (code) => {
-      end()
-      reject(new Error(`rig worker exited ${code}`))
-    })
+        }),
+      reject
+    )
   })
 
 // rig.json goes last: its presence means the other two are there

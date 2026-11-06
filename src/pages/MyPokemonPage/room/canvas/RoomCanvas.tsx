@@ -56,6 +56,11 @@ export default function RoomCanvas({
   const look = useRef({ mood, back })
   look.current = { mood, back }
   const paint = useRef<() => void>(() => {})
+  // a reloaded list hands over equal looks as new objects: only a new look
+  // starts over
+  const look_ = JSON.stringify(appearance)
+  const appearanceRef = useRef(appearance)
+  appearanceRef.current = appearance
 
   useEffect(() => {
     const canvas = ref.current
@@ -130,8 +135,8 @@ export default function RoomCanvas({
         scene.current = startScene(
           canvas,
           rig,
-          paletteUniforms(appearance, rig.json.clusters),
-          marksFor(rig, appearance)
+          paletteUniforms(appearanceRef.current, rig.json.clusters),
+          marksFor(rig, appearanceRef.current)
         )
       } catch {
         return false
@@ -203,7 +208,7 @@ export default function RoomCanvas({
       scene.current = null
     }
     // a new species or a new look starts over
-  }, [speciesId, appearance, animated])
+  }, [speciesId, look_, animated])
 
   useEffect(() => paint.current(), [mood, back])
 

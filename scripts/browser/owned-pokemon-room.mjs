@@ -656,6 +656,39 @@ async function canvasChecks() {
     )
     await shot(p, 'canvas-on')
 
+    // the list reloads (a rename, another tab): same look, still painted
+    // a drawn canvas differs from the room behind it (WebGL keeps no buffer
+    // to read back, so compare the screen with the canvas hidden)
+    const lit = async () => {
+      const el = await p.$('.rm-stage .rm-body')
+      const on = await el.screenshot()
+      await p.evaluate(() =>
+        document
+          .querySelector('.rm-stage .rm-canvas')
+          ?.style.setProperty('visibility', 'hidden')
+      )
+      const off = await el.screenshot()
+      await p.evaluate(() =>
+        document
+          .querySelector('.rm-stage .rm-canvas')
+          ?.style.removeProperty('visibility')
+      )
+      return Buffer.compare(on, off) !== 0
+    }
+    await p.evaluate(() =>
+      window.dispatchEvent(
+        new StorageEvent('storage', { key: 'pokedex:quiz-shards-v1' })
+      )
+    )
+    await wait(1500)
+    const reloaded = await shown(p)
+    const pixels = await lit()
+    check(
+      'canvas: a reloaded list keeps the individual painted',
+      reloaded.canvas && reloaded.img === 'hidden' && pixels,
+      JSON.stringify({ ...reloaded, pixels })
+    )
+
     // a lost context gives the picture back; a restored one paints again
     await p.evaluate(() => {
       const c = document.querySelector('.rm-stage .rm-canvas')

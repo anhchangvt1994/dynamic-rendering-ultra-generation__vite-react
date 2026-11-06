@@ -4,6 +4,7 @@ import ServerConfig from '../../../server.config'
 import Console from '../../../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { Worker } from 'worker_threads'
+import { workerJob } from './job'
 import { PIPELINE_VERSION } from './pipeline'
 
 /**
@@ -108,28 +109,10 @@ const buildInWorker = (source: Buffer) =>
         resourceLimits: { maxOldGenerationSizeMb: 512 },
       }
     )
-    const timer = setTimeout(
-      () => reject(new Error('animation build timed out')),
-      JOB_TIMEOUT_MS
+    workerJob(worker, JOB_TIMEOUT_MS, 'animation build').then(
+      (message) => resolve(Buffer.from(message.webp)),
+      reject
     )
-    worker.once('message', (message) =>
-      message.error
-        ? reject(new Error(message.error))
-        : resolve(Buffer.from(message.webp))
-    )
-    worker.once('error', reject)
-    worker.once('exit', (code) => reject(new Error(`worker exited ${code}`)))
-    // settle once, then always end the worker
-    const end = () => {
-      clearTimeout(timer)
-      worker.terminate()
-    }
-    worker.once('message', end)
-    worker.once('error', end)
-    worker.once('exit', end)
-    timer.refresh()
-  }).catch((err) => {
-    throw err
   })
 
 const inflight = new Map<string, Promise<Buffer>>()
