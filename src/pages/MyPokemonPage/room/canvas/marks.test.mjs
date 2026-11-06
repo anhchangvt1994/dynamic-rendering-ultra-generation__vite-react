@@ -104,8 +104,33 @@ test('stripes spread over both limbs, across each limb', () => {
     let d = Math.abs(((s.angle - tangent) % Math.PI) + Math.PI) % Math.PI
     d = Math.abs(d - Math.PI / 2)
     assert.ok(d <= (20 * Math.PI) / 180, `angle off by ${(d * 180) / Math.PI}°`)
-    assert.ok(Math.abs(s.size - 1.6 * (6 / 64)) < 1e-6)
+    assert.ok(Math.abs(s.size - Math.max(1.6 * (6 / 64), 0.2 * (56 / 64))) < 1e-6)
   }
+})
+
+test('stripes stay on the limbs of the main region', () => {
+  // the main region is the left half; the longer limb lies outside it
+  const r = 6 / SIZE
+  const rig = rectRig(4, 4, 32, 60, [
+    { points: line([0.2, 0.2], [0.2, 0.8]), radius: Array(12).fill(r) },
+    { points: line([0.6, 0.1], [0.6, 0.9]), radius: Array(12).fill(r) },
+  ])
+  const shapes = planMarks({ kind: 'stripes', count: 6, seed: 3 }, rig)
+  assert.equal(shapes.length, 6)
+  for (const s of shapes) {
+    assert.equal(s.branch, 0)
+    assert.ok(cellOn(rig, s.x, s.y), `stripe at ${s.x},${s.y}`)
+  }
+})
+
+test('stripes on a thin limb still read: at least 0.2 × body long', () => {
+  const r = 0.5 / SIZE
+  const rig = rectRig(4, 4, 60, 60, [
+    { points: line([0.2, 0.5], [0.8, 0.5]), radius: Array(12).fill(r) },
+  ])
+  const body = 56 / 64
+  for (const s of planMarks({ kind: 'stripes', count: 4, seed: 9 }, rig))
+    assert.ok(s.size >= 0.2 * body - 1e-9, `size ${s.size}`)
 })
 
 test('stars gather in one cluster', () => {

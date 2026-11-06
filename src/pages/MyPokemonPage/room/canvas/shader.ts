@@ -118,10 +118,12 @@ void main() {
 
   float w[3];
   float sum = 0.0;
+  float top = 0.0;
   for (int i = 0; i < 3; i++) {
     vec2 d = lab.yz - uSource[i].yz;
     w[i] = i < uCount ? exp(-dot(d, d) / SPREAD) : 0.0;
     sum += w[i];
+    top = max(top, w[i]);
   }
   vec3 out_ = lab;
   float main_ = 0.0;
@@ -130,7 +132,9 @@ void main() {
       float k = w[i] / sum * free;
       out_ += k * (uTarget[i] - uSource[i]);
     }
-    main_ = w[0] / sum;
+    // the main region at full strength, even where a neighbouring cluster
+    // shares its hue (a shade of the same colour)
+    main_ = w[0] / top;
   }
   if (uEffect == 1) {
     vec3 metal = vec3(0.5 + (out_.x - 0.5) * 1.35, out_.yz * 0.6);

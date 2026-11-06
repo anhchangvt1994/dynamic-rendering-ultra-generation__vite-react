@@ -6,6 +6,8 @@ import { drawMarks, planMarks } from './marks.mjs'
 import { loadRig } from './rig'
 import type { Rig } from './rig'
 
+export type CanvasState = 'on' | 'lost' | 'off'
+
 type Props = {
   speciesId: number
   appearance: Appearance
@@ -13,8 +15,11 @@ type Props = {
   back: boolean
   /** the <img> shows the animation, not the still the server shows while it builds one */
   animated: boolean
-  /** true once its first frame is painted; false when it gives up */
-  onReady: (ok: boolean) => void
+  /**
+   * 'on' once a frame is painted; 'lost' while the context is gone (it may
+   * come back); 'off' when it gives up
+   */
+  onReady: (state: CanvasState) => void
 }
 
 const MARKS_PX = 512
@@ -139,17 +144,18 @@ export default function RoomCanvas({
     const lost = (event: Event) => {
       event.preventDefault()
       sleep()
-      ready.current(false)
+      ready.current('lost')
     }
     const back_ = async () => {
       if (restored) return
       restored = true
-      scene.current?.dispose()
+      // forcing a loss here would lose the context that just came back
+      scene.current?.dispose(true)
       scene.current = null
       if (await build()) {
-        ready.current(true)
+        ready.current('on')
         wake()
-      }
+      } else if (!abort.signal.aborted) ready.current('off')
     }
 
     const observer = new IntersectionObserver(([entry]) => {
@@ -168,10 +174,10 @@ export default function RoomCanvas({
         // an animated rig over the still would sit off its fitted box
         rig = loaded && (animated || loaded.json.frames === 1) ? loaded : null
         if (!(await build())) {
-          if (!abort.signal.aborted) ready.current(false)
+          if (!abort.signal.aborted) ready.current('off')
           return
         }
-        ready.current(true)
+        ready.current('on')
         canvas.addEventListener('webglcontextlost', lost)
         canvas.addEventListener('webglcontextrestored', back_)
         document.addEventListener('visibilitychange', onVisibility)
@@ -181,7 +187,7 @@ export default function RoomCanvas({
         wake()
       })
       .catch(() => {
-        if (!abort.signal.aborted) ready.current(false)
+        if (!abort.signal.aborted) ready.current('off')
       })
 
     return () => {

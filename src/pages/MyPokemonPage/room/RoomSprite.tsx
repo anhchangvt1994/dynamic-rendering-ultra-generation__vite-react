@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import type { Appearance } from 'pages/BagPage/individuals/client'
+import type { CanvasState } from './canvas/RoomCanvas'
 import { alphaBox, bodyCenter, placeSprite, spriteFor } from './sprite.mjs'
 import bodies_ from './spriteBodies.json'
 
@@ -130,7 +131,7 @@ export default function RoomSprite({
   // stays, hidden, as its box (and comes back if the canvas gives up)
   const [canvas, setCanvas] = useState<{
     key: string
-    state: 'trying' | 'on' | 'off'
+    state: CanvasState
   } | null>(null)
   const canvasKey = `${speciesId}`
   const tryCanvas =
@@ -213,9 +214,7 @@ export default function RoomSprite({
                 mood={mood}
                 back={back}
                 animated={animated}
-                onReady={(ok) =>
-                  setCanvas({ key: canvasKey, state: ok ? 'on' : 'off' })
-                }
+                onReady={(state) => setCanvas({ key: canvasKey, state })}
               />
             </Suspense>
           )}

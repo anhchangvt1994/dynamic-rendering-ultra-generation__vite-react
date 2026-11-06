@@ -1,6 +1,7 @@
 // The owned card in the collection, the Pokémon's room and its care.
 //   node scripts/browser/owned-pokemon-room.mjs            local journal (dev app)
 //   node scripts/browser/owned-pokemon-room.mjs --guest    guest status only
+//   node scripts/browser/owned-pokemon-room.mjs --canvas   the WebGL canvas only
 // LOCAL=http://localhost:5190 (dev, local mode), SERVER=http://localhost:5191
 // (Supabase signed in; skipped when unset or down), SHOTS=.superpowers/qa/shots/room
 import { execFileSync } from 'node:child_process'
@@ -156,6 +157,8 @@ try {
         document.body.textContent.includes('Đang kiểm tra Pokémon sở hữu…')
       ))
     )
+  } else if (process.argv.includes('--canvas')) {
+    await canvasChecks()
   } else {
     // ── 1. trade three cards for individuals through the real UI ──
     const page = await open('/tui-do', {
@@ -604,11 +607,186 @@ try {
       await slow.close()
     }
 
-    // ── 10. account switch with the room open (Supabase dev app) ──
+    // ── 10. the individual on the WebGL canvas ──
+    await canvasChecks()
+
+    // ── 11. account switch with the room open (Supabase dev app) ──
     if (SERVER) await accountSwitch()
   }
 } finally {
   await browser.close()
+}
+
+// the room's canvas (palette + marks): shown over the picture once the rig is
+// ready, the picture back whenever WebGL is missing or lost
+async function canvasChecks() {
+  const a = individual(withMarks, 25)
+  const b = individual(withoutMarks, 25)
+  const both = { [a.id]: a, [b.id]: b }
+  const shown = (p) =>
+    p.$eval('.rm-stage .rm-body', (el) => ({
+      canvas: el.hasAttribute('data-canvas'),
+      img: getComputedStyle(el.querySelector('img')).visibility,
+      paint: el.querySelector('canvas')
+        ? getComputedStyle(el.querySelector('canvas')).opacity
+        : null,
+    }))
+  const painted = (p, on = true) =>
+    p
+      .waitForFunction(
+        (on) =>
+          !!document.querySelector('.rm-stage .rm-body[data-canvas]') === on,
+        { timeout: 60000 },
+        on
+      )
+      .then(() => true)
+      .catch(() => false)
+
+  {
+    const p = await open(`/pokemon-cua-toi/${a.id}`, { individuals: both })
+    const warnings = []
+    p.on('console', (m) => warnings.push(m.text()))
+    await ready(p)
+    const on = await painted(p)
+    const s = await shown(p)
+    check(
+      'canvas: painted over a hidden picture once the rig is ready',
+      on && s.img === 'hidden' && s.paint === '1',
+      JSON.stringify(s)
+    )
+    await shot(p, 'canvas-on')
+
+    // a lost context gives the picture back; a restored one paints again
+    await p.evaluate(() => {
+      const c = document.querySelector('.rm-stage .rm-canvas')
+      const gl = c.getContext('webgl2') || c.getContext('webgl')
+      window.__lose = gl.getExtension('WEBGL_lose_context')
+      window.__lose.loseContext()
+    })
+    const gone = await painted(p, false)
+    const lost = await shown(p)
+    check(
+      'canvas: a lost context shows the picture',
+      gone && lost.img === 'visible',
+      JSON.stringify(lost)
+    )
+    await p.evaluate(() => window.__lose.restoreContext())
+    const back = await painted(p)
+    check('canvas: a restored context paints again', back)
+
+    // tab hidden: the clock stops asking for frames
+    await p.evaluate(() => {
+      window.__raf = 0
+      const raf = window.requestAnimationFrame.bind(window)
+      window.requestAnimationFrame = (f) => {
+        window.__raf++
+        return raf(f)
+      }
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      })
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'hidden',
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await wait(300)
+    const before = await p.evaluate(() => window.__raf)
+    await wait(1000)
+    const after = await p.evaluate(() => window.__raf)
+    check(
+      'canvas: no frames asked for in a hidden tab',
+      after === before,
+      `${before}→${after}`
+    )
+    await p.evaluate(() => {
+      delete document.hidden
+      delete document.visibilityState
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // stepping through one species ten times keeps one live context
+    for (let i = 0; i < 10; i++) {
+      await p.click('.rm-step-btn:last-of-type')
+      await wait(400)
+    }
+    const end = await painted(p)
+    check(
+      'canvas: ten steps between individuals, no context pile-up',
+      end && !warnings.some((w) => /Too many active WebGL contexts/.test(w)),
+      warnings.filter((w) => /WebGL/.test(w)).join(' | ')
+    )
+    await p.close()
+  }
+
+  // reduced motion: frame 0 and nothing moves
+  {
+    const p = await open(`/pokemon-cua-toi/${a.id}`, {
+      individuals: both,
+      reduced: true,
+    })
+    await ready(p)
+    const on = await painted(p)
+    await wait(300)
+    const el = await p.$('.rm-stage .rm-body')
+    const first = await el.screenshot()
+    await wait(2000)
+    const later = await el.screenshot()
+    check(
+      'canvas: reduced motion holds one frame',
+      on && Buffer.compare(first, later) === 0
+    )
+    await p.close()
+  }
+
+  // no WebGL: the picture, no canvas
+  {
+    const flat = await puppeteer.launch({
+      headless: true,
+      executablePath:
+        process.env.CHROME_PATH ||
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      args: ['--disable-webgl', '--disable-3d-apis'],
+    })
+    try {
+      const p = await flat.newPage()
+      p.on('pageerror', (e) => errors.push(e.message))
+      await p.setViewport({ width: 420, height: 900 })
+      await p.goto(`${LOCAL}/robots.txt`)
+      await p.evaluate((both) => {
+        localStorage.clear()
+        localStorage.setItem('pokedex:quiz-mode', 'local')
+        localStorage.setItem('pokedex:caught', '[]')
+        localStorage.setItem(
+          'pokedex:quiz-shards-v1',
+          JSON.stringify({
+            version: 1,
+            events: {},
+            balances: {},
+            cards: {},
+            extra: {},
+            individuals: both,
+          })
+        )
+      }, both)
+      await p.goto(`${LOCAL}/pokemon-cua-toi/${a.id}`)
+      await ready(p)
+      await p.waitForSelector('.rm-stage .rm-body img[data-ready]', {
+        timeout: 15000,
+      })
+      await wait(5000)
+      const s = await shown(p)
+      check(
+        'canvas: without WebGL the picture stays',
+        !s.canvas && s.img === 'visible',
+        JSON.stringify(s)
+      )
+    } finally {
+      await flat.close()
+    }
+  }
 }
 
 async function accountSwitch() {

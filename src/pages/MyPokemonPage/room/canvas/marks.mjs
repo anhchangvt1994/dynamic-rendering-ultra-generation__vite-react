@@ -21,6 +21,8 @@ const SIZES = {
   stars: [0.04, 0.06],
 }
 const STRIPE_LENGTH = 1.6
+// a stripe on a thin limb still reads: never shorter than this × body
+const STRIPE_MIN = 0.2
 const SPACING = 1.5
 const STAR_CLUSTER = 0.25
 const TRIES = 40
@@ -176,11 +178,30 @@ function along(R, b, f) {
   }
 }
 
-// across the longest limbs, shared out by length
-function stripes(R, random, branches, count) {
+const inside = (R, [x, y]) =>
+  R.mask[
+    Math.min(R.size - 1, Math.floor(y * R.size)) * R.size +
+      Math.min(R.size - 1, Math.floor(x * R.size))
+  ] === 1
+
+// a branch's runs of points that lie on the main region
+function runs(R, b, index) {
+  const out = []
+  let run = null
+  b.points.forEach((p, i) => {
+    if (!inside(R, p)) return (run = null)
+    if (!run) out.push((run = { points: [], radius: [], index }))
+    run.points.push(p)
+    run.radius.push(b.radius[i])
+  })
+  return out
+}
+
+// across the longest limbs of the main region, shared out by length
+function stripes(R, random, branches, count, body) {
   const ranked = branches
-    .map((b, index) => ({ b, index, len: branchLength(R, b) }))
-    .filter((r) => r.b.points.length)
+    .flatMap((b, index) => runs(R, b, index))
+    .map((b) => ({ b, index: b.index, len: branchLength(R, b) }))
     .sort((a, b) => b.len - a.len || a.index - b.index)
   if (!ranked.length) return []
   const want = Math.max(
@@ -211,7 +232,7 @@ function stripes(R, random, branches, count) {
         kind: 'stripes',
         x: p.x,
         y: p.y,
-        size: STRIPE_LENGTH * p.radius * scale,
+        size: Math.max(STRIPE_LENGTH * p.radius * scale, STRIPE_MIN * body),
         angle: p.tangent + Math.PI / 2 + ((random() - 0.5) * Math.PI) / 18,
         tone: 'dark',
         branch: r.index,
@@ -231,8 +252,10 @@ export function planMarks(marks, rig) {
   if (!R.cells.length) return []
   const random = mulberry32(marks.seed)
   const body = Math.sqrt(R.cells.length * R.cw * R.ch)
-  if (marks.kind === 'stripes' && rig.branches?.length)
-    return stripes(R, random, rig.branches, marks.count)
+  if (marks.kind === 'stripes' && rig.branches?.length) {
+    const shapes = stripes(R, random, rig.branches, marks.count, body)
+    if (shapes.length) return shapes
+  }
   if (marks.kind === 'stripes')
     // no skeleton: short dashes across the body instead
     return scatter(R, random, 'spots', marks.count, body).map((s) => ({
@@ -264,7 +287,7 @@ function path(ctx, s) {
       // a slightly bent stroke, thin at both ends
       const L = s.size / 2
       const bend = 0.12 * s.size
-      const wide = 0.16 * s.size
+      const wide = 0.3 * s.size
       ctx.moveTo(-L, 0)
       ctx.quadraticCurveTo(0, bend - wide, L, 0)
       ctx.quadraticCurveTo(0, bend + wide, -L, 0)

@@ -37,7 +37,8 @@ export type Scene3 = {
   setFlip(back: boolean): void
   setSize(width: number, height: number, ratio: number): void
   render(): void
-  dispose(): void
+  /** frees the scene; `keepContext` when the context just came back */
+  dispose(keepContext?: boolean): void
 }
 
 const MOODS: Record<string, number> = { sad: 1, angry: 2 }
@@ -144,14 +145,14 @@ export function startScene(
       )
     },
     render: () => renderer.render(scene, camera),
-    dispose: () => {
+    dispose: (keepContext = false) => {
       geometry.dispose()
       material.dispose()
       sheet.dispose()
       flow.dispose()
       marks?.dispose()
       renderer.dispose()
-      renderer.forceContextLoss()
+      if (!keepContext) renderer.forceContextLoss()
     },
   }
 }
