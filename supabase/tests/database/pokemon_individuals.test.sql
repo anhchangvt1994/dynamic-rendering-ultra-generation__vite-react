@@ -23,7 +23,7 @@ select is(public.pokemon_individual_traits('00000000-0000-4000-8000-0000a708a7ae
 insert into public.pokemon_cards values ('55555555-5555-4555-8555-555555555555',25,2),('55555555-5555-4555-8555-555555555555',10,1);
 create temp table receipts(k text primary key,v jsonb);
 grant all on receipts to authenticated;
-select is((select count(*)::int from pg_proc where proname in ('pokemon_individual_u32','pokemon_individual_traits') and has_function_privilege('authenticated', oid, 'execute')),0,'trait helpers are not callable by players');
+select is((select count(*)::int from pg_proc where proname in ('pokemon_individual_u32','pokemon_individual_traits','pokemon_individuals_upgrade_appearance') and has_function_privilege('authenticated', oid, 'execute')),0,'trait helpers are not callable by players');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated"}',true);
 select throws_ok($$select public.pokemon_trade_card(null,25::smallint)$$,'P0001','invalid_operation');
@@ -82,5 +82,14 @@ select throws_ok($$select public.pokemon_name_individual(gen_random_uuid(),'x')$
 reset role;
 -- older assets unchanged: the untouched card row of the first owner
 select is((select count from public.pokemon_cards where user_id='55555555-5555-4555-8555-555555555555' and pokemon_id=10),1,'other species cards unchanged');
+-- appearance v2 upgrade: a v1 row (and its trade receipt) becomes traits(id)->'appearance'
+insert into public.pokemon_individuals(id,user_id,pokemon_id,personality,appearance,potential) values
+('00000000-0000-4000-8000-00009e3779b1','66666666-6666-4666-8666-666666666666',25,10,'{"v":1,"hue":-4,"sat":7,"light":-1,"mark":null}','{"v":1,"offsets":[],"stars":3}');
+insert into public.pokemon_card_trades(user_id,operation_id,pokemon_id,individual_id,receipt) values
+('66666666-6666-4666-8666-666666666666','f0f0f0f0-0000-4000-8000-0000000000f2',25,'00000000-0000-4000-8000-00009e3779b1','{"traits":{"personality":10,"appearance":{"v":1,"hue":-4,"sat":7,"light":-1,"mark":null},"potential":{"v":1,"offsets":[],"stars":3}}}');
+select public.pokemon_individuals_upgrade_appearance();
+select is((select appearance from public.pokemon_individuals where id='00000000-0000-4000-8000-00009e3779b1'),public.pokemon_individual_traits('00000000-0000-4000-8000-00009e3779b1'::uuid,25::smallint)->'appearance','a v1 individual is upgraded to v2');
+select is((select receipt#>'{traits,appearance}' from public.pokemon_card_trades where operation_id='f0f0f0f0-0000-4000-8000-0000000000f2'),public.pokemon_individual_traits('00000000-0000-4000-8000-00009e3779b1'::uuid,25::smallint)->'appearance','its trade receipt is upgraded too');
+select is((select count(*)::int from public.pokemon_individuals where appearance->>'v' <> '2'),0,'no v1 appearance remains');
 select * from finish();
 rollback;

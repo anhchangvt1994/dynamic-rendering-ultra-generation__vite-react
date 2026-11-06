@@ -5,8 +5,8 @@ insert into auth.users(id,email,aud,role) values
 ('88888888-8888-4888-8888-888888888888','care-b@example.invalid','authenticated','authenticated');
 -- proud (8: likes beauty, dislikes power) with 1 star; calm (2: likes wisdom, dislikes agility) with 3
 insert into public.pokemon_individuals(id,user_id,pokemon_id,personality,appearance,potential) values
-('c0000000-0000-4000-8000-000000000001','77777777-7777-4777-8777-777777777777',25,8,'{"v":1}','{"v":1,"offsets":[],"stars":1}'),
-('c0000000-0000-4000-8000-000000000002','77777777-7777-4777-8777-777777777777',1,2,'{"v":1}','{"v":1,"offsets":[],"stars":3}');
+('c0000000-0000-4000-8000-000000000001','77777777-7777-4777-8777-777777777777',25,8,'{"v":2,"palette":"origin","shift":[[0,0,0],[0,0,0],[0,0,0]],"marks":null}','{"v":1,"offsets":[],"stars":1}'),
+('c0000000-0000-4000-8000-000000000002','77777777-7777-4777-8777-777777777777',1,2,'{"v":2,"palette":"origin","shift":[[0,0,0],[0,0,0],[0,0,0]],"marks":null}','{"v":1,"offsets":[],"stars":3}');
 insert into public.kitchen_dishes values
 ('77777777-7777-4777-8777-777777777777','poffin-pecha',2),
 ('77777777-7777-4777-8777-777777777777','poffin-cheri',1),

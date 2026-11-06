@@ -70,3 +70,23 @@ test('six mark kinds in weight order, each labelled', () => {
   assert.deepEqual(MARK_LABELS.stripes, { label: 'Lằn', unit: 'vệt' })
   for (const kind of MARK_KINDS) assert.ok(MARK_LABELS[kind].label)
 })
+
+test('the SQL migration lists the same keys per tier, in order', async () => {
+  const { readFileSync } = await import('node:fs')
+  const sql = readFileSync(
+    new URL(
+      '../../../../supabase/migrations/20261116000000_pokemon_appearance_v2.sql',
+      import.meta.url
+    ),
+    'utf8'
+  )
+  const arrays = [
+    ...sql.matchAll(/then array\[([^\]]+)\]|else array\[([^\]]+)\]/g),
+  ].map((m) => (m[1] ?? m[2]).split(',').map((k) => k.trim().replace(/'/g, '')))
+  assert.deepEqual(arrays, [
+    TIER_KEYS.origin,
+    TIER_KEYS.common,
+    TIER_KEYS.rare,
+    TIER_KEYS['very-rare'],
+  ])
+})
