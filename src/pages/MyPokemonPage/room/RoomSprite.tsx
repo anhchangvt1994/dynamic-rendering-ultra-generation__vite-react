@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
+import type { Appearance } from 'pages/BagPage/individuals/client'
 import { alphaBox, bodyCenter, placeSprite, spriteFor } from './sprite.mjs'
 import bodies_ from './spriteBodies.json'
 
@@ -31,6 +32,8 @@ type Box = {
   cx?: number
   cy?: number
 }
+
+const RoomCanvas = lazy(() => import('./canvas/RoomCanvas'))
 
 // the visible body of each picture, measured once per address
 const bodies = new Map<string, Box | null>()
@@ -65,6 +68,8 @@ type Props = {
   box: number
   /** the individual's size against its species, 1 for the usual */
   size?: number
+  /** palette and marks, drawn over the animation when WebGL can */
+  appearance?: Appearance
   className?: string
 }
 
@@ -83,6 +88,7 @@ export default function RoomSprite({
   mood,
   box,
   size = 1,
+  appearance,
   className,
 }: Props) {
   const back = mood === 'ignoring'
@@ -120,7 +126,21 @@ export default function RoomSprite({
     : null
   // turned away the picture is mirrored, and so is its offset from the centre
   const place = placed && (back ? { ...placed, x: -placed.x } : placed)
-  const filter = MOOD_FILTER[mood ?? ''] ?? ''
+  // the canvas draws the individual once the picture is fitted; the picture
+  // stays, hidden, as its box (and comes back if the canvas gives up)
+  const [canvas, setCanvas] = useState<{
+    key: string
+    state: 'trying' | 'on' | 'off'
+  } | null>(null)
+  const canvasKey = `${speciesId}`
+  const tryCanvas =
+    !!appearance &&
+    phase === 'primary' &&
+    !!natural &&
+    !(canvas?.key === canvasKey && canvas.state === 'off')
+  const painted =
+    tryCanvas && canvas?.key === canvasKey && canvas.state === 'on'
+  const filter = painted ? '' : (MOOD_FILTER[mood ?? ''] ?? '')
 
   return (
     <span
@@ -136,6 +156,7 @@ export default function RoomSprite({
           className="rm-body"
           data-shift={place ? `${place.x},${place.y}` : undefined}
           data-measured={(place && seen.body && 'body') || undefined}
+          data-canvas={painted || undefined}
           style={
             place
               ? {
@@ -184,6 +205,20 @@ export default function RoomSprite({
               )
             }
           />
+          {tryCanvas && appearance && (
+            <Suspense fallback={null}>
+              <RoomCanvas
+                speciesId={speciesId}
+                appearance={appearance}
+                mood={mood}
+                back={back}
+                animated={animated}
+                onReady={(ok) =>
+                  setCanvas({ key: canvasKey, state: ok ? 'on' : 'off' })
+                }
+              />
+            </Suspense>
+          )}
         </span>
       )}
     </span>

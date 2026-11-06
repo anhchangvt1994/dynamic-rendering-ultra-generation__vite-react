@@ -1114,8 +1114,24 @@ export const RoomStyle = styled.div`
     user-select: none;
     -webkit-user-drag: none;
   }
-  .rm-stage .rm-body img {
+  .rm-stage .rm-body img,
+  .rm-stage .rm-canvas {
     filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.25));
+  }
+  /* the individual's palette and marks, over its picture's box */
+  .rm-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .rm-body[data-canvas] > .rm-canvas {
+    opacity: 1;
+  }
+  .rm-body[data-canvas] > img {
+    visibility: hidden;
   }
   /* turned away: the front, mirrored */
   .rm-body img[data-back] {

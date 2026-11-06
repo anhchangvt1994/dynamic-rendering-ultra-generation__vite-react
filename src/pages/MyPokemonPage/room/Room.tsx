@@ -399,6 +399,7 @@ export default function Room({
                 mood={feeling ?? undefined}
                 box={Math.round(discWidth * 0.86)}
                 size={sizeOf(individual.id).scale}
+                appearance={individual.appearance}
               />
             </span>
             {fx && <CareFx key={fx.n} fx={fx} radius={discWidth / 2} />}
