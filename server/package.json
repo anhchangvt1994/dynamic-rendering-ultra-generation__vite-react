@@ -8,6 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@fastify/middie": "^9.0.3",
+    "@techstark/opencv-js": "4.10.0-release.1",
     "@types/express": "^5.0.0",
     "chokidar": "^3.5.3",
     "cors": "^2.8.5",

@@ -17,10 +17,11 @@ import { PIPELINE_VERSION } from './pipeline'
  * queue (excess answers 503), one job per key however many ask at once.
  */
 
-const SOURCE = String(PROCESS_ENV.ANIMATED_SOURCE_URL || '').trim()
-const SIZE = Number(PROCESS_ENV.ANIMATED_SIZE) || 800
+export const SOURCE = String(PROCESS_ENV.ANIMATED_SOURCE_URL || '').trim()
+export const SIZE = Number(PROCESS_ENV.ANIMATED_SIZE) || 800
 const QUALITY = Number(PROCESS_ENV.ANIMATED_QUALITY) || 95
-const JOB_TIMEOUT_MS = Number(PROCESS_ENV.ANIMATED_JOB_TIMEOUT_MS) || 600000
+export const JOB_TIMEOUT_MS =
+  Number(PROCESS_ENV.ANIMATED_JOB_TIMEOUT_MS) || 600000
 const MAX_JOBS = Number(PROCESS_ENV.ANIMATED_MAX_JOBS) || 1
 const MAX_QUEUE = Number(PROCESS_ENV.ANIMATED_MAX_QUEUE) || 24
 const FETCH_TIMEOUT_MS = Number(PROCESS_ENV.ANIMATED_FETCH_TIMEOUT_MS) || 8000
@@ -29,9 +30,9 @@ const ESRGAN_MODEL = String(PROCESS_ENV.ANIMATED_ESRGAN_MODEL || '').trim()
 const RIFE_DIR = String(PROCESS_ENV.ANIMATED_RIFE_DIR || '').trim()
 const FPS_FACTOR = Number(PROCESS_ENV.ANIMATED_FPS_FACTOR) || 4
 const STILL = String(PROCESS_ENV.ANIMATED_STILL_URL || '').trim()
-const KEY = /^[a-z0-9-]{1,40}$/
+export const KEY = /^[a-z0-9-]{1,40}$/
 
-const cacheDir = (() => {
+export const cacheDir = (() => {
   const root =
     ServerConfig.rootCache && fs.existsSync(ServerConfig.rootCache)
       ? ServerConfig.rootCache
@@ -47,12 +48,12 @@ export const readKey = (url: string) => {
   return key && KEY.test(key) ? key : null
 }
 
-class Busy extends Error {}
-class Missing extends Error {}
+export class Busy extends Error {}
+export class Missing extends Error {}
 
 let running = 0
 const waiting: (() => void)[] = []
-const withSlot = async <T>(work: () => Promise<T>) => {
+export const withSlot = async <T>(work: () => Promise<T>) => {
   if (running >= MAX_JOBS) {
     if (waiting.length >= MAX_QUEUE) throw new Busy()
     await new Promise<void>((resolve) => waiting.push(resolve))
@@ -66,7 +67,7 @@ const withSlot = async <T>(work: () => Promise<T>) => {
   }
 }
 
-const fetchSource = async (key: string) => {
+export const fetchSource = async (key: string) => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   try {
@@ -136,7 +137,7 @@ const failed = new Map<string, number>() // key → when it failed: rest a minut
 const missing = new Set<string>() // known 404s: do not ask the source again
 // Never make a request wait for a build: start it, answer "not yet" (202) and
 // let the client ask again; a finished one is served from disk.
-const animationFor = (key: string): Buffer | null => {
+export const animationFor = (key: string): Buffer | null => {
   const file = path.join(cacheDir, `${PIPELINE_VERSION}-${SIZE}-${key}.webp`)
   if (fs.existsSync(file)) return fs.readFileSync(file)
   if (missing.has(key)) throw new Missing()
@@ -169,12 +170,12 @@ const animationFor = (key: string): Buffer | null => {
   return null
 }
 
-const CACHED = 'public, max-age=86400, stale-while-revalidate=604800'
+export const CACHED = 'public, max-age=86400, stale-while-revalidate=604800'
 
 // the still stands in until the animation is on disk: a few kept in memory,
 // so a page of waiting Pokémon does not hit the source for each view
 const stills = new Map<string, { body: Buffer; type: string }>()
-const stillFor = async (key: string) => {
+export const stillFor = async (key: string) => {
   const hit = stills.get(key)
   if (hit) return hit
   if (!STILL) return null

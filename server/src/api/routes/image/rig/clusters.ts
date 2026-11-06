@@ -211,5 +211,6 @@ export function primaryMask(
 }
 
 /** The override of one species, if any. */
-export const overrideFor = (speciesId: number): RigOverride | undefined =>
-  overrides[String(speciesId)]
+export const overrideFor = (
+  speciesId: number | string
+): RigOverride | undefined => overrides[String(speciesId)]
