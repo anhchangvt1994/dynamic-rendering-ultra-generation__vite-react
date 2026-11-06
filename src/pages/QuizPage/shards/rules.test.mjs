@@ -2,6 +2,19 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { requiredShards, shardRule, winsShard } from './rules.mjs'
 
+import catalog from './catalog.json' with { type: 'json' }
+
+test('v2 adds ten percentage points, retaining v1 and crafting costs', () => {
+  for (const meta of catalog.species) {
+    const old = shardRule(meta, 1)
+    const next = shardRule(meta, 2)
+    assert.equal(next.required, old.required)
+    assert.equal(next.drop, Math.min(1, old.drop + 0.1))
+    assert.deepEqual(shardRule(meta), next)
+  }
+  assert.throws(() => shardRule(catalog.species[0], 3))
+})
+
 const entry = (captureRate, powerLevel, flags = {}) => ({
   captureRate,
   powerLevel,
@@ -17,7 +30,7 @@ test('difficulty endpoints preserve 3/100% and 20/10%', () => {
     required: 3,
     drop: 1,
   })
-  const hardest = shardRule(entry(1, 9))
+  const hardest = shardRule(entry(1, 9), 1)
   assert.equal(hardest.required, 20)
   assert.ok(Math.abs(hardest.drop - 0.1) < 1e-12)
 })
@@ -28,7 +41,7 @@ test('representative species use approved formula', () => {
     [45, 7, 16, 0.294],
     [3, 8, 19, 0.15],
   ]) {
-    const rule = shardRule(entry(rate, level))
+    const rule = shardRule(entry(rate, level), 1)
     assert.equal(rule.required, required)
     assert.ok(Math.abs(rule.drop - drop) < 0.001)
   }

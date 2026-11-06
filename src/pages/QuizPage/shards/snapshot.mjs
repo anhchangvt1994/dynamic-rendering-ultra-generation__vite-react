@@ -1,3 +1,5 @@
+import { parseChestReceipt } from './chestReceipt.mjs'
+
 export const SHARD_KEY = 'pokedex:quiz-shards-v1'
 export const validOperation = (value) =>
   typeof value === 'string' &&
@@ -69,6 +71,24 @@ export const validIndividual = (i) =>
   }) &&
   stamp(i.createdAt)
 
+const unit = (v) => Number.isFinite(v) && v >= 0 && v < 1
+const validEntropy = (e) =>
+  map(e) &&
+  unit(e.countRoll) &&
+  Array.isArray(e.pieces) &&
+  e.pieces.length === 3 &&
+  e.pieces.every((p) => map(p) && unit(p.groupRoll) && unit(p.speciesRoll))
+const validChestEvent = (key, e) => {
+  if (!map(e) || key !== `${e.roundId}:${e.kind}` || !validEntropy(e.entropy))
+    return false
+  try {
+    parseChestReceipt(e)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function readShardSnapshot(storage) {
   const raw = storage.getItem(SHARD_KEY)
   if (raw == null)
@@ -80,6 +100,7 @@ export function readShardSnapshot(storage) {
       crafts: {},
       individuals: {},
       trades: {},
+      chestEvents: {},
     }
   try {
     const s = JSON.parse(raw)
@@ -112,7 +133,11 @@ export function readShardSnapshot(storage) {
         receipt.operationId !== id
       )
         throw Error()
-    return { ...s, cards, crafts, individuals, trades }
+    const chestEvents = s.chestEvents ?? {}
+    if (!map(chestEvents)) throw Error()
+    for (const [key, event] of Object.entries(chestEvents))
+      if (!validChestEvent(key, event)) throw Error()
+    return { ...s, cards, crafts, individuals, trades, chestEvents }
   } catch {
     throw Object.assign(Error('journal_corrupt'), { code: 'journal_corrupt' })
   }

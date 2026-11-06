@@ -2,6 +2,7 @@
 // the game keeps them. Pure of React; shardStore.ts wires it to the page.
 import { shardRule } from '../QuizPage/shards/rules.mjs'
 import { readShardSnapshot } from '../QuizPage/shards/snapshot.mjs'
+import { createShardJournal } from '../QuizPage/shards/local.mjs'
 
 const shippedCatalog = async (id) => {
   const { default: data } = await import('../QuizPage/shards/catalog.json')
@@ -76,12 +77,22 @@ export async function loadShardRows({
   supabase,
   storage = globalThis.localStorage,
   catalog = shippedCatalog,
+  journal = undefined,
 }) {
   if (mode === 'local') {
+    let reconcileError = null
+    try {
+      await (
+        journal ?? createShardJournal({ storage })
+      ).reconcileLocalChestShards()
+    } catch (error) {
+      reconcileError = error
+    }
     const snapshot = readShardSnapshot(storage)
-    const pending = Object.values(snapshot.events).filter(
-      (event) => event.state === 'pending'
-    ).length
+    const pending = [
+      ...Object.values(snapshot.events),
+      ...Object.values(snapshot.chestEvents),
+    ].filter((event) => event.state === 'pending').length
     return {
       rows: await rowsOf(
         positive(snapshot.balances),
@@ -90,14 +101,20 @@ export async function loadShardRows({
         Object.values(snapshot.individuals).map((item) => item.speciesId)
       ),
       pending,
-      reconcileError: null,
+      reconcileError,
     }
   }
   if (mode !== 'server') return { rows: [], pending: 0, reconcileError: null }
   let reconcileError = null
   const reconciled = await supabase.rpc('quiz_reconcile_shards')
   if (reconciled.error) reconcileError = new Error(reconciled.error.message)
-  const [owned, cards, individuals, waiting] = await Promise.all([
+  try {
+    const chests = await supabase.rpc('quiz_reconcile_chest_shards')
+    if (chests.error) reconcileError ??= new Error(chests.error.message)
+  } catch (error) {
+    reconcileError ??= error
+  }
+  const [owned, cards, individuals, waiting, chests] = await Promise.all([
     supabase.from('pokemon_shards').select('pokemon_id, count'),
     supabase.from('pokemon_cards').select('pokemon_id, count'),
     supabase.from('pokemon_individuals').select('pokemon_id'),
@@ -105,11 +122,16 @@ export async function loadShardRows({
       .from('quiz_shard_events')
       .select('round_id')
       .eq('state', 'pending'),
+    supabase
+      .from('quiz_chest_shard_events')
+      .select('round_id')
+      .eq('state', 'pending'),
   ])
   if (owned.error) throw new Error(owned.error.message)
   if (cards.error) throw new Error(cards.error.message)
   if (individuals.error) throw new Error(individuals.error.message)
   if (waiting.error) throw new Error(waiting.error.message)
+  if (chests.error) throw new Error(chests.error.message)
   return {
     rows: await rowsOf(
       owned.data.map((row) => [row.pokemon_id, row.count]),
@@ -117,7 +139,7 @@ export async function loadShardRows({
       catalog,
       individuals.data.map((row) => row.pokemon_id)
     ),
-    pending: waiting.data.length,
+    pending: waiting.data.length + chests.data.length,
     reconcileError,
   }
 }

@@ -179,8 +179,10 @@ export const BodyStyle = styled.div`
     backface-visibility: hidden;
   }
 
+  /* no will-change: transform: it pins the raster scale at the first
+     (small) size, so the zoomed-in artwork is an upscaled bitmap */
   .pokemon-visual[data-wave-visible='true'] {
-    will-change: transform, opacity;
+    will-change: opacity;
   }
 
   .swiper-slide-active {

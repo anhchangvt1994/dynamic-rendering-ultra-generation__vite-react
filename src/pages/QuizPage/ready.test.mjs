@@ -16,3 +16,9 @@ test('offers a start for available turns and for guests', () => {
   assert.equal(readyAction({ pending: null, left: 5 }, false), 'start')
   assert.equal(readyAction({ pending: null, left: Infinity }, false), 'start')
 })
+test('unopened chests come first, even out of turns or with a round waiting', () => {
+  const chests = [{ kind: 'combo', gifts: [], round: 'r' }]
+  assert.equal(readyAction({ pending: null, left: 0, chests }, true), 'chest')
+  assert.equal(readyAction({ pending: { id: 'p' }, left: 5, chests }, false), 'chest')
+  assert.equal(readyAction({ pending: null, left: 5, chests: [] }, false), 'start')
+})

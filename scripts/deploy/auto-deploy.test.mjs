@@ -161,9 +161,116 @@ function fixture(t) {
     calls,
     pm2,
     run,
-    options: { root, pm2, run, log: () => {} },
+    options: { root, pm2, run, log: () => {}, supabaseEnabled: () => false },
   }
 }
+
+/** a deployed fixture, then one commit touching `file` */
+async function deployedThenChanged(t, file, supabaseEnabled = () => true) {
+  const f = fixture(t)
+  await deploy(f.options)
+  write(path.join(f.root, file), '-- change')
+  command(f.root, ['add', '.'])
+  command(f.root, ['commit', '-qm', 'Change'])
+  f.calls.length = 0
+  f.options = { ...f.options, supabaseEnabled }
+  return f
+}
+
+test('a commit touching supabase/migrations migrates after the builds, before publish/reload', async (t) => {
+  const f = await deployedThenChanged(t, 'supabase/migrations/1_x.sql')
+  f.pm2.reload = async (id) => {
+    assert.ok(f.calls.some(([call]) => call === 'migrate'))
+    f.calls.push(['reload', id])
+  }
+  const result = await deploy(f.options)
+  assert.deepEqual(f.calls, [
+    ['build'],
+    ['server-build'],
+    ['migrate'],
+    ['cache'],
+    ['reload', 7],
+  ])
+  assert.equal(
+    JSON.parse(
+      fs.readFileSync(path.join(f.root, '.cache/auto-deploy/state.json'))
+    ).revision,
+    result.revision
+  )
+})
+
+test('a commit touching supabase/seed migrates too', async (t) => {
+  const f = await deployedThenChanged(t, 'supabase/seed/catalog.sql')
+  await deploy(f.options)
+  assert.ok(f.calls.some(([call]) => call === 'migrate'))
+})
+
+test('the first deployment (no previous revision) migrates', async (t) => {
+  const f = fixture(t)
+  await deploy({ ...f.options, supabaseEnabled: () => true })
+  assert.ok(f.calls.some(([call]) => call === 'migrate'))
+})
+
+test('no supabase change, no migration', async (t) => {
+  const f = await deployedThenChanged(t, 'src/other.ts')
+  await deploy(f.options)
+  assert.equal(
+    f.calls.some(([call]) => call === 'migrate'),
+    false
+  )
+})
+
+test('Supabase disabled, no migration', async (t) => {
+  const f = await deployedThenChanged(
+    t,
+    'supabase/migrations/1_x.sql',
+    () => false
+  )
+  await deploy(f.options)
+  assert.equal(
+    f.calls.some(([call]) => call === 'migrate'),
+    false
+  )
+})
+
+test('migration failure publishes nothing, reloads nothing, records nothing', async (t) => {
+  const f = await deployedThenChanged(t, 'supabase/migrations/1_x.sql')
+  const deployed = fs.readFileSync(
+    path.join(f.root, '.cache/auto-deploy/state.json'),
+    'utf8'
+  )
+  write(path.join(f.root, 'dist/index.html'), 'live-client')
+  const run = async (...args) => {
+    if (args[1][0] === 'migrate') throw new Error('migration failure')
+    await f.run(...args)
+  }
+  await assert.rejects(deploy({ ...f.options, run }), /migration failure/)
+  assert.equal(
+    fs.readFileSync(path.join(f.root, 'dist/index.html'), 'utf8'),
+    'live-client'
+  )
+  assert.equal(
+    f.calls.some(([call]) => call === 'reload' || call === 'cache'),
+    false
+  )
+  assert.equal(
+    fs.readFileSync(path.join(f.root, '.cache/auto-deploy/state.json'), 'utf8'),
+    deployed
+  )
+  assert.equal(
+    fs.existsSync(path.join(f.root, '.cache/auto-deploy/lock')),
+    false
+  )
+})
+
+test('automatic hooks reject local edits to supabase migrations', async (t) => {
+  const f = await deployedThenChanged(t, 'supabase/migrations/1_x.sql')
+  write(path.join(f.root, 'supabase/migrations/1_x.sql'), '-- local edit')
+  await assert.rejects(
+    deploy({ ...f.options, fromHook: true, force: true }),
+    /local edits/
+  )
+})
 
 test('builds both outputs before publishing/reloading and preserves runtime files', async (t) => {
   const f = fixture(t)

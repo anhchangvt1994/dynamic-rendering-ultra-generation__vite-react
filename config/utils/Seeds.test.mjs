@@ -3,7 +3,13 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { seedFiles, loadSeeds } from './Seeds.mjs'
+import {
+  seedFiles,
+  loadSeeds,
+  localSeedFiles,
+  SEED_DIR,
+  DEV_SEED_DIR,
+} from './Seeds.mjs'
 
 const dirWith = (names) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'seeds-'))
@@ -46,4 +52,14 @@ test('loadSeeds stops and names the file that failed', () => {
     /b\.sql/
   )
   assert.deepEqual(seen, ['-- a.sql', '-- b.sql'])
+})
+
+test('the dev test account seed is local only, never in the production list', () => {
+  const prod = seedFiles().map((f) => path.basename(f))
+  const local = localSeedFiles().map((f) => path.basename(f))
+  assert.ok(!prod.includes('dev_test_account.sql'))
+  assert.ok(local.includes('dev_test_account.sql'))
+  assert.notEqual(path.resolve(DEV_SEED_DIR), path.resolve(SEED_DIR))
+  // production seeds first, the dev data builds on them
+  assert.deepEqual(local.slice(0, prod.length), prod)
 })

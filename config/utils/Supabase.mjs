@@ -20,7 +20,7 @@ import fs from 'fs'
 import net from 'net'
 import { fileURLToPath } from 'url'
 import { isEnabled, loadEnv } from './ServerEnv.mjs'
-import { loadSeeds, seedFiles } from './Seeds.mjs'
+import { loadSeeds, localSeedFiles, seedFiles } from './Seeds.mjs'
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const CLI = `${ROOT}node_modules/.bin/supabase`
@@ -741,7 +741,7 @@ export async function migrateLocalSupabase() {
 
 /** The CLI stack's db container is supabase_db_<project_id> */
 const seedLocal = () => {
-  const loaded = loadSeeds(seedFiles(), (sql) =>
+  const loaded = loadSeeds(localSeedFiles(), (sql) =>
     spawnSync(
       'docker',
       [

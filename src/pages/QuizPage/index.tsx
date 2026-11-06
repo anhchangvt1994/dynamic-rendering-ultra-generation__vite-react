@@ -338,6 +338,10 @@ export default function QuizPage() {
   const onReady = useCallback(async () => {
     if (startLock.current || !engine || !status) return
     const action = readyAction(status, outOfTurns)
+    if (action === 'chest') {
+      setChestOpen(true)
+      return
+    }
     if (action !== 'start' && action !== 'resume') return
     const epoch = engineEpoch.current
     startLock.current = true
@@ -360,6 +364,8 @@ export default function QuizPage() {
           if (!live()) return
           setStatusFailed(false)
           setOutOfTurns(!value.pending && value.left <= 0)
+          // chests won before a reload: their button comes back
+          setChests(value.chests ?? [])
         })
         .catch(() => live() && setStatusFailed(true)),
     [askStatus]
@@ -382,6 +388,8 @@ export default function QuizPage() {
     setStatus(null)
     setOutOfTurns(false)
     setLost(false)
+    setChests([])
+    setChestOpen(false)
     resume(() => live)
     return () => {
       live = false
@@ -976,6 +984,40 @@ export default function QuizPage() {
     )
   }
 
+  // NOTE - Closed, the chests are seen: off the account's list. A close that
+  // never reaches the engine leaves them for the next visit (their items are
+  // already in the bag, so a second opening pays nothing)
+  const closeChests = () => {
+    setChestOpen(false)
+    const rounds = [...new Set(chests.map((chest) => chest.round))]
+    setChests([])
+    setStatus(
+      (value) =>
+        value && {
+          ...value,
+          chests: value.chests.filter((chest) => !rounds.includes(chest.round)),
+        }
+    )
+    if (engine)
+      for (const round of rounds) engine.openChests(round).catch(() => {})
+  }
+  const chestDialog = (
+    <>
+      <ChestDialog
+        engine={engine}
+        chests={chests}
+        open={chestOpen}
+        onPick={setItemOpen}
+        onClose={closeChests}
+      />
+      <ItemDialog
+        id={itemOpen}
+        count={itemOpen ? (bag[itemOpen] ?? 0) : 0}
+        onClose={() => setItemOpen(null)}
+      />
+    </>
+  )
+
   const action = readyAction(status, outOfTurns)
   if (phase === 'ready' && action !== 'rest') {
     return (
@@ -991,6 +1033,7 @@ export default function QuizPage() {
               busy={starting}
               onGo={onReady}
               rewards={rewards}
+              chests={chests}
             />
           )}
           {action === 'start' && settings}
@@ -1005,6 +1048,7 @@ export default function QuizPage() {
           )}
           <QuickLinks bagCount={bagSize(bag ?? {})} />
         </div>
+        {chestDialog}
       </QuizStyle>
     )
   }
@@ -1663,20 +1707,7 @@ export default function QuizPage() {
         )}
       </div>
 
-      <ChestDialog
-        chests={chests}
-        open={chestOpen}
-        onPick={setItemOpen}
-        onClose={() => {
-          setChestOpen(false)
-          setChests([])
-        }}
-      />
-      <ItemDialog
-        id={itemOpen}
-        count={itemOpen ? (bag[itemOpen] ?? 0) : 0}
-        onClose={() => setItemOpen(null)}
-      />
+      {chestDialog}
     </QuizStyle>
   )
 }

@@ -3,7 +3,13 @@ import AmberCard from '../crafting/AmberCard'
 import { useModal } from 'pages/QuizPage/useModal'
 import type { TradeReceipt } from './client'
 import IndividualArt from './IndividualArt'
-import { markLabel, personalityLine, starLabel } from './display.mjs'
+import {
+  personalityLine,
+  sizeLabel,
+  sizeOf,
+  starLabel,
+  tintLabel,
+} from './display.mjs'
 import { nameError } from './messages.mjs'
 import { DialogStyle } from './styles'
 
@@ -31,7 +37,6 @@ export default function WelcomeDialog({ receipt, name, save, onClose }: Props) {
   if (!receipt) return <DialogStyle ref={ref} aria-label="Cá thể mới" />
   const { traits } = receipt
   const personality = personalityLine(traits.personality)
-  const mark = traits.appearance.mark
   const length = [...nickname].length
   const submit = async () => {
     if (busy || !length) return
@@ -79,7 +84,8 @@ export default function WelcomeDialog({ receipt, name, save, onClose }: Props) {
           </span>
           <span>Tiềm năng: {starLabel(traits.potential.stars)}</span>
           <span>
-            {mark ? `Dấu hiệu: ${markLabel(mark.kind)}` : 'Không có dấu hiệu'}
+            Sắc độ: {tintLabel(traits.appearance)} · Kích thước:{' '}
+            {sizeLabel(sizeOf(receipt.individualId))}
           </span>
         </div>
         <form

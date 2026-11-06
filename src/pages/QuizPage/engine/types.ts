@@ -40,6 +40,8 @@ export type Status = {
   timeLeft: number
   timeRefillAt: number
   pending: PlayRound | null
+  /** chests won and not opened yet (their items are already in the bag) */
+  chests: Chest[]
 }
 
 export type Verdict = {
@@ -62,6 +64,13 @@ export type ShardReceipt = {
   drop: number | null
 }
 
+export type ChestShardReceipt = {
+  roundId: string
+  kind: 'combo' | 'special'
+  state: 'pending' | 'awarded'
+  shards: { speciesId: number; count: number }[]
+}
+
 export type StartOptions = { from: number; to: number; hard: boolean }
 
 /** The game behind the page: in this browser, on the account, or as a guest. */
@@ -77,10 +86,17 @@ export interface QuizEngine {
   timeStop(round: PlayRound): Promise<PlayRound>
   /** the Roar of Time out of turns: a new window at once */
   timeRefill(): Promise<Status>
+  /** the chests of a round seen: off the list (a retry is a no-op) */
+  openChests(round: string): Promise<void>
   /** settles the shard of an answered round (once; a retry is the same receipt) */
   claimShard(roundId: string): Promise<ShardReceipt>
   /** settles the caller's pending shards (a catalog that came late) */
   reconcileShards(): Promise<ShardReceipt[]>
+  claimChestShards(
+    roundId: string,
+    kind: 'combo' | 'special'
+  ): Promise<ChestShardReceipt>
+  reconcileChestShards(): Promise<ChestShardReceipt[]>
   art(round: PlayRound): string
   cry(round: PlayRound): string
 }

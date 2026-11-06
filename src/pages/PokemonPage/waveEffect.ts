@@ -41,7 +41,7 @@ const WaveEffect: SwiperModule = ({ swiper, on }) => {
       visible.add(visual)
       visual.style.transform = `translate3d(0, ${wave.y.toFixed(3)}px, 0) scale(${wave.scale.toFixed(4)})`
       visual.style.opacity = wave.opacity.toFixed(4)
-      visual.style.filter = `blur(${wave.blur.toFixed(3)}px)`
+      visual.style.filter = wave.blur < 0.02 ? '' : `blur(${wave.blur.toFixed(3)}px)`
       slide.style.zIndex = String(Math.round(wave.opacity * 100))
       slide.setAttribute('aria-hidden', String(Math.abs(progress) > 1.5))
     })

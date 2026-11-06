@@ -274,65 +274,109 @@ export const HomePageStyle = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
     padding-bottom: 18px;
   }
-  .view-tabs {
+  /* all ⊃ collection ⊃ owned: one segmented control, never a stray row */
+  .scope-tabs {
     display: flex;
-    gap: 5px;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 12px;
+    background: #e5ebf2;
   }
-  .view-tabs button {
-    min-height: 39px;
+  .scope-tabs button {
+    min-height: 38px;
     border: 0;
     border-radius: 9px;
     background: transparent;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     color: var(--muted);
     padding: 0 12px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
+    white-space: nowrap;
+    transition:
+      background 0.18s,
+      color 0.18s,
+      box-shadow 0.18s;
   }
-  .view-tabs button[aria-pressed='true'] {
+  .scope-tabs b {
+    font-weight: inherit;
+  }
+  .scope-tabs button:hover:not([aria-pressed='true']) {
     color: var(--ink);
-    background: #e5ebf2;
+    background: #ffffff80;
   }
-  .view-tabs button:hover {
-    background: #e5ebf2;
+  .scope-tabs button[aria-pressed='true'] {
+    color: var(--ink);
+    background: white;
+    box-shadow:
+      0 1px 2px #12223a1f,
+      0 3px 10px #12223a12;
   }
-  .view-tabs svg {
+  .scope-tabs svg {
     width: 16px;
     height: 16px;
+    flex: none;
   }
-  .view-tabs button span {
-    min-width: 19px;
-    padding: 0 4px;
-    border-radius: 5px;
+  .scope-tabs button span {
+    min-width: 20px;
+    padding: 1px 5px;
+    border-radius: 6px;
     background: white;
     font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
   }
-  .result-count {
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
+  .scope-tabs button[aria-pressed='true'] span {
+    background: #e5ebf2;
   }
-  .active-filters {
+  .scope-tabs [data-filter='owned'] svg {
+    color: #e94e43;
+  }
+  .scope-tabs [data-filter='owned'][aria-pressed='true'] svg {
+    fill: #e94e43;
+  }
+  .scope-tabs [data-filter='owned'][aria-pressed='true'] span {
+    background: #ffe9e6;
+    color: #c2352b;
+  }
+  .scope-tabs [aria-busy='true'] span {
+    animation: scope-wait 1s ease-in-out infinite alternate;
+  }
+  @keyframes scope-wait {
+    to {
+      opacity: 0.35;
+    }
+  }
+  .results-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    font-size: 11px;
-    color: var(--muted);
+    gap: 14px;
+    min-width: 0;
+    margin-left: auto;
   }
-  .active-filters > span {
+  .result-count {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
+    color: var(--muted);
   }
-  .active-filters button {
+  .result-count strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .result-count em {
+    font-style: normal;
+  }
+  .clear-filters {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -341,8 +385,33 @@ export const HomePageStyle = styled.div`
     border: 0;
     background: transparent;
     color: var(--red);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
+  }
+  .clear-filters:hover {
+    text-decoration: underline;
+  }
+  .scope-alert {
+    margin: -6px 0 14px;
+    font-size: 12px;
+    color: var(--red);
+  }
+  .scope-alert button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    padding: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scope-tabs button {
+      transition: none;
+    }
+    .scope-tabs [aria-busy='true'] span {
+      animation: none;
+    }
   }
   .catalog-state {
     min-height: 270px;
@@ -603,13 +672,21 @@ export const HomePageStyle = styled.div`
     .results-heading {
       padding-bottom: 12px;
     }
-    .view-tabs button {
-      font-size: 12px;
-      min-height: 37px;
-      padding: 0 9px;
+    .scope-tabs {
+      width: 100%;
+    }
+    .scope-tabs button {
+      flex: 1 1 auto;
+      min-height: 38px;
+      padding: 0 8px;
+    }
+    .results-meta {
+      width: 100%;
+      margin-left: 0;
+      justify-content: space-between;
     }
     .result-count {
-      font-size: 11px;
+      font-size: 12px;
     }
     .field-footer {
       flex-direction: column;
@@ -623,6 +700,22 @@ export const HomePageStyle = styled.div`
     .field-footer p {
       font-size: 11px;
       text-align: left;
+    }
+  }
+  @media (max-width: 400px) {
+    .scope-tabs button {
+      gap: 5px;
+      padding: 0 6px;
+    }
+    .scope-tabs svg {
+      display: none;
+    }
+    .scope-tabs b[data-short] {
+      font-size: 0;
+    }
+    .scope-tabs b[data-short]::after {
+      content: attr(data-short);
+      font-size: 12px;
     }
   }
 `

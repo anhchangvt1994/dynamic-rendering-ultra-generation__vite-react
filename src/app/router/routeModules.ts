@@ -10,6 +10,7 @@ export const ROUTE_MODULES = {
   quiz: lazyRoute(() => import('pages/QuizPage')),
   bag: lazyRoute(() => import('pages/BagPage')),
   kitchen: lazyRoute(() => import('pages/KitchenPage')),
+  myPokemon: lazyRoute(() => import('pages/MyPokemonPage')),
   compare: lazyRoute(() => import('pages/ComparePage')),
   // ENABLE_SUPABASE off: no page, nothing in the bundle
   account: ACCOUNTS_ENABLED
@@ -34,6 +35,8 @@ export function routeModuleFor(pathname: string) {
       return ROUTE_MODULES.bag
     case 'che-bien':
       return ROUTE_MODULES.kitchen
+    case 'pokemon-cua-toi':
+      return ROUTE_MODULES.myPokemon
     case 'so-sanh':
       return ROUTE_MODULES.compare
     case 'dang-nhap':

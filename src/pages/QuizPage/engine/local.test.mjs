@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { seeded } from '../quiz.mjs'
 import { itemById, isValuable } from '../items.mjs'
-import { createLocalEngine } from './local.mjs'
+import { createLocalEngine, KEYS } from './local.mjs'
 import { createGuestEngine } from './guest.mjs'
 import { drawRound, veilElapsed, veilSeed, verdictOf } from './rules.mjs'
 import { findGuess } from '../quiz.mjs'
@@ -229,11 +229,11 @@ test('start spends a turn; starting again resumes the same round', async () => {
     random: seeded(1),
     now: clock().now,
   })
-  assert.equal((await engine.status()).left, 5)
+  assert.equal((await engine.status()).left, 10)
   const round = await engine.start(KANTO)
-  assert.equal((await engine.status()).left, 4)
+  assert.equal((await engine.status()).left, 9)
   assert.equal((await engine.start(KANTO)).id, round.id)
-  assert.equal((await engine.status()).left, 4)
+  assert.equal((await engine.status()).left, 9)
   assert.equal((await engine.status()).pending.id, round.id)
 })
 
@@ -268,17 +268,37 @@ test('the clock keeps running while away: a right answer 30 s later is too late'
   assert.equal(verdict.gift, null)
 })
 
-test('five rounds, then no turns until the window ends', async () => {
+test('ten rounds, then no turns until the window ends', async () => {
   const time = clock()
   const engine = createLocalEngine({
     storage: memory(),
     random: seeded(5),
     now: time.now,
   })
-  for (let i = 0; i < 5; i++) await engine.answer(await engine.start(KANTO), -1)
+  for (let i = 0; i < 10; i++)
+    await engine.answer(await engine.start(KANTO), -1)
   await assert.rejects(engine.start(KANTO), /no_turns/)
   time.add(3 * 3600_000)
-  assert.equal((await engine.status()).left, 5)
+  assert.equal((await engine.status()).left, 10)
+})
+
+test('chest journal persistence failure keeps the pending round for retry', async () => {
+  const storage = memory()
+  storage.setItem(KEYS.streak, '4')
+  const engine = createLocalEngine({
+    storage,
+    random: seeded(6),
+    now: clock().now,
+    shards: {
+      recordLocalOutcome: async () => ({}),
+      recordLocalChestRewards: async () => {
+        throw Error('quota')
+      },
+    },
+  })
+  const round = await engine.start(KANTO)
+  await assert.rejects(engine.answer(round, round.answerId), /quota/)
+  assert.equal(JSON.parse(storage.getItem(KEYS.round)).id, round.id)
 })
 
 test('streak 4 and a right answer: a combo chest, the streak starts over', async () => {
@@ -287,6 +307,7 @@ test('streak 4 and a right answer: a combo chest, the streak starts over', async
   const engine = createLocalEngine({
     storage,
     random: seeded(6),
+    shards: createShardJournal({ storage, lock: (_, fn) => fn() }),
     now: clock().now,
   })
   const round = await engine.start(KANTO)
@@ -318,7 +339,7 @@ test('three free swaps per window, then refused', async () => {
   })
   let round = await engine.start(KANTO)
   for (let i = 0; i < 3; i++) round = await engine.reroll(round)
-  assert.equal((await engine.status()).left, 4)
+  assert.equal((await engine.status()).left, 9)
   await assert.rejects(engine.reroll(round), /no_rerolls/)
 })
 
@@ -382,7 +403,7 @@ test('shards: a round carries the feature versions and a roll from its own RNG',
   const storage = memory()
   const round = await shardedEngine(storage, () => 0.37).start(KANTO)
   const stored = JSON.parse(storage.getItem('pokedex:quiz-round'))
-  assert.equal(stored.shardRuleVersion, 1)
+  assert.equal(stored.shardRuleVersion, 2)
   assert.equal(stored.shardCatalogVersion, 1)
   assert.equal(stored.shardRoll, 0.37)
   assert.equal(round.id, stored.id)
@@ -394,7 +415,7 @@ test('shards: the shard roll never changes the draw, the gifts or the bag', asyn
     const round = await engine.start(KANTO)
     const verdict = await engine.answer(round, round.answerId)
     return {
-      round: { ...round, id: 0, shardRoll: 0 },
+      round: { ...round, id: 0, shardRoll: 0, chestEntropy: [] },
       gift: verdict.gift,
       chests: verdict.chests,
       bag: storage.getItem('pokedex:bag'),
@@ -493,4 +514,74 @@ test('shards: two answers in flight reward once', async () => {
     ),
     1
   )
+})
+
+test('chests: two answers in flight on a combo round award the chest once', async () => {
+  const storage = memory()
+  storage.setItem(KEYS.streak, '4')
+  const engine = shardedEngine(storage, () => 0.2)
+  const round = await engine.start(KANTO)
+  const results = await Promise.allSettled([
+    engine.answer(round, round.answerId),
+    engine.answer(round, round.answerId),
+  ])
+  assert.deepEqual(results.map((r) => r.status).sort(), [
+    'fulfilled',
+    'rejected',
+  ])
+  const won = results.find((r) => r.status === 'fulfilled').value
+  const total = Object.values(
+    JSON.parse(storage.getItem('pokedex:bag'))
+  ).reduce((a, b) => a + b, 0)
+  assert.equal(total, 1 + won.chests[0].gifts.length)
+  assert.equal(Number(storage.getItem(KEYS.records)), 1)
+})
+
+test('unopened chests survive a reload until opened', async () => {
+  const storage = memory()
+  storage.setItem(KEYS.streak, '4')
+  storage.setItem(KEYS.records, '9')
+  const options = () => ({
+    storage,
+    random: seeded(6),
+    shards: createShardJournal({ storage, lock: (_, fn) => fn() }),
+    now: clock().now,
+  })
+  const engine = createLocalEngine(options())
+  const round = await engine.start(KANTO)
+  const verdict = await engine.answer(round, round.answerId)
+  const bag = storage.getItem(KEYS.bag)
+  // a reload: a new engine on the same storage
+  const again = createLocalEngine(options())
+  const { chests } = await again.status()
+  assert.deepEqual(
+    chests.map((chest) => [chest.kind, chest.round, chest.roundId]),
+    [
+      ['combo', round.id, round.id],
+      ['special', round.id, round.id],
+    ]
+  )
+  assert.deepEqual(
+    chests.map((chest) => chest.gifts),
+    verdict.chests.map((chest) => chest.gifts)
+  )
+  await again.openChests(round.id)
+  assert.deepEqual((await again.status()).chests, [])
+  await again.openChests(round.id)
+  assert.equal(storage.getItem(KEYS.bag), bag, 'opening pays nothing twice')
+})
+
+test('a wrong answer leaves no chest to open', async () => {
+  const storage = memory()
+  const engine = createLocalEngine({ storage, random: seeded(6), now: clock().now })
+  const round = await engine.start(KANTO)
+  const wrong = round.options.find((id) => id !== round.answerId)
+  await engine.answer(round, wrong)
+  assert.deepEqual((await engine.status()).chests, [])
+})
+
+test('guest engine: never a chest to open', async () => {
+  const engine = createGuestEngine({ random: seeded(1), collection: () => [] })
+  assert.deepEqual((await engine.status()).chests, [])
+  await engine.openChests('any')
 })

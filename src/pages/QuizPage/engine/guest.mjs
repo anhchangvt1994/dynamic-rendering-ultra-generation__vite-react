@@ -19,6 +19,7 @@ const NEUTRAL = {
   timeLeft: 0,
   timeRefillAt: 0,
   pending: null,
+  chests: [],
 }
 
 export function createGuestEngine({
@@ -107,6 +108,13 @@ export function createGuestEngine({
       }
     },
     async reconcileShards() {
+      return []
+    },
+    async openChests() {},
+    async claimChestShards() {
+      throw new Error('no_chest')
+    },
+    async reconcileChestShards() {
       return []
     },
     art: (round) => getPokemonImage(round.answerId),

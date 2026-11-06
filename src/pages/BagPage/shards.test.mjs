@@ -44,6 +44,7 @@ const row = (speciesId, count, required) => ({
 const fakeSupabase = ({
   shards,
   events,
+  chests = [],
   cards,
   failShards,
   failCards,
@@ -70,7 +71,12 @@ const fakeSupabase = ({
               ? { data: null, error: { message: 'cards failed' } }
               : { data: cards ?? [], error: null }
             : {
-                data: table === 'pokemon_individuals' ? [] : (events ?? []),
+                data:
+                  table === 'pokemon_individuals'
+                    ? []
+                    : table === 'quiz_chest_shard_events'
+                      ? chests
+                      : (events ?? []),
                 error: null,
               }
       return {
@@ -105,7 +111,7 @@ test('a catalog entry becomes a row with its rule; a missing one is an explicit 
     [r.speciesId, r.name, r.count, r.required, r.types],
     [25, 'pikachu', 2, 7, ['electric']]
   )
-  assert.ok(Math.abs(r.drop - 0.806) < 0.001)
+  assert.ok(Math.abs(r.drop - 0.906) < 0.001)
   assert.throws(() => toRow(999, 1, undefined), /missing_metadata/)
 })
 
@@ -126,6 +132,7 @@ test('server: reconciles, reads balances, counts pending; a failed read is an er
   })
   const out = await loadShardRows({ mode: 'server', supabase, catalog })
   assert.equal(supabase.calls[0], 'quiz_reconcile_shards')
+  assert.ok(supabase.calls.includes('quiz_reconcile_chest_shards'))
   assert.deepEqual(
     out.rows.map((r) => r.speciesId),
     [25, 10]
@@ -337,4 +344,74 @@ test('local: cards from the journal appear, card-only included', async () => {
       [25, 0, 3],
     ]
   )
+})
+
+test('local: pending chest rewards are reconciled first and still-pending ones are counted', async () => {
+  const data = new Map()
+  const storage = {
+    getItem: (k) => data.get(k) ?? null,
+    setItem: (k, v) => data.set(k, v),
+  }
+  data.set(
+    SHARD_KEY,
+    JSON.stringify({
+      version: 1,
+      events: {},
+      balances: {},
+      chestEvents: {
+        'local-1-25:combo': {
+          roundId: 'local-1-25',
+          kind: 'combo',
+          entropy: {
+            countRoll: 0,
+            pieces: Array.from({ length: 3 }, () => ({
+              groupRoll: 0,
+              speciesRoll: 0,
+            })),
+          },
+          state: 'pending',
+          shards: [],
+        },
+      },
+    })
+  )
+  let reconciled = 0
+  const journal = {
+    reconcileLocalChestShards: async () => {
+      reconciled++
+      const s = JSON.parse(data.get(SHARD_KEY))
+      s.balances[25] = 2
+      data.set(SHARD_KEY, JSON.stringify(s))
+      return []
+    },
+  }
+  const out = await loadShardRows({ mode: 'local', storage, catalog, journal })
+  assert.equal(reconciled, 1)
+  assert.deepEqual(
+    out.rows.map((r) => [r.speciesId, r.count]),
+    [[25, 2]]
+  )
+  assert.equal(out.pending, 1)
+  const failing = await loadShardRows({
+    mode: 'local',
+    storage,
+    catalog,
+    journal: {
+      reconcileLocalChestShards: async () => {
+        throw new Error('locks_unavailable')
+      },
+    },
+  })
+  assert.equal(failing.rows.length, 1)
+  assert.match(failing.reconcileError.message, /locks_unavailable/)
+})
+
+test('server: pending chest entitlements count as pending', async () => {
+  const supabase = fakeSupabase({
+    events: [{ round_id: 'a' }],
+    chests: [{ round_id: 'b' }],
+  })
+  const out = await loadShardRows({ mode: 'server', supabase, catalog })
+  assert.ok(supabase.calls.includes('from:quiz_chest_shard_events'))
+  assert.equal(out.pending, 2)
 })

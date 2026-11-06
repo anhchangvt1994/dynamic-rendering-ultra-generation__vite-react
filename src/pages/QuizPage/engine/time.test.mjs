@@ -1,6 +1,7 @@
 // The Roar of Time: a round's clock stopped for 30 s, the 10 charges
 // (the same numbers as supabase/tests/database/quiz_time.test.sql)
 import assert from 'node:assert/strict'
+import { createShardJournal } from '../shards/local.mjs'
 import { test } from 'node:test'
 import {
   FREEZE_MS,
@@ -175,7 +176,12 @@ const memory = () => {
 }
 const KANTO = { from: 1, to: 151, hard: false }
 const local = (storage, t) =>
-  createLocalEngine({ storage, now: () => t.now, random: Math.random })
+  createLocalEngine({
+    storage,
+    now: () => t.now,
+    random: Math.random,
+    shards: createShardJournal({ storage, lock: (_, fn) => fn() }),
+  })
 const noLuck = (storage) => {
   const round = JSON.parse(storage.getItem(KEYS.round))
   storage.setItem(KEYS.round, JSON.stringify({ ...round, bonus: -1 }))
@@ -248,9 +254,9 @@ test('local: out of turns, a charge opens a new window; the streak stays', async
   const engine = local(storage, t)
   await assert.rejects(engine.timeRefill(), /has_turns/)
   storage.setItem(KEYS.streak, '4')
-  storage.setItem(KEYS.turns, JSON.stringify({ start: t.now, used: 5 }))
+  storage.setItem(KEYS.turns, JSON.stringify({ start: t.now, used: 10 }))
   const status = await engine.timeRefill()
-  assert.equal(status.left, 5)
+  assert.equal(status.left, 10)
   assert.equal(status.timeLeft, 9)
   assert.equal(status.streak, 4)
 })
@@ -366,4 +372,22 @@ test('guests: no Palkia', async () => {
   const round = await createGuestEngine().start(KANTO)
   assert.deepEqual(round.removed, [])
   assert.equal(round.letter, null)
+})
+
+test('server chests carry a round id only when the round has chest shards', async () => {
+  const reply = (version) =>
+    client({
+      quiz_answer: {
+        ...SERVER_STATUS,
+        outcome: 'right',
+        answer_id: 25,
+        slot: 0,
+        chest_reward_version: version,
+        chests: [{ kind: 'combo', gifts: ['protein'] }],
+      },
+    })
+  const fresh = await createServerEngine(reply(1)).answer({ id: 'r-1' }, 25)
+  assert.equal(fresh.chests[0].roundId, 'r-1')
+  const legacy = await createServerEngine(reply(null)).answer({ id: 'r-1' }, 25)
+  assert.equal(legacy.chests[0].roundId, undefined)
 })

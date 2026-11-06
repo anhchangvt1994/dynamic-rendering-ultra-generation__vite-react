@@ -1,8 +1,12 @@
 // The browser's shard journal (yarn dev without a session): one snapshot
 // {version, events, balances} under one key, every change read-modify-written
-// inside a Web Lock so two tabs can not both settle a round. Production and
+// inside a Web Lock so two tabs can not both settle a round (over plain http
+// on a LAN ip there is none: then a lock within the tab). Production and
 // guests never use it.
 import { shardRule, winsShard } from './rules.mjs'
+import { randomId, webLock } from '../../../utils/secure.mjs'
+import { drawChestShards } from './chestRewards.mjs'
+import { parseChestReceipt } from './chestReceipt.mjs'
 import { individualTraits } from '../../BagPage/individuals/traits.mjs'
 import { normalizeNickname } from '../../BagPage/individuals/nickname.mjs'
 
@@ -13,16 +17,12 @@ import {
   validSpecies,
 } from './snapshot.mjs'
 export { SHARD_KEY } from './snapshot.mjs'
-export const RULE_VERSION = 1
+export const RULE_VERSION = 2
 export const CATALOG_VERSION = 1
 
 const fail = (code, message = code) =>
   Object.assign(new Error(message), { code })
 
-const webLock = () =>
-  globalThis.navigator?.locks
-    ? (name, fn) => globalThis.navigator.locks.request(name, fn)
-    : undefined
 
 // the shipped catalog, loaded only when a claim needs it
 const shippedCatalog = async (version, id) => {
@@ -35,7 +35,8 @@ export function createShardJournal({
   storage = globalThis.localStorage,
   lock = webLock(),
   catalog = shippedCatalog,
-  randomUUID = () => globalThis.crypto.randomUUID(),
+  chestCatalog = async () => (await import('./catalog.json')).default.species,
+  randomUUID = () => randomId(),
   now = () => new Date(),
 } = {}) {
   const exclusive = (fn) => {
@@ -54,7 +55,62 @@ export function createShardJournal({
     drop: event.drop ?? null,
   })
 
+  const settleChest = async (snapshot, key) => {
+    const event = snapshot.chestEvents[key]
+    if (!event) throw fail('no_chest')
+    if (event.state === 'pending') {
+      let selected
+      try {
+        selected = drawChestShards(
+          event.kind,
+          await chestCatalog(),
+          event.entropy
+        )
+      } catch (error) {
+        if (error.message === 'catalog_unavailable')
+          return parseChestReceipt(event)
+        throw error
+      }
+      for (const row of selected) {
+        const next = (snapshot.balances[row.speciesId] ?? 0) + row.count
+        if (!Number.isSafeInteger(next)) throw fail('balance_overflow')
+        snapshot.balances[row.speciesId] = next
+      }
+      event.shards = selected
+      event.state = 'awarded'
+      save(snapshot)
+    }
+    return parseChestReceipt(event)
+  }
+
   return {
+    recordLocalChestRewards: (roundId, entitlements) =>
+      exclusive(async () => {
+        const snapshot = load()
+        for (const { kind, entropy } of entitlements) {
+          if (!['combo', 'special'].includes(kind)) throw fail('invalid_kind')
+          const key = `${roundId}:${kind}`
+          snapshot.chestEvents[key] ??= {
+            roundId,
+            kind,
+            entropy,
+            state: 'pending',
+            shards: [],
+          }
+        }
+        save(snapshot)
+      }),
+    claimLocalChestShards: (roundId, kind) =>
+      exclusive(async () => settleChest(load(), `${roundId}:${kind}`)),
+    reconcileLocalChestShards: () =>
+      exclusive(async () => {
+        const snapshot = load()
+        const out = []
+        for (const [key, event] of Object.entries(snapshot.chestEvents))
+          if (event.state === 'pending')
+            out.push(await settleChest(snapshot, key))
+        return out
+      }),
     // a card becomes an individual: its id is born here, its traits follow
     // from the id, and the receipt is stored so a replay gives it back
     tradeLocalCard: (operationId, speciesId) =>
@@ -154,7 +210,7 @@ export function createShardJournal({
     // verdict wins, so a replay never re-rolls
     recordLocalOutcome: (round, outcome) =>
       exclusive(async () => {
-        if (round.shardRuleVersion !== RULE_VERSION)
+        if (![1, 2].includes(round.shardRuleVersion))
           return {
             roundId: round.id,
             speciesId: round.answerId,
@@ -190,7 +246,7 @@ export function createShardJournal({
         if (event.state !== 'pending') return receipt(snapshot, event)
         const entry = await catalog(event.catalogVersion, event.speciesId)
         if (!entry) return receipt(snapshot, event)
-        const rule = shardRule(entry)
+        const rule = shardRule(entry, event.ruleVersion)
         const won = winsShard(event.roll, rule.drop)
         const next = {
           ...snapshot,

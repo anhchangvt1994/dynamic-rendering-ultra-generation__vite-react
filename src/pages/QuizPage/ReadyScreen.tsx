@@ -1,15 +1,18 @@
 import { useEffect, useRef } from 'react'
+import type { Chest } from './ChestDialog'
 
 export default function ReadyScreen({
   action,
   busy,
   onGo,
   rewards,
+  chests = [],
 }: {
-  action: 'start' | 'resume'
+  action: 'start' | 'resume' | 'chest'
   busy: boolean
   onGo: () => void
   rewards: boolean
+  chests?: Chest[]
 }) {
   const button = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -23,9 +26,13 @@ export default function ReadyScreen({
         <span>Pokémon?</span>
       </h1>
       <p>
-        {action === 'resume'
-          ? 'Pokémon của lượt trước vẫn đang chờ bạn. Đồng hồ của lượt đó vẫn tiếp tục.'
-          : 'Nhìn bóng đen, đoán tên Pokémon. Chỉ bắt đầu khi bạn sẵn sàng.'}
+        {action === 'chest'
+          ? chests.length > 1
+            ? 'Bạn còn 2 rương quà chưa mở. Mở ngay để xem bên trong có gì.'
+            : 'Bạn còn một rương quà chưa mở. Mở ngay để xem bên trong có gì.'
+          : action === 'resume'
+            ? 'Pokémon của lượt trước vẫn đang chờ bạn. Đồng hồ của lượt đó vẫn tiếp tục.'
+            : 'Nhìn bóng đen, đoán tên Pokémon. Chỉ bắt đầu khi bạn sẵn sàng.'}
       </p>
       {!rewards && <p>Chơi thử không có phần thưởng.</p>}
       <button
@@ -34,9 +41,18 @@ export default function ReadyScreen({
         type="button"
         disabled={busy}
         aria-busy={busy}
+        data-chest={
+          action === 'chest' ? chests[chests.length - 1]?.kind : undefined
+        }
         onClick={onGo}
       >
-        {action === 'resume' ? 'Tiếp tục' : 'Sẵn sàng'}
+        {action === 'chest'
+          ? chests.length > 1
+            ? 'Mở 2 quà ►'
+            : 'Mở quà ►'
+          : action === 'resume'
+            ? 'Tiếp tục'
+            : 'Sẵn sàng'}
       </button>
     </div>
   )

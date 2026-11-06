@@ -95,6 +95,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'KitchenPage',
       }, // Kitchen Page
       {
+        // the individuals a player got from amber: /pokemon-cua-toi, /pokemon-cua-toi/:id
+        path: 'pokemon-cua-toi/:id?',
+        element: <ROUTE_MODULES.myPokemon.Route />,
+        id: 'MyPokemonPage',
+      }, // My Pokémon Page
+      {
         // /so-sanh, /so-sanh/charizard, /so-sanh/charizard-vs-blastoise
         path: 'so-sanh/:pair?',
         element: <ROUTE_MODULES.compare.Route />,

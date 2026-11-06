@@ -76,3 +76,18 @@ test('the same id always gives the same traits', async () => {
   const id = randomUUID()
   assert.deepEqual(await individualTraits(id), await individualTraits(id))
 })
+
+test('without crypto.subtle (http on a LAN ip) the golden vectors still hold', async () => {
+  const real = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  Object.defineProperty(globalThis, 'crypto', {
+    value: { getRandomValues: (a) => real.get.call(globalThis).getRandomValues(a) },
+    configurable: true,
+  })
+  try {
+    assert.equal(globalThis.crypto.subtle, undefined)
+    for (const { id, traits } of golden)
+      assert.deepEqual(await individualTraits(id), traits)
+  } finally {
+    Object.defineProperty(globalThis, 'crypto', real)
+  }
+})

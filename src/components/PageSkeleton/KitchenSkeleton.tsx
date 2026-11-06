@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { KitchenStyle } from 'pages/KitchenPage/styles'
 import { publicMenu } from 'pages/KitchenPage/menu.mjs'
 import { boneCss } from './bone'
@@ -12,6 +13,9 @@ const CARDS = publicMenu().dishes.map((dish) => ({
 
 const KitchenSkeletonStyle = styled(KitchenStyle)`
   ${boneCss}
+  .kitchen-loading {
+    display: contents;
+  }
   /* blocks only: every row is held by KitchenStyle's shared geometry (the
      same line boxes as the loaded page), never by text in a fallback font */
   .chef-art {
@@ -178,112 +182,117 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
 /** /che-bien while it loads: blocks the size of what is coming, no text. */
 export default function KitchenSkeleton({
   note = '',
+  back,
 }: {
   line?: string
   note?: string
+  /** the way back to the room, live while the rest loads */
+  back?: ReactNode
 }) {
   return (
-    <KitchenSkeletonStyle
-      className="kitchen-page"
-      data-page-skeleton
-      aria-busy="true"
-      role="status"
-      aria-label="Đang tải bếp…"
-    >
-      <header className="kitchen-hero" aria-hidden="true">
-        <div className="chef">
-          <span className="bone bone--round chef-art" />
-          <div className="chef-line">
-            <span className="bone" />
+    <KitchenSkeletonStyle className="kitchen-page" data-page-skeleton>
+      {back}
+      <div
+        className="kitchen-loading"
+        role="status"
+        aria-busy="true"
+        aria-label="Đang tải bếp…"
+      >
+        <header className="kitchen-hero" aria-hidden="true">
+          <div className="chef">
+            <span className="bone bone--round chef-art" />
+            <div className="chef-line">
+              <span className="bone" />
+            </div>
           </div>
+          <div className="kitchen-intro">
+            <div className="kitchen-kicker">
+              <span className="bone" />
+            </div>
+            <div className="kitchen-title">
+              <span className="bone" />
+            </div>
+            <div className="kitchen-lede">
+              <span className="bone" />
+              <span className="bone" />
+            </div>
+            <ul className="flavor-key">
+              {Array.from({ length: 6 }, (_, i) => (
+                <li key={i}>
+                  <span className="bone bone--pill" />
+                </li>
+              ))}
+            </ul>
+            <div className="kitchen-found">
+              <span className="bone" />
+            </div>
+          </div>
+        </header>
+        <div className="kitchen-tabs" aria-hidden="true">
+          <span className="bone" />
+          <span className="bone" />
         </div>
-        <div className="kitchen-intro">
-          <div className="kitchen-kicker">
-            <span className="bone" />
+        {note && (
+          <p className="kitchen-note" role="alert">
+            {note}
+          </p>
+        )}
+        <section aria-hidden="true">
+          <div className="menu-tools">
+            <div className="menu-filter">
+              {Array.from({ length: 6 }, (_, i) => (
+                <span key={i} className="bone bone--pill" />
+              ))}
+            </div>
+            <span className="bone bone--pill menu-sort" />
           </div>
-          <div className="kitchen-title">
-            <span className="bone" />
-          </div>
-          <div className="kitchen-lede">
-            <span className="bone" />
-            <span className="bone" />
-          </div>
-          <ul className="flavor-key">
-            {Array.from({ length: 6 }, (_, i) => (
-              <li key={i}>
-                <span className="bone bone--pill" />
-              </li>
-            ))}
-          </ul>
-          <div className="kitchen-found">
-            <span className="bone" />
-          </div>
-        </div>
-      </header>
-      <div className="kitchen-tabs" aria-hidden="true">
-        <span className="bone" />
-        <span className="bone" />
-      </div>
-      {note && (
-        <p className="kitchen-note" role="alert">
-          {note}
-        </p>
-      )}
-      <section aria-hidden="true">
-        <div className="menu-tools">
-          <div className="menu-filter">
-            {Array.from({ length: 6 }, (_, i) => (
-              <span key={i} className="bone bone--pill" />
-            ))}
-          </div>
-          <span className="bone bone--pill menu-sort" />
-        </div>
-        <ol className="menu-list">
-          {CARDS.map((card, i) => (
-            <li
-              key={i}
-              className="menu-card"
-              data-secret={card.secret || undefined}
-            >
-              <div className="menu-head">
-                <span className="dish-stage bone bone--round" />
-                <div className="menu-titles">
-                  <div className="menu-kicker">
-                    <span className="bone" />
-                  </div>
-                  <div className="dish-name">
-                    <span className="bone" />
+          <ol className="menu-list">
+            {CARDS.map((card, i) => (
+              <li
+                key={i}
+                className="menu-card"
+                data-secret={card.secret || undefined}
+              >
+                <div className="menu-head">
+                  <span className="dish-stage bone bone--round" />
+                  <div className="menu-titles">
+                    <div className="menu-kicker">
+                      <span className="bone" />
+                    </div>
+                    <div className="dish-name">
+                      <span className="bone" />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="menu-body">
-                {card.secret ? (
-                  <div className="menu-hint">
-                    <span className="bone" />
-                    <span className="bone" />
-                  </div>
-                ) : (
-                  <>
-                    <ul className="stat-chips">
-                      {Array.from({ length: card.stats }, (_, j) => (
-                        <li key={j} className="bone bone--pill" />
-                      ))}
-                    </ul>
-                    <ul className="recipe">
-                      {Array.from({ length: card.ingredients }, (_, j) => (
-                        <li key={j}>
-                          <span className="bone" />
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <span className="bone skeleton-action" />
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+                <div className="menu-body">
+                  {card.secret ? (
+                    <div className="menu-hint">
+                      <span className="bone" />
+                      <span className="bone" />
+                    </div>
+                  ) : (
+                    <>
+                      <ul className="stat-chips">
+                        {Array.from({ length: card.stats }, (_, j) => (
+                          <li key={j} className="bone bone--pill" />
+                        ))}
+                      </ul>
+                      <ul className="recipe">
+                        {Array.from({ length: card.ingredients }, (_, j) => (
+                          <li key={j}>
+                            <span className="bone" />
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  <span className="bone skeleton-action" />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
     </KitchenSkeletonStyle>
   )
 }

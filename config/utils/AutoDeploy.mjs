@@ -358,10 +358,21 @@ export function snapshotDependencies(root, stage) {
   }
 }
 
+/** a change the database must follow: yarn migrate applies both */
+export const supabaseChanged = (files) =>
+  files.some((file) => /^supabase\/(migrations|seed)\//.test(file))
+
+// Loaded lazily: dotenv may only exist after the install step.
+const supabaseEnabledDefault = async () => {
+  const { isEnabled, loadEnv } = await import('./ServerEnv.mjs')
+  return isEnabled(loadEnv('production').ENABLE_SUPABASE)
+}
+
 export async function deploy({
   root,
   pm2,
   run = runCommand,
+  supabaseEnabled = supabaseEnabledDefault,
   log = logDefault,
   force = false,
   fromHook = false,
@@ -399,6 +410,8 @@ export async function deploy({
         'src',
         'server/src',
         'config',
+        'supabase/migrations',
+        'supabase/seed',
         'package.json',
         'yarn.lock',
         'package-lock.json',
@@ -465,6 +478,13 @@ export async function deploy({
       throw new Error(
         'HEAD changed while building; the next queued pull will deploy the new revision'
       )
+    // Before publishing: a failed migration leaves the live code and PM2
+    // untouched. Migrations stay additive, so the old code keeps running on
+    // the new schema (and a later rollback of the code keeps working).
+    if ((!previous || supabaseChanged(changes)) && (await supabaseEnabled())) {
+      log('Applying Supabase migrations and seed...')
+      await run('yarn', ['migrate'], { cwd: root, env: process.env })
+    }
     log('Publishing successful builds...')
     publicationStarted = true
     rollback = publishArtifacts(root, stage)

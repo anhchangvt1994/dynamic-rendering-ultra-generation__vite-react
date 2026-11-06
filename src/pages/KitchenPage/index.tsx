@@ -8,6 +8,7 @@ import {
   itemSprite,
 } from 'pages/QuizPage/items.mjs'
 import type { CSSProperties } from 'react'
+import { useLocation } from 'react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import BatchStepper from './BatchStepper'
 import { batchMax, scaleStats } from './batch.mjs'
@@ -16,6 +17,7 @@ import DishArt from './DishArt'
 import type { CookResult, DishView, Menu, StatKey } from './engine/types'
 import { useKitchenEngine } from './engine/useKitchenEngine'
 import { potWithKept } from './kept.mjs'
+import { roomReturn } from './returnTo.mjs'
 import { STATS, hintText, recipeKey } from './kitchen.mjs'
 import Pot, { potFlavors } from './Pot'
 import type { PantryGroup } from './Pot'
@@ -228,6 +230,13 @@ export default function KitchenPage() {
   })
 
   const engine = useKitchenEngine()
+  const location = useLocation()
+  const roomTo = roomReturn(location.state)
+  const back = roomTo && (
+    <LinkCustom className="kitchen-back" to={roomTo}>
+      ‹ Quay về phòng
+    </LinkCustom>
+  )
   const { bag: bagOrNull } = useBagStore()
   const bag = bagOrNull ?? {}
   const guest = engine?.kind === 'guest'
@@ -408,10 +417,11 @@ export default function KitchenPage() {
     </LinkCustom>
   )
 
-  if (!menu) return <KitchenSkeleton line={line} note={note} />
+  if (!menu) return <KitchenSkeleton line={line} note={note} back={back} />
 
   return (
     <KitchenStyle className="kitchen-page">
+      {back}
       <KitchenHeader
         line={line}
         found={menu?.found ?? 0}

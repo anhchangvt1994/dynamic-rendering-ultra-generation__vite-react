@@ -74,6 +74,7 @@ test('untrusted URL filters fall back safely and page size is bounded', () => {
       types: [],
       sort: 'number',
       caughtOnly: false,
+      ownedOnly: false,
       shown: 1025,
     }
   )
@@ -88,6 +89,7 @@ test('untrusted URL filters fall back safely and page size is bounded', () => {
       types: ['electric'],
       sort: 'name',
       caughtOnly: true,
+      ownedOnly: false,
       shown: 48,
     }
   )
@@ -111,4 +113,23 @@ test('two types filter to species that have both', async () => {
   assert.deepEqual(toggleType(['fire'], 'flying'), ['fire', 'flying'])
   assert.deepEqual(toggleType(['fire', 'flying'], 'water'), ['fire', 'water'])
   assert.deepEqual(toggleType(['fire', 'flying'], 'fire'), ['flying'])
+})
+
+test('catalog scope: all ⊃ collection ⊃ owned, one URL each', async () => {
+  const { catalogScope, withScope } = await import('./catalog.mjs')
+  assert.equal(catalogScope(readCatalogParams('')), 'all')
+  assert.equal(catalogScope(readCatalogParams('view=caught')), 'caught')
+  assert.equal(catalogScope(readCatalogParams('view=caught&owned=1')), 'owned')
+  // owned without the collection view is not a scope of its own
+  assert.equal(catalogScope(readCatalogParams('owned=1')), 'all')
+  const base = 'q=pi&gen=1&type=fire&shown=48'
+  assert.equal(withScope(base, 'owned'), 'q=pi&gen=1&type=fire&view=caught&owned=1')
+  assert.equal(withScope(`${base}&view=caught&owned=1`, 'caught'), 'q=pi&gen=1&type=fire&view=caught')
+  assert.equal(withScope(`${base}&view=caught&owned=1`, 'all'), 'q=pi&gen=1&type=fire')
+})
+
+test('clearing filters keeps the scope', async () => {
+  const { withoutFilters } = await import('./catalog.mjs')
+  assert.equal(withoutFilters('q=pi&gen=1&type=fire&sort=name&shown=48&view=caught&owned=1'), 'sort=name&view=caught&owned=1')
+  assert.equal(withoutFilters('q=pi'), '')
 })

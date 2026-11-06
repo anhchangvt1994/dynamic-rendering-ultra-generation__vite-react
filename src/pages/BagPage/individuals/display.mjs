@@ -1,55 +1,68 @@
-// How an individual is shown. Pure: the tint is a CSS filter, the mark a
-// deterministic cluster of spots around its centre (drawn in a mask made from
-// the artwork, so nothing lands outside the body).
+// How an individual is shown. Pure: the tint is one of a few named colourways
+// (a CSS filter), the size a deterministic scale drawn from the id.
 import { PERSONALITIES } from './traits.mjs'
 
 const round2 = (n) => Math.round(n * 100) / 100
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 
-export const tintFilter = ({ hue, sat, light }) =>
-  `hue-rotate(${hue}deg) saturate(${round2(1 + sat / 100)}) brightness(${round2(1 + light / 100)})`
+// colourways, like a shiny, that read the same on every species: a named
+// colour starts from sepia (any body to one warm brown, shading kept), then
+// turns to its hue. Reversed and silver keep the body's own colours.
+const hueOf = (hue, sat = 2.2) =>
+  `sepia(0.8) saturate(${sat}) hue-rotate(${hue}deg)`
+export const TINTS = [
+  { key: 'origin', label: 'Nguyên bản', filter: '' },
+  { key: 'peach', label: 'Hồng đào', filter: hueOf(-48, 2) },
+  { key: 'sunset', label: 'Hoàng hôn', filter: hueOf(-18, 2.6) },
+  { key: 'sun', label: 'Vàng nắng', filter: hueOf(12, 2.8) },
+  { key: 'emerald', label: 'Lục bảo', filter: hueOf(105) },
+  { key: 'ocean', label: 'Xanh biển', filter: hueOf(170, 2.4) },
+  { key: 'dream', label: 'Tím mộng', filter: hueOf(-110, 2) },
+  { key: 'invert', label: 'Đảo sắc', filter: 'hue-rotate(180deg)' },
+  {
+    key: 'silver',
+    label: 'Ánh bạc',
+    filter: 'grayscale(0.85) brightness(1.08) contrast(1.1)',
+  },
+]
 
-const MARK_LABELS = {
-  freckle: 'tàn nhang',
-  stripe: 'vằn',
-  patch: 'mảng màu',
-  scar: 'sẹo',
-  star: 'vết sao',
+const mix = (n) => {
+  n = Math.imul(n ^ (n >>> 16), 0x85ebca6b)
+  n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35)
+  return (n ^ (n >>> 16)) >>> 0
 }
-export const markLabel = (kind) =>
-  Object.hasOwn(MARK_LABELS, kind) ? MARK_LABELS[kind] : ''
 
-// a tiny seeded generator: the same mark always draws the same spots
-const seeded = (mark) => {
-  let state =
-    (Math.imul(mark.x, 73856093) ^
-      Math.imul(mark.y, 19349663) ^
-      Math.imul(mark.size, 83492791) ^
-      Math.imul(mark.rot + 1, 2654435761)) >>>
-    0
-  return () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0
-    return state / 4294967296
-  }
+export const tintOf = ({ hue = 0, sat = 0, light = 0 }) =>
+  TINTS[mix((hue + 32) * 4096 + (sat + 32) * 64 + (light + 32)) % TINTS.length]
+
+export const tintFilter = (appearance) =>
+  `${tintOf(appearance).filter} saturate(${round2(1 + (appearance.sat ?? 0) / 40)}) brightness(${round2(1 + (appearance.light ?? 0) / 50)})`.trim()
+
+export const tintLabel = (appearance) => tintOf(appearance).label
+
+export const SIZES = [
+  { key: 'tiny', label: 'Tí hon', scale: 0.8, weight: 8 },
+  { key: 'small', label: 'Nhỏ', scale: 0.9, weight: 22 },
+  { key: 'medium', label: 'Vừa', scale: 1, weight: 40 },
+  { key: 'large', label: 'To', scale: 1.1, weight: 22 },
+  { key: 'huge', label: 'Khổng lồ', scale: 1.2, weight: 8 },
+]
+
+const fnv = (text) => {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++)
+    h = Math.imul(h ^ text.charCodeAt(i), 0x01000193)
+  return mix(h >>> 0)
 }
 
-export function markSpots(mark) {
-  if (!mark) return []
-  const next = seeded(mark)
-  const count = 3 + Math.floor(next() * 4)
-  const spots = []
-  for (let i = 0; i < count; i++) {
-    const spread = i === 0 ? 0 : 1
-    spots.push({
-      cx: round2(clamp(mark.x + (next() * 36 - 18) * spread, 0, 100)),
-      cy: round2(clamp(mark.y + (next() * 36 - 18) * spread, 0, 100)),
-      r: round2(mark.size * (i === 0 ? 0.5 : 0.25 + next() * 0.25)),
-      rot: (mark.rot + i * 47) % 360,
-      kind: mark.kind,
-    })
-  }
-  return spots
+/** The size of one individual, against the species' usual size. */
+export function sizeOf(id) {
+  let roll = fnv(`${id}:size`) % 100
+  for (const size of SIZES) if ((roll -= size.weight) < 0) return size
+  return SIZES[2]
 }
+
+export const sizeLabel = (size) =>
+  `${size.label} · ${Math.round(size.scale * 100)}%`
 
 const LINES = [
   'Hiền lành, thích được ở gần bạn.',

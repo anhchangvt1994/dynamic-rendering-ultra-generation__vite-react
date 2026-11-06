@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import styled from 'styled-components'
 import AmberCard from './crafting/AmberCard'
 import { craftMessage } from './crafting/messages.mjs'
@@ -9,6 +15,7 @@ import WelcomeDialog from './individuals/WelcomeDialog'
 import { tradeMessage } from './individuals/messages.mjs'
 import type { useIndividuals } from './individuals/useIndividuals'
 import type { ShardRow } from './shardStore'
+import { shelfCounts, shelfFilter, shelfWindow } from './shelfPaging.mjs'
 
 // the join plays for this long, then the real (refreshed) numbers show
 const JOIN_MS = 850
@@ -16,6 +23,10 @@ const JOIN_MS = 850
 const Shelf = styled.div`
   display: grid;
   gap: 12px;
+  min-width: 0;
+  > * {
+    min-width: 0;
+  }
   .shard-banner {
     display: flex;
     flex-wrap: wrap;
@@ -303,19 +314,256 @@ const Shelf = styled.div`
     font-size: 12px;
     opacity: 0.75;
   }
+  /* a case still on its way: the same frame as a real one, so nothing jumps */
   .shard-skeleton {
-    height: 150px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.07);
-    animation: shard-pulse 1.2s ease-in-out infinite alternate;
+    pointer-events: none;
+    min-height: 330px;
+    background: linear-gradient(
+      180deg,
+      rgba(40, 24, 8, 0.4),
+      rgba(18, 12, 6, 0.55) 60%
+    );
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 140, 0.1);
   }
-  @keyframes shard-pulse {
+  .shard-skeleton::before {
+    display: none;
+  }
+  .shard-skeleton > i,
+  .shard-skeleton span i {
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(
+      100deg,
+      rgba(255, 214, 140, 0.08) 30%,
+      rgba(255, 224, 160, 0.2) 50%,
+      rgba(255, 214, 140, 0.08) 70%
+    );
+    background-size: 300% 100%;
+    animation: shard-shimmer 1.4s linear infinite;
+  }
+  .shard-skeleton .bone-stone {
+    width: 150px;
+    height: 150px;
+    margin: -54px auto 6px;
+    border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%;
+  }
+  .shard-skeleton .bone-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .shard-skeleton .bone-head i:first-child {
+    width: 46%;
+    height: 20px;
+  }
+  .shard-skeleton .bone-head i:last-child {
+    width: 22%;
+    height: 32px;
+  }
+  .shard-skeleton .bone-line {
+    height: 12px;
+  }
+  .shard-skeleton .bone-line.short {
+    width: 40%;
+  }
+  .shard-skeleton .bone-actions {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .shard-skeleton .bone-actions i {
+    height: 44px;
+    border-radius: 12px;
+  }
+  @keyframes shard-shimmer {
+    from {
+      background-position: 100% 0;
+    }
     to {
-      opacity: 0.4;
+      background-position: -200% 0;
+    }
+  }
+  .shard[data-fresh] {
+    animation: shard-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--n, 0) * 40ms);
+  }
+  @keyframes shard-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+    }
+  }
+  /* the shelf's own toolbar: which stones, how many */
+  .shelf-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+  }
+  .shelf-filters {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 140, 0.12);
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shelf-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .shelf-filters button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255, 238, 200, 0.72);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .shelf-filters button:hover:not([aria-pressed='true']) {
+    color: #fff3d0;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .shelf-filters button[aria-pressed='true'] {
+    color: #4a2706;
+    background: linear-gradient(180deg, #ffe7a0, #f2a93b);
+    box-shadow: 0 2px 0 #a45a12;
+  }
+  .shelf-filters button span {
+    min-width: 22px;
+    padding: 1px 6px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .shelf-filters button[aria-pressed='true'] span {
+    background: rgba(74, 39, 6, 0.14);
+  }
+  .shelf-filters button:focus-visible,
+  .shelf-more button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+  .shelf-stones {
+    font-size: 13px;
+    color: rgba(255, 238, 200, 0.75);
+  }
+  .shelf-stones b {
+    color: #ffe27a;
+    font-variant-numeric: tabular-nums;
+  }
+  /* the end of the page: progress, then one more page */
+  .shelf-more {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 18px 0 4px;
+    text-align: center;
+  }
+  .shelf-more p {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(255, 238, 200, 0.7);
+    font-variant-numeric: tabular-nums;
+  }
+  .shelf-more progress {
+    appearance: none;
+    width: min(240px, 70%);
+    height: 6px;
+    border: 0;
+    border-radius: 99px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .shelf-more progress::-webkit-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .shelf-more progress::-webkit-progress-value {
+    background: linear-gradient(90deg, #f2a93b, #ffe27a);
+    border-radius: 99px;
+  }
+  .shelf-more progress::-moz-progress-bar {
+    background: linear-gradient(90deg, #f2a93b, #ffe27a);
+  }
+  .shelf-more button {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 14px;
+    border: 2px solid #a45a12;
+    color: #4a2706;
+    background: linear-gradient(180deg, #ffe7a0, #f2a93b);
+    box-shadow: 0 3px 0 #7a3a04;
+    cursor: pointer;
+  }
+  .shelf-more button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #7a3a04;
+  }
+  .shelf-more button[aria-busy='true'] {
+    cursor: progress;
+    opacity: 0.8;
+  }
+  .shelf-sentinel {
+    height: 1px;
+    margin-top: -1px;
+  }
+  .shelf-empty {
+    margin: 0;
+    padding: 28px 16px;
+    border-radius: 18px;
+    border: 1px dashed rgba(255, 214, 140, 0.3);
+    text-align: center;
+    color: rgba(255, 238, 200, 0.8);
+    font-size: 14px;
+  }
+  .shelf-filters b {
+    font-weight: inherit;
+  }
+  /* a phone: three equal tabs, the count under its name */
+  @media (max-width: 480px) {
+    .shelf-filters {
+      width: 100%;
+    }
+    .shelf-filters button {
+      flex: 1 1 0;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      min-height: 50px;
+      padding: 4px;
+      font-size: 12px;
+    }
+    .shelf-filters b[data-short] {
+      font-size: 0;
+    }
+    .shelf-filters b[data-short]::after {
+      content: attr(data-short);
+      font-size: 12px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .shard-skeleton,
+    .shard-skeleton > i,
+    .shard-skeleton span i,
+    .shard[data-fresh],
     .shard[data-ready] {
       animation: none;
     }
@@ -332,7 +580,9 @@ function Row({
   owned,
   onTrade,
   onList,
+  fresh,
 }: {
+  fresh?: number
   row: ShardRow
   state: CraftState | undefined
   craft?: (speciesId: number) => void
@@ -392,6 +642,8 @@ function Row({
       data-ready={ready || undefined}
       data-joining={playing || undefined}
       data-species={row.speciesId}
+      data-fresh={fresh === undefined ? undefined : ''}
+      style={fresh === undefined ? undefined : ({ '--n': fresh } as CSSProperties)}
       aria-label={`${row.name}, ${row.count} trên ${row.required} mảnh${
         row.count >= row.required ? ', đủ mảnh' : ''
       }, ${row.cardCount} viên hổ phách, tỉ lệ rơi ${Math.round(row.drop * 100)}%`}
@@ -513,6 +765,34 @@ function Row({
   )
 }
 
+/** A case on its way, the shape of a real one. */
+function Bone() {
+  return (
+    <li className="shard shard-skeleton" aria-hidden="true">
+      <i className="bone-stone" />
+      <span className="bone-head">
+        <i />
+        <i />
+      </span>
+      <i className="bone-line" />
+      <i className="bone-line short" />
+      <span className="bone-actions">
+        <i />
+        <i />
+      </span>
+    </li>
+  )
+}
+
+const FILTERS = [
+  ['all', 'Tất cả', 'Tất cả'],
+  ['ready', 'Ghép được', 'Đủ mảnh'],
+  ['amber', 'Có hổ phách', 'Hổ phách'],
+] as const
+type Filter = (typeof FILTERS)[number][0]
+// long enough for the skeletons to read as "coming", short enough not to wait
+const PAGE_MS = 320
+
 export default function ShardShelf({
   rows,
   pending,
@@ -534,6 +814,58 @@ export default function ShardShelf({
 }) {
   const [confirming, setConfirming] = useState<number | null>(null)
   const [listing, setListing] = useState<number | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
+  const [pages, setPages] = useState(1)
+  const [paging, setPaging] = useState(false)
+  // rows from this index on came with the last page: they rise in
+  const freshFrom = useRef(Infinity)
+  const counts = useMemo(() => shelfCounts(rows ?? []), [rows])
+  const kept = useMemo(() => shelfFilter(rows ?? [], filter), [rows, filter])
+  const view = shelfWindow({ total: kept.length, pages })
+  const more = () => {
+    if (paging || view.done) return
+    freshFrom.current = view.shown
+    setPaging(true)
+  }
+  useEffect(() => {
+    if (!paging) return
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+    const timer = window.setTimeout(
+      () => {
+        // one batch: the page and the end of the wait land together, or
+        // the observer sees the old page and asks for one more
+        setPages((n) => n + 1)
+        setPaging(false)
+        // once risen, a row that moves (a craft re-sorts) never rises again
+        window.setTimeout(() => (freshFrom.current = Infinity), 1200)
+      },
+      reduce ? 0 : PAGE_MS
+    )
+    return () => window.clearTimeout(timer)
+  }, [paging])
+  // scrolling near the end brings the next page, the first few times
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const node = sentinel.current
+    if (!node || !view.auto || paging || typeof IntersectionObserver === 'undefined')
+      return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) more()
+      },
+      { rootMargin: '0px 0px 520px 0px' }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.auto, view.shown, paging, filter])
+  const pick = (next: Filter) => {
+    if (next === filter) return
+    freshFrom.current = Infinity
+    setFilter(next)
+    setPages(1)
+    setPaging(false)
+  }
   const nameOf = (id: number) =>
     rows?.find((r) => r.speciesId === id)?.name ?? `#${id}`
   // one mounted live region: each new result is announced once
@@ -574,11 +906,14 @@ export default function ShardShelf({
   if (!rows || (loading && !rows.length))
     return (
       <Shelf aria-busy="true">
-        <div className="shard-grid">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="shard-skeleton" />
+        <p className="shard-live" role="status">
+          Đang mở hộp hổ phách…
+        </p>
+        <ul className="shard-grid">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Bone key={i} />
           ))}
-        </div>
+        </ul>
       </Shelf>
     )
   return (
@@ -597,20 +932,90 @@ export default function ShardShelf({
         </p>
       )}
       {rows.length ? (
-        <ul className="shard-grid" aria-label="Mảnh và hổ phách Pokémon">
-          {rows.map((row) => (
-            <Row
-              key={row.speciesId}
-              row={row}
-              state={states[row.speciesId]}
-              craft={craft}
-              tradeState={individuals?.states[row.speciesId]}
-              owned={individuals?.counts[row.speciesId] ?? 0}
-              onTrade={individuals?.available ? setConfirming : undefined}
-              onList={setListing}
-            />
-          ))}
-        </ul>
+        <>
+          <div className="shelf-bar">
+            <div
+              className="shelf-filters"
+              role="group"
+              aria-label="Lọc mảnh và hổ phách"
+            >
+              {FILTERS.map(([key, label, short]) => (
+                <button
+                  key={key}
+                  type="button"
+                  data-shelf-filter={key}
+                  aria-pressed={filter === key}
+                  onClick={() => pick(key)}
+                >
+                  <b data-short={short}>{label}</b> <span>{counts[key]}</span>
+                </button>
+              ))}
+            </div>
+            {counts.stones > 0 && (
+              <span className="shelf-stones">
+                <b>{counts.stones}</b> viên hổ phách đã ghép
+              </span>
+            )}
+          </div>
+          {kept.length ? (
+            <ul
+              className="shard-grid"
+              aria-label="Mảnh và hổ phách Pokémon"
+              aria-busy={paging || undefined}
+            >
+              {kept.slice(0, view.shown).map((row, index) => (
+                <Row
+                  key={row.speciesId}
+                  row={row}
+                  fresh={
+                    index >= freshFrom.current
+                      ? index - freshFrom.current
+                      : undefined
+                  }
+                  state={states[row.speciesId]}
+                  craft={craft}
+                  tradeState={individuals?.states[row.speciesId]}
+                  owned={individuals?.counts[row.speciesId] ?? 0}
+                  onTrade={individuals?.available ? setConfirming : undefined}
+                  onList={setListing}
+                />
+              ))}
+              {paging &&
+                Array.from({ length: view.next }, (_, i) => <Bone key={`b${i}`} />)}
+            </ul>
+          ) : (
+            <p className="shelf-empty">
+              {filter === 'ready'
+                ? 'Chưa loài nào đủ mảnh. Trả lời đúng ở Who’s That Pokémon? để gom thêm.'
+                : 'Chưa ghép viên hổ phách nào. Đủ mảnh thì nhấn “Ghép”.'}
+            </p>
+          )}
+          <div ref={sentinel} className="shelf-sentinel" aria-hidden="true" />
+          {kept.length > 0 && (
+            <div className="shelf-more">
+              <progress
+                value={view.shown}
+                max={kept.length}
+                aria-label={`Đã hiện ${view.shown} trên ${kept.length} loài`}
+              />
+              <p role="status">
+                {paging
+                  ? 'Đang mang thêm hổ phách…'
+                  : `${view.shown} / ${kept.length} loài`}
+              </p>
+              {!view.done && (
+                <button
+                  type="button"
+                  data-shelf-more
+                  aria-busy={paging || undefined}
+                  onClick={more}
+                >
+                  {paging ? 'Đang tải…' : `Xem thêm ${view.next} loài`}
+                </button>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         <p className="shard-banner">
           Chưa có mảnh nào. Trả lời đúng ở Who’s That Pokémon? để có cơ hội nhận

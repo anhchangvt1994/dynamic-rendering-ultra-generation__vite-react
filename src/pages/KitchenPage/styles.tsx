@@ -32,6 +32,28 @@ export const KitchenStyle = styled.div`
     margin-inline: auto;
   }
 
+  /* the way back to the room the cook came from */
+  .kitchen-back {
+    display: flex;
+    width: fit-content;
+    margin-inline: max(0px, calc((100% - 1100px) / 2)) auto;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 12px;
+    padding: 0 16px;
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    color: var(--ink);
+    background: var(--rose);
+    box-shadow: 3px 3px 0 var(--ink);
+    font-weight: 900;
+    text-decoration: none;
+  }
+  .kitchen-back:focus-visible {
+    outline: 3px solid var(--berry);
+    outline-offset: 3px;
+  }
+
   /* ── the hero: Alcremie at the counter ── */
   .kitchen-hero {
     display: grid;

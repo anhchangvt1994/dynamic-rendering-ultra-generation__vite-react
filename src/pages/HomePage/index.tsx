@@ -15,6 +15,7 @@ import RecentStrip from './RecentStrip'
 import RegionBadges from './RegionBadges'
 import { POKEMON_COUNT } from 'pages/PokemonPage/navigation.mjs'
 import {
+  catalogScope,
   filterCatalog,
   GENERATIONS,
   idsWithTypes,
@@ -22,8 +23,12 @@ import {
   readCatalogParams,
   toggleType,
   TYPES,
+  withoutFilters,
+  withScope,
 } from './catalog.mjs'
 import FeaturedEncounter from './FeaturedEncounter'
+import { useIndividualList } from 'pages/BagPage/individuals/individualStore'
+import { collectionIds } from './ownership.mjs'
 import { HomePageStyle, PokemonListStyle } from './styles'
 
 const caughtSnapshot = () => [...getCaught()].sort((a, b) => a - b).join(',')
@@ -80,7 +85,12 @@ function HomePage() {
     caughtSnapshot,
     () => ''
   )
-  const caughtIds = useMemo(
+  const ownership = useIndividualList(true, null)
+  const ownedIds = useMemo(
+    () => new Set(ownership.items?.map((item) => item.speciesId) ?? []),
+    [ownership.items]
+  )
+  const markedIds = useMemo(
     () =>
       new Set<number>(
         caughtKey
@@ -89,6 +99,10 @@ function HomePage() {
           .filter((id) => id > 0 && id <= POKEMON_COUNT)
       ),
     [caughtKey]
+  )
+  const caughtIds = useMemo(
+    () => collectionIds(markedIds, ownership.items ?? []),
+    [markedIds, ownership.items]
   )
   const { data, isFetching, isError, refetch } = useGetPokemonListQuery({
     limit: POKEMON_COUNT,
@@ -103,7 +117,14 @@ function HomePage() {
   )
   const entries = useMemo(
     () =>
-      filterCatalog(data?.results, { ...filters, query, caughtIds, typeIds }),
+      filterCatalog(data?.results, {
+        ...filters,
+        ownedOnly: filters.caughtOnly && filters.ownedOnly,
+        query,
+        caughtIds,
+        ownedIds,
+        typeIds,
+      }),
     [
       data?.results,
       query,
@@ -111,18 +132,38 @@ function HomePage() {
       filters.sort,
       filters.caughtOnly,
       caughtIds,
+      ownedIds,
+      filters.ownedOnly,
       typeIds,
     ]
   )
   const waiting = !data && isFetching
   const failed = !data && isError
-  const activeFilters = !!(
-    query ||
-    filters.generation ||
-    filters.type ||
-    filters.caughtOnly
-  )
+  // the scope (all, collection, owned) is a tab, not a filter to clear
+  const activeFilters = !!(query || filters.generation || filters.type)
+  const scope = catalogScope(filters)
   const count = caughtIds.size
+  const setScope = (next: string) =>
+    setParams(new URLSearchParams(withScope(params.toString(), next)), {
+      state: { keepPage: true },
+    })
+  const clearFilters = () => {
+    setQuery('')
+    setParams(new URLSearchParams(withoutFilters(params.toString())), {
+      state: { keepPage: true },
+    })
+  }
+  const filterSummary = [
+    filters.query && `“${filters.query}”`,
+    filters.generation &&
+      GENERATIONS.find((gen) => gen.id === filters.generation)?.name,
+    filters.types.length &&
+      `Hệ ${filters.types
+        .map((key) => TYPES.find((type) => type[0] === key)?.[1])
+        .join(' + ')}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   const update = (key: string, value: string, replace = false) => {
     const next = new URLSearchParams(params)
     value ? next.set(key, value) : next.delete(key)
@@ -197,7 +238,7 @@ function HomePage() {
               {count.toLocaleString('vi-VN')}
               <small> / 1.025</small>
             </strong>
-            <span>đã bắt</span>
+            <span>trong bộ sưu tập</span>
           </div>
           <progress
             value={count}
@@ -342,49 +383,65 @@ function HomePage() {
           ))}
         </div>
         <div className="results-heading">
-          <div className="view-tabs" aria-label="Danh sách Pokémon">
+          <div
+            className="scope-tabs"
+            role="group"
+            aria-label="Phạm vi danh sách"
+            data-scope={scope}
+          >
             <button
               type="button"
-              aria-pressed={!filters.caughtOnly}
-              onClick={() => update('view', '')}
+              aria-pressed={scope === 'all'}
+              onClick={() => setScope('all')}
             >
-              <FieldIcon name="grid" size={15} /> Tất cả
+              <FieldIcon name="grid" size={15} />
+              <b>Tất cả</b>
             </button>
             <button
               type="button"
-              aria-pressed={filters.caughtOnly}
-              onClick={() => update('view', 'caught')}
+              aria-pressed={scope === 'caught'}
+              onClick={() => setScope('caught')}
             >
-              <Pokeball /> Đã bắt <span>{count}</span>
+              <Pokeball />
+              <b>Bộ sưu tập</b>
+              <span>{count}</span>
+            </button>
+            <button
+              type="button"
+              data-filter="owned"
+              aria-pressed={scope === 'owned'}
+              aria-label={`Đang sở hữu${ownership.loading ? '' : `, ${ownedIds.size} loài`}`}
+              aria-busy={ownership.loading || undefined}
+              onClick={() => setScope('owned')}
+            >
+              <FieldIcon name="heart" size={15} />
+              <b data-short="Sở hữu">Đang sở hữu</b>
+              <span>{ownership.loading ? '·' : ownedIds.size}</span>
             </button>
           </div>
-          <span className="result-count" role="status">
-            {waiting
-              ? 'Đang tìm…'
-              : `${entries.length.toLocaleString('vi-VN')} Pokémon`}
-          </span>
-        </div>
-        {activeFilters && (
-          <div className="active-filters">
-            <span>
-              {[
-                filters.query && `“${filters.query}”`,
-                filters.generation &&
-                  GENERATIONS.find((gen) => gen.id === filters.generation)
-                    ?.name,
-                filters.types.length &&
-                  `Hệ ${filters.types
-                    .map((key) => TYPES.find((type) => type[0] === key)?.[1])
-                    .join(' + ')}`,
-                filters.caughtOnly && 'Đã bắt',
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+          <div className="results-meta">
+            <span className="result-count" role="status">
+              <strong>
+                {waiting
+                  ? 'Đang tìm…'
+                  : `${entries.length.toLocaleString('vi-VN')} Pokémon`}
+              </strong>
+              {filterSummary && <em> · {filterSummary}</em>}
             </span>
-            <button type="button" onClick={reset}>
-              Xóa bộ lọc <FieldIcon name="close" size={13} />
-            </button>
+            {activeFilters && (
+              <button type="button" className="clear-filters" onClick={clearFilters}>
+                Xóa bộ lọc <FieldIcon name="close" size={13} />
+              </button>
+            )}
           </div>
+        </div>
+        {filters.caughtOnly && ownership.error && (
+          <p className="scope-alert" role="alert">
+            Chưa tải được Pokémon sở hữu.{' '}
+            <button type="button" onClick={ownership.retry}>
+              Thử lại
+            </button>
+          </p>
         )}
         {waiting ? (
           <div className="catalog-state" role="status">
@@ -405,11 +462,27 @@ function HomePage() {
               Thử lại
             </button>
           </div>
+        ) : filters.caughtOnly &&
+          (ownership.error || ownership.loading) &&
+          !entries.length ? (
+          <div className="catalog-state" role="status">
+            <p>
+              {ownership.error
+                ? 'Chưa thể xác định đầy đủ Bộ sưu tập. Hãy thử tải lại Pokémon sở hữu.'
+                : 'Đang tải Pokémon sở hữu…'}
+            </p>
+          </div>
         ) : entries.length ? (
           <>
             <PokemonListStyle>
               {entries.slice(0, filters.shown).map((pokemon) => (
-                <PokemonCard key={pokemon.name} pokemon={pokemon} />
+                <PokemonCard
+                  key={pokemon.name}
+                  pokemon={pokemon}
+                  collectionView={filters.caughtOnly}
+                  ownedItems={ownership.items}
+                  returnTo={`/${params.toString() ? `?${params}` : ''}`}
+                />
               ))}
             </PokemonListStyle>
             {entries.length > filters.shown && (
@@ -433,14 +506,18 @@ function HomePage() {
           <div className="catalog-state">
             <Pokeball />
             <h3>
-              {filters.caughtOnly && !count
-                ? 'Người bạn đầu tiên đang chờ'
-                : 'Chưa tìm thấy người bạn này'}
+              {scope === 'owned' && !ownedIds.size
+                ? 'Chưa có Pokémon nào ở cùng bạn'
+                : filters.caughtOnly && !count
+                  ? 'Người bạn đầu tiên đang chờ'
+                  : 'Chưa tìm thấy người bạn này'}
             </h3>
             <p>
-              {filters.caughtOnly && !count
-                ? 'Mở hồ sơ Pokémon và nhấn “Bắt” để bắt đầu.'
-                : 'Thử tên khác hoặc bớt một bộ lọc nhé.'}
+              {scope === 'owned' && !ownedIds.size
+                ? 'Ghép mảnh thành hổ phách trong Túi đồ rồi đổi lấy Pokémon.'
+                : filters.caughtOnly && !count
+                  ? 'Mở hồ sơ Pokémon và nhấn “Bắt” để bắt đầu.'
+                  : 'Thử tên khác hoặc bớt một bộ lọc nhé.'}
             </p>
             <button type="button" onClick={reset}>
               Khám phá tất cả <FieldIcon name="arrow" size={16} />

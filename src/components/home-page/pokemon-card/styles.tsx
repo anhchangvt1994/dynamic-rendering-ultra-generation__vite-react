@@ -1,4 +1,4 @@
-// the owned badge is a button: it sits beside the card's link, never inside it
+// the owned badge is a link of its own: it sits beside the card's link, never inside it
 export const CardWrap = styled.div`
   position: relative;
   min-width: 0;
@@ -6,27 +6,57 @@ export const CardWrap = styled.div`
   & > a {
     flex: 1;
   }
+  /* top-right, on the number's row: never over the art */
   .owned-badge {
     position: absolute;
     z-index: 2;
-    right: 4px;
-    top: 36px;
+    right: 0;
+    top: 0;
+    min-width: 44px;
     min-height: 44px;
-    padding: 0 4px;
-    border: 0;
-    background: none;
-    font: inherit;
-    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 12px 15px 0 0;
+    color: inherit;
   }
-  .owned-badge span {
-    display: inline-block;
-    padding: 3px 9px;
+  .owned-badge > * {
+    pointer-events: none;
+  }
+  .owned-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 7px 0 1px;
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #4a2706;
-    background: linear-gradient(180deg, #ffe7a0, #f2a93b);
-    box-shadow: 0 2px 6px #172d4522;
+    background: #1b2540;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 6px #f0b43c55;
+  }
+  .ball {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(#e5483b 0 45%, #1b2540 45% 55%, #fff 55%);
+    box-shadow: 0 0 0 2px #1b2540;
+  }
+  .ball::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px #1b2540;
+  }
+  @media (max-width: 680px) {
+    .owned-badge {
+      padding: 8px 10px 0 0;
+    }
   }
   .owned-badge:focus-visible {
     outline: 3px solid #172d45;
@@ -62,6 +92,19 @@ export const PokemonCardStyle = styled(LinkCustom)`
   &[data-caught='true'] {
     border-color: #b6d9c7;
   }
+  /* owned: a gold frame; the Poké Ball pill takes the caught mark's corner */
+  &[data-owned-card] {
+    border: 2px solid #f0b43c;
+    box-shadow:
+      0 0 0 3px #fff3d2,
+      0 8px 18px rgba(240, 180, 60, 0.35);
+  }
+  &[data-owned-card]:hover {
+    border-color: #f0b43c;
+  }
+  &[data-owned-card] .caught-mark {
+    visibility: hidden;
+  }
   .card-top {
     display: flex;
     align-items: center;
@@ -84,6 +127,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
   .card-art {
     display: grid;
     place-items: center;
+    --art-side: 142px;
     height: 142px;
     position: relative;
     margin-top: 5px;
@@ -93,6 +137,9 @@ export const PokemonCardStyle = styled(LinkCustom)`
     width: 160px;
     height: 142px;
     object-fit: contain;
+    /* the character, not its canvas, sits on the halo's centre */
+    translate: calc(var(--ox, 0) * var(--art-side) * -1)
+      calc(var(--oy, 0) * var(--art-side) * -1);
     transition: transform 230ms cubic-bezier(0.2, 0.7, 0.3, 1);
     filter: drop-shadow(0 8px 5px #172d4512);
   }
@@ -151,7 +198,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
   }
   &:hover img,
   &:focus-visible img {
-    transform: translateY(-5px) rotate(-3deg) scale(1.04);
+    transform: translateY(-5px) scale(1.04);
   }
   .card-bottom {
     position: relative;
@@ -175,6 +222,7 @@ export const PokemonCardStyle = styled(LinkCustom)`
     padding: 10px 12px 13px;
     border-radius: 14px;
     .card-art {
+      --art-side: 115px;
       height: 115px;
       margin-top: 1px;
     }

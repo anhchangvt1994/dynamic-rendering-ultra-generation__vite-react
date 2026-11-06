@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { connectAccount, signOut, useAccount } from 'app/supabase/account'
+import { devTestAccount } from 'app/supabase/devAccount.mjs'
 import { authMessage } from 'app/supabase/messages'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import { useEffect, useRef, useState } from 'react'
@@ -133,6 +134,13 @@ export default function AccountPage() {
   const onSubmitForm = (event: FormEvent) => {
     event.preventDefault()
     const address = email.trim()
+    // yarn dev only: the test account (supabase/dev-seed) needs no code
+    const devAccount = import.meta.env.DEV && devTestAccount(address, true)
+    if (devAccount)
+      return run(async (supabase) => {
+        check(await supabase.auth.signInWithPassword(devAccount))
+        done()
+      })
     if (mode === 'code')
       return run(async (supabase) => {
         check(
@@ -229,7 +237,7 @@ export default function AccountPage() {
         <input
           type={showPassword ? 'text' : 'password'}
           autoComplete={autoComplete}
-          required
+          required={!(import.meta.env.DEV && devTestAccount(email, true))}
           minLength={autoComplete === 'new-password' ? 8 : undefined}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -493,6 +501,7 @@ export default function AccountPage() {
           {import.meta.env.DEV && (
             <p className="hint dev">
               Local: email nằm trong Mailpit, cổng 54324 của máy chạy yarn dev.
+              Tài khoản test: abc@gmail.com, không cần mật khẩu hay mã.
             </p>
           )}
         </div>

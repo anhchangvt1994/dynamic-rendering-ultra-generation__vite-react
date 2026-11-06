@@ -89,10 +89,13 @@ select throws_ok($$ select public.quiz_time_stop(pg_temp.round_id('s5')) $$, 'P0
 select is((public.quiz_status()->>'time_left')::int, 6, 'a refused stop spends nothing');
 insert into r values ('s5!', public.quiz_answer(pg_temp.round_id('s5'), pg_temp.answer_of('s5')));
 
+reset role;
+update public.quiz_players set used=10,bonus=0 where user_id='11111111-1111-1111-1111-111111111111';
+set local role authenticated;
 -- out of turns: wake up early
 insert into r values ('before', public.quiz_status());
 insert into r values ('woke', public.quiz_time_refill());
-select is((select (v->>'left')::int from r where k = 'woke'), 5, 'a refill gives 5 turns at once');
+select is((select (v->>'left')::int from r where k = 'woke'), 10, 'a refill gives 10 turns at once');
 select is((select (v->>'rerolls_left')::int from r where k = 'woke'), 3, 'and 3 swaps');
 select is((select (v->>'time_left')::int from r where k = 'woke'), 5, 'a refill spends one charge');
 select is(

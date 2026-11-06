@@ -9,6 +9,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated'),
   ('22222222-2222-2222-2222-222222222222', 'gary@example.com', 'authenticated', 'authenticated');
 
+-- Legacy v1 events remain covered below.
 -- Caterpie (255, F: 3 shards, always) and Mewtwo (3, SSS: 19 shards, 15%)
 insert into public.pokemon_shard_catalog (version, pokemon_id, metadata) values
   (1, 10, '{"name":"caterpie","types":["bug"],"captureRate":255,"legendary":false,"mythical":false,"stats":[45,30,35,20,20,45],"powerLevel":0}'),
@@ -50,7 +51,7 @@ grant execute on all functions in schema pg_temp to authenticated, service_role;
 
 select pg_temp.mk(:ash, 'a');
 select pg_temp.mk(:gary, 'g');
-select is((select shard_rule_version from public.quiz_rounds where id = pg_temp.round_id('a')), 1::smallint, 'a new round carries the shard rule version');
+select is((select shard_rule_version from public.quiz_rounds where id = pg_temp.round_id('a')), 2::smallint, 'a new round carries the shard rule version');
 select is((select shard_catalog_version from public.quiz_rounds where id = pg_temp.round_id('a')), 1::smallint, 'a new round pins the catalog version');
 select is((select count(*) from public.quiz_shard_events)::int, 0, 'an unanswered round queues nothing');
 
@@ -77,6 +78,7 @@ reset role;
 select is((pg_temp.event('t')).state, 'ineligible', 'time up is ineligible');
 
 -- roll below the drop: awarded once
+update public.quiz_shard_events set rule_version=1 where round_id=pg_temp.round_id('a');
 select pg_temp.fix('a', 150, 0.10);
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);

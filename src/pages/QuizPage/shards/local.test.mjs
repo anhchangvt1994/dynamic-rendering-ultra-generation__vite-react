@@ -250,10 +250,10 @@ test('two tabs claiming at once add one shard', async () => {
   assert.deepEqual(x, y)
   assert.equal(JSON.parse(storage.getItem(SHARD_KEY)).balances[150], 1)
 })
-test('without Web Locks it reports unavailable instead of claiming cross-tab safety', async () => {
+test('given no lock at all it reports unavailable instead of claiming safety', async () => {
   const journal = createShardJournal({
     storage: memory(),
-    lock: undefined,
+    lock: null,
     catalog: catalog(),
   })
   await assert.rejects(() => journal.recordLocalOutcome(round('r1'), 'right'), {

@@ -9,14 +9,20 @@ Repo sử dụng Husky `post-merge` và `post-rewrite` (rebase) để gọi pipe
 2. Khóa deployment để hai lần pull không chạy build chồng nhau.
 3. Sao lưu dependency hiện tại rồi cài khi `package.json`/lockfile thay đổi.
 4. Chạy `yarn build` và `yarn server-build` vào thư mục staging riêng.
-5. Khi cả hai build thành công, đưa output vào `dist` và `server/dist`, giữ cache
+5. Nếu revision mới đổi `supabase/migrations/` hoặc `supabase/seed/` (hoặc là lần
+   deploy đầu) và `ENABLE_SUPABASE=true`, chạy `yarn migrate` trên stack
+   Supabase self-hosted.
+6. Khi cả hai build thành công, đưa output vào `dist` và `server/dist`, giữ cache
    runtime, và giữ bản client trước trong `server/resources` như quy trình build cũ.
-6. Xóa cache HTML cần tái tạo, rồi reload đúng các PM2 id của repo này;
+7. Xóa cache HTML cần tái tạo, rồi reload đúng các PM2 id của repo này;
    kiểm tra PID mới ở trạng thái online ổn định trước khi xác nhận.
-7. Ghi revision deploy thành công vào `.cache/auto-deploy/state.json`.
+8. Ghi revision deploy thành công vào `.cache/auto-deploy/state.json`.
 
-Build lỗi sẽ không đưa output staging vào sử dụng và không reload PM2; dependency
-đã cập nhật sẽ được khôi phục. Nếu reload lỗi, pipeline khôi phục output và
+Build hoặc migrate lỗi sẽ không đưa output staging vào sử dụng và không reload
+PM2; dependency đã cập nhật sẽ được khôi phục. Migrate chạy trước khi code mới
+lên nên code cũ phải chạy được trên schema mới: migration chỉ thêm (bảng, cột,
+function), không xóa/đổi tên thứ code đang chạy còn dùng. Rollback chỉ khôi
+phục code, không hoàn tác database. Database phải đang chạy (`yarn start`). Nếu reload lỗi, pipeline khôi phục output và
 dependency trước, rồi thử reload lại. Nếu phục hồi cũng lỗi,
 log chỉ rõ thư mục backup được giữ lại để xử lý.
 Kiểm tra online phát hiện lỗi khởi động/crash sớm; không thay thế kiểm tra

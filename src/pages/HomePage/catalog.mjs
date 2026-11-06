@@ -58,6 +58,7 @@ export function readCatalogParams(search = '') {
       ? params.get('sort')
       : 'number',
     caughtOnly: params.get('view') === 'caught',
+    ownedOnly: params.get('owned') === '1',
     shown:
       Number.isFinite(shown) && shown >= 24
         ? Math.min(POKEMON_COUNT, Math.floor(shown))
@@ -91,6 +92,8 @@ export function filterCatalog(list = [], options = {}) {
     sort = 'number',
     caughtOnly = false,
     caughtIds = new Set(),
+    ownedOnly = false,
+    ownedIds = new Set(),
     typeIds,
   } = options
   const region = GENERATIONS.find((x) => x.id === generation)
@@ -101,6 +104,7 @@ export function filterCatalog(list = [], options = {}) {
       id <= POKEMON_COUNT &&
       (!region || (id >= region.start && id <= region.end)) &&
       (!caughtOnly || caughtIds.has(id)) &&
+      (!ownedOnly || ownedIds.has(id)) &&
       (!typeIds || typeIds.has(id))
     )
   })
@@ -114,4 +118,24 @@ export function filterCatalog(list = [], options = {}) {
         ? pokemonId(b) - pokemonId(a)
         : pokemonId(a) - pokemonId(b)
   )
+}
+
+/** The list's scope, widest first: every Pokémon, the collection, the owned. */
+export const catalogScope = ({ caughtOnly, ownedOnly }) =>
+  caughtOnly ? (ownedOnly ? 'owned' : 'caught') : 'all'
+
+/** The search string for another scope; the filters and the sort stay. */
+export function withScope(search, scope) {
+  const next = new URLSearchParams(search)
+  for (const key of ['view', 'owned', 'shown']) next.delete(key)
+  if (scope !== 'all') next.set('view', 'caught')
+  if (scope === 'owned') next.set('owned', '1')
+  return next.toString()
+}
+
+/** The search string with no query, generation or type; the scope stays. */
+export function withoutFilters(search) {
+  const next = new URLSearchParams(search)
+  for (const key of ['q', 'gen', 'type', 'shown']) next.delete(key)
+  return next.toString()
 }

@@ -12,7 +12,12 @@ const PAGE_PARTS: [name: string, files: RegExp][] = [
   // skeletons import the bag one. Inside either chunk, the two chunks would
   // import each other, and the one loaded first reads the other's variables
   // before they exist ("Cannot access 'x' before initialization", every page)
-  ['skeleton-bone', /src\/components\/PageSkeleton\/bone\./],
+  // DexNumber and FieldIcon too: the home skeleton (a chunk of its own) and
+  // the other skeletons share them
+  [
+    'skeleton-bone',
+    /src\/components\/(PageSkeleton\/(bone|DexNumber)|common\/FieldIcon)\./,
+  ],
   // the bag's skeleton and the page styles it reuses, apart from the other
   // skeletons so their chunk keeps room
   [
@@ -25,11 +30,25 @@ const PAGE_PARTS: [name: string, files: RegExp][] = [
     'kitchen-skeleton',
     /src\/(components\/PageSkeleton\/KitchenSkeleton|pages\/KitchenPage\/styles)\./,
   ],
+  // the quiz, home and blog skeletons with the page styles they reuse: the
+  // styles are heavy, together with the other skeletons they pass the budget
+  [
+    'quiz-skeleton',
+    /src\/(components\/PageSkeleton\/QuizSkeleton|pages\/QuizPage\/styles)\./,
+  ],
+  [
+    'home-skeleton',
+    /src\/(components\/PageSkeleton\/HomeSkeleton|pages\/HomePage\/styles)\./,
+  ],
+  [
+    'blog-skeletons',
+    /src\/(components\/PageSkeleton\/Blog(Detail)?Skeleton|pages\/Blog(Detail)?Page\/styles)\./,
+  ],
   // the route skeletons (Layout shows them on the first paint) and the page
-  // styles the sign-in and quiz skeletons reuse so they can not drift
+  // styles the sign-in skeleton reuses so they can not drift
   [
     'page-skeletons',
-    /src\/(components\/PageSkeleton\/|pages\/(QuizPage|AccountPage)\/styles\.)/,
+    /src\/(components\/PageSkeleton\/|pages\/AccountPage\/styles\.)/,
   ],
 ]
 

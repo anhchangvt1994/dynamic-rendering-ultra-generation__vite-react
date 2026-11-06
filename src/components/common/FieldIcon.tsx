@@ -56,6 +56,7 @@ export default function FieldIcon({
     | 'spark'
     | 'menu'
     | 'user'
+    | 'heart'
   size?: number
 }) {
   const paths = {
@@ -89,6 +90,9 @@ export default function FieldIcon({
       <path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z" />
     ),
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+    heart: (
+      <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z" />
+    ),
     user: (
       <>
         <circle cx="12" cy="8" r="4" />

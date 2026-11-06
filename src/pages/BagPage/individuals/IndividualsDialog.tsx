@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useModal } from 'pages/QuizPage/useModal'
 import IndividualArt from './IndividualArt'
-import { markLabel, personalityLine, starLabel } from './display.mjs'
+import { personalityLine, sizeOf, starLabel, tintLabel } from './display.mjs'
 import { nameError } from './messages.mjs'
 import { useIndividualList } from './individualStore'
 import { useNaming } from './useIndividuals'
 import { DialogStyle } from './styles'
+import { myPokemonPath } from 'pages/MyPokemonPage/paths.mjs'
 
 type Props = {
   speciesId: number | null
@@ -25,7 +26,6 @@ function Item({ item, name }: { item: any; name: string }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const personality = personalityLine(item.personality)
-  const mark = item.appearance.mark
   const save = async () => {
     if (busy) return
     setBusy(true)
@@ -52,7 +52,7 @@ function Item({ item, name }: { item: any; name: string }) {
           {personality.name} · {starLabel(item.potential.stars)}
         </span>
         <span>
-          {mark ? `Dấu: ${markLabel(mark.kind)}` : 'Không có dấu'}
+          {tintLabel(item.appearance)} · {sizeOf(item.id).label}
           {date(item.createdAt) ? ` · nhận ${date(item.createdAt)}` : ''}
         </span>
       </span>
@@ -105,14 +105,13 @@ function Item({ item, name }: { item: any; name: string }) {
           >
             Đổi tên
           </button>
-          <button
-            type="button"
+          <LinkCustom
             className="ind-btn"
-            disabled
-            aria-label="Vào phòng, sắp có"
+            data-action="view"
+            to={myPokemonPath(item.id)}
           >
-            Vào phòng · Sắp có
-          </button>
+            Xem Pokémon của tôi
+          </LinkCustom>
         </span>
       )}
     </li>

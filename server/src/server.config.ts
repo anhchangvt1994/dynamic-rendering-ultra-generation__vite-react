@@ -45,6 +45,12 @@ const ServerConfig = defineServerConfig({
             name: 'che-bien-page',
           },
         }
+      else if (pathSlitted[1] === 'pokemon-cua-toi')
+        return {
+          loader: {
+            name: 'pokemon-cua-toi-page',
+          },
+        }
       else if (pathSlitted[1] === 'so-sanh')
         return {
           loader: {

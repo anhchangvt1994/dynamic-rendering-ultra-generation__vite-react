@@ -1,6 +1,7 @@
 import type { RollupAliasOptions } from '@rollup/plugin-alias'
 // import type { UserConfig } from 'vite'
 import NormalSplitChunks from '../plugins/NormalSplitChunks'
+import SplitJsonArray, { jsonPartChunk } from '../plugins/SplitJsonArray'
 import splitChunkConstants from './utils/splitChunkConstants'
 import splitChunkContexts from './utils/splitChunkContexts'
 import splitChunkHooks from './utils/splitChunkHooks'
@@ -15,7 +16,13 @@ export default (): any => {
   return {
     // NOTE - If you want to use Regex please use /...\/([^/]+)/ to split chunks right way
     plugins: [
+      // the shard catalog (every species) is one ~170 KB JSON file
+      SplitJsonArray({
+        file: 'src/pages/QuizPage/shards/catalog.json',
+        key: 'species',
+      }),
       NormalSplitChunks([
+        jsonPartChunk,
         splitChunkVendors,
         splitChunkPageParts,
         splitChunkConstants,

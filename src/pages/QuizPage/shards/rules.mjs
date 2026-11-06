@@ -9,7 +9,8 @@ const fail = (message) => {
 
 export const requiredShards = (d) => 3 + Math.floor(17 * d + 0.5 + EPS)
 
-export function shardRule(entry) {
+export function shardRule(entry, version = 2) {
+  if (version !== 1 && version !== 2) fail('unsupported rule version')
   if (!entry || typeof entry !== 'object') fail('entry required')
   const { captureRate, powerLevel, legendary, mythical } = entry
   if (!Number.isInteger(captureRate) || captureRate < 1 || captureRate > 255)
@@ -26,7 +27,14 @@ export function shardRule(entry) {
   )
   const p = powerLevel / 9
   const d = 0.55 * r + 0.3 * p + 0.15 * (r * p)
-  return { r, p, d, required: requiredShards(d), drop: 1 - 0.9 * d }
+  const drop = 1 - 0.9 * d
+  return {
+    r,
+    p,
+    d,
+    required: requiredShards(d),
+    drop: version === 1 ? drop : Math.min(1, drop + 0.1),
+  }
 }
 
 export function winsShard(roll, drop) {

@@ -26,21 +26,19 @@ const fetchOnRoute = (() => {
     // controller?.abort('reject')
     controller = new AbortController()
 
-    const data = await new Promise(async (res) => {
-      const response = await fetch(path, {
-        ...init,
-        signal: controller.signal,
-      })
-        .then((res) => res.text())
-        .catch((err) => {
-          console.error(err)
-          throw err
-        })
-
-      res(/^{(.|[\r\n])*?}$/.test(response) ? JSON.parse(response) : {})
+    // a failed check (offline, or cancelled by leaving the page) still lets
+    // the route render: undefined is "no server verdict"
+    const response = await fetch(path, {
+      ...init,
+      signal: controller.signal,
     })
+      .then((res) => res.text())
+      .catch(() => undefined)
+    if (response === undefined) return
 
-    return data as IFetchOnRouteResponse
+    return (
+      /^{(.|[\r\n])*?}$/.test(response) ? JSON.parse(response) : {}
+    ) as IFetchOnRouteResponse
   }
 })() // fetchOnRoute
 

@@ -71,6 +71,8 @@ export function useIndividualList(enabled: boolean, speciesId: number | null) {
   const account = useAccount()
   const mode = modeFor(account.status)
   const userId = account.user?.id
+  const ownerKey = `${enabled}:${mode}:${userId ?? ''}:${speciesId ?? 'all'}`
+  const [loadedOwner, setLoadedOwner] = useState('')
   const [state, setState] = useState<{
     items: Individual[] | null
     loading: boolean
@@ -84,15 +86,19 @@ export function useIndividualList(enabled: boolean, speciesId: number | null) {
     setState((s) => ({ ...s, loading: true, error: null }))
     fetchIndividuals(mode, speciesId).then(
       (items) => {
-        if (epoch.current.isCurrent(mine))
+        if (epoch.current.isCurrent(mine)) {
+          setLoadedOwner(ownerKey)
           setState({ items, loading: false, error: null })
+        }
       },
       (error: Error) => {
-        if (epoch.current.isCurrent(mine))
+        if (epoch.current.isCurrent(mine)) {
+          setLoadedOwner(ownerKey)
           setState((s) => ({ ...s, loading: false, error }))
+        }
       }
     )
-  }, [enabled, mode, speciesId])
+  }, [enabled, mode, speciesId, ownerKey])
 
   useEffect(() => {
     setState({ items: null, loading: false, error: null })
@@ -111,7 +117,14 @@ export function useIndividualList(enabled: boolean, speciesId: number | null) {
     }
   }, [load, mode, userId])
 
-  return { ...state, retry: load }
+  return loadedOwner === ownerKey
+    ? { ...state, retry: load }
+    : {
+        items: null,
+        loading: enabled && (mode === 'server' || mode === 'local'),
+        error: null,
+        retry: load,
+      }
 }
 
 // One shared count per species for the collection badges: the first badge on

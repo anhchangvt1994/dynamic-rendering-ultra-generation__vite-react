@@ -30,8 +30,8 @@ export const readCount = (key, storage) =>
 export const saveCount = (key, value, storage) =>
   saveJSON(key, Math.max(0, value), storage)
 
-// ── turns: 5 per 3 hours, the 3 hours counted from the first round ──
-export const TURNS = 5
+// ── turns: 10 per 3 hours, the 3 hours counted from the first round ──
+export const TURNS = 10
 export const WINDOW_MS = 3 * 60 * 60 * 1000
 // wins and gifts: what this window paid, for the recap when it runs out
 const FRESH = { start: 0, used: 0, bonus: 0, wins: 0, gifts: [], rerolls: 0 }

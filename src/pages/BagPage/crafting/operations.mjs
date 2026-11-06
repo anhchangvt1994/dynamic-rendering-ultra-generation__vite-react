@@ -1,6 +1,7 @@
 // Crafting a card is one idempotent operation: a client-made id is written to
 // storage before the request and reused until the outcome is known, so a
 // timeout, a reload or a double click can never craft twice. Pure of React.
+import { randomId } from '../../../utils/secure.mjs'
 import {
   validCraftReceipt,
   validOperation,
@@ -69,7 +70,7 @@ export function createCraftController({
   submit,
   refresh = async () => {},
   onState,
-  newId = () => globalThis.crypto.randomUUID(),
+  newId = () => randomId(),
   // the same durable-operation machinery serves trading cards for individuals
   keyOf = pendingKey,
   terminal = TERMINAL,

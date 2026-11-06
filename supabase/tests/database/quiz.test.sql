@@ -73,11 +73,11 @@ grant execute on all functions in schema pg_temp to authenticated, service_role;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
 
-select is((public.quiz_status()->>'left')::int, 5, 'a new player has 5 turns');
+select is((public.quiz_status()->>'left')::int, 10, 'a new player has 10 turns');
 insert into r values ('a', public.quiz_start(1::smallint, 151::smallint, false));
-select is((public.quiz_status()->>'left')::int, 4, 'starting a round spends a turn');
+select is((public.quiz_status()->>'left')::int, 9, 'starting a round spends a turn');
 select is(public.quiz_start(1::smallint, 151::smallint, false)->>'id', (select v->>'id' from r where k = 'a'), 'starting again resumes the pending round');
-select is((public.quiz_status()->>'left')::int, 4, 'resuming spends nothing');
+select is((public.quiz_status()->>'left')::int, 9, 'resuming spends nothing');
 select ok(not (select v ? 'answer_id' from r where k = 'a'), 'a round never carries its answer');
 select is((select jsonb_array_length(v->'options') from r where k = 'a'), 4, 'four options');
 select ok((select bool_and(o::int between 1 and 151) from r, jsonb_array_elements_text(v->'options') o where k = 'a'), 'options within the range');
@@ -125,8 +125,12 @@ insert into r values ('t!', public.quiz_answer(pg_temp.round_id('t'), -2::smalli
 select is((select v->>'outcome' from r where k = 't!'), 'time', 'the page''s time up (-2) is time, not a wrong answer');
 select ok((select v->'missed' = 'null'::jsonb from r where k = 't!'), 'time up misses no named gift');
 
+-- Spend the additional five turns using timeouts (no lucky gifts).
+reset role;
+update public.quiz_players set used=10,bonus=0 where user_id='11111111-1111-1111-1111-111111111111';
+set local role authenticated;
 -- out of turns
-select throws_ok($$ select public.quiz_start(1::smallint, 151::smallint, false) $$, 'P0001', 'no_turns', 'no sixth round in the window');
+select throws_ok($$ select public.quiz_start(1::smallint, 151::smallint, false) $$, 'P0001', 'no_turns', 'no eleventh round in the window');
 select ok((public.quiz_status()->>'refill_at')::timestamptz > now() + interval '2 hours 59 minutes', 'the turns come back 3 hours after the first round');
 select ok(
   (select count(*) = 0 from r, jsonb_array_elements_text(v->'gifts') g join public.quiz_items i on i.id = g
@@ -140,7 +144,7 @@ update public.quiz_players set window_start = now() - interval '3 hours 1 second
 where user_id = '11111111-1111-1111-1111-111111111111';
 set local role authenticated;
 insert into r values ('f', public.quiz_start(1::smallint, 151::smallint, false));
-select is((public.quiz_status()->>'left')::int, 4, 'a new window once the old one is over');
+select is((public.quiz_status()->>'left')::int, 9, 'a new window once the old one is over');
 select is((public.quiz_status()->>'wins')::int, 0, 'the new window counts from zero');
 
 -- a broken artwork: 3 swaps for free, only when the proxy saw it break
@@ -154,7 +158,7 @@ insert into r values ('f2', public.quiz_reroll(pg_temp.round_id('f1')));
 select pg_temp.break_art('f2');
 insert into r values ('f3', public.quiz_reroll(pg_temp.round_id('f2')));
 select pg_temp.break_art('f3');
-select is((public.quiz_status()->>'left')::int, 4, 'swapping a Pokémon costs no turn');
+select is((public.quiz_status()->>'left')::int, 9, 'swapping a Pokémon costs no turn');
 select throws_ok($$ select public.quiz_reroll(pg_temp.round_id('f3')) $$, 'P0001', 'no_rerolls', 'a fourth swap is refused');
 
 -- the chests: streak 5 and the tenth record
@@ -191,10 +195,10 @@ update public.quiz_players set window_start = now() - interval '3 hours 1 second
 where user_id = '11111111-1111-1111-1111-111111111111';
 set local role authenticated;
 select is(public.quiz_start(1::smallint, 151::smallint, false)->>'id', (select v->>'id' from r where k = 'g'), 'a round left over a window''s end is picked up again');
-select is((public.quiz_status()->>'left')::int, 5, 'picking it up spends nothing in the new window');
+select is((public.quiz_status()->>'left')::int, 10, 'picking it up spends nothing in the new window');
 insert into r values ('g!', public.quiz_answer(pg_temp.round_id('g'), -1::smallint));
 insert into r values ('i', public.quiz_start(1::smallint, 151::smallint, false));
-select is((public.quiz_status()->>'left')::int, 4, 'the next round opens the new window');
+select is((public.quiz_status()->>'left')::int, 9, 'the next round opens the new window');
 
 -- what a user can not do
 select throws_ok($$ select * from public.quiz_rounds $$, '42501', null, 'nobody reads the rounds (they hold the answers)');

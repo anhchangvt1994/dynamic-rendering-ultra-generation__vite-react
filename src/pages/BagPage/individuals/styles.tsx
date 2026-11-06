@@ -50,6 +50,9 @@ export const DialogStyle = styled.dialog`
     color: #fff;
     background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
+    text-decoration: none;
+    display: inline-grid;
+    place-items: center;
   }
   .ind-btn[disabled],
   .ind-btn[aria-disabled='true'] {

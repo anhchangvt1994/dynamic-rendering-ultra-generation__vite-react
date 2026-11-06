@@ -1,9 +1,10 @@
 import type { PlayRound, QuizEngine, Status, Verdict } from './types'
 import { parseReceipt } from '../shards/receipt.mjs'
+import { parseChestReceipt } from '../shards/chestReceipt.mjs'
 import { freezeLeft, roundClock } from './rules.mjs'
 
 // the RPCs of supabase/migrations/20261101000000_quiz_game.sql and
-// 20261102000000_quiz_time.sql
+// 20261102000000_quiz_time.sql (unopened chests: 20261115000000)
 type Rpc = (
   name: string,
   args?: Record<string, unknown>
@@ -48,6 +49,12 @@ const toStatus = (data: any): Status => ({
   timeLeft: data.time_left ?? 0,
   timeRefillAt: data.time_refill_at ? Date.parse(data.time_refill_at) : 0,
   pending: data.pending ? toRound(data.pending) : null,
+  chests: (data.chests ?? []).map((chest: any) => ({
+    kind: chest.kind,
+    gifts: chest.gifts,
+    round: chest.round,
+    roundId: chest.chest_reward_version === 1 ? chest.round : undefined,
+  })),
 })
 
 /**
@@ -93,9 +100,17 @@ export function createServerEngine(supabase: Client): QuizEngine {
         gift: data.gift,
         lucky: data.lucky,
         missed: data.missed,
-        chests: data.chests ?? [],
-        status: toStatus({ ...data, pending: null }),
+        chests: (data.chests ?? []).map((chest: any) => ({
+          ...chest,
+          round: round.id,
+          // legacy rounds (before chest shards) have items only
+          roundId: data.chest_reward_version === 1 ? round.id : undefined,
+        })),
+        status: toStatus({ ...data, pending: null, chests: [] }),
       }
+    },
+    async openChests(round) {
+      await call('quiz_open_chests', { p_round: round })
     },
     async claimShard(roundId) {
       return parseReceipt(await call('quiz_claim_shard', { p_round: roundId }))
@@ -104,6 +119,19 @@ export function createServerEngine(supabase: Client): QuizEngine {
       const data = await call('quiz_reconcile_shards')
       if (!Array.isArray(data)) throw new Error('bad_receipt')
       return data.map(parseReceipt)
+    },
+    async claimChestShards(roundId, kind) {
+      return parseChestReceipt(
+        await call('quiz_claim_chest_shards', {
+          p_round: roundId,
+          p_kind: kind,
+        })
+      )
+    },
+    async reconcileChestShards() {
+      const rows = await call('quiz_reconcile_chest_shards')
+      if (!Array.isArray(rows)) throw new Error('bad_receipt')
+      return rows.map(parseChestReceipt)
     },
     art: (round) => `/api/quiz-art/${round.id}`,
     cry: (round) => `/api/quiz-cry/${round.id}`,

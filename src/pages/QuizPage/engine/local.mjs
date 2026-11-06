@@ -46,6 +46,8 @@ export const KEYS = {
   records: 'pokedex:quiz-records',
   recordsTotal: 'pokedex:quiz-records-total',
   time: 'pokedex:quiz-time',
+  // chests won and not opened yet: a reload brings the button back
+  chests: 'pokedex:quiz-chests',
 }
 
 export const cryOf = (id) =>
@@ -93,6 +95,7 @@ export function createLocalEngine({
       timeLeft: timeLeft(time()),
       timeRefillAt: timeRefillAt(time()),
       pending: pending?.answerId ? play(pending) : null,
+      chests: read(KEYS.chests, []),
     }
   }
   const newRound = ({ from, to, hard }, kept = {}) => {
@@ -116,6 +119,16 @@ export function createLocalEngine({
       shardRuleVersion: RULE_VERSION,
       shardCatalogVersion: CATALOG_VERSION,
       shardRoll: kept.shardRoll ?? shardRandom(),
+      chestRewardVersion: 1,
+      chestEntropy:
+        kept.chestEntropy ??
+        Array.from({ length: 2 }, () => ({
+          countRoll: shardRandom(),
+          pieces: Array.from({ length: 3 }, () => ({
+            groupRoll: shardRandom(),
+            speciesRoll: shardRandom(),
+          })),
+        })),
       from,
       to,
       startedAt: now(),
@@ -199,9 +212,15 @@ export function createLocalEngine({
         }))
       // two answers in flight: only the first still finds its round
       if (read(KEYS.round, null)?.id !== pending.id) throw new Error('answered')
-      save(KEYS.round, null)
       let value = turns()
       const chests = []
+      // round: the chest's own round; roundId: set when it carries shards
+      const won = (list) =>
+        list.map((chest) => ({
+          ...chest,
+          round: pending.id,
+          roundId: pending.chestRewardVersion === 1 ? pending.id : undefined,
+        }))
       if (result.outcome === 'right') {
         const win = addWin({
           streak: readCount(KEYS.streak, storage),
@@ -210,6 +229,20 @@ export function createLocalEngine({
         if (win.combo) chests.push({ kind: 'combo', gifts: comboGifts(random) })
         if (win.special)
           chests.push({ kind: 'special', gifts: specialGifts(random) })
+        if (pending.chestRewardVersion === 1 && chests.length)
+          await shards.recordLocalChestRewards(
+            pending.id,
+            chests.map((chest) => ({
+              kind: chest.kind,
+              entropy: pending.chestEntropy[chest.kind === 'combo' ? 0 : 1],
+            }))
+          )
+        // the chest write awaited: the other answer may have taken the round
+        if (read(KEYS.round, null)?.id !== pending.id)
+          throw new Error('answered')
+        if (chests.length)
+          save(KEYS.chests, [...read(KEYS.chests, []), ...won(chests)])
+        save(KEYS.round, null)
         let bag = addToBag(read(KEYS.bag, {}), [result.gift])
         for (const chest of chests) bag = addToBag(bag, chest.gifts)
         save(KEYS.bag, bag)
@@ -222,16 +255,28 @@ export function createLocalEngine({
             readCount(KEYS.recordsTotal, storage) + 1,
             storage
           )
-      } else saveCount(KEYS.streak, 0, storage)
+      } else {
+        save(KEYS.round, null)
+        saveCount(KEYS.streak, 0, storage)
+      }
       save(KEYS.turns, value)
       return {
         ...result,
         answerId: pending.answerId,
         shard,
-        chests,
+        chests: won(chests),
         status: status(value),
       }
     },
+    async openChests(round) {
+      save(
+        KEYS.chests,
+        read(KEYS.chests, []).filter((chest) => chest.round !== round)
+      )
+    },
+    claimChestShards: (roundId, kind) =>
+      shards.claimLocalChestShards(roundId, kind),
+    reconcileChestShards: () => shards.reconcileLocalChestShards(),
     claimShard: (roundId) => shards.claimLocalShard(roundId),
     async reconcileShards() {
       return []

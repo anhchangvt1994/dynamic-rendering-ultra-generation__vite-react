@@ -5,9 +5,26 @@ import { TIERS, isValuable, itemById, itemSprite } from './items.mjs'
 import { dialogCss, useModal } from './useModal'
 import { COMBO_AT, SPECIAL_AT } from './progress.mjs'
 
-export type Chest = { kind: 'combo' | 'special'; gifts: string[] }
+import type { QuizEngine } from './engine/types'
+import { useChestShards } from './shards/useChestShards'
+import catalog from './shards/catalog.json'
+import { isRare } from './shards/chestRewards.mjs'
+import { quizLabel } from './quiz.mjs'
+import { getPokemonSprite } from 'pages/PokemonPage/navigation.mjs'
+
+const speciesOf = (id: number) => catalog.species.find((e) => e.id === id)
+
+export type Chest = {
+  kind: 'combo' | 'special'
+  gifts: string[]
+  /** the round that won it: what opening it takes off the list */
+  round: string
+  /** set when the chest also carries shards (not on legacy rounds) */
+  roundId?: string
+}
 
 type Props = {
+  engine: QuizEngine | null
   chests: Chest[]
   open: boolean
   onPick: (id: string) => void
@@ -321,6 +338,108 @@ const ChestStyle = styled.dialog`
     box-shadow: 1px 1px 0 #050f1c;
   }
 
+  /* the chest's amber shards: a strip under the item cards */
+  .chest-shards {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 440px;
+    padding: 12px 12px 14px;
+    border-radius: 20px;
+    background: linear-gradient(100deg, #3a2406 0, #0b1830 75%);
+    box-shadow: inset 0 0 0 2px #ffc24a80;
+    color: #fff;
+    animation: chest-kick 400ms cubic-bezier(0.3, 1.6, 0.5, 1) 1s both;
+  }
+  .chest-shards h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ffc24a;
+  }
+  .chest-shards ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .chest-shards li {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    width: 96px;
+    padding: 6px 4px 8px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 38%, #ffcf6a66, transparent 70%), #1a2a48;
+    box-shadow: inset 0 0 0 1px #ffe3a855;
+  }
+  .chest-shards li[data-rare] {
+    box-shadow:
+      inset 0 0 0 2px #e9a6ff,
+      0 0 18px -4px #b77cff;
+  }
+  .chest-shards img {
+    width: 56px;
+    height: 56px;
+    image-rendering: pixelated;
+  }
+  .chest-shards .rare {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #e9a6ff;
+    color: #2a0b40;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .chest-shards .who {
+    max-width: 100%;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+  .chest-shards .many {
+    font-size: 13px;
+    color: #ffe08a;
+    font-weight: 800;
+  }
+  .chest-shards p {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.82);
+  }
+  .chest-shards button {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 2px solid #ffc24a;
+    border-radius: 12px;
+    background: transparent;
+    color: #ffe08a;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .chest-shards button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chest-shards {
+      animation: none;
+    }
+  }
+
   @media (min-width: 640px) {
     .cards li {
       width: calc((100% - 40px) / 5);
@@ -485,12 +604,23 @@ function Ball({ kind }: { kind: Chest['kind'] }) {
   )
 }
 
-export default function ChestDialog({ chests, open, onPick, onClose }: Props) {
+export default function ChestDialog({
+  engine,
+  chests,
+  open,
+  onPick,
+  onClose,
+}: Props) {
   const ref = useModal(open, onClose)
   const [index, setIndex] = useState(0)
   const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>('closed')
   const timer = useRef(0)
   const chest = chests[index]
+  const shards = useChestShards(
+    engine,
+    open ? chest?.roundId : undefined,
+    chest?.kind
+  )
 
   useEffect(() => {
     if (!open) {
@@ -589,6 +719,59 @@ export default function ChestDialog({ chests, open, onPick, onClose }: Props) {
                   )
                 })}
               </ul>
+              {chest.roundId && (
+                <section
+                  aria-label="Mảnh hổ phách"
+                  className="chest-shards"
+                  aria-live="polite"
+                >
+                  <h3>Mảnh hổ phách</h3>
+                  {shards.error ? (
+                    <p role="alert">
+                      {shards.error.message === 'no_chest'
+                        ? 'Rương này không có phần thưởng mảnh.'
+                        : 'Chưa xác nhận được mảnh.'}
+                    </p>
+                  ) : shards.receipt?.state === 'awarded' ? (
+                    shards.receipt.shards.length ? (
+                      <ul>
+                        {shards.receipt.shards.map((row) => {
+                          const entry = speciesOf(row.speciesId)
+                          const name = entry
+                            ? quizLabel(entry.name)
+                            : `Pokémon #${row.speciesId}`
+                          const rare = !!entry && isRare(entry)
+                          return (
+                            <li
+                              key={row.speciesId}
+                              data-rare={rare || undefined}
+                            >
+                              {rare && <span className="rare">Hiếm</span>}
+                              <img
+                                src={getPokemonSprite(row.speciesId)}
+                                alt=""
+                                width={56}
+                                height={56}
+                              />
+                              <span className="who">{name}</span>
+                              <span className="many">×{row.count} mảnh</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    ) : (
+                      <p>Lần này rương không có mảnh hổ phách.</p>
+                    )
+                  ) : (
+                    <p>Đang xác nhận mảnh…</p>
+                  )}
+                  {(shards.error || shards.receipt?.state === 'pending') && (
+                    <button type="button" onClick={shards.retry}>
+                      Thử lại
+                    </button>
+                  )}
+                </section>
+              )}
               <button
                 type="button"
                 className="collect"

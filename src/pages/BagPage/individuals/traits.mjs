@@ -6,6 +6,7 @@
  * u32(label) = first four bytes, big-endian, of SHA-256("<id>:<label>").
  * Picking in a range is `u32 mod n`; the small modulo bias is ignored.
  */
+import { digest } from '../../../utils/secure.mjs'
 export const PERSONALITIES = [
   'Hiền',
   'Nghịch',
@@ -25,11 +26,8 @@ export const MARK_KINDS = ['freckle', 'stripe', 'patch', 'scar', 'star']
 const encoder = new TextEncoder()
 
 export async function u32(id, label) {
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    encoder.encode(`${id}:${label}`)
-  )
-  return new DataView(digest).getUint32(0, false)
+  const bytes = await digest(encoder.encode(`${id}:${label}`))
+  return new DataView(bytes.buffer, bytes.byteOffset).getUint32(0, false)
 }
 
 export async function individualTraits(id) {
