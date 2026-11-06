@@ -19,6 +19,6 @@ test('the pgTAP suite checks every golden vector', () => {
     assert.ok(sql.includes(`'${id}'::uuid`), `id ${id} missing in pgTAP`)
     assert.ok(sql.includes(JSON.stringify(traits)), `traits of ${id} missing`)
   }
-  const checked = sql.match(/pokemon_individual_traits\(/g) ?? []
+  const checked = sql.match(/select is\(public\.pokemon_individual_traits\(/g) ?? []
   assert.equal(checked.length, golden.length)
 })
