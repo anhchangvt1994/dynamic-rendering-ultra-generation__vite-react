@@ -339,7 +339,7 @@ export default function Room({
               )}
             </div>
             <div className="rm-needs">
-              {needs && (
+              {(needs || !care.error) && (
                 <NeedRings
                   needs={needs}
                   bump={
@@ -363,7 +363,13 @@ export default function Room({
                   {moodLine(individual.personality, feeling)}
                 </>
               ) : (
-                'Đang tải…'
+                <>
+                  {/* the mood's emoji line height, so the bubble keeps it */}
+                  <span className="rm-emoji" aria-hidden="true">
+                    {'\u200b'}
+                  </span>
+                  Đang tải…
+                </>
               )}
             </p>
           </div>
@@ -429,6 +435,7 @@ export default function Room({
           item={individual}
           species={species}
           care={state}
+          pending={!state && !care.error}
           siblings={siblings}
           returnTo={returnTo}
           returnIndex={returnIndex}

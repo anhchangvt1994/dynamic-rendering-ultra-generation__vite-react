@@ -29,7 +29,7 @@ const date = (iso: string) => {
 }
 
 // what the room shows at each level, at the first level unlocksAt opens it
-const UNLOCKS = (
+export const UNLOCKS = (
   [
     ['sticker', '★', 'Hình dán'],
     ['sparkles', '✦', 'Lấp lánh'],
@@ -108,6 +108,8 @@ type Props = {
   item: Individual
   species: string
   care: CareState | null
+  /** the care is still loading: the stats hold their place */
+  pending?: boolean
   siblings: Individual[]
   returnTo: string
   returnIndex: unknown
@@ -122,6 +124,7 @@ export default function ProfileSheet({
   item,
   species,
   care,
+  pending = false,
   siblings,
   returnTo,
   returnIndex,
@@ -180,6 +183,8 @@ export default function ProfileSheet({
         <h2 id="rm-h-stats">Trưởng thành</h2>
         {care ? (
           <StatRadar stats={care.stats} cap={statCap(stars)} />
+        ) : pending ? (
+          <StatRadar stats={{}} cap={statCap(stars)} pending />
         ) : (
           <p className="rm-muted">Chưa có chỉ số.</p>
         )}

@@ -14,13 +14,16 @@ const ring = (r: number) =>
       .join(',')
   ).join(' ')
 
-/** The six growth stats on six axes, each against its cap. */
+/** The six growth stats on six axes, each against its cap; pending holds
+ * the same box while they load, the values not shown. */
 export default function StatRadar({
   stats,
   cap,
+  pending = false,
 }: {
   stats: Record<string, number>
   cap: number
+  pending?: boolean
 }) {
   const shape = STAT_KEYS.map((key, i) =>
     point(i, (R * Math.min(cap, stats[key] ?? 0)) / cap)
@@ -28,7 +31,11 @@ export default function StatRadar({
       .join(',')
   ).join(' ')
   return (
-    <figure className="rm-radar">
+    <figure
+      className="rm-radar"
+      data-pending={pending || undefined}
+      aria-busy={pending || undefined}
+    >
       <svg viewBox="-124 -78 248 156" aria-hidden="true" focusable="false">
         <g className="rm-radar-grid">
           <polygon points={ring(R)} />

@@ -9,17 +9,29 @@ export const RINGS = [
 export const LOW_NEED = 40
 
 /** The three needs as meters, each read out as "No 72%"; the one a care
- * just filled flashes (bump, a new n each time). */
+ * just filled flashes (bump, a new n each time). Null while they load: the
+ * meters hold their place, empty. */
 export default function NeedRings({
   needs,
   bump,
 }: {
-  needs: Record<'hunger' | 'clean' | 'fun', number>
+  needs: Record<'hunger' | 'clean' | 'fun', number> | null
   bump?: { need: 'hunger' | 'clean' | 'fun'; n: number }
 }) {
   return (
-    <ul className="rm-rings">
+    <ul className="rm-rings" aria-busy={!needs || undefined}>
       {RINGS.map(({ key, label, emoji }) => {
+        if (!needs)
+          return (
+            <li key={key} className="rm-ring" data-pending aria-hidden="true">
+              <span className="rm-ring-icon">{emoji}</span>
+              <span className="rm-ring-text">
+                <small>{label}</small>
+                <b>0</b>
+              </span>
+              <span className="rm-meter" />
+            </li>
+          )
         const value = Math.round(needs[key])
         return (
           <li

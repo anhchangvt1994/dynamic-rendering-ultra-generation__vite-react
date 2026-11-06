@@ -1023,20 +1023,17 @@ export default function QuizPage() {
     return (
       <QuizStyle className="quiz-page" data-phase="ready">
         <div className="arena">
-          {action === 'loading' ? (
-            <div className="ready-screen" role="status" aria-busy="true">
-              Đang chuẩn bị câu đố…
-            </div>
-          ) : (
-            <ReadyScreen
-              action={action}
-              busy={starting}
-              onGo={onReady}
-              rewards={rewards}
-              chests={chests}
-            />
-          )}
-          {action === 'start' && settings}
+          <ReadyScreen
+            // the words replace the bones: no node moves across
+            key={action === 'loading' ? 'wait' : 'ready'}
+            action={action}
+            busy={starting}
+            onGo={onReady}
+            rewards={rewards}
+            chests={chests}
+          />
+          {/* still loading: the settings hold their place (most visits start) */}
+          {(action === 'start' || action === 'loading') && settings}
           {!rewards && accounts && (
             <LinkCustom
               className="guest-call"

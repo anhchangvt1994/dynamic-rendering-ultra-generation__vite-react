@@ -58,11 +58,21 @@ export const boneCss = css`
   }
   /* a rolling digit: a counter drawn as text, stepped 0-9 by dex-count */
   .dex-digit {
+    position: relative;
     counter-reset: dex-digit 0;
     animation: dex-count var(--roll, 0s) linear infinite;
   }
+  /* the box is a "0" (the widest digit) whatever the counter shows: digits
+     are not tabular, and a number that changes width shifts the layout */
+  .dex-digit::after {
+    content: '0';
+    visibility: hidden;
+  }
   .dex-digit::before {
     content: counter(dex-digit);
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
   }
 
   .sr-only {

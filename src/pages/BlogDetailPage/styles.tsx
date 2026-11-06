@@ -804,7 +804,9 @@ export const BlogDetailStyle = styled(BlogStyle)`
 
   /* ── the body: a readable measure ── */
   .blog-body {
-    max-width: 68ch;
+    /* 68ch of Be Vietnam Pro, in em: a ch measure would change width when
+       the web font replaces its fallback */
+    max-width: 34em;
     margin: 32px auto 0;
     font-size: 17px;
     line-height: 1.75;

@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
 import styled from 'styled-components'
+import PokemonForms from 'pages/PokemonPage/PokemonForms'
+import { formNameOf, formSpeciesOf } from 'pages/PokemonPage/form-index.mjs'
 import { boneCss } from './bone'
 import DexNumber from './DexNumber'
 
@@ -61,7 +63,7 @@ const PokemonSkeletonStyle = styled.div`
     left: 50%;
     translate: -50% 0;
     /* the real .dex-number's exact stack, so both fall back alike */
-    font-family: 'Dela Gothic One', sans-serif;
+    font-family: 'Dela Gothic One', 'Dela Gothic One Fallback', sans-serif;
     font-size: clamp(48px, 17vw, 84px);
     letter-spacing: -0.02em;
     color: transparent;
@@ -152,6 +154,15 @@ const PokemonSkeletonStyle = styled.div`
   .actions .bone {
     width: 18px;
     height: 18px;
+  }
+
+  /* ── the form row (PokemonForms, real): the page's gaps around it ── */
+  .forms {
+    display: flow-root;
+    margin-top: 25px;
+  }
+  .forms + .power {
+    margin-top: 2px;
   }
 
   /* ── the power card: tier emblem, ten empty bars, BST ── */
@@ -324,6 +335,11 @@ const PokemonSkeletonStyle = styled.div`
 const ACTIONS = ['Shiny', 'Bắt', 'So sánh', 'Chia sẻ']
 
 export default function PokemonSkeleton() {
+  // drawn by Layout, above the page's route: the deepest match has the name;
+  // a species with forms gets its real form row, the page's next row
+  const matches = useMatches()
+  const name = matches[matches.length - 1]?.params.name ?? ''
+  const species = formSpeciesOf(name)
   return (
     <PokemonSkeletonStyle
       className="pokemon-page pokemon-skeleton"
@@ -357,6 +373,14 @@ export default function PokemonSkeleton() {
             </span>
           ))}
         </div>
+        {species && (
+          <div className="forms" inert>
+            <PokemonForms
+              species={species}
+              current={formNameOf(name) ?? name}
+            />
+          </div>
+        )}
         <div className="power">
           <span className="bone emblem" />
           <span className="ladder">

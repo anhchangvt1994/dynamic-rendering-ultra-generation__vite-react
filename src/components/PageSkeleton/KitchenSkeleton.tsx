@@ -16,6 +16,11 @@ const KitchenSkeletonStyle = styled(KitchenStyle)`
   .kitchen-loading {
     display: contents;
   }
+  /* the wrapper has no box, so its children take the page's column */
+  .kitchen-loading > * {
+    max-width: 1100px;
+    margin-inline: auto;
+  }
   /* blocks only: every row is held by KitchenStyle's shared geometry (the
      same line boxes as the loaded page), never by text in a fallback font */
   .chef-art {

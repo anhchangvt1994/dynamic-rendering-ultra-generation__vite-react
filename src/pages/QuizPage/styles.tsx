@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { boneCss } from 'components/PageSkeleton/bone'
 
 /*
  * "Eyecatch": the anime's ad-break card. A night page (ContentStyle darkens
@@ -65,6 +66,45 @@ export const QuizStyle = styled.section`
     min-height: 56px;
     background: var(--sun);
     color: var(--ink);
+  }
+  /* loading: the words and the button as bones (ReadyScreen 'loading') */
+  ${boneCss}
+  .ready-lines {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* the sentence's 21px lines (1.5 × 14px) */
+    gap: 7px;
+    width: min(100%, 440px);
+    padding-block: 3.5px;
+  }
+  .ready-lines .bone {
+    width: 92%;
+    height: 14px;
+  }
+  .ready-lines .bone + .bone {
+    width: 64%;
+  }
+  /* the sentence (440px) fits one line from 500px (the card's 60px around) */
+  @media (min-width: 500px) {
+    .ready-lines .bone {
+      width: 100%;
+    }
+    .ready-lines .bone + .bone {
+      display: none;
+    }
+  }
+  .ready-screen .ready-wait {
+    width: 180px;
+    opacity: 0.5;
+    cursor: default;
+    animation: none;
+  }
+  .ready-wait .bone {
+    width: 96px;
+    height: 16px;
+    --bone: rgba(23, 45, 69, 0.2);
+    --shine: rgba(23, 45, 69, 0.08);
   }
   .ready-ball {
     width: 88px;

@@ -1463,9 +1463,21 @@ export const HeroStyle = styled.section`
     .encounter-bottom a {
       font-size: 18px;
     }
+    /* a fixed height whatever the Pokémon: the name on one line, the note
+       on two at most (the card is ~110px wide at 320px) */
+    .encounter-bottom a {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
     .encounter-bottom p {
       font-size: 11px;
       max-width: 160px;
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
     .encounter-picker button {
       width: 31px;

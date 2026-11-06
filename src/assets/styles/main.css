@@ -1,6 +1,36 @@
 @import './vars/_color';
 @import './layout/_reset';
 
+/* Metric-matched stand-ins while the web fonts load: the system face scaled
+   to the same width and line box, so the text does not jump on the swap.
+   Measured against Arial (size-adjust = width ratio, overrides ÷ it). */
+@font-face {
+  font-family: 'Dela Gothic One Fallback';
+  src: local('Arial');
+  size-adjust: 131.7%;
+  ascent-override: 88.08%;
+  descent-override: 22.02%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro Fallback';
+  src: local('Arial');
+  font-weight: 100 500;
+  size-adjust: 107.53%;
+  ascent-override: 93%;
+  descent-override: 24.18%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro Fallback';
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  font-weight: 600 900;
+  size-adjust: 107.37%;
+  ascent-override: 93.13%;
+  descent-override: 24.22%;
+  line-gap-override: 0%;
+}
+
 :root {
   --ink: #172d45;
   --ink-soft: #29445c;
@@ -15,8 +45,10 @@
   --scroll-thumb: #a5b6c6;
   --scroll-track: #edf1f5;
   --radius-card: 20px;
-  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
-  --font-display: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
+  --font-body:
+    'Be Vietnam Pro', 'Be Vietnam Pro Fallback', system-ui, sans-serif;
+  --font-display:
+    'Dela Gothic One', 'Dela Gothic One Fallback', 'Be Vietnam Pro', sans-serif;
 }
 
 * {

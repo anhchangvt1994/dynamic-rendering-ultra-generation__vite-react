@@ -36,7 +36,9 @@ const NameStyle = styled.div`
     justify-content: center;
     max-width: 100%;
     margin: 0;
-    font-family: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
+    font-family:
+      'Dela Gothic One', 'Dela Gothic One Fallback', 'Be Vietnam Pro',
+      sans-serif;
     font-weight: 400;
     /* first paint: an estimate (Dela runs ~0.85em a letter); fitName()
        then measures the real width and shrinks further when needed */

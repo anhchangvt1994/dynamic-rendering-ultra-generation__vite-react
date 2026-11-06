@@ -11,6 +11,7 @@ import {
 } from './paths.mjs'
 import Chevron from './room/Chevron'
 import Room from './room/Room'
+import RoomSkeleton from './room/RoomSkeleton'
 import { MyPokemonStyle } from './styles'
 
 // species names come from the shard catalog, loaded when this page opens
@@ -60,6 +61,39 @@ export default function MyPokemonPage() {
   const { items, loading, error, retry } = useIndividualList(listed, null)
   const nameOf = useSpeciesNames()
 
+  // the way back, the same link while the room loads and once it is open
+  const back = (
+    <LinkCustom
+      className="rm-back"
+      to={returnTo}
+      aria-label="Về Bộ sưu tập"
+      onClick={(event) => {
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return
+        const index = location.state?.returnIndex
+        const current = window.history.state?.idx
+        if (
+          Number.isInteger(index) &&
+          Number.isInteger(current) &&
+          index >= 0 &&
+          index < current
+        ) {
+          event.preventDefault()
+          navigate(index - current)
+        }
+      }}
+    >
+      <Chevron size={20} />
+      <span className="rm-back-text">Bộ sưu tập</span>
+    </LinkCustom>
+  )
+
   let body
   let room = false
   if (mode === 'guest')
@@ -96,24 +130,7 @@ export default function MyPokemonPage() {
   else if (!items || mode === 'checking') {
     room = Boolean(id)
     body = id ? (
-      <div className="mp-room-skel" role="status" aria-label="Đang tải phòng">
-        <span className="mp-skel-head">
-          <span className="mp-skel mp-skel-back" />
-          <span className="mp-skel mp-skel-name" />
-        </span>
-        <span className="mp-skel-needs">
-          <span className="mp-skel" />
-          <span className="mp-skel" />
-          <span className="mp-skel" />
-        </span>
-        <span className="mp-skel mp-skel-disc" />
-        <span className="mp-skel-dock">
-          <span className="mp-skel" />
-          <span className="mp-skel" />
-          <span className="mp-skel" />
-          <span className="mp-skel" />
-        </span>
-      </div>
+      <RoomSkeleton id={id} back={back} />
     ) : (
       <p className="mp-note" role="status">
         {loading || mode === 'checking' ? 'Đang tải…' : ''}
@@ -132,37 +149,7 @@ export default function MyPokemonPage() {
         )}
         returnTo={returnTo}
         returnIndex={location.state?.returnIndex}
-        back={
-          <LinkCustom
-            className="rm-back"
-            to={returnTo}
-            aria-label="Về Bộ sưu tập"
-            onClick={(event) => {
-              if (
-                event.button !== 0 ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey
-              )
-                return
-              const index = location.state?.returnIndex
-              const current = window.history.state?.idx
-              if (
-                Number.isInteger(index) &&
-                Number.isInteger(current) &&
-                index >= 0 &&
-                index < current
-              ) {
-                event.preventDefault()
-                navigate(index - current)
-              }
-            }}
-          >
-            <Chevron size={20} />
-            <span className="rm-back-text">Bộ sưu tập</span>
-          </LinkCustom>
-        }
+        back={back}
       />
     ) : (
       <div className="mp-note">

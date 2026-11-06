@@ -96,7 +96,7 @@ export const InfoColStyle = styled.div`
 
 export const DexStyle = styled.span`
   flex: none;
-  font-family: 'Dela Gothic One', sans-serif;
+  font-family: 'Dela Gothic One', 'Dela Gothic One Fallback', sans-serif;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
   font-variant-numeric: tabular-nums;

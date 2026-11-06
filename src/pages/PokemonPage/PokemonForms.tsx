@@ -86,7 +86,10 @@ const PokemonForms = memo(
       ? forms.filter((form, i) => i < FOLD || form.name === current)
       : forms
     return (
-      <FormsStyle aria-label="Các dạng của Pokémon này">
+      <FormsStyle
+        className="pokemon-forms"
+        aria-label="Các dạng của Pokémon này"
+      >
         {shown.map((form) => (
           <LinkCustom
             key={form.name}

@@ -220,7 +220,7 @@ export const CarouselStageStyle = styled.div`
     top: 8px;
     left: 50%;
     translate: -50% 0;
-    font-family: 'Dela Gothic One', sans-serif;
+    font-family: 'Dela Gothic One', 'Dela Gothic One Fallback', sans-serif;
     /* sized so "#0445" stays inside the stage */
     font-size: clamp(48px, 17vw, 84px);
     line-height: 1 !important;
@@ -542,7 +542,8 @@ export const NameLoadingStyle = styled.div`
   min-height: 52px;
   text-align: center;
   margin: 0;
-  font-family: 'Dela Gothic One', 'Be Vietnam Pro', sans-serif;
+  font-family:
+    'Dela Gothic One', 'Dela Gothic One Fallback', 'Be Vietnam Pro', sans-serif;
   /* one line at 320px+: 19 letters of Dela at ~0.85em each */
   font-size: clamp(14px, 4.6vw, 20px);
   white-space: nowrap;
@@ -609,6 +610,7 @@ export const NameLoadingStyle = styled.div`
 
 export const DetailsRegionStyle = styled.div`
   position: relative;
+  display: flow-root;
   min-height: 600px;
 `
 

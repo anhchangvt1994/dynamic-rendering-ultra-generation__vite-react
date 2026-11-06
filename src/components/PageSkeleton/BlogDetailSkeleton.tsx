@@ -1,5 +1,26 @@
+import blogApi, { listStoreKey } from 'app/apis/blog'
+import store from 'app/store'
+import type { ArticleCard } from 'app/apis/blog'
 import { BlogDetailStyle } from 'pages/BlogDetailPage/styles'
 import { boneCss } from './bone'
+
+const selectList = blogApi.endpoints.getArticles.select()
+
+// the title this slug's card on the list carries, when the list is in
+// (read, not subscribed: the skeleton may render outside the store's Provider)
+const knownTitle = () => {
+  const cached = selectList(store.getState() as never).data
+  const list = cached ?? getAPIStore(listStoreKey())
+  const slug = decodeURIComponent(
+    (typeof location === 'undefined' ? '' : location.pathname)
+      .replace(/\/+$/, '')
+      .split('/')
+      .pop() ?? ''
+  )
+  return Array.isArray(list)
+    ? (list as ArticleCard[]).find((card) => card.slug === slug)?.title
+    : undefined
+}
 
 const BlogDetailSkeletonStyle = styled(BlogDetailStyle)`
   ${boneCss}
@@ -17,18 +38,49 @@ const BlogDetailSkeletonStyle = styled(BlogDetailStyle)`
     width: 84px;
     height: 24px;
   }
+  /* one bone per line, on the title's line pitch: 1.5em (the reset's
+     line-height: 1.5 !important wins over the title's own 1.35) */
+  .blog-title--bones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    padding-block: 0.25em;
+  }
   .blog-title .bone {
     width: 85%;
-    height: 24px;
-    margin-block: 6px;
+    height: 1em;
   }
-  .blog-title .bone:last-child {
-    width: 55%;
+  .blog-title .bone:nth-child(2) {
+    width: 62%;
   }
+  .blog-title .bone:nth-child(3) {
+    display: none;
+    width: 48%;
+  }
+  /* narrow phones set most titles on three lines */
+  @media (max-width: 359px) {
+    .blog-title .bone:nth-child(2) {
+      width: 92%;
+    }
+    .blog-title .bone:nth-child(3) {
+      display: block;
+    }
+  }
+  /* the title known from the list: its own words, hidden under bones that
+     wrap line by line exactly as the loaded title will */
+  .blog-title .title-ghost {
+    color: transparent;
+    /* not a .bone: its tone is set here */
+    background: #e3e9f0;
+    border-radius: 6px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  /* one 21px meta line (14px × 1.5) */
   .blog-meta .bone {
     width: 180px;
     height: 14px;
-    margin-block: 5px;
+    margin-block: 3.5px;
   }
   .blog-body .bone {
     height: 14px;
@@ -41,6 +93,7 @@ const BlogDetailSkeletonStyle = styled(BlogDetailStyle)`
 
 /** /blogs/:slug while it loads: the cover, the title strip and the paragraphs as blocks. */
 export default function BlogDetailSkeleton() {
+  const title = knownTitle()
   return (
     <BlogDetailSkeletonStyle
       className="blog-detail-page"
@@ -61,9 +114,18 @@ export default function BlogDetailSkeleton() {
           <div className="blog-tagrow">
             <span className="bone" />
           </div>
-          <div className="blog-title">
-            <span className="bone" />
-            <span className="bone" />
+          <div
+            className={title ? 'blog-title' : 'blog-title blog-title--bones'}
+          >
+            {title ? (
+              <span className="title-ghost">{title}</span>
+            ) : (
+              <>
+                <span className="bone" />
+                <span className="bone" />
+                <span className="bone" />
+              </>
+            )}
           </div>
           <div className="blog-meta">
             <span className="bone" />

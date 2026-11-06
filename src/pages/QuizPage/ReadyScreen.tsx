@@ -1,23 +1,53 @@
 import { useEffect, useRef } from 'react'
 import type { Chest } from './ChestDialog'
 
+/*
+ * The card before a round. While the state loads ('loading', also drawn by
+ * QuizSkeleton) it is the same card at the same size: the ball and the title
+ * for real, bones where the words and the button will be.
+ */
 export default function ReadyScreen({
   action,
-  busy,
+  busy = false,
   onGo,
-  rewards,
+  rewards = true,
   chests = [],
 }: {
-  action: 'start' | 'resume' | 'chest'
-  busy: boolean
-  onGo: () => void
-  rewards: boolean
+  action: 'loading' | 'start' | 'resume' | 'chest'
+  busy?: boolean
+  onGo?: () => void
+  rewards?: boolean
   chests?: Chest[]
 }) {
   const button = useRef<HTMLButtonElement>(null)
+  const waiting = action === 'loading'
   useEffect(() => {
-    button.current?.focus()
-  }, [])
+    if (!waiting) button.current?.focus()
+  }, [waiting])
+  if (waiting)
+    return (
+      <div
+        className="ready-screen"
+        role="status"
+        aria-busy="true"
+        data-tone="dark"
+      >
+        <span className="sr-only">Đang chuẩn bị câu đố…</span>
+        <span className="ready-ball" aria-hidden="true" />
+        <p className="title" aria-hidden="true">
+          <span>Who’s that</span>
+          <span>Pokémon?</span>
+        </p>
+        <span className="ready-lines" aria-hidden="true">
+          <span className="bone" />
+          <span className="bone" />
+        </span>
+        {!rewards && <p>Chơi thử không có phần thưởng.</p>}
+        <span className="next ready-wait" aria-hidden="true">
+          <span className="bone" />
+        </span>
+      </div>
+    )
   return (
     <div className="ready-screen">
       <span className="ready-ball" aria-hidden="true" />

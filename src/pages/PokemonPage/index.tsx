@@ -21,6 +21,7 @@ import CatchRitual, { prefersReducedMotion } from './CatchRitual'
 import PokemonActions from './PokemonActions'
 import PokemonForms from './PokemonForms'
 import { displayNameOf, idFromUrl } from './species.mjs'
+import { formNameOf, formSpeciesOf } from './form-index.mjs'
 import PokemonHabitat from './PokemonHabitat'
 import PokemonName from './PokemonName'
 import { getPokemonPower } from './power.mjs'
@@ -54,6 +55,9 @@ const markArtworkLoaded = (image: HTMLImageElement | null) => {
   if (image?.complete && image.naturalWidth) image.dataset.loaded = 'true'
 }
 
+// how long the page waits for the species (form row) before showing anyway
+const SPECIES_WAIT_MS = 1200
+
 const PokemonPage = () => {
   const route = useRoute()
   const navigateInfo = useNavigateInfo()
@@ -86,6 +90,7 @@ const PokemonPage = () => {
   const defaultForm: string | undefined = speciesByName?.varieties?.find(
     (variety: { is_default: boolean }) => variety.is_default
   )?.pokemon?.name
+  const redirecting = !!notFoundName && (lookingUpSpecies || !!defaultForm)
   useEffect(() => {
     if (defaultForm && defaultForm !== name)
       navigate(getPokemonDetailPath(defaultForm), { replace: true })
@@ -171,7 +176,7 @@ const PokemonPage = () => {
   const pokemonNumber = pokemonState?.id
     ? pokemonState.id.toString().padStart(3, '0')
     : ''
-  const isShowLoading =
+  const isDataLoading =
     RenderingInfo.loader || !pokemonState || carousel.isNavigating
   const lastPokemon = useRef(pokemonState)
   const detailSnapshot = pokemonState || lastPokemon.current
@@ -181,6 +186,44 @@ const PokemonPage = () => {
     detailSnapshot?.species?.url?.match(/\/(\d+)\/?$/)?.[1] ??
       detailSnapshot?.id
   )
+  // NOTE - The species (forms, name, Pokédex entry) is asked for at once,
+  // by the id the link carried or the name in the url, not after the detail:
+  // the form row then lands with the rest instead of pushing the page down a
+  // second later. A form's url (charizard-mega-x) is no species name: its
+  // 404 falls back to the detail's species id.
+  const earlyKey = curId && curId <= POKEMON_COUNT ? curId : name
+  const early = useGetPokemonSpeciesQuery(earlyKey, { skip: !earlyKey })
+  const earlyFits = !!early.data && early.data.id === speciesId
+  const lateSkip = !speciesId || earlyFits || early.isFetching
+  const late = useGetPokemonSpeciesQuery(speciesId, { skip: lateSkip })
+  const species = earlyFits ? early.data : late.data
+  // species data belongs to the shown Pokémon only once their ids agree
+  const speciesMatches =
+    !!species && idFromUrl(pokemonState?.species?.url) === species.id
+  // The form row (Pikachu's 17 forms) is part of the page above the
+  // details: reveal them together, or the row would push the shown details
+  // down when the species lands after the detail. A slow or failed species
+  // stops holding the page after SPECIES_WAIT_MS.
+  const shownId = pokemonState?.id
+  const [speciesWaitOver, setSpeciesWaitOver] = useState<unknown>()
+  const asking = (query: typeof early, skip: boolean) =>
+    !skip && (query.isFetching || query.isUninitialized)
+  const speciesSettled =
+    speciesMatches ||
+    speciesWaitOver === shownId ||
+    (!asking(early, !earlyKey) && !asking(late, lateSkip))
+  useEffect(() => {
+    if (isDataLoading || speciesSettled) return
+    const timer = setTimeout(() => setSpeciesWaitOver(shownId), SPECIES_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [isDataLoading, speciesSettled, shownId])
+  const isShowLoading = isDataLoading || !speciesSettled
+  // the shown Pokémon's forms: the species once it fits, the form index
+  // until then (a carousel step knows the id before the data)
+  const formKey = isShowLoading ? curId || name : pokemonState?.name
+  const formSpecies = speciesMatches ? species : formSpeciesOf(formKey)
+  const formCurrent =
+    (isShowLoading ? formNameOf(formKey) : pokemonState?.name) ?? ''
   const dexNumber =
     !isShowLoading && speciesId ? `#${String(speciesId).padStart(4, '0')}` : ''
   // The aura only lights up once the selected Pokémon's data is on screen.
@@ -216,21 +259,6 @@ const PokemonPage = () => {
     }
   }, [shiny, shinyArt, isShowLoading])
 
-  // NOTE - The species (forms, name, Pokédex entry) is asked for at once,
-  // by the id the link carried or the name in the url, not after the detail:
-  // the form row then lands with the rest instead of pushing the page down a
-  // second later. A form's url (charizard-mega-x) is no species name: its
-  // 404 falls back to the detail's species id.
-  const earlyKey = curId && curId <= POKEMON_COUNT ? curId : name
-  const early = useGetPokemonSpeciesQuery(earlyKey, { skip: !earlyKey })
-  const earlyFits = !!early.data && early.data.id === speciesId
-  const late = useGetPokemonSpeciesQuery(speciesId, {
-    skip: !speciesId || earlyFits || early.isFetching,
-  })
-  const species = earlyFits ? early.data : late.data
-  // species data belongs to the shown Pokémon only once their ids agree
-  const speciesMatches =
-    !!species && idFromUrl(pokemonState?.species?.url) === species.id
   const displayName = displayNameOf(
     pokemonState,
     speciesMatches ? species : undefined
@@ -369,17 +397,9 @@ const PokemonPage = () => {
   )
 
   // The very first lookup failed: the name does not exist, or we are offline.
-  if (isError && !pokemonState && !curId) {
-    // a species name whose default form has a suffix: on the way there
-    if (notFoundName && (lookingUpSpecies || defaultForm)) {
-      return (
-        <PokemonPageStyle>
-          <NameLoadingStyle role="status">
-            Đang tìm trong Pokédex…
-          </NameLoadingStyle>
-        </PokemonPageStyle>
-      )
-    }
+  // A species name whose default form has a suffix is on its way there: it
+  // keeps the loading page, the same layout the form lands in.
+  if (isError && !pokemonState && !curId && !redirecting) {
     const notFound = (error as { status?: number })?.status === 404
     setSeoTag({
       title: notFound
@@ -574,17 +594,19 @@ const PokemonPage = () => {
             onCaught={startCatch}
           />
         </div>
-        {!isShowLoading && speciesMatches && (
-          <PokemonForms species={species} current={pokemonState?.name ?? ''} />
-        )}
 
-        {isError && !carousel.isNavigating && (
+        {isError && !carousel.isNavigating && !redirecting && (
           <InlineAlertStyle role="alert">
             Không tải được dữ liệu Pokémon này.
             <button type="button" onClick={() => refetch()}>
               Thử lại
             </button>
           </InlineAlertStyle>
+        )}
+        {/* drawn from the form index while the species loads, so the row
+            is in place before the details (and in the route skeleton) */}
+        {formSpecies && (
+          <PokemonForms species={formSpecies} current={formCurrent} />
         )}
         <DetailsRegionStyle aria-busy={isShowLoading}>
           <DetailsContentStyle

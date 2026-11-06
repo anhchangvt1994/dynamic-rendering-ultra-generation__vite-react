@@ -680,6 +680,10 @@ export const RoomStyle = styled.div`
     border-radius: inherit;
     background: var(--a1);
   }
+  /* loading: the meter's place, no number yet */
+  .rm-ring[data-pending] b {
+    visibility: hidden;
+  }
   .rm-ring[data-low] {
     box-shadow: inset 0 0 0 1.5px var(--warn);
   }
@@ -1123,8 +1127,12 @@ export const RoomStyle = styled.div`
   .rm-body img:not([data-pixel]) {
     image-rendering: auto;
   }
+  /* not painted until it is fitted: its first box is never seen to move */
   .rm-body img:not([data-ready]) {
     opacity: 0.001;
+  }
+  .rm-body:has(> img:not([data-ready])) {
+    visibility: hidden;
   }
   .rm-letter {
     display: grid;
