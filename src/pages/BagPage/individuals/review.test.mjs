@@ -72,22 +72,37 @@ test('corrupt traits are rejected before rendering or settling a receipt', () =>
       t.appearance = {}
     },
     (t) => {
-      t.appearance.v = 2
+      t.appearance.v = 3
     },
     (t) => {
-      t.appearance.hue = 0
+      t.appearance.palette = 'nope'
     },
     (t) => {
-      t.appearance.sat = 9
+      t.appearance.shift[0][0] = 9
     },
     (t) => {
-      t.appearance.light = -5
+      t.appearance.shift[1][1] = -11
     },
     (t) => {
-      t.appearance.mark = { kind: 'star' }
+      t.appearance.shift[2][2] = 7
     },
     (t) => {
-      t.appearance.mark = { kind: 'bad', x: 50, y: 50, size: 12, rot: 0 }
+      t.appearance.shift.pop()
+    },
+    (t) => {
+      t.appearance.marks = { kind: 'bad', count: 3, seed: 7 }
+    },
+    (t) => {
+      t.appearance.marks = { kind: 'spots', count: 0, seed: 7 }
+    },
+    (t) => {
+      t.appearance.marks = { kind: 'spots', count: 11, seed: 7 }
+    },
+    (t) => {
+      t.appearance.marks = { kind: 'spots', count: 3, seed: -1 }
+    },
+    (t) => {
+      t.appearance.marks = { kind: 'spots', count: 3 }
     },
     (t) => {
       t.potential.v = 2
@@ -103,6 +118,16 @@ test('corrupt traits are rejected before rendering or settling a receipt', () =>
     },
   ]
   assert.equal(validTraits(traits), true)
+  assert.equal(
+    validTraits({
+      ...traits,
+      appearance: {
+        ...traits.appearance,
+        marks: { kind: 'spots', count: 3, seed: 7 },
+      },
+    }),
+    true
+  )
   for (const mutate of mutations) {
     const bad = structuredClone(traits)
     mutate(bad)
@@ -128,4 +153,18 @@ test('corrupt traits are rejected before rendering or settling a receipt', () =>
       /journal_corrupt/
     )
   }
+})
+
+test('every golden v2 trait set is valid, and so is a v1 one', () => {
+  const all = JSON.parse(
+    readFileSync(new URL('./golden.json', import.meta.url))
+  )
+  for (const g of all) assert.equal(validTraits(g.traits), true, g.id)
+  const v1 = {
+    ...traits,
+    appearance: { v: 1, hue: -6, sat: 3, light: -2, mark: null },
+  }
+  assert.equal(validTraits(v1), true)
+  v1.appearance.hue = 0
+  assert.equal(validTraits(v1), false)
 })

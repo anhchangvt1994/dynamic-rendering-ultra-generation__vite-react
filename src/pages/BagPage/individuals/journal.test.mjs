@@ -193,3 +193,79 @@ test('list: newest first, filtered by species', async () => {
     'speciesId',
   ])
 })
+
+test('a v1 individual in the snapshot is upgraded on the first read, once', async () => {
+  const id = '9e3779b1-0000-4000-8000-000000000001'
+  const op = 'f0f0f0f0-0000-4000-8000-0000000000f2'
+  const old = { v: 1, hue: 5, sat: 0, light: 0, mark: null }
+  const fresh = await individualTraits(id)
+  const one = {
+    id,
+    speciesId: 25,
+    nickname: null,
+    personality: fresh.personality,
+    appearance: old,
+    potential: fresh.potential,
+    createdAt: '2026-11-04T00:00:00.000Z',
+  }
+  const storage = seed(
+    {},
+    {
+      individuals: { [id]: one },
+      trades: {
+        [op]: {
+          operationId: op,
+          speciesId: 25,
+          individualId: id,
+          cardCount: 0,
+          traits: { ...fresh, appearance: old },
+        },
+      },
+    }
+  )
+  let writes = 0
+  const setItem = storage.setItem
+  storage.setItem = (k, v) => {
+    writes++
+    setItem(k, v)
+  }
+  const journal = createShardJournal({ storage, lock: mutex() })
+  const [got] = await journal.listLocalIndividuals()
+  assert.deepEqual(got.appearance, fresh.appearance)
+  const stored = JSON.parse(storage.getItem(SHARD_KEY))
+  assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
+  assert.deepEqual(stored.trades[op].traits.appearance, fresh.appearance)
+  assert.equal(stored.keep, 'me')
+  assert.equal(writes, 1)
+  await journal.listLocalIndividuals()
+  assert.deepEqual((await journal.tradeLocalCard(op, 25)).traits, fresh)
+  assert.equal(writes, 1, 'no second write')
+})
+test('a v1 snapshot is upgraded by a trade too', async () => {
+  const id = '9e3779b1-0000-4000-8000-000000000002'
+  const fresh = await individualTraits(id)
+  const storage = seed(
+    { 25: 1 },
+    {
+      individuals: {
+        [id]: {
+          id,
+          speciesId: 25,
+          nickname: null,
+          personality: fresh.personality,
+          appearance: { v: 1, hue: -4, sat: 0, light: 0, mark: null },
+          potential: fresh.potential,
+          createdAt: '2026-11-04T00:00:00.000Z',
+        },
+      },
+    }
+  )
+  const journal = createShardJournal({
+    storage,
+    lock: mutex(),
+    randomUUID: ids,
+  })
+  await journal.tradeLocalCard(OP1, 25)
+  const stored = JSON.parse(storage.getItem(SHARD_KEY))
+  assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
+})

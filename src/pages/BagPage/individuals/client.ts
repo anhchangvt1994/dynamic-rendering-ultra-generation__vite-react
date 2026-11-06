@@ -3,21 +3,16 @@ import { createShardJournal } from 'pages/QuizPage/shards/local.mjs'
 import type { QuizMode } from 'pages/QuizPage/engine/mode'
 import { nameIndividual, tradeCard } from './operations.mjs'
 
+/** Appearance v2: a curated palette, a small shift per colour region, marks. */
+export type Appearance = {
+  v: 2
+  palette: string
+  shift: [number, number, number][]
+  marks: null | { kind: string; count: number; seed: number }
+}
 export type Traits = {
   personality: number
-  appearance: {
-    v: number
-    hue: number
-    sat: number
-    light: number
-    mark: null | {
-      kind: string
-      x: number
-      y: number
-      size: number
-      rot: number
-    }
-  }
+  appearance: Appearance
   potential: { v: number; offsets: number[]; stars: number }
 }
 export type TradeReceipt = {

@@ -8,7 +8,7 @@ import {
   sizeLabel,
   sizeOf,
   starLabel,
-  tintLabel,
+  paletteLabel,
 } from './display.mjs'
 import { nameError } from './messages.mjs'
 import { DialogStyle } from './styles'
@@ -68,12 +68,7 @@ export default function WelcomeDialog({ receipt, name, save, onClose }: Props) {
               complete
             />
           </span>
-          <IndividualArt
-            speciesId={receipt.speciesId}
-            name={name}
-            appearance={traits.appearance}
-            size={160}
-          />
+          <IndividualArt speciesId={receipt.speciesId} name={name} size={160} />
         </div>
         <div className="ind-facts" role="status">
           <strong>Tính cách: {personality.name}</strong>
@@ -84,7 +79,7 @@ export default function WelcomeDialog({ receipt, name, save, onClose }: Props) {
           </span>
           <span>Tiềm năng: {starLabel(traits.potential.stars)}</span>
           <span>
-            Sắc độ: {tintLabel(traits.appearance)} · Kích thước:{' '}
+            Sắc độ: {paletteLabel(traits.appearance)} · Kích thước:{' '}
             {sizeLabel(sizeOf(receipt.individualId))}
           </span>
         </div>

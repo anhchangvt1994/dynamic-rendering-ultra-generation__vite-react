@@ -396,7 +396,6 @@ export default function Room({
               <RoomSprite
                 speciesId={individual.speciesId}
                 name={species}
-                appearance={individual.appearance}
                 mood={feeling ?? undefined}
                 box={Math.round(discWidth * 0.86)}
                 size={sizeOf(individual.id).scale}

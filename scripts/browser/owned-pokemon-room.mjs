@@ -6,7 +6,11 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync } from 'node:fs'
 import puppeteer from 'puppeteer'
-import { sizeOf, tintOf } from '../../src/pages/BagPage/individuals/display.mjs'
+import {
+  marksLabel,
+  paletteLabel,
+  sizeOf,
+} from '../../src/pages/BagPage/individuals/display.mjs'
 
 const LOCAL =
   process.env.LOCAL ||
@@ -20,15 +24,15 @@ const golden = JSON.parse(
   readFileSync('src/pages/BagPage/individuals/golden.json', 'utf8')
 )
 const withMark = golden[0]
-// two of one species in two tints
-const tinted = golden
-  .filter(
-    (g, i, all) =>
-      all.findIndex(
-        (o) => tintOf(o.traits.appearance) === tintOf(g.traits.appearance)
-      ) === i
-  )
-  .slice(0, 2)
+// two of one species in two palettes: one with marks, one without
+const withMarks = golden.find(
+  (g) => g.traits.appearance.marks && g.traits.appearance.palette !== 'origin'
+)
+const withoutMarks = golden.find(
+  (g) =>
+    !g.traits.appearance.marks &&
+    g.traits.appearance.palette !== withMarks.traits.appearance.palette
+)
 const SPECIES = [25, 197, 282]
 const DISHES = { 'poffin-cheri': 2, 'tra-da-chesto': 1 }
 
@@ -477,45 +481,37 @@ try {
       await p.close()
     }
 
-    // ── 7. an individual's tint and size ──
-    const [a, b] = tinted.map((g) => individual(g, 25))
-    const marked = individual(withMark, 25)
-    const p = await open(`/pokemon-cua-toi/${marked.id}`, {
-      individuals: { [marked.id]: marked, [a.id]: a, [b.id]: b },
+    // ── 7. an individual's palette, marks and size ──
+    const pair = [withMarks, withoutMarks].map((g) => individual(g, 25))
+    const p = await open(`/pokemon-cua-toi/${pair[0].id}`, {
+      individuals: Object.fromEntries(pair.map((one) => [one.id, one])),
     })
-    await ready(p)
-    await p.waitForSelector('.rm-stage .rm-body img[data-ready]')
-    check('no mark drawn on the body', !(await p.$('.rm-stage .rm-body svg')))
-    await p.evaluate(() => document.querySelector('.rm-sheet-toggle').click())
-    await wait(300)
-    const traits = await p.$eval('#rm-profile', (el) => ({
-      text: el.textContent,
-      tint: el.querySelector('dd[data-tint]')?.textContent,
-      size: el.querySelector('dd[data-size]')?.textContent,
-      swatch: !!el.querySelector('dd[data-tint] .rm-swatch'),
-    }))
-    const want = sizeOf(marked.id)
-    check(
-      'profile "Hồ sơ": tint name with a swatch, size, no mark',
-      traits.tint?.includes(tintOf(marked.appearance).label) &&
-        traits.swatch &&
-        traits.size?.includes(want.label) &&
-        !/Dấu hiệu/.test(traits.text),
-      JSON.stringify(traits)
-    )
-    const filters = []
-    for (const one of [a, b]) {
+    for (const one of pair) {
       await p.goto(`${LOCAL}/pokemon-cua-toi/${one.id}`)
       await ready(p)
-      filters.push(
-        await p.$eval('.rm-stage .rm-body img', (img) => img.style.filter)
+      await p.evaluate(() => document.querySelector('.rm-sheet-toggle').click())
+      await wait(300)
+      const got = await p.$eval('#rm-profile', (el) => ({
+        palette: el.querySelector('dd[data-palette]')?.dataset.palette,
+        label: el.querySelector('dd[data-palette]')?.textContent,
+        dots: el.querySelectorAll('dd[data-palette] .pd-dot').length,
+        marks: el.querySelector('dd[data-marks]')?.dataset.marks ?? null,
+        marksText: el.querySelector('dd[data-marks]')?.textContent ?? null,
+        size: el.querySelector('dd[data-size]')?.textContent,
+      }))
+      const a = one.appearance
+      check(
+        `profile "Hồ sơ" (${a.palette}${a.marks ? ', ' + a.marks.kind : ''}): palette, dots, marks row, size`,
+        got.palette === a.palette &&
+          got.label?.includes(paletteLabel(a)) &&
+          got.dots ===
+            (a.palette === 'origin' || a.palette === 'invert' ? 1 : 3) &&
+          got.marks === (a.marks?.kind ?? null) &&
+          got.marksText === marksLabel(a) &&
+          got.size?.includes(sizeOf(one.id).label),
+        JSON.stringify(got)
       )
     }
-    check(
-      'two of one species, two tints: two filters',
-      filters[0] !== filters[1] && filters.every(Boolean),
-      JSON.stringify(filters)
-    )
     await p.close()
 
     // ── 8. reduced motion: still artwork; showdown blocked: artwork, same circle ──

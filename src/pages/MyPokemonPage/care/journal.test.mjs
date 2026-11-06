@@ -10,7 +10,7 @@ const PROUD = {
   speciesId: 25,
   nickname: null,
   personality: 8,
-  appearance: { v: 1 },
+  appearance: { v: 2, palette: 'origin', shift: [], marks: null },
   potential: { v: 1, offsets: [], stars: 1 },
   createdAt: '2026-11-05T00:00:00.000Z',
 }

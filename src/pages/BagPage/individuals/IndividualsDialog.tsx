@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useModal } from 'pages/QuizPage/useModal'
 import IndividualArt from './IndividualArt'
-import { personalityLine, sizeOf, starLabel, tintLabel } from './display.mjs'
+import { personalityLine, sizeOf, starLabel, paletteLabel } from './display.mjs'
 import { nameError } from './messages.mjs'
 import { useIndividualList } from './individualStore'
 import { useNaming } from './useIndividuals'
@@ -40,19 +40,14 @@ function Item({ item, name }: { item: any; name: string }) {
   }
   return (
     <li className="ind-item" data-individual={item.id}>
-      <IndividualArt
-        speciesId={item.speciesId}
-        name={name}
-        appearance={item.appearance}
-        size={72}
-      />
+      <IndividualArt speciesId={item.speciesId} name={name} size={72} />
       <span className="ind-item-main">
         <strong>{item.nickname ?? name}</strong>
         <span>
           {personality.name} · {starLabel(item.potential.stars)}
         </span>
         <span>
-          {tintLabel(item.appearance)} · {sizeOf(item.id).label}
+          {paletteLabel(item.appearance)} · {sizeOf(item.id).label}
           {date(item.createdAt) ? ` · nhận ${date(item.createdAt)}` : ''}
         </span>
       </span>

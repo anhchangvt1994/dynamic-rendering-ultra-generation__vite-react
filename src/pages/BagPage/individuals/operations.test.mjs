@@ -21,7 +21,16 @@ const OP2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const IND = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const traits = {
   personality: 3,
-  appearance: { v: 1, hue: 5, sat: 0, light: 0, mark: null },
+  appearance: {
+    v: 2,
+    palette: 'ember',
+    shift: [
+      [0, 0, 0],
+      [1, -2, 3],
+      [-8, 10, -6],
+    ],
+    marks: { kind: 'stripes', count: 6, seed: 42 },
+  },
   potential: { v: 1, offsets: [0, 0, 0, 0, 0, 0], stars: 3 },
 }
 const receipt = (operationId = OP, speciesId = 25) => ({

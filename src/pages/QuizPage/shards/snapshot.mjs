@@ -1,4 +1,5 @@
 import { parseChestReceipt } from './chestReceipt.mjs'
+import { MARK_KINDS, PALETTES } from '../../BagPage/individuals/palettes.mjs'
 
 export const SHARD_KEY = 'pokedex:quiz-shards-v1'
 export const validOperation = (value) =>
@@ -31,16 +32,41 @@ const validMark = (m) =>
     integer(m.y, 30, 70) &&
     integer(m.size, 12, 24) &&
     integer(m.rot, 0, 359))
+const PALETTE_KEYS = new Set(PALETTES.map((p) => p.key))
+const validMarks = (m) =>
+  m === null ||
+  (map(m) &&
+    Object.keys(m).length === 3 &&
+    MARK_KINDS.includes(m.kind) &&
+    integer(m.count, 1, 10) &&
+    integer(m.seed, 0, 2147483647))
+const validShift = (s) =>
+  Array.isArray(s) &&
+  s.length === 3 &&
+  s.every(
+    (r) =>
+      Array.isArray(r) &&
+      r.length === 3 &&
+      integer(r[0], -8, 8) &&
+      integer(r[1], -10, 10) &&
+      integer(r[2], -6, 6)
+  )
+// v1 (hue/sat/light) is still read: a browser journal may hold one until its
+// first read upgrades it (local.mjs)
+const validAppearance = (a) =>
+  map(a) &&
+  (a.v === 2
+    ? PALETTE_KEYS.has(a.palette) && validShift(a.shift) && validMarks(a.marks)
+    : a.v === 1 &&
+      Number.isInteger(a.hue) &&
+      integer(Math.abs(a.hue), 4, 10) &&
+      integer(a.sat, -8, 8) &&
+      integer(a.light, -4, 4) &&
+      validMark(a.mark))
 export const validTraits = (t) =>
   map(t) &&
   integer(t.personality, 0, 11) &&
-  map(t.appearance) &&
-  t.appearance.v === 1 &&
-  Number.isInteger(t.appearance.hue) &&
-  integer(Math.abs(t.appearance.hue), 4, 10) &&
-  integer(t.appearance.sat, -8, 8) &&
-  integer(t.appearance.light, -4, 4) &&
-  validMark(t.appearance.mark) &&
+  validAppearance(t.appearance) &&
   map(t.potential) &&
   t.potential.v === 1 &&
   Array.isArray(t.potential.offsets) &&

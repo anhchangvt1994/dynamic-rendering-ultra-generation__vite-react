@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import type { Individual } from 'pages/BagPage/individuals/client'
-import { tintFilter } from 'pages/BagPage/individuals/display.mjs'
 import { alphaBox, bodyCenter, placeSprite, spriteFor } from './sprite.mjs'
 import bodies_ from './spriteBodies.json'
 
@@ -63,8 +61,6 @@ function measure(img: HTMLImageElement): Box | null {
 type Props = {
   speciesId: number
   name: string
-  /** null: the species as it is, no tint */
-  appearance: Individual['appearance'] | null
   mood?: string
   box: number
   /** the individual's size against its species, 1 for the usual */
@@ -76,7 +72,7 @@ type Phase = 'primary' | 'fallback' | 'none'
 
 /**
  * The room's Pokémon: our smoothed animated WebP (mirrored while it ignores
- * you), the PokéAPI pixel gif / artwork if that is missing, its first letter after. Tinted, sized by
+ * you), the PokéAPI pixel gif / artwork if that is missing, its first letter after. Sized by
  * the individual, and centred on its visible body rather than its frame
  * (sprites sit off-centre in their pictures). A fixed box throughout: the
  * picture moves inside it, the layout never does.
@@ -84,7 +80,6 @@ type Phase = 'primary' | 'fallback' | 'none'
 export default function RoomSprite({
   speciesId,
   name,
-  appearance,
   mood,
   box,
   size = 1,
@@ -125,12 +120,7 @@ export default function RoomSprite({
     : null
   // turned away the picture is mirrored, and so is its offset from the centre
   const place = placed && (back ? { ...placed, x: -placed.x } : placed)
-  const filter = [
-    appearance ? tintFilter(appearance) : '',
-    MOOD_FILTER[mood ?? ''] ?? '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const filter = MOOD_FILTER[mood ?? ''] ?? ''
 
   return (
     <span

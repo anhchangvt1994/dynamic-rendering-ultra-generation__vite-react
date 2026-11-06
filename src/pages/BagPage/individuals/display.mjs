@@ -1,29 +1,7 @@
-// How an individual is shown. Pure: the tint is one of a few named colourways
-// (a CSS filter), the size a deterministic scale drawn from the id.
+// How an individual is shown, in words. Pure: the palette and marks come
+// from appearance v2, the size a deterministic scale drawn from the id.
 import { PERSONALITIES } from './traits.mjs'
-
-const round2 = (n) => Math.round(n * 100) / 100
-
-// colourways, like a shiny, that read the same on every species: a named
-// colour starts from sepia (any body to one warm brown, shading kept), then
-// turns to its hue. Reversed and silver keep the body's own colours.
-const hueOf = (hue, sat = 2.2) =>
-  `sepia(0.8) saturate(${sat}) hue-rotate(${hue}deg)`
-export const TINTS = [
-  { key: 'origin', label: 'Nguyên bản', filter: '' },
-  { key: 'peach', label: 'Hồng đào', filter: hueOf(-48, 2) },
-  { key: 'sunset', label: 'Hoàng hôn', filter: hueOf(-18, 2.6) },
-  { key: 'sun', label: 'Vàng nắng', filter: hueOf(12, 2.8) },
-  { key: 'emerald', label: 'Lục bảo', filter: hueOf(105) },
-  { key: 'ocean', label: 'Xanh biển', filter: hueOf(170, 2.4) },
-  { key: 'dream', label: 'Tím mộng', filter: hueOf(-110, 2) },
-  { key: 'invert', label: 'Đảo sắc', filter: 'hue-rotate(180deg)' },
-  {
-    key: 'silver',
-    label: 'Ánh bạc',
-    filter: 'grayscale(0.85) brightness(1.08) contrast(1.1)',
-  },
-]
+import { MARK_LABELS, TIER_LABELS, paletteOf } from './palettes.mjs'
 
 const mix = (n) => {
   n = Math.imul(n ^ (n >>> 16), 0x85ebca6b)
@@ -31,13 +9,19 @@ const mix = (n) => {
   return (n ^ (n >>> 16)) >>> 0
 }
 
-export const tintOf = ({ hue = 0, sat = 0, light = 0 }) =>
-  TINTS[mix((hue + 32) * 4096 + (sat + 32) * 64 + (light + 32)) % TINTS.length]
+/** "Hổ phách · Thường"; the original colours are just "Nguyên bản". */
+export const paletteLabel = (appearance) => {
+  const p = paletteOf(appearance?.palette)
+  return p.tier === 'origin' ? p.label : `${p.label} · ${TIER_LABELS[p.tier]}`
+}
 
-export const tintFilter = (appearance) =>
-  `${tintOf(appearance).filter} saturate(${round2(1 + (appearance.sat ?? 0) / 40)}) brightness(${round2(1 + (appearance.light ?? 0) / 50)})`.trim()
-
-export const tintLabel = (appearance) => tintOf(appearance).label
+/** "Lằn · 6 vệt", or null when the body has no marks. */
+export const marksLabel = (appearance) => {
+  const m = appearance?.marks
+  if (!m) return null
+  const l = MARK_LABELS[m.kind]
+  return l ? `${l.label} · ${m.count} ${l.unit}` : null
+}
 
 export const SIZES = [
   { key: 'tiny', label: 'Tí hon', scale: 0.8, weight: 8 },

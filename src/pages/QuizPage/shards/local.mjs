@@ -23,12 +23,30 @@ export const CATALOG_VERSION = 1
 const fail = (code, message = code) =>
   Object.assign(new Error(message), { code })
 
-
 // the shipped catalog, loaded only when a claim needs it
 const shippedCatalog = async (version, id) => {
   if (version !== CATALOG_VERSION) return undefined
   const { default: data } = await import('./catalog.json')
   return data.species.find((entry) => entry.id === id)
+}
+
+/**
+ * Brings every v1 appearance (individuals and trade receipts) to the v2 its
+ * id gives, in place. True when something changed, so the caller saves.
+ */
+export async function upgradeSnapshot(snapshot) {
+  let changed = false
+  for (const one of Object.values(snapshot.individuals ?? {}))
+    if (one.appearance?.v !== 2) {
+      one.appearance = (await individualTraits(one.id)).appearance
+      changed = true
+    }
+  for (const r of Object.values(snapshot.trades ?? {}))
+    if (r.traits?.appearance?.v !== 2) {
+      r.traits.appearance = (await individualTraits(r.individualId)).appearance
+      changed = true
+    }
+  return changed
 }
 
 export function createShardJournal({
@@ -44,6 +62,12 @@ export function createShardJournal({
     return lock(SHARD_KEY, fn)
   }
   const load = () => readShardSnapshot(storage)
+  // the reads that hand out individuals see v2 only
+  const loadUpgraded = async () => {
+    const snapshot = load()
+    if (await upgradeSnapshot(snapshot)) save(snapshot)
+    return snapshot
+  }
   const save = (snapshot) =>
     storage.setItem(SHARD_KEY, JSON.stringify(snapshot))
   const receipt = (snapshot, event) => ({
@@ -118,7 +142,7 @@ export function createShardJournal({
         if (!validOperation(operationId)) throw fail('invalid_operation')
         if (!validSpecies(speciesId)) throw fail('invalid_species')
         operationId = operationId.toLowerCase()
-        const snapshot = load()
+        const snapshot = await loadUpgraded()
         const prior = snapshot.trades[operationId]
         if (prior) {
           if (prior.speciesId !== speciesId) throw fail('operation_conflict')
@@ -167,7 +191,7 @@ export function createShardJournal({
       }),
     listLocalIndividuals: (speciesId) =>
       exclusive(async () =>
-        Object.values(load().individuals)
+        Object.values((await loadUpgraded()).individuals)
           .filter((i) => speciesId === undefined || i.speciesId === speciesId)
           .sort(
             (a, b) =>

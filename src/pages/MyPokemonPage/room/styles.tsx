@@ -1542,19 +1542,37 @@ export const RoomStyle = styled.div`
     font-weight: 700;
     line-height: 1.2;
   }
-  /* the tint on the artwork itself, a coin-sized portrait */
-  .rm-swatch {
+  /* the palette as overlapping coins; origin/invert: the artwork itself */
+  .pd-dots {
+    display: inline-flex;
     flex: none;
+    align-items: center;
+    padding-left: 6px;
+  }
+  .pd-dot {
+    width: 18px;
+    height: 18px;
+    margin-left: -6px;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 3px var(--line);
+  }
+  .pd-dots[data-effect='metal'] .pd-dot {
+    background-image: linear-gradient(
+      140deg,
+      rgb(255 255 255 / 0.75) 0 18%,
+      transparent 46%,
+      rgb(0 0 0 / 0.14)
+    );
+  }
+  .pd-art {
     width: 22px;
     height: 22px;
-    border-radius: 50%;
     background-color: #fff;
     background-position: center;
     background-repeat: no-repeat;
     background-size: 112%;
-    box-shadow:
-      0 0 0 2px #fff,
-      0 0 0 3px var(--line);
   }
   .rm-persona {
     margin: 0;

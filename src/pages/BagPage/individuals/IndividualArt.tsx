@@ -1,26 +1,19 @@
 import { useEffect, useState } from 'react'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
-import type { Traits } from './client'
 import { artOffset } from 'pages/PokemonPage/artShift'
-import { tintFilter } from './display.mjs'
 
 type Props = {
   speciesId: number
   name: string
-  appearance: Traits['appearance']
   size?: number
 }
 
 /**
- * One individual: the species artwork in its tint. A failed picture shows
- * the species' first letter. Decorative: the parent has the text.
+ * One individual: the species artwork (its palette is drawn in the room
+ * only). A failed picture shows the species' first letter. Decorative: the
+ * parent has the text.
  */
-export default function IndividualArt({
-  speciesId,
-  name,
-  appearance,
-  size = 140,
-}: Props) {
+export default function IndividualArt({ speciesId, name, size = 140 }: Props) {
   const href = getPokemonImage(speciesId)
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [href])
@@ -40,7 +33,6 @@ export default function IndividualArt({
           width={size}
           height={size}
           style={{
-            filter: tintFilter(appearance),
             translate: `${-artOffset(speciesId)[0] * size}px ${-artOffset(speciesId)[1] * size}px`,
           }}
           onError={() => setFailed(true)}

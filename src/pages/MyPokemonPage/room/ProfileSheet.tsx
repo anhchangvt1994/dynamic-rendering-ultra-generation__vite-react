@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { FLAVOR_LABEL, STATS } from 'pages/KitchenPage/kitchen.mjs'
 import type { Individual } from 'pages/BagPage/individuals/client'
 import {
+  marksLabel,
+  paletteLabel,
   personalityLine,
   sizeLabel,
   sizeOf,
   starLabel,
-  tintFilter,
-  tintOf,
 } from 'pages/BagPage/individuals/display.mjs'
+import PaletteDots from 'pages/BagPage/individuals/PaletteDots'
 import { nameError } from 'pages/BagPage/individuals/messages.mjs'
 import { useNaming } from 'pages/BagPage/individuals/useIndividuals'
 import {
@@ -133,7 +134,7 @@ export default function ProfileSheet({
   const personality = personalityLine(item.personality)
   const likes = LIKES[item.personality]
   const stars = item.potential.stars
-  const tint = tintOf(item.appearance)
+  const marks = marksLabel(item.appearance)
   const size = sizeOf(item.id)
   const affection = care?.affection ?? 0
   const level = levelOf(affection)
@@ -199,18 +200,20 @@ export default function ProfileSheet({
         <dl className="rm-facts">
           <div>
             <dt>Sắc độ</dt>
-            <dd data-tint={tint.key}>
-              <i
-                className="rm-swatch"
-                style={{
-                  backgroundImage: `url(/api/image/${item.speciesId}.webp)`,
-                  filter: tintFilter(item.appearance),
-                }}
-                aria-hidden="true"
+            <dd data-palette={item.appearance.palette}>
+              <PaletteDots
+                appearance={item.appearance}
+                speciesId={item.speciesId}
               />
-              {tint.label}
+              {paletteLabel(item.appearance)}
             </dd>
           </div>
+          {marks && item.appearance.marks && (
+            <div>
+              <dt>Đặc điểm</dt>
+              <dd data-marks={item.appearance.marks.kind}>{marks}</dd>
+            </div>
+          )}
           <div>
             <dt>Kích thước</dt>
             <dd data-size={size.key}>{sizeLabel(size)}</dd>
