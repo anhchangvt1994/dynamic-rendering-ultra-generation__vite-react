@@ -40,6 +40,25 @@ interface IProcessENV {
   SHARE_CARD_FETCH_TIMEOUT_MS?: string
   /** share cards rendered at the same time (default 2) */
   SHARE_CARD_MAX_RENDERS?: string
+  // NOTE - Upscaled animations (server/src/animated)
+  /** where the small animation comes from, "{key}" replaced: https://x/{key}.gif. Unset: off */
+  ANIMATED_SOURCE_URL?: string
+  /** still served until the animation is built, "{key}" replaced */
+  ANIMATED_STILL_URL?: string
+  /** longest side of the output, px (default 800) */
+  ANIMATED_SIZE?: string
+  /** WebP quality (default 82) */
+  ANIMATED_QUALITY?: string
+  /** animations built at the same time (default 1) */
+  ANIMATED_MAX_JOBS?: string
+  /** requests allowed to wait for a build; more get 503 (default 24) */
+  ANIMATED_MAX_QUEUE?: string
+  ANIMATED_FETCH_TIMEOUT_MS?: string
+  /** dir with realesrgan-ncnn-vulkan + models (needs a GPU); unset: sharp only */
+  ANIMATED_ESRGAN_DIR?: string
+  /** model in that dir's models/ (default realesr-animevideov3-x3) */
+  ANIMATED_ESRGAN_MODEL?: string
+  ANIMATED_RIFE_DIR?: string
   /**
    * Accounts (Supabase Auth + Data API). Off: the app runs without them.
    * The browser gets SUPABASE_PUBLIC_URL and the publishable key only

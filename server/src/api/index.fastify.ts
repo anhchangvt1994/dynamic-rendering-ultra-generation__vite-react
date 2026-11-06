@@ -16,6 +16,7 @@ import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
 import { BROTLI_OPTIONS } from '../constants'
 import apiQuiz from './routes/quiz/index.fastify'
+import image from './routes/image/index.fastify'
 
 // NOTE - Wait for the cache of a request that another request is fetching.
 // It polls until the fetch timeout: a fetch that never stores its result
@@ -332,6 +333,8 @@ const apiService = (async () => {
 
       // NOTE - Handle API Quiz (round media)
       apiQuiz.init(app)
+      // NOTE - Pokémon animations / stills (api/routes/image)
+      image.init(app)
 
       _app = app
       _allRequestHandler()
