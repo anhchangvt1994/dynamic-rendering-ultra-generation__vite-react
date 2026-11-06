@@ -1,12 +1,14 @@
 /*
- * An individual's traits: a pure function of (its id, version 1). The same
- * rules are written in SQL (pokemon_individual_traits); golden.json is the
- * shared fixture that keeps the two from drifting.
+ * An individual's traits: a pure function of its id (appearance v2,
+ * potential v1). The same rules are written in SQL
+ * (pokemon_individual_traits); golden.json is the shared fixture that keeps
+ * the two from drifting. Regenerate it with scripts/individual-golden.mjs.
  *
  * u32(label) = first four bytes, big-endian, of SHA-256("<id>:<label>").
  * Picking in a range is `u32 mod n`; the small modulo bias is ignored.
  */
 import { digest } from '../../../utils/secure.mjs'
+import { MARK_KINDS, TIER_KEYS } from './palettes.mjs'
 export const PERSONALITIES = [
   'Hiền',
   'Nghịch',
@@ -21,7 +23,10 @@ export const PERSONALITIES = [
   'Mơ mộng',
   'Cẩn thận',
 ]
-export const MARK_KINDS = ['freckle', 'stripe', 'patch', 'scar', 'star']
+
+// cumulative weights of MARK_KINDS: spots 30, stripes 25, patch 20, scar 12,
+// flower 8, stars 5
+const MARK_STEPS = [30, 55, 75, 87, 95, 100]
 
 const encoder = new TextEncoder()
 
@@ -33,19 +38,25 @@ export async function u32(id, label) {
 export async function individualTraits(id) {
   const pick = async (label, n) => (await u32(id, label)) % n
   const personality = await pick('personality', 12)
-  const hue =
-    ((await pick('hue-sign', 2)) === 0 ? -1 : 1) *
-    (4 + (await pick('hue-mag', 7)))
-  const sat = (await pick('sat', 17)) - 8
-  const light = (await pick('light', 9)) - 4
-  let mark = null
-  if ((await pick('mark', 100)) < 35) {
-    mark = {
-      kind: MARK_KINDS[await pick('mark-kind', 5)],
-      x: 30 + (await pick('mark-x', 41)),
-      y: 30 + (await pick('mark-y', 41)),
-      size: 12 + (await pick('mark-size', 13)),
-      rot: await pick('mark-rot', 360),
+  const t = await pick('palette-tier', 100)
+  const tier =
+    t < 40 ? 'origin' : t < 75 ? 'common' : t < 95 ? 'rare' : 'very-rare'
+  const keys = TIER_KEYS[tier]
+  const palette = keys[await pick('palette', keys.length)]
+  const shift = []
+  for (let i = 0; i < 3; i++)
+    shift.push([
+      (await pick(`shift${i}-h`, 17)) - 8,
+      (await pick(`shift${i}-s`, 21)) - 10,
+      (await pick(`shift${i}-l`, 13)) - 6,
+    ])
+  let marks = null
+  if ((await pick('marks', 100)) < 60) {
+    const k = await pick('marks-kind', 100)
+    marks = {
+      kind: MARK_KINDS[MARK_STEPS.findIndex((step) => k < step)],
+      count: 1 + (await pick('marks-count', 10)),
+      seed: await pick('marks-seed', 2147483648),
     }
   }
   const offsets = []
@@ -54,7 +65,7 @@ export async function individualTraits(id) {
   const stars = 1 + Math.floor(((sum + 30) * 5) / 61)
   return {
     personality,
-    appearance: { v: 1, hue, sat, light, mark },
+    appearance: { v: 2, palette, shift, marks },
     potential: { v: 1, offsets, stars },
   }
 }

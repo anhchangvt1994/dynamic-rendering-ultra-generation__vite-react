@@ -4,16 +4,17 @@
     "traits": {
       "personality": 10,
       "appearance": {
-        "v": 1,
-        "hue": -4,
-        "sat": 7,
-        "light": -1,
-        "mark": {
-          "kind": "patch",
-          "x": 45,
-          "y": 67,
-          "size": 24,
-          "rot": 58
+        "v": 2,
+        "palette": "sunflower",
+        "shift": [
+          [8, -1, -5],
+          [-1, 8, 4],
+          [-6, 0, 4]
+        ],
+        "marks": {
+          "kind": "scar",
+          "count": 4,
+          "seed": 2006725191
         }
       },
       "potential": {
@@ -28,11 +29,18 @@
     "traits": {
       "personality": 2,
       "appearance": {
-        "v": 1,
-        "hue": -6,
-        "sat": -3,
-        "light": -4,
-        "mark": null
+        "v": 2,
+        "palette": "origin",
+        "shift": [
+          [-5, 0, -6],
+          [-2, 5, -6],
+          [-4, 9, -3]
+        ],
+        "marks": {
+          "kind": "stripes",
+          "count": 2,
+          "seed": 868363178
+        }
       },
       "potential": {
         "v": 1,
@@ -46,11 +54,14 @@
     "traits": {
       "personality": 8,
       "appearance": {
-        "v": 1,
-        "hue": -9,
-        "sat": 8,
-        "light": 2,
-        "mark": null
+        "v": 2,
+        "palette": "origin",
+        "shift": [
+          [2, 9, -6],
+          [-2, 2, -1],
+          [-2, -7, 4]
+        ],
+        "marks": null
       },
       "potential": {
         "v": 1,
@@ -64,17 +75,14 @@
     "traits": {
       "personality": 7,
       "appearance": {
-        "v": 1,
-        "hue": 4,
-        "sat": 7,
-        "light": 1,
-        "mark": {
-          "kind": "star",
-          "x": 64,
-          "y": 36,
-          "size": 24,
-          "rot": 314
-        }
+        "v": 2,
+        "palette": "aurora",
+        "shift": [
+          [-8, -6, 5],
+          [6, 3, 4],
+          [-7, -7, -5]
+        ],
+        "marks": null
       },
       "potential": {
         "v": 1,
@@ -88,17 +96,14 @@
     "traits": {
       "personality": 2,
       "appearance": {
-        "v": 1,
-        "hue": 10,
-        "sat": -7,
-        "light": 2,
-        "mark": {
-          "kind": "patch",
-          "x": 70,
-          "y": 49,
-          "size": 20,
-          "rot": 283
-        }
+        "v": 2,
+        "palette": "sakura",
+        "shift": [
+          [-2, -4, -1],
+          [-2, -9, -1],
+          [2, 5, 6]
+        ],
+        "marks": null
       },
       "potential": {
         "v": 1,
@@ -112,11 +117,18 @@
     "traits": {
       "personality": 7,
       "appearance": {
-        "v": 1,
-        "hue": -10,
-        "sat": -4,
-        "light": -2,
-        "mark": null
+        "v": 2,
+        "palette": "mint",
+        "shift": [
+          [-3, -9, -1],
+          [-6, -4, -4],
+          [-8, -2, -6]
+        ],
+        "marks": {
+          "kind": "stripes",
+          "count": 10,
+          "seed": 228245361
+        }
       },
       "potential": {
         "v": 1,
@@ -130,16 +142,224 @@
     "traits": {
       "personality": 2,
       "appearance": {
-        "v": 1,
-        "hue": -8,
-        "sat": -5,
-        "light": 3,
-        "mark": null
+        "v": 2,
+        "palette": "pearl",
+        "shift": [
+          [7, -5, -3],
+          [6, 1, 3],
+          [3, 2, 0]
+        ],
+        "marks": null
       },
       "potential": {
         "v": 1,
         "offsets": [-3, -1, -3, -5, -2, -4],
         "stars": 1
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000017156075",
+    "traits": {
+      "personality": 7,
+      "appearance": {
+        "v": 2,
+        "palette": "sakura",
+        "shift": [
+          [6, -5, -1],
+          [4, -10, 2],
+          [-5, -5, 6]
+        ],
+        "marks": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-4, -3, 1, 2, 5, -4],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000b54cda26",
+    "traits": {
+      "personality": 9,
+      "appearance": {
+        "v": 2,
+        "palette": "sunset",
+        "shift": [
+          [-4, 0, 3],
+          [-5, -10, 2],
+          [-3, -4, 3]
+        ],
+        "marks": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-4, 5, -1, -4, 4, 0],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000538453d7",
+    "traits": {
+      "personality": 2,
+      "appearance": {
+        "v": 2,
+        "palette": "amethyst",
+        "shift": [
+          [-6, -9, -5],
+          [-8, 8, 3],
+          [-6, 3, -5]
+        ],
+        "marks": {
+          "kind": "spots",
+          "count": 1,
+          "seed": 504830083
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [-4, 4, 5, 1, -4, -2],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000f1bbcd88",
+    "traits": {
+      "personality": 2,
+      "appearance": {
+        "v": 2,
+        "palette": "ocean",
+        "shift": [
+          [-7, -7, 6],
+          [-4, 0, 4],
+          [-3, -1, 3]
+        ],
+        "marks": {
+          "kind": "scar",
+          "count": 1,
+          "seed": 894911317
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [0, -4, 1, 4, -5, 4],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00008ff34739",
+    "traits": {
+      "personality": 7,
+      "appearance": {
+        "v": 2,
+        "palette": "sakura",
+        "shift": [
+          [4, -1, 4],
+          [-5, 8, 4],
+          [1, 9, -2]
+        ],
+        "marks": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [0, 1, 0, 1, -4, 4],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00002e2ac0ea",
+    "traits": {
+      "personality": 1,
+      "appearance": {
+        "v": 2,
+        "palette": "aurora",
+        "shift": [
+          [-1, 7, 4],
+          [3, 10, -3],
+          [-6, 5, 6]
+        ],
+        "marks": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [0, -3, 5, -3, 3, -4],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000cc623a9b",
+    "traits": {
+      "personality": 1,
+      "appearance": {
+        "v": 2,
+        "palette": "moss",
+        "shift": [
+          [-2, -3, 4],
+          [6, -4, 6],
+          [-7, -3, 4]
+        ],
+        "marks": {
+          "kind": "stripes",
+          "count": 7,
+          "seed": 370725110
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [1, -1, 0, 1, -1, 3],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000008d12dfd",
+    "traits": {
+      "personality": 4,
+      "appearance": {
+        "v": 2,
+        "palette": "slate",
+        "shift": [
+          [-4, 10, 1],
+          [8, 9, 5],
+          [0, -2, -4]
+        ],
+        "marks": null
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [4, -1, -3, 3, -3, -1],
+        "stars": 3
+      }
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-0000a708a7ae",
+    "traits": {
+      "personality": 4,
+      "appearance": {
+        "v": 2,
+        "palette": "origin",
+        "shift": [
+          [-8, 3, -6],
+          [6, -5, 0],
+          [-5, -4, -4]
+        ],
+        "marks": {
+          "kind": "flower",
+          "count": 10,
+          "seed": 836671705
+        }
+      },
+      "potential": {
+        "v": 1,
+        "offsets": [0, 3, 0, -2, -4, 3],
+        "stars": 3
       }
     }
   }
