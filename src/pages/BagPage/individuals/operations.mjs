@@ -19,6 +19,8 @@ export const TRADE_TERMINAL = [
   'locks_unavailable',
   'journal_corrupt',
   'trade_unavailable',
+  // the trade happened, but its receipt is newer than this page knows
+  'client_outdated',
 ]
 const fail = (code) => Object.assign(new Error(code), { code })
 const usable = (mode) => mode === 'server' || mode === 'local'
@@ -54,6 +56,10 @@ export async function tradeCard(
   } else {
     data = await journal.tradeLocalCard(operationId, speciesId)
   }
+  // an appearance version past this client's: the card is spent server
+  // side; a reload shows the individual (never "uncertain", never re-sent)
+  const v = data?.traits?.appearance?.v
+  if (Number.isInteger(v) && v > 3) throw fail('client_outdated')
   if (
     !validTradeReceipt(data) ||
     data.operationId.toLowerCase() !== operationId.toLowerCase() ||

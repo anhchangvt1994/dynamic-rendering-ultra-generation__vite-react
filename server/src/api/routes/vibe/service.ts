@@ -10,6 +10,10 @@ export interface VibeDeps {
   save: (row: { species_id: number; vibe: Vibe; v: number }) => Promise<void>
   /** how long the answer waits for the store (default 3000 ms) */
   saveWaitMs?: number
+  /** `${species}:${version}` already stored; skipped until the process ends */
+  stored?: Set<string>
+  /** told about a failed store */
+  warn?: (error: unknown) => void
 }
 
 // the store finishes or not in the background; the answer waits at most ms
@@ -45,12 +49,14 @@ export async function vibeFor(id: string, deps: VibeDeps) {
     return { status: 502, body: { error: 'pokedex_unavailable' } }
   const { vibe, scores } = vibeOf({ ...species, id: n }, pokemon)
   // a failed or slow store: the answer stands; the next call stores it again
-  let saving: Promise<void>
-  try {
-    saving = deps.save({ species_id: n, vibe, v: VIBE_VERSION })
-  } catch {
-    saving = Promise.resolve()
+  const done = `${n}:${VIBE_VERSION}`
+  if (!deps.stored?.has(done)) {
+    const saving = (async () =>
+      deps.save({ species_id: n, vibe, v: VIBE_VERSION }))().then(
+      () => void deps.stored?.add(done),
+      (error) => deps.warn?.(error)
+    )
+    await settleWithin(saving, deps.saveWaitMs ?? 3000)
   }
-  await settleWithin(saving, deps.saveWaitMs ?? 3000)
   return { status: 200, body: { id: n, vibe, scores, v: VIBE_VERSION } }
 }

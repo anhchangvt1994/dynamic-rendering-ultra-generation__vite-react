@@ -3,8 +3,9 @@ import { hashCode } from '../../../utils/StringHelper'
 import { compressData, getData, setData } from '../../utils/CacheManager'
 import { getDataCompression } from '../../utils/CacheManager/utils'
 import { fetchData } from '../../utils/FetchManager'
-import { quizMediaConfig } from '../quiz/config'
+import { supabaseService } from '../supabase/config'
 import type { VibeDeps } from './service'
+import { storeVibe } from './store'
 
 // the cache may hold JSON text stored as a JSON string: parse until an object
 const parse = (value: unknown) => {
@@ -50,22 +51,17 @@ const load: VibeDeps['load'] = async (endpoint) => {
   return json
 }
 
-/** Upserts pokemon_species_vibes with the service role (Supabase only). */
+/** Stores the vibe with the service role (Supabase only). */
 const save: VibeDeps['save'] = async (row) => {
   if (!PROCESS_ENV.ENABLE_SUPABASE) return
-  const { url, key } = quizMediaConfig()
-  if (!url || !key) return
-  await fetch(`${url}/rest/v1/pokemon_species_vibes?on_conflict=species_id`, {
-    method: 'POST',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }),
-    signal: AbortSignal.timeout(5000),
-  })
+  await storeVibe(fetch, supabaseService(), row)
 }
 
-export const vibeDeps: VibeDeps = { load, save }
+// once per species and rule version for this process; a failed store is
+// tried again on the next request
+export const vibeDeps: VibeDeps = {
+  load,
+  save,
+  stored: new Set(),
+  warn: (error) => console.warn('[vibe] store failed:', error),
+}

@@ -80,3 +80,22 @@ test('a failed store still answers', async () => {
   assert.equal(r.status, 200)
   assert.equal(r.body.vibe, 'cute')
 })
+
+test('a stored species is not stored again; a failed store is tried again', async () => {
+  const stored = new Set()
+  const d = deps({ stored })
+  await vibeFor('25', d)
+  await vibeFor('25', d)
+  assert.equal(d.saved.length, 1, 'one store per species and rule version')
+  let tries = 0
+  const failing = deps({
+    stored: new Set(),
+    save: async () => {
+      tries++
+      throw new Error('db down')
+    },
+  })
+  await vibeFor('25', failing)
+  await vibeFor('25', failing)
+  assert.equal(tries, 2)
+})

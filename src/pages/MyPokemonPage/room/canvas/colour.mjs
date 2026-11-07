@@ -88,15 +88,27 @@ export function rampTargets(sources, [main, second]) {
 
 const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
 
-/** The three mark tones, each far enough from the (final) main colour. */
+/**
+ * The three mark tones, each far enough from the (final) main colour and
+ * from each other. The dark tone (also the marks' rim) stays below the main
+ * down to L .3; only a near-black main gets a lighter one.
+ */
 export function markTones(main, accentHex) {
   const L = main[0]
-  const dark = [L > 0.6 ? L - 0.3 : L + 0.3, main[1] * 1.3, main[2] * 1.3]
-  const light = [
-    L < 0.75 ? Math.min(0.97, L + 0.25) : L - 0.22,
-    main[1] * 0.3,
-    main[2] * 0.3,
-  ]
+  let darkL
+  let lightL
+  if (L >= 0.75) {
+    lightL = L - 0.22
+    darkL = L - 0.42
+  } else if (L >= 0.3) {
+    darkL = L - 0.3
+    lightL = Math.min(0.97, L + 0.25)
+  } else {
+    darkL = L + 0.3
+    lightL = Math.min(0.97, L + 0.55)
+  }
+  const dark = [darkL, main[1] * 1.3, main[2] * 1.3]
+  const light = [lightL, main[1] * 0.3, main[2] * 0.3]
   let accent = accentHex ? hexToOklab(accentHex) : null
   if (!accent || dist(accent, main) < 0.15)
     accent = polar(

@@ -84,7 +84,22 @@ select throws_ok($$select public.pokemon_name_individual(gen_random_uuid(),'x')$
 reset role;
 -- older assets unchanged: the untouched card row of the first owner
 select is((select count from public.pokemon_cards where user_id='55555555-5555-4555-8555-555555555555' and pokemon_id=10),1,'other species cards unchanged');
-select ok(has_table_privilege('service_role','public.pokemon_species_vibes','insert') and has_table_privilege('service_role','public.pokemon_species_vibes','update'),'the server (service role) can upsert species vibes');
+select ok(not has_table_privilege('service_role','public.pokemon_species_vibes','insert') and not has_table_privilege('service_role','public.pokemon_species_vibes','update'),'the server writes vibes only through the store function');
+select ok(has_function_privilege('service_role','public.pokemon_species_vibe_store(smallint,text,integer)','execute'),'the server (service role) can store a vibe');
+select ok(not has_function_privilege('authenticated','public.pokemon_species_vibe_store(smallint,text,integer)','execute') and not has_function_privilege('anon','public.pokemon_species_vibe_store(smallint,text,integer)','execute'),'players can not store a vibe');
+-- the store: a missing row is added, the same version keeps the seed, a newer version replaces it
+delete from public.pokemon_species_vibes where species_id in (3,4);
+insert into public.pokemon_species_vibes(species_id,vibe,v) values (4,'nature',1);
+set local role service_role;
+select public.pokemon_species_vibe_store(3::smallint,'cool',1);
+select public.pokemon_species_vibe_store(4::smallint,'fierce',1);
+reset role;
+select is((select vibe from public.pokemon_species_vibes where species_id=3),'cool','store adds a missing species');
+select is((select vibe from public.pokemon_species_vibes where species_id=4),'nature','the same version never overwrites the seed');
+set local role service_role;
+select public.pokemon_species_vibe_store(4::smallint,'fierce',2);
+reset role;
+select is((select (vibe,v)::text from public.pokemon_species_vibes where species_id=4),'(fierce,2)','a newer rule version replaces it');
 -- no vibe row → the pool rule; a vibe row → that vibe's rule (the seed's rows
 -- for these species are removed inside this rolled-back transaction)
 delete from public.pokemon_species_vibes where species_id in (1,25);

@@ -7,6 +7,7 @@ import {
   tradeCard,
   tradePendingKey,
 } from './operations.mjs'
+import { tradeMessage } from './messages.mjs'
 
 const memory = () => {
   const data = new Map()
@@ -220,6 +221,24 @@ test('adapter: guest and checking are refused before any call; receipt is valida
   await assert.rejects(
     tradeCard({ mode: 'server', supabase: refused, journal }, OP, 25),
     (e) => e.code === 'insufficient_cards'
+  )
+})
+test('adapter: a receipt from a newer server is client_outdated, final, with its own words', async () => {
+  const r = receipt()
+  const newer = {
+    rpc: async () => ({
+      data: { ...r, traits: { ...r.traits, appearance: { v: 4, anything: true } } },
+      error: null,
+    }),
+  }
+  await assert.rejects(
+    tradeCard({ mode: 'server', supabase: newer }, OP, 25),
+    (e) => e.code === 'client_outdated'
+  )
+  assert.ok(TRADE_TERMINAL.includes('client_outdated'))
+  assert.match(
+    tradeMessage('Pikachu', { kind: 'error', code: 'client_outdated' }),
+    /tải lại trang/
   )
 })
 test('adapter: server mode asks the species vibe first; its failure is ignored', async () => {

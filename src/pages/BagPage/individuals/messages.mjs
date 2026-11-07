@@ -6,6 +6,7 @@ const TRADE_ERRORS = {
   trade_unavailable: 'Chỉ tài khoản đăng nhập mới đổi được hổ phách',
   operation_conflict: 'Lần đổi này bị trùng, hãy thử lại',
   journal_corrupt: 'Dữ liệu trong trình duyệt bị hỏng, chưa đổi hổ phách',
+  client_outdated: 'Đã có bản mới, hãy tải lại trang để xem cá thể vừa đổi',
 }
 
 export function tradeMessage(name, state) {
