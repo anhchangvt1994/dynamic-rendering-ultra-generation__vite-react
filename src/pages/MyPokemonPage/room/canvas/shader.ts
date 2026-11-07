@@ -92,6 +92,23 @@ vec2 cellUv(vec2 uv, float index, float cols, vec2 cell, vec2 size) {
   return (at + px) / size;
 }
 
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// the lightness of the sprite at uv; outside the body, the fallback
+float reliefAt(vec2 uv, float fallback) {
+  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  return t.a > 0.5 ? dot(t.rgb / t.a, vec3(0.299, 0.587, 0.114)) : fallback;
+}
+
 void main() {
   vec2 uv = (vUv - 0.5) / uFit + 0.5;
   if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
@@ -147,26 +164,105 @@ void main() {
     // drawn whole for this frame where the body took each mark (track.mjs),
     // read in place: a per-pixel lookup through the flow tears a mark on a
     // fast tail (Pikachu); a whole shape can not tear
-    vec4 mark = texture2D(uMarks, uv);
+    // the body's relief (its lightness) bends the mark a little, so it
+    // follows the form instead of lying flat on top; the edge is feathered
+    // by a few taps so no pixel-sharp sticker rim is left
+    float c0 = dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114));
+    vec2 e = 1.5 / uCell;
+    float hx = reliefAt(uv + vec2(e.x, 0.0), c0) - reliefAt(uv - vec2(e.x, 0.0), c0);
+    float hy = reliefAt(uv + vec2(0.0, e.y), c0) - reliefAt(uv - vec2(0.0, e.y), c0);
+    vec2 bend = vec2(hx, hy);
+    float bl = length(bend);
+    bend *= min(bl, 0.16) / max(bl, 1e-4) * 0.03;
+    vec2 muv = uv - bend;
+    float f = 0.9 / 512.0;
+    vec4 mark = vec4(0.0);
+    vec3 markRgb = vec3(0.0);
+    for (int i = 0; i < 5; i++) {
+      vec2 o = i == 0 ? vec2(0.0) : i == 1 ? vec2(f, 0.0) : i == 2 ? vec2(-f, 0.0) : i == 3 ? vec2(0.0, f) : vec2(0.0, -f);
+      vec4 s = texture2D(uMarks, muv + o);
+      float wgt = i == 0 ? 0.4 : 0.15;
+      mark.a += s.a * wgt;
+      markRgb += s.rgb * s.a * wgt;
+    }
+    mark.rgb = markRgb / max(mark.a, 1e-4) * mark.a;
+    // how deep inside its shape this pixel is: wide taps of the mark's own
+    // alpha. The rim seeps into the skin, the middle stays full, like dye
+    float wide = 3.2 / 512.0;
+    float ring = 0.0;
+    ring += texture2D(uMarks, muv + vec2(wide, 0.0)).a;
+    ring += texture2D(uMarks, muv - vec2(wide, 0.0)).a;
+    ring += texture2D(uMarks, muv + vec2(0.0, wide)).a;
+    ring += texture2D(uMarks, muv - vec2(0.0, wide)).a;
+    float inner = smoothstep(0.25, 1.0, ring * 0.25) * smoothstep(0.0, 0.6, mark.a);
+    // emboss: the mark's own alpha slope, lit from the upper left
+    float em = 1.6 / 512.0;
+    float emboss =
+      texture2D(uMarks, muv - vec2(em, em)).a - texture2D(uMarks, muv + vec2(em, em)).a;
+    // which kind of mark: dark ones (spots, stripes, patches) are pigment,
+    // the light one (scar) is scar tissue, the accent ones (stars, flowers,
+    // hearts) are dye. Each sits in the skin its own way
+    vec3 tone = mark.rgb / max(mark.a, 1e-4);
+    tone /= max(tone.r + tone.g + tone.b, 1e-4);
+    float pig = tone.r;
+    float scr = tone.g;
+    // pigment grain: noise (fixed to the mark's own space) erodes the rim
+    // unevenly, as dye bleeds into skin, instead of a clean cut-out edge
+    float grain = vnoise(muv * 210.0) * 0.65 + vnoise(muv * 540.0) * 0.35;
+    float mottle = vnoise(muv * 64.0);
+    // pigment has no edge: its alpha is spread over a few pixels and fades
+    float spreadA = (mark.a + ring) / 5.0;
+    float shape = mix(mark.a, smoothstep(0.08, 0.75, spreadA), pig * 0.85);
+    float soft = smoothstep(
+      0.18, 0.62, shape + (grain - 0.5) * mix(0.55, 0.8, pig) * (1.0 - inner));
+    // a mark is densest inside, thinner toward its rim; pigment also mottles
+    float density = mix(0.7, 0.96, inner);
+    density = mix(density, (0.55 + 0.45 * inner) * (0.78 + 0.34 * mottle), pig);
+    density = mix(density, 0.9, scr);
     // on any region pixel (marks sit on the whole body), fading out where a
     // pixel is near no region at all. Not by the flow's confidence: on a
     // flat, dark body (Gengar) the forward-backward check fails across whole
     // patches and the marks would melt into the skin frame by frame; there
     // the cell's vector (spread from its neighbours) is still close
-    float cover = mark.a * free * smoothstep(0.05, 0.3, top);
+    float cover = soft * density * free * smoothstep(0.05, 0.3, top);
     if (cover > 0.001) {
-      vec3 tone = mark.rgb / max(mark.a, 1e-4);
-      tone /= max(tone.r + tone.g + tone.b, 1e-4);
       vec3 ink = tone.r * uDark + tone.g * uLight + tone.b * uAccent;
       // a scar stands off the skin under it (deeper on pale, paler on dark),
       // whichever region that is
       float scarL = base >= 0.62 ? base - 0.3 : min(0.95, base + 0.3);
       ink.x = mix(ink.x, scarL, tone.g);
-      // keep half the body's shading under the mark: enough to follow the
-      // form, not so much that a dark shade swallows a dark mark
-      ink.x = clamp(ink.x + 0.5 * (out_.x - base), 0.0, 1.0);
+      // the mark only tints the skin: its lightness is the skin's own
+      // (shading and sprite detail intact) moved a bounded way toward the
+      // mark's, multiplied like dye rather than painted opaque
+      float want = clamp(ink.x - base, -0.32, 0.32);
+      ink.x = clamp(
+        out_.x + want * mix(0.7, 1.0, inner) + 0.08 * (grain - 0.5), 0.0, 1.0);
+      // dye takes on the skin's tint; pigment is the skin's own hue, richer
+      // (more chroma, a little deeper); a scar is paler in colour than skin
+      // a dyed mark is not one flat fill: the weave of the skin shows
+      // through, denser toward the middle and varying with the grain
+      ink.x += 0.06 * (mottle - 0.5) * tone.b;
+      ink.yz = mix(out_.yz, ink.yz, mix(0.6, 0.9, inner) * (0.88 + 0.24 * mottle));
+      ink.yz = mix(ink.yz, out_.yz * (1.0 + 0.45 * inner), pig * 0.8);
+      ink.yz = mix(ink.yz, out_.yz * 0.55, scr);
+      // raised scar tissue catches the light on one side and shades the
+      // other; a printed mark only has a slight relief
+      ink.x += mix(0.12, 0.34, scr) * emboss;
+      cover *= 1.0 - 0.35 * tone.r * (1.0 - pig * 0.6);
       out_ = mix(out_, ink, cover);
     }
+    // dye bleeds a little past its shape: a faint accent tint of the skin
+    // just outside a star, flower, heart or flake (chroma only, the skin
+    // keeps its own lightness and shading)
+    float far = 6.5 / 512.0;
+    vec4 b1 = texture2D(uMarks, muv + vec2(far, 0.0));
+    vec4 b2 = texture2D(uMarks, muv - vec2(far, 0.0));
+    vec4 b3 = texture2D(uMarks, muv + vec2(0.0, far));
+    vec4 b4 = texture2D(uMarks, muv - vec2(0.0, far));
+    float bleedA = (b1.a + b2.a + b3.a + b4.a) * 0.25;
+    float bleedB = (b1.b + b2.b + b3.b + b4.b) * 0.25;
+    float bleed = bleedB * smoothstep(0.0, 0.5, bleedA) * (1.0 - mark.a);
+    out_.yz = mix(out_.yz, uAccent.yz, 0.3 * bleed * free * smoothstep(0.05, 0.3, top));
   }
 
   if (uMood == 1) out_.yz *= 0.35;

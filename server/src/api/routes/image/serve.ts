@@ -19,6 +19,10 @@ import { PIPELINE_VERSION } from './pipeline'
  */
 
 export const SOURCE = String(PROCESS_ENV.ANIMATED_SOURCE_URL || '').trim()
+const LGPE_SOURCE =
+  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/lets-go-pikachu-lets-go-eevee/{key}.gif'
+/** Bump when the source selection changes: invalidates animation and rig caches. */
+export const SOURCE_VERSION = 1
 export const SIZE = Number(PROCESS_ENV.ANIMATED_SIZE) || 800
 const QUALITY = Number(PROCESS_ENV.ANIMATED_QUALITY) || 95
 export const JOB_TIMEOUT_MS =
@@ -68,19 +72,35 @@ export const withSlot = async <T>(work: () => Promise<T>) => {
   }
 }
 
-export const fetchSource = async (key: string) => {
+const fetchFrom = async (template: string, key: string) => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   try {
-    const res = await fetch(SOURCE.replace('{key}', key), {
+    const res = await fetch(template.replace('{key}', key), {
       signal: controller.signal,
     })
-    if (res.status === 404) throw new Missing()
+    if (res.status === 404 || res.status === 410) return null
     if (!res.ok) throw new Error(`source answered ${res.status}`)
     return Buffer.from(await res.arrayBuffer())
   } finally {
     clearTimeout(timer)
   }
+}
+
+// LGPE sprites are 384px animated GIFs for some species; keep the existing
+// source as a fallback for generations/forms absent from that set.
+export const fetchSource = async (key: string) => {
+  let preferred: Buffer | null = null
+  try {
+    preferred = await fetchFrom(LGPE_SOURCE, key)
+  } catch {
+    // A transient LGPE failure must not block the configured source.
+  }
+  if (preferred) return preferred
+  if (!SOURCE) throw new Missing()
+  const fallback = await fetchFrom(SOURCE, key)
+  if (!fallback) throw new Missing()
+  return fallback
 }
 
 // The build runs in its own worker thread: the main thread keeps answering
@@ -121,7 +141,10 @@ const missing = new Set<string>() // known 404s: do not ask the source again
 // Never make a request wait for a build: start it, answer "not yet" (202) and
 // let the client ask again; a finished one is served from disk.
 export const animationFor = (key: string): Buffer | null => {
-  const file = path.join(cacheDir, `${PIPELINE_VERSION}-${SIZE}-${key}.webp`)
+  const file = path.join(
+    cacheDir,
+    `${PIPELINE_VERSION}-${SOURCE_VERSION}-${SIZE}-${key}.webp`
+  )
   if (fs.existsSync(file)) return fs.readFileSync(file)
   if (missing.has(key)) throw new Missing()
   if (Date.now() - (failed.get(key) ?? 0) < 60000)
@@ -202,7 +225,7 @@ export const serveImage = async (url: string) => {
   })
   const none = () => reply(404, 'text/plain', Buffer.from('Not found'))
   const key = readKey(url)
-  if (!SOURCE || !key) return none()
+  if (!key) return none()
   let webp: Buffer | null = null
   try {
     webp = animationFor(key)

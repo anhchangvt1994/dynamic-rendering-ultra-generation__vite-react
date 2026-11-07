@@ -126,11 +126,17 @@ test('4000 random ids stay inside every range and match the weights', async () =
     flower: 8,
     stars: 5,
     hearts: 0,
+    snow: 0,
   }
   for (const kind of MARK_KINDS)
     near(kinds[kind] / marked, weights[kind] / 100, 0.04, kind)
   assert.ok(counts.has(3) && counts.has(10))
   assert.equal(kinds.hearts, 0, 'hearts are for cute species only')
+  assert.equal(
+    kinds.snow,
+    0,
+    'snow is drawn but not rolled yet (needs appearance rule 3)'
+  )
 })
 
 test('a cute species gets only hearts, stars, flowers and spots, hearts most', async () => {
@@ -144,7 +150,10 @@ test('a cute species gets only hearts, stars, flowers and spots, hearts most', a
     assert.ok(a.marks.kind in kinds, a.marks.kind)
     kinds[a.marks.kind]++
     const [lo, hi] = RANGES[a.marks.kind] ?? [3, 10]
-    assert.ok(a.marks.count >= lo && a.marks.count <= hi, `${a.marks.kind} × ${a.marks.count}`)
+    assert.ok(
+      a.marks.count >= lo && a.marks.count <= hi,
+      `${a.marks.kind} × ${a.marks.count}`
+    )
   }
   const want = { hearts: 45, stars: 25, flower: 20, spots: 10 }
   for (const [kind, w] of Object.entries(want))

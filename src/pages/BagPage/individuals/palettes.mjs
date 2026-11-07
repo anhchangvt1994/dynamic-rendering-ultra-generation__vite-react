@@ -153,6 +153,7 @@ export const MARK_KINDS = [
   'flower',
   'stars',
   'hearts',
+  'snow',
 ]
 
 export const MARK_LABELS = {
@@ -163,4 +164,5 @@ export const MARK_LABELS = {
   flower: { label: 'Hoa', unit: 'bông' },
   stars: { label: 'Sao', unit: 'ngôi' },
   hearts: { label: 'Tim', unit: 'trái' },
+  snow: { label: 'Tuyết', unit: 'bông' },
 }

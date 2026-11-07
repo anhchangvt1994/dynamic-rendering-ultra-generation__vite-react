@@ -16,7 +16,7 @@ import {
   KEY,
   Missing,
   SIZE,
-  SOURCE,
+  SOURCE_VERSION,
   animationFor,
   cacheDir,
   fetchSource,
@@ -42,7 +42,7 @@ const dirOf = (key: string) =>
   path.join(
     cacheDir,
     'rig',
-    `${RIG_VERSION}-${PIPELINE_VERSION}-${SIZE}-${key}`
+    `${RIG_VERSION}-${PIPELINE_VERSION}-${SOURCE_VERSION}-${SIZE}-${key}`
   )
 
 type Built = { json: unknown; sheet: Buffer; flow: Buffer }
@@ -126,7 +126,7 @@ export const serveRig = async (url: string) => {
   })
   const none = () => reply(404, 'text/plain', 'Not found')
   const parsed = readRigUrl(url)
-  if (!SOURCE || !parsed) return none()
+  if (!parsed) return none()
   const { key, file } = parsed
   const dir = dirOf(key)
   const target = path.join(dir, file)

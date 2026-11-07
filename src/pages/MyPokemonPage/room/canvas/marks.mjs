@@ -12,6 +12,7 @@ const TONES = {
   flower: 'accent',
   stars: 'accent',
   hearts: 'accent',
+  snow: 'accent',
 }
 // size range per kind, × body (the whole silhouette, not the main region)
 const SIZES = {
@@ -21,12 +22,19 @@ const SIZES = {
   flower: [0.1, 0.14],
   stars: [0.07, 0.1],
   hearts: [0.1, 0.14],
+  snow: [0.09, 0.13],
 }
 // spots and patches mix one or two big marks (where the body is thickest)
 // with the small ones, as on a real coat
 const BIG = { spots: [0.16, 0.22], patch: [0.26, 0.32] }
 const bigCount = (kind, count) =>
-  !BIG[kind] ? 0 : kind === 'patch' ? +(count >= 2) : count >= 6 ? 2 : +(count >= 3)
+  !BIG[kind]
+    ? 0
+    : kind === 'patch'
+      ? +(count >= 2)
+      : count >= 6
+        ? 2
+        : +(count >= 3)
 // a mark keeps half its size from the outline; a big one may hang past it
 // (the silhouette clips it)
 const KEEP = 0.5
@@ -114,7 +122,10 @@ export function bodyMask(rgba, w, h, clusters, lock, size = 64) {
     if (locked >= 0.5) return false
     let top = 0
     for (const s of sources)
-      top = Math.max(top, Math.exp(-((a - s[1]) ** 2 + (b - s[2]) ** 2) / SPREAD))
+      top = Math.max(
+        top,
+        Math.exp(-((a - s[1]) ** 2 + (b - s[2]) ** 2) / SPREAD)
+      )
     return top > 0.3
   }
   // each cell's pixel span; a frame smaller than the grid shares pixels
@@ -277,7 +288,10 @@ function zones(R, random, count) {
   const h = span('y') * R.ch
   const [long, short] = h >= w ? ['y', 'x'] : ['x', 'y']
   const ratio = Math.max(w, h) / Math.max(Math.min(w, h), 1e-9)
-  const rows = Math.max(1, Math.min(count, Math.round(Math.sqrt(count * ratio))))
+  const rows = Math.max(
+    1,
+    Math.min(count, Math.round(Math.sqrt(count * ratio)))
+  )
   const per = Array(rows).fill(Math.floor(count / rows))
   const order = [...per.keys()]
   for (let i = order.length - 1; i > 0; i--) {
@@ -331,7 +345,10 @@ function scatter(R, random, kind, count, body) {
   const list = zones(R, random, count)
   const big = new Set(
     list
-      .map((zone, i) => [i, Math.max(0, ...zone.map((c) => Math.min(c.edge, 1)))])
+      .map((zone, i) => [
+        i,
+        Math.max(0, ...zone.map((c) => Math.min(c.edge, 1))),
+      ])
       .sort((a, b) => b[1] - a[1] || a[0] - b[0])
       .slice(0, bigCount(kind, count))
       .map(([i]) => i)
@@ -485,8 +502,14 @@ const measure = (R) => Math.sqrt(R.cells.length * R.cw * R.ch)
  */
 export function planMarks(marks, rig, body = null) {
   if (!marks || !marks.count || !rig?.primary || rig.noMarks) return []
-  const P = region(unpack(rig.primary.bits, rig.primary.size), rig.primary.size, rig.frame)
-  const B = body?.mask?.some(Boolean) ? region(body.mask, body.size, rig.frame) : P
+  const P = region(
+    unpack(rig.primary.bits, rig.primary.size),
+    rig.primary.size,
+    rig.frame
+  )
+  const B = body?.mask?.some(Boolean)
+    ? region(body.mask, body.size, rig.frame)
+    : P
   if (!B.cells.length) return []
   const random = mulberry32(marks.seed)
   const unit = measure(B)
@@ -506,7 +529,8 @@ export function planMarks(marks, rig, body = null) {
   if (!SIZES[marks.kind]) return []
   // dark marks keep to the main colour, off a pale belly, when it is enough
   // of the body to spread over (its holes — the belly, the cheeks — kept clear)
-  const dark = TONES[marks.kind] === 'dark' && B !== P ? mainOf(B, P, rig.frame) : null
+  const dark =
+    TONES[marks.kind] === 'dark' && B !== P ? mainOf(B, P, rig.frame) : null
   return scatter(dark ?? B, random, marks.kind, marks.count, unit)
 }
 
@@ -515,14 +539,16 @@ function mainOf(B, P, frame) {
   const mask = B.mask.map((on, i) => on & P.mask[i])
   let n = 0
   for (const on of mask) n += on
-  return n >= DARK_SHARE * B.cells.length ? region(mask, B.size, frame, B.mask) : null
+  return n >= DARK_SHARE * B.cells.length
+    ? region(mask, B.size, frame, B.mask)
+    : null
 }
 
 // a thin opaque rim: a see-through one mixes the dark tone into the accent
 const OUTLINE_PX = 2.5
 // the kinds drawn with a rim; all but the scar glow on a glowing palette
-const RIMMED = new Set(['stars', 'flower', 'hearts', 'scar'])
-const GLOWING = new Set(['stars', 'flower', 'hearts'])
+const RIMMED = new Set(['stars', 'flower', 'hearts', 'snow', 'scar'])
+const GLOWING = new Set(['stars', 'flower', 'hearts', 'snow'])
 // the halo's blur, × the mark's size in texture pixels
 const GLOW_BLUR = 0.3
 const GLOW_COLOUR = 'rgba(0,0,255,0.5)'
@@ -567,7 +593,8 @@ function blob(ctx, random, cx, cy, r) {
     return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
   }
   ctx.moveTo(...mid(BLOB_POINTS - 1))
-  for (let i = 0; i < BLOB_POINTS; i++) ctx.quadraticCurveTo(...pts[i], ...mid(i))
+  for (let i = 0; i < BLOB_POINTS; i++)
+    ctx.quadraticCurveTo(...pts[i], ...mid(i))
   ctx.closePath()
 }
 
@@ -605,14 +632,30 @@ function scar(ctx, random, size) {
     for (let i = 0; i < n; i++) {
       const y = (i - (n - 1) / 2) * gap
       const len = L * (0.6 + 0.4 * random())
-      cut(ctx, (random() - 0.5) * 0.15 * L, y, (random() - 0.5) * 0.15, len, w * 0.8, bend())
+      cut(
+        ctx,
+        (random() - 0.5) * 0.15 * L,
+        y,
+        (random() - 0.5) * 0.15,
+        len,
+        w * 0.8,
+        bend()
+      )
     }
   } else {
     const n = 3 + Math.floor(random() * 3)
     cut(ctx, 0, 0, 0, L, w, 0)
     for (let i = 0; i < n; i++) {
       const x = ((i + 0.5) / n - 0.5) * 0.8 * L
-      cut(ctx, x, 0, Math.PI / 2 + (random() - 0.5) * 0.3, 0.26 * size, w * 0.55, 0)
+      cut(
+        ctx,
+        x,
+        0,
+        Math.PI / 2 + (random() - 0.5) * 0.3,
+        0.26 * size,
+        w * 0.55,
+        0
+      )
     }
   }
 }
@@ -651,7 +694,13 @@ function path(ctx, s) {
       for (let i = 1; i < n; i++) {
         const a = start + (i / (n - 1)) * TAU + (random() - 0.5) * 0.8
         const d = r * (0.32 + 0.12 * random())
-        blob(ctx, random, Math.cos(a) * d, Math.sin(a) * d, r * (0.4 + 0.15 * random()))
+        blob(
+          ctx,
+          random,
+          Math.cos(a) * d,
+          Math.sin(a) * d,
+          r * (0.4 + 0.15 * random())
+        )
       }
       break
     }
@@ -673,6 +722,40 @@ function path(ctx, s) {
         )
       }
       break
+    case 'snow': {
+      // six arms, each a thin spine with two pairs of side twigs, round a
+      // small hexagon: a flake, one outline so it keeps a single shape
+      const w = r * 0.13
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU
+        const arm = (x0, y0, len, turn, width) => {
+          const tx = Math.cos(a + turn)
+          const ty = Math.sin(a + turn)
+          const nx = -ty * width
+          const ny = tx * width
+          ctx.moveTo(x0 + nx, y0 + ny)
+          ctx.lineTo(x0 + tx * len + nx * 0.4, y0 + ty * len + ny * 0.4)
+          ctx.lineTo(x0 + tx * len - nx * 0.4, y0 + ty * len - ny * 0.4)
+          ctx.lineTo(x0 - nx, y0 - ny)
+          ctx.closePath()
+        }
+        arm(0, 0, r, 0, w)
+        for (const f of [0.45, 0.72]) {
+          const bx = Math.cos(a) * r * f
+          const by = Math.sin(a) * r * f
+          arm(bx, by, r * (0.42 - 0.14 * f), 0.9, w * 0.8)
+          arm(bx, by, r * (0.42 - 0.14 * f), -0.9, w * 0.8)
+        }
+      }
+      ctx.moveTo(r * 0.2, 0)
+      for (let i = 1; i <= 6; i++)
+        ctx.lineTo(
+          Math.cos((i / 6) * TAU) * r * 0.2,
+          Math.sin((i / 6) * TAU) * r * 0.2
+        )
+      ctx.closePath()
+      break
+    }
     case 'stars':
       for (let i = 0; i < 10; i++) {
         const a = (i / 10) * TAU - Math.PI / 2
@@ -684,9 +767,23 @@ function path(ctx, s) {
     case 'hearts':
       // plump: two round lobes, a soft point below
       ctx.moveTo(0, r * 0.95)
-      ctx.bezierCurveTo(-r * 0.35, r * 0.62, -r * 1.02, r * 0.2, -r * 0.96, -r * 0.3)
+      ctx.bezierCurveTo(
+        -r * 0.35,
+        r * 0.62,
+        -r * 1.02,
+        r * 0.2,
+        -r * 0.96,
+        -r * 0.3
+      )
       ctx.bezierCurveTo(-r * 0.9, -r * 0.88, -r * 0.2, -r * 0.98, 0, -r * 0.48)
-      ctx.bezierCurveTo(r * 0.2, -r * 0.98, r * 0.9, -r * 0.88, r * 0.96, -r * 0.3)
+      ctx.bezierCurveTo(
+        r * 0.2,
+        -r * 0.98,
+        r * 0.9,
+        -r * 0.88,
+        r * 0.96,
+        -r * 0.3
+      )
       ctx.bezierCurveTo(r * 1.02, r * 0.2, r * 0.35, r * 0.62, 0, r * 0.95)
       ctx.closePath()
       break

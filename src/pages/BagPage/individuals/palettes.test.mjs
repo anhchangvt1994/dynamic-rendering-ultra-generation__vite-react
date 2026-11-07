@@ -96,7 +96,7 @@ test('an unknown key falls back to origin', () => {
   assert.equal(paletteOf(undefined).key, 'origin')
 })
 
-test('seven mark kinds, hearts last, each labelled', () => {
+test('eight mark kinds, snow last, each labelled', () => {
   assert.deepEqual(MARK_KINDS, [
     'spots',
     'stripes',
@@ -105,6 +105,7 @@ test('seven mark kinds, hearts last, each labelled', () => {
     'flower',
     'stars',
     'hearts',
+    'snow',
   ])
   assert.deepEqual(MARK_LABELS.stripes, { label: 'Lằn', unit: 'vệt' })
   assert.deepEqual(MARK_LABELS.hearts, { label: 'Tim', unit: 'trái' })
