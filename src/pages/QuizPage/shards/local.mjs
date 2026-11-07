@@ -9,6 +9,7 @@ import { drawChestShards } from './chestRewards.mjs'
 import { parseChestReceipt } from './chestReceipt.mjs'
 import { individualTraits } from '../../BagPage/individuals/traits.mjs'
 import { normalizeNickname } from '../../BagPage/individuals/nickname.mjs'
+import { speciesVibe } from '../../BagPage/individuals/speciesVibe.mjs'
 
 import {
   SHARD_KEY,
@@ -30,20 +31,32 @@ const shippedCatalog = async (version, id) => {
   return data.species.find((entry) => entry.id === id)
 }
 
+// a vibe lookup never fails a journal operation: no vibe draws from the pool
+const safeVibe = async (vibe, speciesId) => {
+  try {
+    return (await vibe(speciesId)) ?? null
+  } catch {
+    return null
+  }
+}
+
 /**
- * Brings every v1 appearance (individuals and trade receipts) to the v2 its
- * id gives, in place. True when something changed, so the caller saves.
+ * Brings every appearance older than v3 (individuals and trade receipts) to
+ * the v3 its id and species' vibe give, in place. True when something
+ * changed, so the caller saves.
  */
-export async function upgradeSnapshot(snapshot) {
+export async function upgradeSnapshot(snapshot, vibe = async () => null) {
   let changed = false
   for (const one of Object.values(snapshot.individuals ?? {}))
-    if (one.appearance?.v !== 2) {
-      one.appearance = (await individualTraits(one.id)).appearance
+    if (one.appearance?.v !== 3) {
+      const v = await safeVibe(vibe, one.speciesId)
+      one.appearance = (await individualTraits(one.id, v)).appearance
       changed = true
     }
   for (const r of Object.values(snapshot.trades ?? {}))
-    if (r.traits?.appearance?.v !== 2) {
-      r.traits.appearance = (await individualTraits(r.individualId)).appearance
+    if (r.traits?.appearance?.v !== 3) {
+      const v = await safeVibe(vibe, r.speciesId)
+      r.traits.appearance = (await individualTraits(r.individualId, v)).appearance
       changed = true
     }
   return changed
@@ -56,6 +69,7 @@ export function createShardJournal({
   chestCatalog = async () => (await import('./catalog.json')).default.species,
   randomUUID = () => randomId(),
   now = () => new Date(),
+  vibe = speciesVibe,
 } = {}) {
   const exclusive = (fn) => {
     if (!lock) return Promise.reject(fail('locks_unavailable'))
@@ -65,7 +79,7 @@ export function createShardJournal({
   // the reads that hand out individuals see v2 only
   const loadUpgraded = async () => {
     const snapshot = load()
-    if (await upgradeSnapshot(snapshot)) save(snapshot)
+    if (await upgradeSnapshot(snapshot, vibe)) save(snapshot)
     return snapshot
   }
   const save = (snapshot) =>
@@ -137,11 +151,13 @@ export function createShardJournal({
       }),
     // a card becomes an individual: its id is born here, its traits follow
     // from the id, and the receipt is stored so a replay gives it back
-    tradeLocalCard: (operationId, speciesId) =>
-      exclusive(async () => {
-        if (!validOperation(operationId)) throw fail('invalid_operation')
-        if (!validSpecies(speciesId)) throw fail('invalid_species')
-        operationId = operationId.toLowerCase()
+    tradeLocalCard: async (operationId, speciesId) => {
+      if (!validOperation(operationId)) throw fail('invalid_operation')
+      if (!validSpecies(speciesId)) throw fail('invalid_species')
+      operationId = operationId.toLowerCase()
+      // asked outside the lock: a slow network never holds other tabs
+      const speciesVibeNow = await safeVibe(vibe, speciesId)
+      return exclusive(async () => {
         const snapshot = await loadUpgraded()
         const prior = snapshot.trades[operationId]
         if (prior) {
@@ -151,7 +167,7 @@ export function createShardJournal({
         const owned = snapshot.cards[speciesId] ?? 0
         if (owned < 1) throw fail('insufficient_cards')
         const individualId = randomUUID().toLowerCase()
-        const traits = await individualTraits(individualId)
+        const traits = await individualTraits(individualId, speciesVibeNow)
         snapshot.cards[speciesId] = owned - 1
         if (owned - 1 === 0) delete snapshot.cards[speciesId]
         snapshot.individuals[individualId] = {
@@ -173,7 +189,8 @@ export function createShardJournal({
         snapshot.trades[operationId] = result
         save(snapshot)
         return result
-      }),
+      })
+    },
     nameLocalIndividual: (individualId, nickname) =>
       exclusive(async () => {
         const snapshot = load()

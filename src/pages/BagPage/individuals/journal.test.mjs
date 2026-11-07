@@ -44,6 +44,7 @@ const make = (storage, o = {}) =>
     storage,
     lock: o.lock ?? mutex(),
     randomUUID: o.randomUUID ?? ids,
+    vibe: o.vibe ?? (async () => null),
   })
 const read = (storage) => JSON.parse(storage.getItem(SHARD_KEY))
 
@@ -198,7 +199,7 @@ test('a v1 individual in the snapshot is upgraded on the first read, once', asyn
   const id = '9e3779b1-0000-4000-8000-000000000001'
   const op = 'f0f0f0f0-0000-4000-8000-0000000000f2'
   const old = { v: 1, hue: 5, sat: 0, light: 0, mark: null }
-  const fresh = await individualTraits(id)
+  const fresh = await individualTraits(id, 'fierce')
   const one = {
     id,
     speciesId: 25,
@@ -229,8 +230,14 @@ test('a v1 individual in the snapshot is upgraded on the first read, once', asyn
     writes++
     setItem(k, v)
   }
-  const journal = createShardJournal({ storage, lock: mutex() })
+  const asked = []
+  const journal = createShardJournal({
+    storage,
+    lock: mutex(),
+    vibe: async (species) => (asked.push(species), 'fierce'),
+  })
   const [got] = await journal.listLocalIndividuals()
+  assert.deepEqual(asked, [25, 25], 'the individual and its receipt')
   assert.deepEqual(got.appearance, fresh.appearance)
   const stored = JSON.parse(storage.getItem(SHARD_KEY))
   assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
@@ -264,8 +271,61 @@ test('a v1 snapshot is upgraded by a trade too', async () => {
     storage,
     lock: mutex(),
     randomUUID: ids,
+    vibe: async () => null,
   })
   await journal.tradeLocalCard(OP1, 25)
   const stored = JSON.parse(storage.getItem(SHARD_KEY))
   assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
+})
+test('a trade takes the species vibe; a failing vibe falls back to the pool', async () => {
+  const storage = seed({ 25: 2 })
+  const asked = []
+  const journal = make(storage, {
+    vibe: async (species) => (asked.push(species), 'cute'),
+  })
+  const a = await journal.tradeLocalCard(OP1, 25)
+  assert.deepEqual(asked, [25])
+  assert.deepEqual(a.traits, await individualTraits(a.individualId, 'cute'))
+  const b = await make(storage, {
+    vibe: async () => Promise.reject(new Error('down')),
+  }).tradeLocalCard(OP2, 25)
+  assert.deepEqual(b.traits, await individualTraits(b.individualId))
+})
+test('a v2 individual (a removed palette) is re-derived to v3, a v3 one is left', async () => {
+  const id = '9e3779b1-0000-4000-8000-000000000003'
+  const keep = '9e3779b1-0000-4000-8000-000000000004'
+  const fresh = await individualTraits(id, 'nature')
+  const kept = await individualTraits(keep, 'cute')
+  const row = (iid, t, appearance) => ({
+    id: iid,
+    speciesId: 1,
+    nickname: null,
+    personality: t.personality,
+    appearance,
+    potential: t.potential,
+    createdAt: '2026-11-04T00:00:00.000Z',
+  })
+  const storage = seed(
+    {},
+    {
+      individuals: {
+        [id]: row(id, fresh, {
+          v: 2,
+          palette: 'ember',
+          shift: fresh.appearance.shift,
+          marks: null,
+        }),
+        [keep]: row(keep, kept, kept.appearance),
+      },
+    }
+  )
+  const asked = []
+  const journal = make(storage, {
+    vibe: async (species) => (asked.push(species), 'nature'),
+  })
+  await journal.listLocalIndividuals()
+  const stored = read(storage)
+  assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
+  assert.deepEqual(stored.individuals[keep].appearance, kept.appearance)
+  assert.deepEqual(asked, [1], 'only the stale one asks')
 })

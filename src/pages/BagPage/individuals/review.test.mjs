@@ -72,7 +72,7 @@ test('corrupt traits are rejected before rendering or settling a receipt', () =>
       t.appearance = {}
     },
     (t) => {
-      t.appearance.v = 3
+      t.appearance.v = 4
     },
     (t) => {
       t.appearance.palette = 'nope'
@@ -155,7 +155,7 @@ test('corrupt traits are rejected before rendering or settling a receipt', () =>
   }
 })
 
-test('every golden v2 trait set is valid, and so is a v1 one', () => {
+test('every golden v3 trait set is valid, and so are v2 and v1 ones', () => {
   const all = JSON.parse(
     readFileSync(new URL('./golden.json', import.meta.url))
   )
@@ -167,4 +167,16 @@ test('every golden v2 trait set is valid, and so is a v1 one', () => {
   assert.equal(validTraits(v1), true)
   v1.appearance.hue = 0
   assert.equal(validTraits(v1), false)
+  // v2 may name a palette v3 removed, until the upgrade re-derives it
+  const v2 = structuredClone(traits)
+  v2.appearance.v = 2
+  v2.appearance.palette = 'ember'
+  assert.equal(validTraits(v2), true)
+  for (const palette of ['', 7, null]) {
+    v2.appearance.palette = palette
+    assert.equal(validTraits(v2), false, String(palette))
+  }
+  const v3 = structuredClone(traits)
+  v3.appearance.palette = 'ember'
+  assert.equal(validTraits(v3), false, 'v3 needs a known key')
 })

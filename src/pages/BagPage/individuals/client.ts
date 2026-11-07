@@ -2,10 +2,15 @@ import { getSupabase } from 'app/supabase/client'
 import { createShardJournal } from 'pages/QuizPage/shards/local.mjs'
 import type { QuizMode } from 'pages/QuizPage/engine/mode'
 import { nameIndividual, tradeCard } from './operations.mjs'
+import { speciesVibe } from './speciesVibe.mjs'
 
-/** Appearance v2: a curated palette, a small shift per colour region, marks. */
+/**
+ * Appearance v3: a curated palette (from the species' vibe set or the common
+ * pool), a small shift per colour region, marks. A v2 one may still arrive
+ * until the upgrade re-derives it.
+ */
 export type Appearance = {
-  v: 2
+  v: 2 | 3
   palette: string
   shift: [number, number, number][]
   marks: null | { kind: string; count: number; seed: number }
@@ -33,6 +38,7 @@ const deps = async (mode: QuizMode) => ({
   mode,
   supabase: mode === 'server' ? await getSupabase() : undefined,
   journal: mode === 'local' ? createShardJournal() : undefined,
+  vibe: speciesVibe,
 })
 
 export async function submitTrade(

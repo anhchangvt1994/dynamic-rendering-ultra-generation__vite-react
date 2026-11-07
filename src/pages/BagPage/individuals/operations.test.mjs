@@ -22,8 +22,8 @@ const IND = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const traits = {
   personality: 3,
   appearance: {
-    v: 2,
-    palette: 'ember',
+    v: 3,
+    palette: 'sky',
     shift: [
       [0, 0, 0],
       [1, -2, 3],
@@ -221,6 +221,37 @@ test('adapter: guest and checking are refused before any call; receipt is valida
     tradeCard({ mode: 'server', supabase: refused, journal }, OP, 25),
     (e) => e.code === 'insufficient_cards'
   )
+})
+test('adapter: server mode asks the species vibe first; its failure is ignored', async () => {
+  const order = []
+  const supabase = {
+    rpc: async (name) => (order.push(name), { data: receipt(), error: null }),
+  }
+  const vibe = async (id) => (order.push(`vibe ${id}`), 'cute')
+  assert.deepEqual(
+    await tradeCard({ mode: 'server', supabase, vibe }, OP, 25),
+    receipt()
+  )
+  assert.deepEqual(order, ['vibe 25', 'pokemon_trade_card'])
+  for (const broken of [
+    async () => Promise.reject(new Error('down')),
+    () => {
+      throw new Error('sync')
+    },
+    undefined,
+  ])
+    assert.deepEqual(
+      await tradeCard({ mode: 'server', supabase, vibe: broken }, OP, 25),
+      receipt()
+    )
+  let local = 0
+  const journal = { tradeLocalCard: async () => receipt() }
+  await tradeCard(
+    { mode: 'local', journal, vibe: async () => (local++, 'cute') },
+    OP,
+    25
+  )
+  assert.equal(local, 0, 'the journal asks for itself')
 })
 test('adapter naming: result checked, invalid_nickname and not_found are terminal codes', async () => {
   const ok = {

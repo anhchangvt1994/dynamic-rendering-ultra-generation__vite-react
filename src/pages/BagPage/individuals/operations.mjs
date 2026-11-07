@@ -27,15 +27,24 @@ const rpcFail = (error) => {
   return code ? fail(code) : new Error(error.message)
 }
 
-/** One trade against wherever the game keeps cards; the receipt is checked. */
+/**
+ * One trade against wherever the game keeps cards; the receipt is checked.
+ * Server mode first asks the species' vibe so the server has stored it for
+ * the RPC (a failure only means pool palettes).
+ */
 export async function tradeCard(
-  { mode, supabase, journal },
+  { mode, supabase, journal, vibe },
   operationId,
   speciesId
 ) {
   if (!usable(mode)) throw fail('trade_unavailable')
   let data
   if (mode === 'server') {
+    try {
+      await vibe?.(speciesId)
+    } catch {
+      // the trade goes on without it
+    }
     const out = await supabase.rpc('pokemon_trade_card', {
       p_operation: operationId,
       p_species: speciesId,
