@@ -185,6 +185,107 @@ function settle(
   return { u, v, conf }
 }
 
+// separable gaussian, zero outside the image
+function blur(a: Float64Array, w: number, h: number, s: number) {
+  const r = Math.ceil(3 * s)
+  const g = Array.from({ length: 2 * r + 1 }, (_, i) =>
+    Math.exp(-((i - r) ** 2) / (2 * s * s))
+  )
+  const t = new Float64Array(w * h)
+  const o = new Float64Array(w * h)
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let S = 0
+      for (let i = -r; i <= r; i++) {
+        const X = x + i
+        if (X >= 0 && X < w) S += g[i + r] * a[y * w + X]
+      }
+      t[y * w + x] = S
+    }
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let S = 0
+      for (let i = -r; i <= r; i++) {
+        const Y = y + i
+        if (Y >= 0 && Y < h) S += g[i + r] * t[Y * w + x]
+      }
+      o[y * w + x] = S
+    }
+  return o
+}
+
+/** The gaussian window of the affine fit, as a share of the long side. */
+export const AFFINE_SIGMA = 10 / 256
+
+// how much a pixel's flow is worth: a drawn line or an edge holds it, a
+// flat fill (nothing for Farneback to see) barely
+const FLAT = 0.05
+function texture(frame: Float32Array, w: number, h: number, i: number) {
+  const x = i % w
+  const y = (i - x) / w
+  if (x < 1 || y < 1 || x >= w - 1 || y >= h - 1) return FLAT
+  const g = (j: number) =>
+    0.3 * frame[j * 4] +
+    0.59 * frame[j * 4 + 1] +
+    0.11 * frame[j * 4 + 2] +
+    0.5 * frame[j * 4 + 3]
+  const gx = g(i + 1) - g(i - 1)
+  const gy = g(i + w) - g(i - w)
+  return FLAT + Math.min(1, 4 * Math.hypot(gx, gy))
+}
+
+/**
+ * The field, per body pixel, as the affine map that best fits it over a
+ * gaussian window (weighted by confidence and texture, body only). A waving
+ * tail bends and turns, which an affine map follows; Farneback's fine swirls
+ * on it, which tear a heart into a smear, it does not.
+ */
+export function locallyAffine(
+  f: Field,
+  frame: Float32Array,
+  w: number,
+  h: number
+): Field {
+  const N = w * h
+  const keys = ['w', 'x', 'y', 'xx', 'xy', 'yy', 'u', 'v', 'xu', 'yu', 'xv', 'yv']
+  const M = keys.map(() => new Float64Array(N))
+  for (let i = 0; i < N; i++) {
+    if (!inBody(frame, i)) continue
+    const c = Math.max(f.conf[i], 0.05) * texture(frame, w, h, i)
+    const x = (i % w) / w
+    const y = Math.floor(i / w) / h
+    const u = f.u[i]
+    const v = f.v[i]
+    const vals = [1, x, y, x * x, x * y, y * y, u, v, x * u, y * u, x * v, y * v]
+    for (let k = 0; k < keys.length; k++) M[k][i] = c * vals[k]
+  }
+  const s = AFFINE_SIGMA * Math.max(w, h)
+  const [W, X, Y, XX, XY, YY, U, V, XU, YU, XV, YV] = M.map((a) => blur(a, w, h, s))
+  const u = new Float32Array(f.u)
+  const v = new Float32Array(f.v)
+  for (let i = 0; i < N; i++) {
+    if (!inBody(frame, i) || W[i] < 1e-6) continue
+    const n = W[i]
+    const mx = X[i] / n
+    const my = Y[i] / n
+    const cxx = XX[i] / n - mx * mx + 1e-7
+    const cxy = XY[i] / n - mx * my
+    const cyy = YY[i] / n - my * my + 1e-7
+    const det = cxx * cyy - cxy * cxy
+    const mu = U[i] / n
+    const mv = V[i] / n
+    const sxu = XU[i] / n - mx * mu
+    const syu = YU[i] / n - my * mu
+    const sxv = XV[i] / n - mx * mv
+    const syv = YV[i] / n - my * mv
+    const x = (i % w) / w - mx
+    const y = Math.floor(i / w) / h - my
+    u[i] = mu + ((sxu * cyy - syu * cxy) * x + (syu * cxx - sxu * cxy) * y) / det
+    v[i] = mv + ((sxv * cyy - syv * cxy) * x + (syv * cxx - sxv * cxy) * y) / det
+  }
+  return { u, v, conf: f.conf }
+}
+
 function identity(frame: Float32Array, w: number, h: number): Field {
   const u = new Float32Array(w * h)
   const v = new Float32Array(w * h)
@@ -209,7 +310,7 @@ export async function fieldFor(
 ): Promise<Field> {
   if (K === 0) return identity(first, w, h)
   const cv = await opencv()
-  return settle(
+  const settled = settle(
     frame,
     first,
     w,
@@ -217,6 +318,7 @@ export async function fieldFor(
     farneback(cv, frame, first, w, h),
     farneback(cv, first, frame, w, h)
   )
+  return locallyAffine(settled, frame, w, h)
 }
 
 /**

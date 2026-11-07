@@ -62,8 +62,8 @@ test('dropped frames hand their delay to the frame kept before them', () => {
 
 test('an animation: one sheet cell and one flow tile per displayed frame', async () => {
   const { json, sheet, flow } = await buildRig(tiny, await animated(), null)
-  assert.equal(RIG_VERSION, 1)
-  assert.equal(json.v, 1)
+  assert.equal(RIG_VERSION, 2)
+  assert.equal(json.v, 2)
   assert.equal(json.frames, 8)
   assert.deepEqual(json.src, { n: 4, k: 2 })
   assert.deepEqual(json.delays, Array(8).fill(50))

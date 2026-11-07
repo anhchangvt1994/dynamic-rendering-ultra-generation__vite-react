@@ -14,7 +14,8 @@ import type { Branch } from './skeleton'
 
 export { sheetPlan } from './sheet'
 
-export const RIG_VERSION = 1
+// 2: the flow is locally affine (marks keep their shape on a waving tail)
+export const RIG_VERSION = 2
 /** longest side the flow is computed at */
 const FLOW_SIDE = 256
 const PRIMARY = 64
