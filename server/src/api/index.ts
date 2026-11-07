@@ -16,6 +16,7 @@ import { fetchData, refreshData } from './utils/FetchManager'
 import { decodeRequestInfo } from './utils/StringHelper'
 import { BROTLI_OPTIONS } from '../constants'
 import apiQuiz from './routes/quiz'
+import apiVibe from './routes/vibe'
 import image from './routes/image'
 
 // NOTE - Wait for the cache of a request that another request is fetching.
@@ -346,6 +347,8 @@ const apiService = (() => {
 
       // NOTE - Handle API Quiz (round media)
       apiQuiz.init(app)
+      // NOTE - Species vibe (api/routes/vibe)
+      apiVibe.init(app)
       // NOTE - Pokémon animations / stills (api/routes/image)
       image.init(app)
 

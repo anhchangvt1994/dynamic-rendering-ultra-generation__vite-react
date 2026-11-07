@@ -15,6 +15,7 @@ create table public.pokemon_species_vibes (
 );
 alter table public.pokemon_species_vibes enable row level security;
 revoke all on public.pokemon_species_vibes from anon, authenticated;
+grant select, insert, update on public.pokemon_species_vibes to service_role;
 
 -- The pure rule: traits of an id under a vibe (null or unknown → pool).
 create function public.pokemon_individual_traits_v(p_id uuid, p_vibe text)
