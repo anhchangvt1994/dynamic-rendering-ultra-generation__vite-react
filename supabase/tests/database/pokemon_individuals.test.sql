@@ -85,7 +85,9 @@ reset role;
 -- older assets unchanged: the untouched card row of the first owner
 select is((select count from public.pokemon_cards where user_id='55555555-5555-4555-8555-555555555555' and pokemon_id=10),1,'other species cards unchanged');
 select ok(has_table_privilege('service_role','public.pokemon_species_vibes','insert') and has_table_privilege('service_role','public.pokemon_species_vibes','update'),'the server (service role) can upsert species vibes');
--- no vibe row → the pool rule; a vibe row → that vibe's rule
+-- no vibe row → the pool rule; a vibe row → that vibe's rule (the seed's rows
+-- for these species are removed inside this rolled-back transaction)
+delete from public.pokemon_species_vibes where species_id in (1,25);
 select is(public.pokemon_individual_traits('00000000-0000-4000-8000-00003c6ef362'::uuid,1::smallint),public.pokemon_individual_traits_v('00000000-0000-4000-8000-00003c6ef362'::uuid,null),'no vibe row: no vibe');
 insert into public.pokemon_species_vibes(species_id,vibe) values (1,'cute'),(25,'fierce');
 select is(public.pokemon_individual_traits('00000000-0000-4000-8000-00003c6ef362'::uuid,1::smallint),public.pokemon_individual_traits_v('00000000-0000-4000-8000-00003c6ef362'::uuid,'cute'),'traits(id, species) reads the species vibe');

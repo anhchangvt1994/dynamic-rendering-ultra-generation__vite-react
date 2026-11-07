@@ -13,9 +13,9 @@ import {
 import { PERSONALITIES } from './traits.mjs'
 
 test('paletteLabel: the palette and its tier; origin alone', () => {
-  const a = (palette) => ({ v: 2, palette, shift: [], marks: null })
+  const a = (palette) => ({ v: 3, palette, shift: [], marks: null })
   assert.equal(paletteLabel(a('origin')), 'Nguyên bản')
-  assert.equal(paletteLabel(a('ember')), 'Hổ phách · Thường')
+  assert.equal(paletteLabel(a('amber')), 'Hổ phách · Thường')
   assert.equal(paletteLabel(a('sakura')), 'Anh đào · Hiếm')
   assert.equal(paletteLabel(a('gold')), 'Ánh kim · Rất hiếm')
 })
@@ -25,6 +25,17 @@ test('marksLabel: null without marks, kind and count with them', () => {
   assert.equal(
     marksLabel({ ...a, marks: { kind: 'stripes', count: 6, seed: 1 } }),
     'Lằn · 6 vệt'
+  )
+})
+test('marksLabel: an old one- or two-star individual shows three stars, as drawn', () => {
+  const a = { v: 2, palette: 'origin', shift: [], marks: null }
+  const stars = (count) => marksLabel({ ...a, marks: { kind: 'stars', count, seed: 1 } })
+  assert.equal(stars(1), 'Chòm sao · 3 ngôi')
+  assert.equal(stars(2), 'Chòm sao · 3 ngôi')
+  assert.equal(stars(6), 'Chòm sao · 6 ngôi')
+  assert.equal(
+    marksLabel({ ...a, marks: { kind: 'spots', count: 1, seed: 1 } }),
+    'Đốm · 1 chấm'
   )
 })
 test('the old tints are gone', () => {

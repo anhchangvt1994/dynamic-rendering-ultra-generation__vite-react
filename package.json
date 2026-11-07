@@ -35,6 +35,7 @@
     "supabase:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
+    "vibe:seed": "node scripts/vibe-seed.mjs",
     "supabase:check": "node config/scripts/supabase-check.mjs"
   },
   "engines": {

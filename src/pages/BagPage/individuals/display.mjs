@@ -1,5 +1,5 @@
 // How an individual is shown, in words. Pure: the palette and marks come
-// from appearance v2, the size a deterministic scale drawn from the id.
+// from appearance v3, the size a deterministic scale drawn from the id.
 import { PERSONALITIES } from './traits.mjs'
 import { MARK_LABELS, TIER_LABELS, paletteOf } from './palettes.mjs'
 
@@ -20,7 +20,9 @@ export const marksLabel = (appearance) => {
   const m = appearance?.marks
   if (!m) return null
   const l = MARK_LABELS[m.kind]
-  return l ? `${l.label} · ${m.count} ${l.unit}` : null
+  // stars are drawn three at least (marks.mjs MIN_STARS); old v2 ones may say 1–2
+  const count = m.kind === 'stars' ? Math.max(3, m.count) : m.count
+  return l ? `${l.label} · ${count} ${l.unit}` : null
 }
 
 export const SIZES = [
