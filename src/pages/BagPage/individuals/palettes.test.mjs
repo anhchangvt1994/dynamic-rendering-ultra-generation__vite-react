@@ -4,26 +4,37 @@ import {
   MARK_KINDS,
   MARK_LABELS,
   PALETTES,
+  SET_KEYS,
   TIER_KEYS,
+  VIBES,
+  VIBE_LABELS,
   paletteOf,
 } from './palettes.mjs'
 
-test('thirty palettes with unique keys', () => {
-  assert.equal(PALETTES.length, 30)
-  assert.equal(new Set(PALETTES.map((p) => p.key)).size, 30)
+test('five vibes, each labelled', () => {
+  assert.deepEqual(VIBES, ['cute', 'cool', 'fierce', 'mystic', 'nature'])
+  assert.deepEqual(VIBE_LABELS, {
+    cute: 'Dễ thương',
+    cool: 'Ngầu',
+    fierce: 'Dữ dằn',
+    mystic: 'Huyền bí',
+    nature: 'Thiên nhiên',
+  })
 })
 
-test('tiers hold 1 / 14 / 10 / 5 palettes, in table order', () => {
+test('forty-eight palettes with unique keys', () => {
+  assert.equal(PALETTES.length, 48)
+  assert.equal(new Set(PALETTES.map((p) => p.key)).size, 48)
+})
+
+test('tiers hold 1 / 24 / 18 / 5 palettes', () => {
   assert.deepEqual(
     Object.fromEntries(
       Object.entries(TIER_KEYS).map(([t, k]) => [t, k.length])
     ),
-    { origin: 1, common: 14, rare: 10, 'very-rare': 5 }
+    { origin: 1, common: 24, rare: 18, 'very-rare': 5 }
   )
   assert.deepEqual(TIER_KEYS.origin, ['origin'])
-  assert.equal(TIER_KEYS.common[0], 'ember')
-  assert.equal(TIER_KEYS.common.at(-1), 'slate')
-  assert.equal(TIER_KEYS.rare[0], 'sakura')
   assert.deepEqual(TIER_KEYS['very-rare'], [
     'gold',
     'silver',
@@ -33,6 +44,26 @@ test('tiers hold 1 / 14 / 10 / 5 palettes, in table order', () => {
   ])
   for (const [tier, keys] of Object.entries(TIER_KEYS))
     for (const key of keys) assert.equal(paletteOf(key).tier, tier)
+})
+
+test('every vibe and the pool hold 4 common and 3 rare, in table order', () => {
+  for (const set of [...VIBES, 'pool']) {
+    assert.equal(SET_KEYS[set].common.length, 4, set)
+    assert.equal(SET_KEYS[set].rare.length, 3, set)
+    for (const tier of ['common', 'rare'])
+      for (const key of SET_KEYS[set][tier]) {
+        assert.equal(paletteOf(key).tier, tier)
+        assert.equal(paletteOf(key).vibe, set === 'pool' ? null : set)
+      }
+  }
+  assert.deepEqual(SET_KEYS.cute.common, [
+    'strawberry-milk',
+    'mint-cream',
+    'banana',
+    'lavender',
+  ])
+  assert.deepEqual(SET_KEYS.fierce.common.at(-1), 'toxic-green')
+  assert.deepEqual(SET_KEYS.pool.rare, ['candy', 'twilight', 'glacier'])
 })
 
 test('colours are three #rrggbb, except origin and invert', () => {
@@ -50,11 +81,17 @@ test('colours are three #rrggbb, except origin and invert', () => {
     PALETTES.filter((p) => p.effect === 'metal').map((p) => p.key),
     ['gold', 'silver', 'pearl']
   )
-  assert.deepEqual(paletteOf('ember').colors, ['#e2683c', '#f6d7a7', '#3d7fb8'])
+  assert.deepEqual(paletteOf('toxic-green').colors, [
+    '#3f8f2a',
+    '#d9f28a',
+    '#c23cff',
+  ])
+  assert.equal(paletteOf('toxic-green').label, 'Lục độc')
 })
 
 test('an unknown key falls back to origin', () => {
   assert.equal(paletteOf('nope').key, 'origin')
+  assert.equal(paletteOf('ember').key, 'origin')
   assert.equal(paletteOf(undefined).key, 'origin')
 })
 
@@ -69,24 +106,4 @@ test('six mark kinds in weight order, each labelled', () => {
   ])
   assert.deepEqual(MARK_LABELS.stripes, { label: 'Lằn', unit: 'vệt' })
   for (const kind of MARK_KINDS) assert.ok(MARK_LABELS[kind].label)
-})
-
-test('the SQL migration lists the same keys per tier, in order', async () => {
-  const { readFileSync } = await import('node:fs')
-  const sql = readFileSync(
-    new URL(
-      '../../../../supabase/migrations/20261116000000_pokemon_appearance_v2.sql',
-      import.meta.url
-    ),
-    'utf8'
-  )
-  const arrays = [
-    ...sql.matchAll(/then array\[([^\]]+)\]|else array\[([^\]]+)\]/g),
-  ].map((m) => (m[1] ?? m[2]).split(',').map((k) => k.trim().replace(/'/g, '')))
-  assert.deepEqual(arrays, [
-    TIER_KEYS.origin,
-    TIER_KEYS.common,
-    TIER_KEYS.rare,
-    TIER_KEYS['very-rare'],
-  ])
 })

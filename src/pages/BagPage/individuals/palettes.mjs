@@ -1,40 +1,90 @@
 /*
- * The curated palettes of appearance v2: three colours per palette (main,
- * second, accent) laid over the sprite's own colour regions. SQL keeps only
- * the keys per tier (pokemon_individual_traits); a parity test compares them.
+ * The curated palettes of appearance v3: three colours per palette (main,
+ * second, accent). Common and rare palettes belong to a vibe of the species
+ * (or to the shared pool); origin and very-rare belong to every species. SQL
+ * keeps only the keys per set (pokemon_individual_traits_v); a parity test
+ * compares them.
  */
-const row = (tier, key, label, colors, effect) =>
-  effect ? { key, label, tier, colors, effect } : { key, label, tier, colors }
+export const VIBES = ['cute', 'cool', 'fierce', 'mystic', 'nature']
+
+export const VIBE_LABELS = {
+  cute: 'Dễ thương',
+  cool: 'Ngầu',
+  fierce: 'Dữ dằn',
+  mystic: 'Huyền bí',
+  nature: 'Thiên nhiên',
+}
+
+const row = (tier, key, label, colors, effect, vibe = null) => ({
+  key,
+  label,
+  tier,
+  colors,
+  ...(effect ? { effect } : {}),
+  vibe,
+})
+// one set: four common then three rare, `colors` as 'main second accent'
+const set = (vibe, list) =>
+  list.map(([key, label, colors], i) =>
+    row(i < 4 ? 'common' : 'rare', key, label, colors.split(' '), null, vibe)
+  )
 
 export const PALETTES = [
   row('origin', 'origin', 'Nguyên bản', null),
-
-  row('common', 'ember', 'Hổ phách', ['#e2683c', '#f6d7a7', '#3d7fb8']),
-  row('common', 'sunflower', 'Hướng dương', ['#f2c230', '#fff1c2', '#7a4a1d']),
-  row('common', 'moss', 'Rêu', ['#6f8f3a', '#d9e3b0', '#8a5a2b']),
-  row('common', 'sky', 'Trời xanh', ['#5fa8e8', '#e6f3ff', '#f4b942']),
-  row('common', 'lilac', 'Tử đinh hương', ['#b18ad6', '#f1e6fa', '#e8739a']),
-  row('common', 'coral', 'San hô', ['#f07a6a', '#ffe2d6', '#2f8f9d']),
-  row('common', 'mint', 'Bạc hà', ['#5fcfa5', '#e4fbf1', '#ef7c8e']),
-  row('common', 'sand', 'Cát', ['#d8b77e', '#f7ecd6', '#6b8fa3']),
-  row('common', 'cocoa', 'Ca cao', ['#7b4f35', '#e6cdb3', '#e0a43a']),
-  row('common', 'rose', 'Hồng phấn', ['#ee9cb7', '#fff0f4', '#8a6ad1']),
-  row('common', 'ocean', 'Biển sâu', ['#2f6fa6', '#cfe6f5', '#f2d16b']),
-  row('common', 'forest', 'Rừng già', ['#2f6b48', '#cfe3c8', '#d9823b']),
-  row('common', 'peach', 'Hồng đào', ['#f5a882', '#fff0e3', '#6ba06b']),
-  row('common', 'slate', 'Đá phiến', ['#5d6b7a', '#d5dde4', '#e05f4f']),
-
-  row('rare', 'sakura', 'Anh đào', ['#f6b8cf', '#ffffff', '#7b4a6e']),
-  row('rare', 'aurora', 'Cực quang', ['#3ccf9e', '#b6f0ff', '#b06cf0']),
-  row('rare', 'lava', 'Dung nham', ['#c2271e', '#ffb347', '#2b1a1a']),
-  row('rare', 'glacier', 'Băng hà', ['#a8dcf0', '#f4fbff', '#3a6fb0']),
-  row('rare', 'twilight', 'Chạng vạng', ['#6a4fb3', '#f2a6c0', '#ffd36b']),
-  row('rare', 'jade', 'Ngọc bích', ['#2ea38a', '#d8f2e7', '#c9a23a']),
-  row('rare', 'amethyst', 'Thạch anh tím', ['#7d3fb0', '#e3cff3', '#3fc1c9']),
-  row('rare', 'sunset', 'Hoàng hôn', ['#f08a3c', '#ffd2a1', '#8c3f8f']),
-  row('rare', 'midnight', 'Nửa đêm', ['#232a52', '#8a93c9', '#f2d16b']),
-  row('rare', 'candy', 'Kẹo ngọt', ['#ff8fc8', '#a8e8ff', '#fff27a']),
-
+  ...set('cute', [
+    ['strawberry-milk', 'Sữa dâu', '#f7a8c4 #fff1f5 #5fb4e0'],
+    ['mint-cream', 'Bạc hà kem', '#9fe3c8 #f2fff9 #f0789e'],
+    ['banana', 'Bơ chuối', '#ffe08a #fffaf0 #ef7fa8'],
+    ['lavender', 'Oải hương', '#c7b3f2 #f7f2ff #ffc94d'],
+    ['cotton-candy', 'Kẹo bông', '#ffb3e1 #b8e8ff #fff27a'],
+    ['peach-milk', 'Đào sữa', '#ffc4a3 #fff4ec #4fb8a6'],
+    ['cloud', 'Mây trời', '#a9d8ff #ffffff #ff8fb0'],
+  ]),
+  ...set('cool', [
+    ['cobalt', 'Cobalt', '#2f5bd3 #cfe0ff #ffb52e'],
+    ['blaze', 'Đỏ lửa', '#e0452b #ffd9a8 #ffd23f'],
+    ['steel-blue', 'Thép xanh', '#4f6d8a #dbe6ef #ffcf3a'],
+    ['night-forest', 'Rừng đêm', '#1f6f5c #bfe8d6 #ff8a3d'],
+    ['lava', 'Dung nham', '#c2271e #ffb347 #ffe066'],
+    ['midnight', 'Nửa đêm', '#232a52 #8a93c9 #f2d16b'],
+    ['frostfire', 'Băng lửa', '#3ab0ff #e6f6ff #ff5a1f'],
+  ]),
+  ...set('fierce', [
+    ['crimson', 'Đỏ thẫm', '#9e1b2f #f2b8a0 #ffd23f'],
+    ['venom', 'Tím độc', '#7a2fa8 #d8b8f0 #9cff57'],
+    ['plum', 'Mận chín', '#6b2a5e #e8b8d8 #ffd23f'],
+    ['toxic-green', 'Lục độc', '#3f8f2a #d9f28a #c23cff'],
+    ['blood-moon', 'Huyết nguyệt', '#6a0f24 #ff6b6b #ffd36b'],
+    ['toxin', 'Độc dược', '#2a8a4a #b8ffcf #d24cff'],
+    ['umbra', 'Bóng tối', '#1e1e2e #5a4a7a #ff3d6e'],
+  ]),
+  ...set('mystic', [
+    ['nebula', 'Tinh vân', '#5b4bc4 #e0d8ff #5fe0ff'],
+    ['ice-crystal', 'Băng tinh', '#8fd8f0 #f4fbff #7d6cff'],
+    ['sapphire', 'Lam ngọc', '#3a7bd5 #d6e6ff #ffd24a'],
+    ['ruby', 'Hồng ngọc', '#c23c7a #ffd0e4 #4fc9ff'],
+    ['aurora', 'Cực quang', '#3ccf9e #b6f0ff #b06cf0'],
+    ['galaxy', 'Thiên hà', '#232a6e #9aa6ff #ffe17a'],
+    ['emerald', 'Lục bảo', '#149a7a #c8f5e6 #ffd24a'],
+  ]),
+  ...set('nature', [
+    ['sprout', 'Lá non', '#7cc95a #eaf8d8 #f2a541'],
+    ['sea', 'Biển', '#2f7fc0 #d2ecfa #f2d16b'],
+    ['amber', 'Hổ phách', '#e0902e #ffe2b0 #2f7f6a'],
+    ['ochre', 'Đất son', '#b8673a #f2d2b6 #6fd0a0'],
+    ['jade', 'Ngọc bích', '#2ea38a #d8f2e7 #ffc94d'],
+    ['sakura', 'Anh đào', '#f6b8cf #ffffff #5aa04a'],
+    ['sunset', 'Hoàng hôn', '#f08a3c #ffd2a1 #7a3fa0'],
+  ]),
+  ...set(null, [
+    ['sky', 'Trời xanh', '#5fa8e8 #e6f3ff #f4b942'],
+    ['coral', 'San hô', '#f07a6a #ffe2d6 #2f8f9d'],
+    ['mint', 'Bạc hà', '#5fcfa5 #e4fbf1 #ef7c8e'],
+    ['rose', 'Hồng phấn', '#ee9cb7 #fff0f4 #8a6ad1'],
+    ['candy', 'Kẹo ngọt', '#ff8fc8 #a8e8ff #fff27a'],
+    ['twilight', 'Chạng vạng', '#6a4fb3 #f2a6c0 #ffd36b'],
+    ['glacier', 'Băng hà', '#a8dcf0 #f4fbff #3a6fb0'],
+  ]),
   row(
     'very-rare',
     'gold',
@@ -74,6 +124,18 @@ export const TIER_KEYS = Object.fromEntries(
     tier,
     PALETTES.filter((p) => p.tier === tier).map((p) => p.key),
   ])
+)
+
+/** The common and rare keys of each vibe and of the shared pool. */
+export const SET_KEYS = Object.fromEntries(
+  [...VIBES, 'pool'].map((name) => {
+    const vibe = name === 'pool' ? null : name
+    const keys = (tier) =>
+      PALETTES.filter((p) => p.tier === tier && p.vibe === vibe).map(
+        (p) => p.key
+      )
+    return [name, { common: keys('common'), rare: keys('rare') }]
+  })
 )
 
 const byKey = new Map(PALETTES.map((p) => [p.key, p]))

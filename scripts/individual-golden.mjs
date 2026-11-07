@@ -5,6 +5,7 @@
 //   node scripts/individual-golden.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { VIBES } from '../src/pages/BagPage/individuals/palettes.mjs'
 import { individualTraits } from '../src/pages/BagPage/individuals/traits.mjs'
 
 const at = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -26,8 +27,12 @@ for (let k = 1n; ids.length < 16; k++) {
   if (!ids.includes(id)) ids.push(id)
 }
 
+// vibe cycles no vibe, cute, cool, fierce, mystic, nature
 const golden = []
-for (const id of ids) golden.push({ id, traits: await individualTraits(id) })
+for (const [i, id] of ids.entries()) {
+  const vibe = [null, ...VIBES][i % 6]
+  golden.push({ id, vibe, traits: await individualTraits(id, vibe) })
+}
 
 const jsonPath = at('../src/pages/BagPage/individuals/golden.json')
 writeFileSync(jsonPath, `${JSON.stringify(golden, null, 2)}\n`)
@@ -37,11 +42,11 @@ const lines = readFileSync(sqlPath, 'utf8').split('\n')
 const head = lines.findIndex((l) => l.startsWith('-- golden vectors'))
 if (head < 0) throw new Error('no "-- golden vectors" line in the pgTAP file')
 let end = head + 1
-while (lines[end]?.startsWith('select is(public.pokemon_individual_traits('))
+while (lines[end]?.startsWith('select is(public.pokemon_individual_traits'))
   end++
 const checks = golden.map(
-  ({ id, traits }) =>
-    `select is(public.pokemon_individual_traits('${id}'::uuid,1::smallint),$$${JSON.stringify(traits)}$$::jsonb,'golden ${id}');`
+  ({ id, vibe, traits }) =>
+    `select is(public.pokemon_individual_traits_v('${id}'::uuid,${vibe ? `'${vibe}'` : 'null'}),$$${JSON.stringify(traits)}$$::jsonb,'golden ${id} ${vibe}');`
 )
 lines.splice(head + 1, end - head - 1, ...checks)
 writeFileSync(sqlPath, lines.join('\n'))
