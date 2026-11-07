@@ -87,20 +87,19 @@ export function rampTargets(sources, [main, second]) {
   })
 }
 
-const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
-
 /**
  * The three mark tones, each far enough from the (final) main colour and
  * from each other. The dark tone (also the marks' rim) stays below the main
- * down to L .3; only a near-black main gets a lighter one.
+ * down to L .3; only a near-black main gets a lighter one. The accent is
+ * drawn from the main (accentTone), the palette's only lending its hue.
  */
 export function markTones(main, accentHex) {
   const L = main[0]
   let darkL
   let lightL
   if (L >= 0.75) {
-    lightL = L - 0.22
-    darkL = L - 0.42
+    lightL = L - SCAR_DEEP
+    darkL = L - SCAR_DEEP - 0.2
   } else if (L >= 0.3) {
     darkL = L - 0.3
     lightL = Math.min(0.97, L + 0.25)
@@ -109,15 +108,46 @@ export function markTones(main, accentHex) {
     lightL = Math.min(0.97, L + 0.55)
   }
   const dark = [darkL, main[1] * 1.3, main[2] * 1.3]
-  const light = [lightL, main[1] * 0.3, main[2] * 0.3]
-  let accent = accentHex ? hexToOklab(accentHex) : null
-  if (!accent || dist(accent, main) < 0.15)
-    accent = polar(
-      L > 0.5 ? L - 0.25 : L + 0.25,
-      Math.max(0.1, chroma(main)),
-      hueOf(main) + Math.PI
-    )
-  return { dark, light, accent }
+  const light = scarTone(main, lightL)
+  return { dark, light, accent: accentTone(main, accentHex) }
+}
+
+// a scar is healed skin, always tinted (a grey line reads as dirt): in the
+// body's own hue, richer, or a rose on a grey or white one. On a pale body it
+// sits SCAR_DEEP below it. The shader moves its L off the skin under it
+const SCAR_DEEP = 0.3
+const ROSE = (15 * Math.PI) / 180
+function scarTone(main, L) {
+  const C = chroma(main)
+  return C < 0.03 ? polar(L, 0.09, ROSE) : polar(L, Math.max(0.08, C * 1.4), hueOf(main))
+}
+
+// the accent drawn from the main so the two always go together: on a light
+// body a deeper, richer shade of it (a raspberry heart on pink); on a dark
+// one a pale tone, in the palette accent's hue when it is a neighbour or a
+// complement (then soft: a cream on blue), else the main's. Hues 30–150°
+// from the main clash and are never used
+const LIGHT_BODY = 0.6
+const DEEP = 0.32
+const NEIGHBOUR = 30
+const COMPLEMENT = 150
+const SOFT = 0.07
+function accentTone(main, accentHex) {
+  const [L] = main
+  const C = chroma(main)
+  const own = accentHex ? hexToOklab(accentHex) : null
+  const grey = C < 0.03
+  const gap = own && !grey ? hueGap(own, main) : 180
+  const ownC = own ? chroma(own) : 0
+  if (L >= LIGHT_BODY) {
+    const h = grey ? (own ? hueOf(own) : 0) : gap <= NEIGHBOUR ? hueOf(own) : hueOf(main)
+    const c = grey ? Math.min(0.12, ownC) : Math.min(0.24, Math.max(0.1, C * 1.25))
+    return polar(L - DEEP, c, h)
+  }
+  const pale = Math.min(0.95, Math.max(0.82, L + 0.3))
+  if (own && (grey || gap <= NEIGHBOUR)) return polar(pale, Math.min(0.12, ownC), hueOf(own))
+  if (own && gap >= COMPLEMENT) return polar(pale, Math.min(SOFT, ownC), hueOf(own))
+  return polar(pale, Math.min(0.12, Math.max(C, 0.06)), hueOf(main))
 }
 
 /**
@@ -148,12 +178,15 @@ export function paletteUniforms(appearance, clusters) {
     target.set(lab, i * 3)
     return Array.from(target.subarray(i * 3, i * 3 + 3))
   })
-  const tones = markTones(targets[0] ?? [0, 0, 0], palette.colors?.[2])
+  const main = targets[0] ?? [0, 0, 0]
+  const tones = markTones(main, palette.colors?.[2])
   return {
     count,
     source,
     target,
     effect: EFFECTS[palette.effect] ?? 0,
+    // a halo of a deep accent on a light body is a smudge: only a pale one glows
+    glow: cute && tones.accent[0] > main[0],
     dark: Float32Array.from(tones.dark),
     light: Float32Array.from(tones.light),
     accent: Float32Array.from(tones.accent),

@@ -159,7 +159,7 @@ test('mark tones: dark and light move away from the main, accent stands out', ()
   near(u.dark[0], 0.4, 1e-6, 'a light main gets a darker tone')
   near(u.dark[1], 0.12 * 1.3, 1e-6)
   near(u.light[0], 0.95, 1e-6, 'a mid main gets a lighter scar')
-  near(u.light[1], 0.12 * 0.3, 1e-6)
+  assert.ok(chroma(Array.from(u.light)) >= 0.06 - 1e-9, 'a scar is always tinted')
   const deep = paletteUniforms(app('origin'), [{ lab: [0.4, 0.05, 0], share: 1 }])
   near(deep.dark[0], 0.1, 1e-6, 'a dark main still gets a darker tone (the rim stays dark)')
   near(deep.light[0], 0.65, 1e-6)
@@ -168,19 +168,63 @@ test('mark tones: dark and light move away from the main, accent stands out', ()
   near(night.light[0], 0.75, 1e-6, 'and the scar further still')
   const bright = paletteUniforms(app('origin'), [{ lab: [0.95, 0, 0], share: 1 }])
   assert.equal(bright.count, 1)
-  near(bright.light[0], 0.73, 1e-6, 'a pale main gets a darker scar')
-  near(bright.dark[0], 0.53, 1e-6, 'and a dark tone well below it')
-  // origin has no accent colour: the complement of the main
+  near(bright.light[0], 0.65, 1e-6, 'a pale main gets a darker scar')
+  near(bright.dark[0], 0.45, 1e-6, 'and a dark tone well below it')
+  // origin has no accent colour: a deeper, richer shade of the main
   const a = Array.from(u.accent)
-  near(Math.abs(angleBetween(hue(0.12, 0.08), hueOf(a))), 180, 1e-4)
-  near(chroma(a), Math.max(0.1, Math.hypot(0.12, 0.08)), 1e-6)
-  near(a[0], 0.45, 1e-6, '.25 away from the main')
+  near(angleBetween(hue(0.12, 0.08), hueOf(a)), 0, 1e-4)
+  near(a[0], 0.7 - 0.32, 1e-6, 'a light main: deeper')
+  assert.ok(chroma(a) >= Math.hypot(0.12, 0.08) - 1e-9, 'never duller')
 })
 
-test('a palette accent is used as is unless it is too close to the main', () => {
-  const u = paletteUniforms(app('sky'), CLUSTERS)
-  const want = hexToOklab('#f4b942')
-  for (let k = 0; k < 3; k++) near(u.accent[k], want[k], 1e-6)
+test('a scar on a pale body stands out: deep and tinted, never a grey', () => {
+  // white Mewtwo: no hue of its own, the scar takes a healed-skin rose
+  const white = paletteUniforms(app('origin'), [{ lab: [0.95, 0.002, -0.004], share: 1 }])
+  const rose = Array.from(white.light)
+  assert.ok(rose[0] <= 0.95 - 0.28, 'deep')
+  assert.ok(chroma(rose) >= 0.08, `tinted: ${chroma(rose)}`)
+  const h = hueOf(rose)
+  assert.ok(h > -10 && h < 40, `rose: ${h}°`)
+  // a pale tinted body: its own hue, richer
+  const mint = paletteUniforms(app('origin'), [{ lab: [0.85, -0.06, 0.02], share: 1 }])
+  const m = Array.from(mint.light)
+  near(angleBetween(hueOf([0, -0.06, 0.02]), hueOf(m)), 0, 1e-4)
+  assert.ok(chroma(m) >= Math.hypot(0.06, 0.02), 'never duller than the body')
+  // on a dark grey body too: a tint, not a grey
+  const slate = paletteUniforms(app('origin'), [{ lab: [0.45, 0.004, 0.002], share: 1 }])
+  assert.ok(chroma(Array.from(slate.light)) >= 0.06)
+})
+
+// the hue gap in degrees, 0–180
+const gapOf = (p, q) => Math.abs(angleBetween(hueOf(p), hueOf(q)))
+
+test('the accent never clashes: a shade of the main, or a soft complement', () => {
+  // strawberry milk: yellow #fff23d on pink #ff5fa8 sits 110° away (a
+  // clash): the hearts and stars become a deep raspberry instead
+  const u = paletteUniforms(app('strawberry-milk'), CLUSTERS)
+  const main = at(u, 0)
+  assert.ok(gapOf(main, Array.from(u.accent)) <= 30)
+  assert.ok(u.accent[0] <= main[0] - 0.3, 'deep on a light body')
+  // cobalt on a dark body: its gold #ffb52e is a complement (172°): kept,
+  // made a soft cream lighter than the body
+  const c = paletteUniforms(app('cobalt'), [{ lab: [0.4, 0.02, -0.1], share: 1 }])
+  const body = at(c, 0)
+  const cream = Array.from(c.accent)
+  assert.ok(body[0] < 0.6)
+  assert.ok(gapOf(body, cream) >= 150)
+  near(angleBetween(hueOf(hexToOklab('#ffb52e')), hueOf(cream)), 0, 1e-4, 'its own hue')
+  assert.ok(chroma(cream) <= 0.08 + 1e-9, 'soft')
+  assert.ok(cream[0] >= body[0] + 0.3, 'light on a dark body')
+})
+
+test('glow only where the accent is lighter than the body, on a cute palette', () => {
+  assert.equal(paletteUniforms(app('strawberry-milk'), CLUSTERS).glow, false)
+  assert.equal(
+    paletteUniforms(app('cobalt'), [{ lab: [0.4, 0.02, -0.1], share: 1 }]).glow,
+    false,
+    'not cute'
+  )
+  assert.equal(paletteUniforms(app('origin'), CLUSTERS).glow, false)
 })
 
 test('every palette on light, mid and dark mains keeps the tones readable', () => {
@@ -205,7 +249,15 @@ test('every palette on light, mid and dark mains keeps the tones readable', () =
         const tag = `${p.key} L${clusters[0].lab[0]}`
         assert.ok(Math.abs(u.dark[0] - main[0]) >= 0.25 - 1e-9, `dark ${tag}`)
         assert.ok(Math.abs(u.light[0] - main[0]) >= 0.2 - 1e-9, `scar ${tag}`)
-        assert.ok(dist(Array.from(u.accent), main) >= 0.15 - 1e-9, `accent ${tag}`)
+        const accent = Array.from(u.accent)
+        assert.ok(Math.abs(accent[0] - main[0]) >= 0.22 - 1e-9, `accent ΔL ${tag}`)
+        if (chroma(main) > 0.03) {
+          const g = gapOf(main, accent)
+          const soft = g >= 150 && chroma(accent) <= 0.08 + 1e-9
+          assert.ok(g <= 30 + 1e-6 || soft, `accent hue ${tag}: ${g}°`)
+        }
+        assert.ok(Math.abs(u.dark[0] - accent[0]) >= 0.1 - 1e-9 || accent[0] < main[0],
+          `a light accent stands off its rim ${tag}`)
         assert.ok(Math.abs(u.dark[0] - u.light[0]) >= 0.15 - 1e-9, `dark vs scar ${tag}`)
         if (main[0] >= 0.3) assert.ok(u.dark[0] < main[0], `dark rim below ${tag}`)
         for (const v of [...u.target, ...u.dark, ...u.light, ...u.accent])

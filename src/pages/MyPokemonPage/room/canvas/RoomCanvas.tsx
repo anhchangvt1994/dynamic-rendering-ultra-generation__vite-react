@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import type { Appearance } from 'pages/BagPage/individuals/client'
-import { paletteOf } from 'pages/BagPage/individuals/palettes.mjs'
 import { paletteUniforms } from './colour.mjs'
-import type { Scene3 } from './gl'
+import type { MarkLayer, Scene3 } from './gl'
 import { bodyMask, drawMarks, planMarks } from './marks.mjs'
 import { loadRig } from './rig'
 import type { Rig } from './rig'
+import { trackMarks } from './track.mjs'
 
 export type CanvasState = 'on' | 'lost' | 'off'
 
@@ -57,7 +57,69 @@ function bodyOf(rig: Rig): Body {
   return body
 }
 
-function marksFor(rig: Rig, appearance: Appearance) {
+// the flow's bytes (u, v, confidence per cell), read once per rig
+const flows = new WeakMap<Rig, ImageData | null>()
+function flowOf(rig: Rig) {
+  if (flows.has(rig)) return flows.get(rig) ?? null
+  let data: ImageData | null = null
+  try {
+    const { width, height } = rig.flow
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (ctx) {
+      ctx.drawImage(rig.flow, 0, 0)
+      data = ctx.getImageData(0, 0, width, height)
+    }
+  } catch {
+    // unreadable: the marks stay where frame 0 has them
+  }
+  flows.set(rig, data)
+  return data
+}
+
+// each frame's alpha laid out like the flow (one tile per frame), read once
+// per rig: where a mark's place went behind the body, trackMarks hides it
+const sheetAlphas = new WeakMap<Rig, ImageData | null>()
+function sheetAlphaOf(rig: Rig) {
+  if (sheetAlphas.has(rig)) return sheetAlphas.get(rig) ?? null
+  let data: ImageData | null = null
+  try {
+    const { frames, frame, sheet, flow } = rig.json
+    const cols = sheet.cols
+    const { width, height } = rig.flow
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (ctx) {
+      for (let K = 0; K < frames; K++)
+        ctx.drawImage(
+          rig.sheet,
+          (K % cols) * frame.w,
+          Math.floor(K / cols) * frame.h,
+          frame.w,
+          frame.h,
+          (K % flow.cols) * flow.tile,
+          Math.floor(K / flow.cols) * flow.tile,
+          flow.tile,
+          flow.tile
+        )
+      data = ctx.getImageData(0, 0, width, height)
+    }
+  } catch {
+    // unreadable: every mark shows
+  }
+  sheetAlphas.set(rig, data)
+  return data
+}
+
+function marksFor(
+  rig: Rig,
+  appearance: Appearance,
+  glow: boolean
+): MarkLayer | null {
   if (!appearance.marks) return null
   const shapes = planMarks(appearance.marks, rig.json, bodyOf(rig))
   if (!shapes.length) return null
@@ -65,10 +127,21 @@ function marksFor(rig: Rig, appearance: Appearance) {
   canvas.width = canvas.height = MARKS_PX
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
-  drawMarks(ctx, shapes, MARKS_PX, rig.json.frame, {
-    glow: paletteOf(appearance.palette).vibe === 'cute',
-  })
-  return canvas
+  const flow = flowOf(rig)
+  const frames = flow ? trackMarks(shapes, flow, rig.json, sheetAlphaOf(rig) ?? undefined)
+    : [shapes]
+  let shown = -1
+  return {
+    canvas,
+    frame(K) {
+      const i = Math.min(K, frames.length - 1)
+      if (i === shown) return false
+      shown = i
+      ctx.clearRect(0, 0, MARKS_PX, MARKS_PX)
+      drawMarks(ctx, frames[i], MARKS_PX, rig.json.frame, { glow })
+      return true
+    },
+  }
 }
 
 /**
@@ -168,11 +241,12 @@ export default function RoomCanvas({
       const { startScene } = await import('./gl')
       if (abort.signal.aborted) return false
       try {
+        const colours = paletteUniforms(appearanceRef.current, rig.json.clusters)
         scene.current = startScene(
           canvas,
           rig,
-          paletteUniforms(appearanceRef.current, rig.json.clusters),
-          marksFor(rig, appearanceRef.current)
+          colours,
+          marksFor(rig, appearanceRef.current, colours.glow)
         )
       } catch {
         return false

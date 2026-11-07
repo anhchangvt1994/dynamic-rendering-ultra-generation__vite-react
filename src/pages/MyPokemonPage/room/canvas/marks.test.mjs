@@ -80,14 +80,18 @@ test('spots keep their spacing and their distance from the edge', () => {
   const body = 56 / 64
   const shapes = planMarks({ kind: 'spots', count: 8, seed: 5 }, rig)
   for (const s of shapes) {
-    assert.ok(s.size >= 0.08 * body - 1e-9 && s.size <= 0.12 * body + 1e-9)
+    const big = s.size >= 0.16 * body - 1e-9
+    if (big) assert.ok(s.size <= 0.22 * body + 1e-9, `big ${s.size}`)
+    else assert.ok(s.size >= 0.07 * body - 1e-9 && s.size <= 0.11 * body + 1e-9)
     const edge = Math.min(
       s.x - 4 / 64,
       60 / 64 - s.x,
       s.y - 4 / 64,
       60 / 64 - s.y
     )
-    assert.ok(edge >= 0.5 * s.size - 1 / 64, `edge ${edge} size ${s.size}`)
+    // a big one may hang past the outline (the silhouette clips it)
+    const keep = big ? 0.3 : 0.5
+    assert.ok(edge >= keep * s.size - 1 / 64, `edge ${edge} size ${s.size}`)
   }
   for (const a of shapes)
     for (const b of shapes)
@@ -278,20 +282,23 @@ test('with a body mask, marks sit on the whole body and are sized by it', () => 
   const rig = rectRig(28, 28, 36, 36)
   const body = bodyOf(4, 4, 60, 60)
   const unit = 56 / 64
+  // [small, big]: spots and patches mix one or two big ones with small ones
   const sizes = {
-    spots: [0.08, 0.12],
-    patch: [0.18, 0.26],
-    scar: [0.16, 0.22],
-    flower: [0.1, 0.14],
-    stars: [0.07, 0.1],
-    hearts: [0.1, 0.14],
+    spots: [[0.07, 0.11], [0.16, 0.22]],
+    patch: [[0.14, 0.2], [0.26, 0.32]],
+    scar: [[0.16, 0.22]],
+    flower: [[0.1, 0.14]],
+    stars: [[0.07, 0.1]],
+    hearts: [[0.1, 0.14]],
   }
-  for (const [kind, [lo, hi]] of Object.entries(sizes)) {
+  const within = (size, ranges) =>
+    ranges.some(([lo, hi]) => size >= lo * unit - 1e-9 && size <= hi * unit + 1e-9)
+  for (const [kind, ranges] of Object.entries(sizes)) {
     const shapes = planMarks({ kind, count: 5, seed: 41 }, rig, body)
     assert.equal(shapes.length, 5, kind)
     let off = 0
     for (const s of shapes) {
-      assert.ok(s.size >= lo * unit - 1e-9 && s.size <= hi * unit + 1e-9, `${kind} ${s.size}`)
+      assert.ok(within(s.size, ranges), `${kind} ${s.size}`)
       assert.ok(on(body, Math.floor(s.x * SIZE), Math.floor(s.y * SIZE)))
       if (!cellOn(rig, s.x, s.y)) off++
     }
@@ -324,6 +331,76 @@ test('an empty body mask falls back to the main region', () => {
   const shapes = planMarks({ kind: 'spots', count: 4, seed: 8 }, rig, bodyOf(0, 0, 0, 0))
   assert.equal(shapes.length, 4)
   for (const s of shapes) assert.ok(cellOn(rig, s.x, s.y))
+})
+
+test('spots and patches: one or two big marks, the rest small', () => {
+  const body = bodyOf(4, 4, 60, 60)
+  const unit = 56 / 64
+  for (let seed = 1; seed <= 20; seed++) {
+    for (const count of [3, 6, 9]) {
+      const shapes = planMarks({ kind: 'spots', count, seed }, rectRig(), body)
+      const big = shapes.filter((s) => s.size >= 0.16 * unit - 1e-9)
+      assert.equal(big.length, count >= 6 ? 2 : 1, `spots × ${count} seed ${seed}`)
+      for (const s of big) assert.ok(s.size <= 0.22 * unit + 1e-9)
+    }
+    const patches = planMarks({ kind: 'patch', count: 3, seed }, rectRig(), body)
+    assert.equal(patches.filter((s) => s.size >= 0.26 * unit - 1e-9).length, 1, `patch ${seed}`)
+  }
+})
+
+test('the big marks sit where the body is thickest', () => {
+  // a thick block (32 × 32 cells) with a thin tail (22 × 4) on its right
+  const mask = bodyOf(8, 8, 40, 40).mask
+  for (let y = 22; y < 26; y++) for (let x = 40; x < 62; x++) mask[y * SIZE + x] = 1
+  const body = { size: SIZE, mask }
+  for (let seed = 1; seed <= 20; seed++) {
+    const shapes = planMarks({ kind: 'spots', count: 4, seed }, rectRig(8, 8, 40, 40), body)
+    const big = shapes.reduce((a, b) => (b.size > a.size ? b : a))
+    assert.ok(big.x < 40 / 64, `seed ${seed}: the big spot at ${big.x}`)
+    for (const s of shapes)
+      if (s.x >= 41 / 64) assert.ok(s.size < big.size, `seed ${seed}: the tail keeps small marks`)
+  }
+})
+
+test('dark marks keep to the main colour, off the pale second region', () => {
+  // the main region is the top two thirds of the body; the belly below
+  const body = bodyOf(4, 4, 60, 60)
+  const rig = rectRig(4, 4, 60, 40)
+  for (const kind of ['spots', 'patch'])
+    for (let seed = 1; seed <= 30; seed++) {
+      const shapes = planMarks({ kind, count: 3 + (seed % 4), seed }, rig, body)
+      for (const s of shapes) {
+        assert.ok(cellOn(rig, s.x, s.y), `${kind} ${seed} at ${s.x},${s.y}`)
+        assert.ok(40 / 64 - s.y >= 0.5 * s.size - 1 / 64, `${kind} ${seed} spills on the belly`)
+      }
+    }
+  // accent marks may sit anywhere on the body
+  let below = 0
+  for (let seed = 1; seed <= 10; seed++)
+    for (const s of planMarks({ kind: 'hearts', count: 6, seed }, rig, body))
+      if (!cellOn(rig, s.x, s.y)) below++
+  assert.ok(below > 0)
+})
+
+test('marks keep clear of the eyes and other holes inside the body', () => {
+  const holes = [
+    [20, 18, 25, 23],
+    [39, 18, 44, 23],
+  ]
+  const mask = bodyOf(4, 4, 60, 60).mask
+  for (const [x0, y0, x1, y1] of holes)
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) mask[y * SIZE + x] = 0
+  const body = { size: SIZE, mask }
+  const gap = (s, [x0, y0, x1, y1]) =>
+    Math.hypot(
+      Math.max(x0 / 64 - s.x, 0, s.x - x1 / 64),
+      Math.max(y0 / 64 - s.y, 0, s.y - y1 / 64)
+    )
+  for (const kind of ['hearts', 'stars', 'flower', 'spots', 'patch'])
+    for (let seed = 1; seed <= 30; seed++)
+      for (const s of planMarks({ kind, count: 6, seed }, rectRig(), body))
+        for (const h of holes)
+          assert.ok(gap(s, h) >= 0.5 * s.size - 1 / 64, `${kind} ${seed}: ${gap(s, h)} < ${s.size / 2}`)
 })
 
 test('old star counts draw at least three', () => {
@@ -365,12 +442,96 @@ test('stars, flowers and hearts get a dark outline under the fill', () => {
   assert.ok(stroke >= 0 && stroke < fill, 'stroke first')
   const [, style, , alpha, width] = log[stroke]
   assert.equal(style, 'rgb(255,0,0)')
-  assert.equal(alpha, 0.6)
-  assert.ok(Math.abs(width - (3 * 0.5) / 512) < 1e-12)
+  // opaque: a see-through rim mixes the dark tone into the accent (murky)
+  assert.equal(alpha, 1)
+  assert.ok(Math.abs(width - (2.5 * 0.5) / 512) < 1e-12)
   assert.equal(log[fill][3], 1, 'the fill is opaque')
   log.length = 0
   drawMarks(ctx, [{ kind: 'spots', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'dark' }])
   assert.ok(!log.some(([k]) => k === 'stroke'), 'spots have no outline')
+})
+
+test('a mark drawn at its opacity; a hidden one not at all', () => {
+  const { log, ctx } = recorder()
+  const at = (opacity) => ({ kind: 'hearts', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'accent', opacity })
+  drawMarks(ctx, [at(0)])
+  assert.ok(!log.some(([k]) => k === 'fill' || k === 'stroke'), 'hidden')
+  drawMarks(ctx, [at(0.5)])
+  assert.equal(log.find(([k]) => k === 'fill')[3], 0.5)
+  log.length = 0
+  drawMarks(ctx, [at(1)])
+  assert.equal(log.find(([k]) => k === 'fill')[3], 1)
+})
+
+const outline = (kind, seed) => {
+  const { log, ctx } = recorder()
+  drawMarks(ctx, [{ kind, x: 0.5, y: 0.5, size: 0.1, angle: 0, tone: 'dark', seed }])
+  return log
+}
+const curvesOf = (log) =>
+  log.filter(([k]) => k === 'quadraticCurveTo' || k === 'bezierCurveTo').map((c) => c[7])
+
+test('spots and patches are organic blobs, each its own outline', () => {
+  for (const kind of ['spots', 'patch']) {
+    const a = outline(kind, 1)
+    assert.ok(!a.some(([k]) => k === 'arc' || k === 'ellipse'), `${kind}: no circle`)
+    const curves = curvesOf(a)
+    assert.ok(curves.length >= 12, `${kind}: a smooth curve`)
+    const r = curves.map((c) => Math.hypot(c.at(-2), c.at(-1)))
+    assert.ok(Math.max(...r) / Math.min(...r) >= 1.25, `${kind}: not round`)
+    assert.notDeepEqual(curves, curvesOf(outline(kind, 2)), `${kind}: seeds differ`)
+    assert.deepEqual(curves, curvesOf(outline(kind, 1)), `${kind}: same seed, same blob`)
+  }
+})
+
+test('a patch is two to four overlapping lobes', () => {
+  const lobes = new Set()
+  for (let seed = 1; seed <= 20; seed++) {
+    const n = outline('patch', seed).filter(([k]) => k === 'moveTo').length
+    assert.ok(n >= 2 && n <= 4, `seed ${seed}: ${n} lobes`)
+    lobes.add(n)
+  }
+  assert.ok(lobes.size >= 2, 'not always the same')
+})
+
+test('every planned mark carries the seed of its outline', () => {
+  for (const kind of ['spots', 'patch', 'scar'])
+    for (const s of planMarks({ kind, count: 5, seed: 3 }, rectRig()))
+      assert.ok(Number.isInteger(s.seed), kind)
+})
+
+test('scars come in many shapes: a slash, an X, claw marks, a stitched seam', () => {
+  const kinds = new Set()
+  for (let seed = 1; seed <= 40; seed++) {
+    const log = outline('scar', seed)
+    assert.ok(!log.some(([k]) => k === 'lineTo'), `seed ${seed}: no zigzag`)
+    assert.ok(curvesOf(log).length >= 2, `seed ${seed}: tapered curves`)
+    const strokes = log.filter(([k]) => k === 'moveTo').length
+    assert.ok(strokes >= 1 && strokes <= 7, `seed ${seed}: ${strokes} strokes`)
+    kinds.add(strokes === 1 ? 'slash' : strokes <= 3 ? 'cross/claw' : 'stitched')
+    assert.notDeepEqual(curvesOf(log), curvesOf(outline('scar', seed + 100)))
+  }
+  assert.equal(kinds.size, 3, [...kinds].join())
+})
+
+test('a scar reads at room scale: each main cut at least .08 × its size thick', () => {
+  for (let seed = 1; seed <= 40; seed++) {
+    const [a, b] = outline('scar', seed).filter(([k]) => k === 'quadraticCurveTo').map((c) => c[7])
+    // a lens's thickness is half the gap between its two control points
+    const thick = Math.hypot(a[0] - b[0], a[1] - b[1]) / 2
+    assert.ok(thick >= 0.0079, `seed ${seed}: ${thick.toFixed(4)} of 0.1`)
+  }
+})
+
+test('a scar is a filled pale stroke with a dark rim, never a glow', () => {
+  const { log, ctx } = recorder()
+  drawMarks(ctx, [{ kind: 'scar', x: 0.5, y: 0.5, size: 0.2, angle: 0, tone: 'light', seed: 7 }], 512, { w: 1, h: 1 }, { glow: true })
+  const rim = log.findIndex(([k]) => k === 'stroke')
+  const fill = log.findIndex(([k]) => k === 'fill')
+  assert.ok(rim >= 0 && rim < fill, 'rim under the fill')
+  assert.equal(log[rim][1], 'rgb(255,0,0)')
+  assert.equal(log[fill][2], 'rgb(0,255,0)')
+  assert.ok(!log.some(([, , , , , blur]) => blur > 0), 'no halo')
 })
 
 test('a heart is a closed curve: two lobes and a point below', () => {
@@ -413,8 +574,23 @@ test('glow: a soft accent halo under hearts, stars and flowers only, then a cris
 
 test('the shader covers every region pixel and keeps half the shading', () => {
   const src = readFileSync(new URL('./shader.ts', import.meta.url), 'utf8')
-  assert.match(src, /mark\.a \* flow\.b \* free \* smoothstep\(0\.05, 0\.3, top\)/)
-  assert.match(src, /ink\.x \+ 0\.5 \* \(out_\.x - uTarget\[0\]\.x\)/)
+  // not by the flow's confidence: on a flat dark body it fails in patches and
+  // the marks melt into the skin frame by frame (Gengar)
+  assert.doesNotMatch(src, /flow\.b/)
+  // a per-pixel lookup through the flow tears a mark on a fast tail
+  // (Pikachu): the marks are drawn whole per frame (track.mjs) and read in
+  // place, nothing through the flow (a gate through it cut them at the tail);
+  // no fade by stretch, which cut holes in it
+  assert.match(src, /vec4 mark = texture2D\(uMarks, uv\);/)
+  assert.doesNotMatch(src, /uFlow, cellUv\(uv/)
+  assert.doesNotMatch(src, /stretch/)
+  assert.match(src, /float cover = mark\.a \* free \* smoothstep\(0\.05, 0\.3, top\);/)
+  // the shading kept is the pixel's against its own region's colour
+  assert.match(src, /ink\.x \+ 0\.5 \* \(out_\.x - base\)/)
+  // a scar stands off the skin it sits on (deeper on pale, paler on dark),
+  // not off the main region's colour: Mewtwo's scars sit on its white skin
+  assert.match(src, /float scarL = base >= 0\.62 \? base - 0\.3 : min\(0\.95, base \+ 0\.3\)/)
+  assert.match(src, /ink\.x = mix\(ink\.x, scarL, tone\.g\)/)
   assert.doesNotMatch(src, /main_/)
 })
 

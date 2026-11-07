@@ -126,6 +126,12 @@ void main() {
     top = max(top, w[i]);
   }
   vec3 out_ = lab;
+  // the lightness this pixel's own region is recoloured to
+  float base = uTarget[0].x;
+  if (sum > 1e-6) {
+    base = 0.0;
+    for (int i = 0; i < 3; i++) base += w[i] / sum * uTarget[i].x;
+  }
   if (sum > 1e-6) {
     for (int i = 0; i < 3; i++) {
       float k = w[i] / sum * free;
@@ -138,18 +144,27 @@ void main() {
   }
 
   if (uHasMarks > 0.5) {
-    vec4 flow = texture2D(uFlow, cellUv(uv, uFrame, uFlowCols, vec2(uTile), uFlowSize));
-    vec4 mark = texture2D(uMarks, flow.rg);
+    // drawn whole for this frame where the body took each mark (track.mjs),
+    // read in place: a per-pixel lookup through the flow tears a mark on a
+    // fast tail (Pikachu); a whole shape can not tear
+    vec4 mark = texture2D(uMarks, uv);
     // on any region pixel (marks sit on the whole body), fading out where a
-    // pixel is near no region at all
-    float cover = mark.a * flow.b * free * smoothstep(0.05, 0.3, top);
+    // pixel is near no region at all. Not by the flow's confidence: on a
+    // flat, dark body (Gengar) the forward-backward check fails across whole
+    // patches and the marks would melt into the skin frame by frame; there
+    // the cell's vector (spread from its neighbours) is still close
+    float cover = mark.a * free * smoothstep(0.05, 0.3, top);
     if (cover > 0.001) {
       vec3 tone = mark.rgb / max(mark.a, 1e-4);
       tone /= max(tone.r + tone.g + tone.b, 1e-4);
       vec3 ink = tone.r * uDark + tone.g * uLight + tone.b * uAccent;
+      // a scar stands off the skin under it (deeper on pale, paler on dark),
+      // whichever region that is
+      float scarL = base >= 0.62 ? base - 0.3 : min(0.95, base + 0.3);
+      ink.x = mix(ink.x, scarL, tone.g);
       // keep half the body's shading under the mark: enough to follow the
       // form, not so much that a dark shade swallows a dark mark
-      ink.x = clamp(ink.x + 0.5 * (out_.x - uTarget[0].x), 0.0, 1.0);
+      ink.x = clamp(ink.x + 0.5 * (out_.x - base), 0.0, 1.0);
       out_ = mix(out_, ink, cover);
     }
   }

@@ -15,13 +15,29 @@ const TONES = {
 }
 // size range per kind, × body (the whole silhouette, not the main region)
 const SIZES = {
-  spots: [0.08, 0.12],
-  patch: [0.18, 0.26],
+  spots: [0.07, 0.11],
+  patch: [0.14, 0.2],
   scar: [0.16, 0.22],
   flower: [0.1, 0.14],
   stars: [0.07, 0.1],
   hearts: [0.1, 0.14],
 }
+// spots and patches mix one or two big marks (where the body is thickest)
+// with the small ones, as on a real coat
+const BIG = { spots: [0.16, 0.22], patch: [0.26, 0.32] }
+const bigCount = (kind, count) =>
+  !BIG[kind] ? 0 : kind === 'patch' ? +(count >= 2) : count >= 6 ? 2 : +(count >= 3)
+// a mark keeps half its size from the outline; a big one may hang past it
+// (the silhouette clips it)
+const KEEP = 0.5
+const SPILL = 0.3
+// every mark keeps half its size from the holes inside the body: the eyes,
+// the mouth, the cheeks (never relaxed)
+const HOLE_CLEAR = 0.6
+// a big mark's place: the zone's cells at least this × its thickest
+const THICK = 0.6
+// dark marks keep to the main colour when it is at least this share of it
+const DARK_SHARE = 0.35
 /** no mark is drawn smaller than this share of the frame's long side */
 export const MIN_SIZE = 0.055
 const MIN_STARS = 3
@@ -119,43 +135,109 @@ export function bodyMask(rgba, w, h, clusters, lock, size = 64) {
   return { size, mask }
 }
 
+const STEPS = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+]
+
+// the outside cells no path through the outside joins to the frame's
+// border, in groups of two cells or more (one is noise): the holes inside
+// the body
+function holesOf(mask, size) {
+  const open = new Uint8Array(size * size)
+  const queue = []
+  for (let i = 0; i < size; i++)
+    for (const [x, y] of [
+      [i, 0],
+      [i, size - 1],
+      [0, i],
+      [size - 1, i],
+    ])
+      if (!mask[y * size + x] && !open[y * size + x]) {
+        open[y * size + x] = 1
+        queue.push([x, y])
+      }
+  while (queue.length) {
+    const [x, y] = queue.pop()
+    for (const [dx, dy] of STEPS) {
+      const nx = x + dx
+      const ny = y + dy
+      const j = ny * size + nx
+      if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue
+      if (mask[j] || open[j]) continue
+      open[j] = 1
+      queue.push([nx, ny])
+    }
+  }
+  const hole = new Uint8Array(size * size)
+  const seen = new Uint8Array(size * size)
+  for (let i = 0; i < size * size; i++) {
+    if (mask[i] || open[i] || seen[i]) continue
+    const group = [i]
+    seen[i] = 1
+    for (let k = 0; k < group.length; k++) {
+      const x = group[k] % size
+      const y = Math.floor(group[k] / size)
+      for (const [dx, dy] of STEPS) {
+        const nx = x + dx
+        const ny = y + dy
+        const j = ny * size + nx
+        if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue
+        if (mask[j] || seen[j]) continue
+        seen[j] = 1
+        group.push(j)
+      }
+    }
+    if (group.length >= 2) for (const j of group) hole[j] = 1
+  }
+  return hole
+}
+
 // the region in true units: cell sides sx/size × sy/size, and each inside
-// cell's distance to the nearest outside cell or the frame's border
-function region(mask, size, frame) {
+// cell's distance to the outline (`rim`: the outside or the frame's border),
+// to the nearest hole inside (`hole`) and to either (`edge`). Cells of
+// `within` (the body around a part of it) are holes too: never spilled over
+function region(mask, size, frame, within = null) {
   const { w = 1, h = 1 } = frame ?? {}
   const sx = w / Math.max(w, h)
   const sy = h / Math.max(w, h)
   const cw = sx / size
   const ch = sy / size
-  const outside = []
+  const holes = holesOf(mask, size)
+  const outline = []
+  const inner = []
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
       if (mask[y * size + x]) continue
-      const touches = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ].some(
+      const touches = STEPS.some(
         ([dx, dy]) =>
           x + dx >= 0 && x + dx < size && mask[(y + dy) * size + x + dx] === 1
       )
-      if (touches) outside.push([x, y])
+      const i = y * size + x
+      if (touches) (holes[i] || within?.[i] ? inner : outline).push([x, y])
     }
+  const half = 0.5 * Math.min(cw, ch)
+  // from the centre to the nearest listed cell's near side
+  const reach = (x, y, list, d) => {
+    for (const [ox, oy] of list)
+      d = Math.min(d, Math.hypot((x - ox) * cw, (y - oy) * ch))
+    return Math.max(0, d - half)
+  }
   const cells = []
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
       if (!mask[y * size + x]) continue
-      let d = Math.min(
+      const border = Math.min(
         (x + 0.5) * cw,
         (size - x - 0.5) * cw,
         (y + 0.5) * ch,
         (size - y - 0.5) * ch
       )
-      for (const [ox, oy] of outside)
-        d = Math.min(d, Math.hypot((x - ox) * cw, (y - oy) * ch))
-      // from the centre to the outside cell's near side
-      cells.push({ x, y, edge: Math.max(0, d - 0.5 * Math.min(cw, ch)) })
+      const rim = reach(x, y, outline, border + half)
+      const hole = reach(x, y, inner, Infinity)
+      cells.push({ x, y, rim, hole, edge: Math.min(rim, hole) })
     }
   return { size, mask, sx, sy, cw, ch, cells }
 }
@@ -163,14 +245,16 @@ function region(mask, size, frame) {
 // true-unit distance between two 0–1 points
 const dist = (R, a, b) => Math.hypot((a.x - b.x) * R.sx, (a.y - b.y) * R.sy)
 
-// a point inside a random cell of `cells` whose edge clears `margin`
-function candidate(R, cells, random, margin) {
-  const ok = cells.filter((c) => c.edge >= margin)
+// a point inside a random cell of `cells` that keeps `rim` from the outline
+// and `hole` from the holes inside → {x, y, cell}
+function candidate(R, cells, random, rim, hole = 0) {
+  const ok = cells.filter((c) => c.rim >= rim && c.hole >= hole)
   if (!ok.length) return null
   const c = ok[Math.floor(random() * ok.length)]
   return {
     x: (c.x + 0.1 + 0.8 * random()) / R.size,
     y: (c.y + 0.1 + 0.8 * random()) / R.size,
+    cell: c,
   }
 }
 
@@ -232,29 +316,52 @@ function cores(R, zone) {
   return core.length ? [core, zone] : [zone]
 }
 
+// a big mark's zone cells where the body is thickest, then the whole zone
+function thick(zone) {
+  const top = Math.max(0, ...zone.map((c) => Math.min(c.edge, 1)))
+  const best = zone.filter((c) => c.edge >= THICK * top)
+  return best.length ? [best, zone] : [zone]
+}
+
 // one mark per zone, darts inside its core then the zone; the spacing gives
-// way a step at a time rather than leave a mark out
+// way a step at a time rather than leave a mark out. The big marks go to the
+// zones where the body is thickest; a mark the outline crowds (a thin limb,
+// a tail) shrinks to fit, never under MIN_SIZE
 function scatter(R, random, kind, count, body) {
-  const [lo, hi] = SIZES[kind]
+  const list = zones(R, random, count)
+  const big = new Set(
+    list
+      .map((zone, i) => [i, Math.max(0, ...zone.map((c) => Math.min(c.edge, 1)))])
+      .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      .slice(0, bigCount(kind, count))
+      .map(([i]) => i)
+  )
   const shapes = []
-  for (const zone of zones(R, random, count)) {
+  list.forEach((zone, i) => {
     const cells = zone.length ? zone : R.cells
-    const tiers = cores(R, cells)
-    const size = Math.max(MIN_SIZE, (lo + (hi - lo) * random()) * body)
+    const large = big.has(i)
+    const tiers = large ? thick(cells) : cores(R, cells)
+    const [lo, hi] = large ? BIG[kind] : SIZES[kind]
+    let size = Math.max(MIN_SIZE, (lo + (hi - lo) * random()) * body)
+    const keep = large ? SPILL : KEEP
     let spacing = SPACING
     let placed = null
     for (let round = 0; !placed && round < 12; round++, spacing *= RELAX)
       for (let t = 0; !placed && t < TRIES; t++) {
         const pool = tiers[Math.min(tiers.length - 1, round >> 1)]
-        const p = candidate(R, pool, random, 0.5 * size * (round < 6 ? 1 : 0))
+        const rim = round < 6 ? keep * size : 0
+        const p = candidate(R, pool, random, rim, HOLE_CLEAR * size)
         if (!p) break
         if (
           shapes.every((s) => dist(R, s, p) >= spacing * Math.max(s.size, size))
         )
           placed = p
       }
+    if (!placed) placed = candidate(R, cells, random, 0, HOLE_CLEAR * size)
     if (!placed) placed = candidate(R, cells, random, 0)
-    if (!placed) continue
+    if (!placed) return
+    const { rim, hole } = placed.cell
+    size = Math.max(MIN_SIZE, Math.min(size, rim / keep, hole / HOLE_CLEAR))
     const turn = random()
     shapes.push({
       kind,
@@ -263,8 +370,9 @@ function scatter(R, random, kind, count, body) {
       size,
       angle: kind === 'hearts' ? (turn - 0.5) * 2 * HEART_TILT : turn * TAU,
       tone: TONES[kind],
+      seed: Math.floor(random() * 2 ** 31),
     })
-  }
+  })
   return shapes
 }
 
@@ -395,22 +503,118 @@ export function planMarks(marks, rig, body = null) {
     }))
   if (marks.kind === 'stars')
     return scatter(B, random, 'stars', Math.max(MIN_STARS, marks.count), unit)
-  return SIZES[marks.kind]
-    ? scatter(B, random, marks.kind, marks.count, unit)
-    : []
+  if (!SIZES[marks.kind]) return []
+  // dark marks keep to the main colour, off a pale belly, when it is enough
+  // of the body to spread over (its holes — the belly, the cheeks — kept clear)
+  const dark = TONES[marks.kind] === 'dark' && B !== P ? mainOf(B, P, rig.frame) : null
+  return scatter(dark ?? B, random, marks.kind, marks.count, unit)
 }
 
-const OUTLINE_PX = 3
-const OUTLINE_ALPHA = 0.6
-// the kinds drawn with a rim, and (on a glowing palette) a halo
-const RIMMED = new Set(['stars', 'flower', 'hearts'])
+function mainOf(B, P, frame) {
+  if (B.size !== P.size) return null
+  const mask = B.mask.map((on, i) => on & P.mask[i])
+  let n = 0
+  for (const on of mask) n += on
+  return n >= DARK_SHARE * B.cells.length ? region(mask, B.size, frame, B.mask) : null
+}
+
+// a thin opaque rim: a see-through one mixes the dark tone into the accent
+const OUTLINE_PX = 2.5
+// the kinds drawn with a rim; all but the scar glow on a glowing palette
+const RIMMED = new Set(['stars', 'flower', 'hearts', 'scar'])
+const GLOWING = new Set(['stars', 'flower', 'hearts'])
 // the halo's blur, × the mark's size in texture pixels
 const GLOW_BLUR = 0.3
-const GLOW_COLOUR = 'rgba(0,0,255,0.9)'
+const GLOW_COLOUR = 'rgba(0,0,255,0.5)'
 const COLOURS = {
   dark: 'rgb(255,0,0)',
   light: 'rgb(0,255,0)',
   accent: 'rgb(0,0,255)',
+}
+
+// a mark's own random, from its seed (older plans: from where it sits)
+const seeded = (s) =>
+  mulberry32(s.seed ?? Math.round(s.x * 1e6) ^ Math.round(s.y * 1e3))
+
+const BLOB_POINTS = 20
+// a closed organic curve round cx, cy: radius r rippled by harmonics 2–5
+// (each smaller than the last), stretched a little one way, so no two match.
+// Every lobe winds the same way: overlapping lobes fill as one
+function blob(ctx, random, cx, cy, r) {
+  const waves = [2, 3, 4, 5].map((k) => ({
+    k,
+    a: (0.26 / (k - 1)) * (0.5 + 0.5 * random()),
+    p: random() * TAU,
+  }))
+  const stretch = 1 + 0.35 * random()
+  const tilt = random() * TAU
+  const raw = Array.from({ length: BLOB_POINTS }, (_, i) => {
+    const t = (i / BLOB_POINTS) * TAU
+    let k = 1
+    for (const w of waves) k += w.a * Math.cos(w.k * t + w.p)
+    k = Math.max(0.45, k)
+    return [Math.cos(t) * k * stretch, Math.sin(t) * k]
+  })
+  // never past r: the plan's clearances hold for the whole outline
+  const far = Math.max(...raw.map(([x, y]) => Math.hypot(x, y)))
+  const pts = raw.map(([x, y]) => [
+    cx + ((x * Math.cos(tilt) - y * Math.sin(tilt)) * r) / far,
+    cy + ((x * Math.sin(tilt) + y * Math.cos(tilt)) * r) / far,
+  ])
+  const mid = (i) => {
+    const a = pts[i % BLOB_POINTS]
+    const b = pts[(i + 1) % BLOB_POINTS]
+    return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+  }
+  ctx.moveTo(...mid(BLOB_POINTS - 1))
+  for (let i = 0; i < BLOB_POINTS; i++) ctx.quadraticCurveTo(...pts[i], ...mid(i))
+  ctx.closePath()
+}
+
+// one healed cut: a lens from one end to the other, widest a little off the
+// middle, slightly bent, at (cx, cy) along angle a. Every lens winds the same
+// way: crossing cuts fill as one
+function cut(ctx, cx, cy, a, len, wide, bend) {
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+  const at = (x, y) => [cx + x * c - y * s, cy + x * s + y * c]
+  const L = len / 2
+  ctx.moveTo(...at(-L, 0))
+  ctx.quadraticCurveTo(...at(0.1 * L, bend - wide), ...at(L, 0))
+  ctx.quadraticCurveTo(...at(0.1 * L, bend + wide), ...at(-L, 0))
+  ctx.closePath()
+}
+
+// a scar's look, by its seed: one long slash, an X of a long and a short cut,
+// two or three claw marks side by side, or a seam with its stitches across
+function scar(ctx, random, size) {
+  const L = size
+  const w = 0.1 * size
+  const bend = () => (random() - 0.5) * 0.16 * size
+  const look = random()
+  if (look < 0.3) {
+    cut(ctx, 0, 0, 0, L, w * 1.2, bend())
+  } else if (look < 0.55) {
+    const turn = (0.35 + 0.25 * random()) * Math.PI
+    const along = (random() - 0.5) * 0.3 * L
+    cut(ctx, 0, 0, 0, L, w, bend())
+    cut(ctx, along, 0, turn, L * (0.45 + 0.2 * random()), w * 0.85, bend())
+  } else if (look < 0.8) {
+    const n = 2 + Math.floor(random() * 2)
+    const gap = 0.2 * size
+    for (let i = 0; i < n; i++) {
+      const y = (i - (n - 1) / 2) * gap
+      const len = L * (0.6 + 0.4 * random())
+      cut(ctx, (random() - 0.5) * 0.15 * L, y, (random() - 0.5) * 0.15, len, w * 0.8, bend())
+    }
+  } else {
+    const n = 3 + Math.floor(random() * 3)
+    cut(ctx, 0, 0, 0, L, w, 0)
+    for (let i = 0; i < n; i++) {
+      const x = ((i + 0.5) / n - 0.5) * 0.8 * L
+      cut(ctx, x, 0, Math.PI / 2 + (random() - 0.5) * 0.3, 0.26 * size, w * 0.55, 0)
+    }
+  }
 }
 
 function path(ctx, s) {
@@ -427,22 +631,33 @@ function path(ctx, s) {
       ctx.quadraticCurveTo(0, bend + wide, -L, 0)
       break
     }
-    case 'patch': {
-      const random = mulberry32(Math.round(s.x * 1e6) ^ Math.round(s.y * 1e3))
-      const pts = Array.from({ length: 8 }, (_, i) => {
-        const a = (i / 8) * TAU
-        const k = r * (0.75 + 0.5 * random())
-        return [Math.cos(a) * k, Math.sin(a) * k]
-      })
-      const mid = (i) => {
-        const a = pts[i % 8]
-        const b = pts[(i + 1) % 8]
-        return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    case 'spots': {
+      // a blob, now and then with a smaller one grown on: a bean, a drop,
+      // a little cloud
+      const random = seeded(s)
+      blob(ctx, random, 0, 0, r)
+      if (random() < 0.35) {
+        const a = random() * TAU
+        blob(ctx, random, Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6, r * 0.4)
       }
-      ctx.moveTo(...mid(7))
-      for (let i = 0; i < 8; i++) ctx.quadraticCurveTo(...pts[i], ...mid(i))
       break
     }
+    case 'patch': {
+      // two to four overlapping lobes round a middle one: a splotch, a cloud
+      const random = seeded(s)
+      const n = 2 + Math.floor(random() * 3)
+      blob(ctx, random, 0, 0, r * 0.62)
+      const start = random() * TAU
+      for (let i = 1; i < n; i++) {
+        const a = start + (i / (n - 1)) * TAU + (random() - 0.5) * 0.8
+        const d = r * (0.32 + 0.12 * random())
+        blob(ctx, random, Math.cos(a) * d, Math.sin(a) * d, r * (0.4 + 0.15 * random()))
+      }
+      break
+    }
+    case 'scar':
+      scar(ctx, seeded(s), s.size)
+      break
     case 'flower':
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * TAU
@@ -482,8 +697,9 @@ function path(ctx, s) {
 
 /**
  * The marks into a px × px texture over frame 0 (`frame` its w, h): alpha is
- * coverage, red dark, green light, blue accent. `glow` (a cute palette) puts
- * a soft accent halo under stars, flowers and hearts.
+ * coverage, red dark, green light, blue accent. Stars, flowers, hearts and
+ * scars get a dark rim; `glow` (a cute palette) puts a soft accent halo under
+ * stars, flowers and hearts.
  */
 export function drawMarks(
   ctx,
@@ -496,46 +712,32 @@ export function drawMarks(
   const sx = frame.w / long
   const sy = frame.h / long
   for (const s of shapes) {
+    // trackMarks fades a mark whose place went behind the body
+    const opacity = s.opacity ?? 1
+    if (opacity <= 0) continue
     ctx.save()
+    ctx.globalAlpha = opacity
     ctx.translate(s.x * px, s.y * px)
     ctx.scale(px / sx, px / sy)
     ctx.rotate(s.angle)
     path(ctx, s)
-    if (s.kind === 'scar') {
-      // a thin zigzag
-      const L = s.size / 2
-      ctx.beginPath()
-      for (let i = 0; i <= 6; i++)
-        ctx[i ? 'lineTo' : 'moveTo'](
-          -L + (i / 6) * s.size,
-          (i % 2 ? 1 : -1) * 0.12 * s.size
-        )
-      ctx.strokeStyle = COLOURS[s.tone]
-      ctx.lineWidth = (1.5 * Math.min(sx, sy)) / px
-      ctx.lineJoin = 'round'
-      ctx.lineCap = 'round'
-      ctx.stroke()
-    } else {
-      if (glow && RIMMED.has(s.kind)) {
-        ctx.shadowColor = GLOW_COLOUR
-        ctx.shadowBlur = GLOW_BLUR * s.size * px
-        ctx.fillStyle = COLOURS.accent
-        ctx.fill()
-        ctx.shadowBlur = 0
-        ctx.shadowColor = 'rgba(0,0,0,0)'
-      }
-      if (RIMMED.has(s.kind)) {
-        // a dark rim under the fill (3 px at 512) so they read on any body
-        ctx.globalAlpha = OUTLINE_ALPHA
-        ctx.strokeStyle = COLOURS.dark
-        ctx.lineWidth = (OUTLINE_PX * Math.min(sx, sy)) / 512
-        ctx.lineJoin = 'round'
-        ctx.stroke()
-        ctx.globalAlpha = 1
-      }
-      ctx.fillStyle = COLOURS[s.tone]
+    if (glow && GLOWING.has(s.kind)) {
+      ctx.shadowColor = GLOW_COLOUR
+      ctx.shadowBlur = GLOW_BLUR * s.size * px
+      ctx.fillStyle = COLOURS.accent
       ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.shadowColor = 'rgba(0,0,0,0)'
     }
+    if (RIMMED.has(s.kind)) {
+      // a deeper rim under the fill so they read on any body
+      ctx.strokeStyle = COLOURS.dark
+      ctx.lineWidth = (OUTLINE_PX * Math.min(sx, sy)) / 512
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    }
+    ctx.fillStyle = COLOURS[s.tone]
+    ctx.fill()
     ctx.restore()
   }
 }

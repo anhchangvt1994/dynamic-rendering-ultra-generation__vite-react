@@ -31,6 +31,13 @@ export type Uniforms = {
   accent: Float32Array
 }
 
+/** The marks, redrawn whole for each frame where the body has taken them. */
+export type MarkLayer = {
+  canvas: HTMLCanvasElement
+  /** draws frame K's marks into `canvas`; false when it already holds them */
+  frame(K: number): boolean
+}
+
 export type Scene3 = {
   setFrame(i: number): void
   setMood(mood: string | undefined): void
@@ -67,7 +74,7 @@ export function startScene(
   canvas: HTMLCanvasElement,
   rig: Rig,
   uniforms: Uniforms,
-  marksCanvas: HTMLCanvasElement | null
+  layer: MarkLayer | null
 ): Scene3 {
   const renderer = new WebGLRenderer({
     canvas,
@@ -80,7 +87,8 @@ export function startScene(
   const { json } = rig
   const sheet = texture(rig.sheet)
   const flow = texture(rig.flow)
-  const marks = marksCanvas ? texture(marksCanvas) : null
+  layer?.frame(0)
+  const marks = layer ? texture(layer.canvas) : null
   const [dark, light, accent] = [
     uniforms.dark,
     uniforms.light,
@@ -126,6 +134,7 @@ export function startScene(
   return {
     setFrame: (i) => {
       u.uFrame.value = Math.max(0, Math.min(json.frames - 1, i))
+      if (marks && layer?.frame(u.uFrame.value)) marks.needsUpdate = true
     },
     setMood: (mood) => {
       u.uMood.value = MOODS[mood ?? ''] ?? 0
