@@ -111,6 +111,38 @@ const nudge = keyframes`
   50% { transform: scale(1.18) }
 `
 
+const breathe = keyframes`
+  0%, 100% { opacity: .72 }
+  50% { opacity: 1 }
+`
+const sway = keyframes`
+  0%, 100% { transform: rotate(-1.6deg) scaleX(1) }
+  50% { transform: rotate(1.6deg) scaleX(1.06) }
+`
+const swayBack = keyframes`
+  0%, 100% { transform: rotate(1.2deg) scaleX(1.04) }
+  50% { transform: rotate(-1.8deg) scaleX(.97) }
+`
+const shimmer = keyframes`
+  0%, 100% { opacity: .35 }
+  35% { opacity: .9 }
+  70% { opacity: .5 }
+`
+const moteFloat = keyframes`
+  0% { transform: translate(0, 0) }
+  33% { transform: translate(calc(var(--dx) * .6), calc(var(--dy) * .4)) }
+  66% { transform: translate(calc(var(--dx) * -.4), calc(var(--dy) * .8)) }
+  100% { transform: translate(var(--dx), var(--dy)) }
+`
+const moteTwinkle = keyframes`
+  0%, 100% { opacity: 0; scale: .5 }
+  12% { opacity: 1; scale: 1.25 }
+  22% { opacity: .35; scale: .9 }
+  34% { opacity: .95; scale: 1.1 }
+  60% { opacity: .2; scale: .7 }
+  80% { opacity: .7; scale: 1 }
+`
+
 const motion = css`
   @media (prefers-reduced-motion: no-preference) {
     .pat div {
@@ -171,11 +203,17 @@ const motion = css`
     .rm-act:not([aria-disabled='true']):active > span {
       transform: scale(0.86);
     }
-    .rm-back,
-    .rm-step-btn {
+    .rm-back {
       transition:
         transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1),
         background-color 0.15s ease;
+    }
+    .rm-door img,
+    .rm-door small {
+      transition:
+        transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1),
+        filter 0.25s ease,
+        opacity 0.25s ease;
     }
     .rm-back:hover svg {
       transform: translateX(-3px);
@@ -183,9 +221,31 @@ const motion = css`
     .rm-back svg {
       transition: transform 0.18s ease;
     }
-    .rm-back:active,
-    .rm-step-btn:active {
+    .rm-back:active {
       transform: scale(0.92);
+    }
+
+    /* the light: it breathes, its rays sway, the dust drifts and glints */
+    .rm-light-cone {
+      animation: ${breathe} 7s ease-in-out infinite;
+    }
+    .rm-light-rays {
+      animation:
+        ${sway} 11s ease-in-out infinite,
+        ${shimmer} 6.5s ease-in-out infinite;
+    }
+    .rm-light-rays[data-b] {
+      animation:
+        ${swayBack} 15s ease-in-out infinite,
+        ${shimmer} 9s -3s ease-in-out infinite;
+    }
+    .rm-light-src {
+      animation: ${breathe} 5s ease-in-out infinite;
+    }
+    .rm-light-dust i {
+      animation:
+        ${moteFloat} var(--t) var(--d) ease-in-out infinite alternate,
+        ${moteTwinkle} var(--k) var(--d) ease-in-out infinite;
     }
 
     /* care effects */
@@ -265,7 +325,7 @@ export const RoomStyle = styled.div`
   --dock: 146px;
   /* as wide as the phone allows, giving way on short ones so the sticker
      clears the dock */
-  --disc: clamp(150px, min(100vw - 72px, 100dvh - 470px), 300px);
+  --disc: clamp(176px, min(100vw - 48px, 100dvh - 440px), 320px);
   position: relative;
   padding-bottom: var(--dock);
   color: var(--fg);
@@ -388,6 +448,143 @@ export const RoomStyle = styled.div`
   .pat div:nth-child(even) {
     margin-left: -120px;
   }
+  /* the words sit back behind the name and the bubble */
+  .rm-wall::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      70% 60% at 50% 38%,
+      color-mix(in srgb, var(--bg) 88%, transparent),
+      transparent 75%
+    );
+  }
+  /* one huge word behind the circle, the way a poster does */
+  .rm-mega {
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: calc(var(--pt) + var(--disc) * 0.12);
+    transform: translateX(-50%);
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: calc(var(--disc) * 0.78);
+    line-height: 1;
+    white-space: nowrap;
+    text-transform: uppercase;
+    color: transparent;
+    -webkit-text-stroke: 2px color-mix(in srgb, var(--a1) 30%, transparent);
+    pointer-events: none;
+  }
+  /* the light: a hazy cone from a source above, god rays swaying inside it,
+     and fine dust drifting and glinting where the light catches it */
+  .rm-light {
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: -340px;
+    bottom: 8px;
+    width: calc(var(--disc) * 2.8);
+    transform: translateX(-50%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+    --warm: #fff3d6;
+  }
+  .rm-light-cone,
+  .rm-light-rays {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%);
+  }
+  .rm-light-cone {
+    background:
+      radial-gradient(
+        ellipse 55% 38% at 50% 100%,
+        color-mix(in srgb, var(--a1) 40%, transparent),
+        transparent
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--warm) 38%, transparent) 0,
+        color-mix(in srgb, var(--warm) 14%, transparent) 22%,
+        color-mix(in srgb, var(--a1) 12%, transparent) 62%,
+        color-mix(in srgb, var(--a2) 20%, transparent) 100%
+      );
+    filter: blur(14px);
+  }
+  .rm-light-rays {
+    transform-origin: 50% 0;
+    background: conic-gradient(
+      from 180deg at 50% 0,
+      transparent 0 14deg,
+      color-mix(in srgb, var(--warm) 55%, transparent) 17deg,
+      transparent 20deg 24deg,
+      color-mix(in srgb, var(--warm) 38%, transparent) 26deg,
+      transparent 30deg 33deg,
+      color-mix(in srgb, var(--a1) 45%, transparent) 36deg,
+      transparent 41deg 45deg,
+      color-mix(in srgb, var(--warm) 50%, transparent) 47deg,
+      transparent 51deg 55deg,
+      color-mix(in srgb, var(--a2) 40%, transparent) 58deg,
+      transparent 63deg 68deg,
+      color-mix(in srgb, var(--warm) 34%, transparent) 70deg,
+      transparent 75deg 360deg
+    );
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent 88%);
+    mask-image: linear-gradient(180deg, #000, transparent 88%);
+    filter: blur(5px);
+    opacity: 0.6;
+  }
+  .rm-light-rays[data-b] {
+    transform: scaleX(-1);
+    opacity: 0.4;
+    filter: blur(9px);
+  }
+  .rm-light-src {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: calc(var(--disc) * 0.5);
+    height: calc(var(--disc) * 0.5);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--warm) 85%, transparent),
+      color-mix(in srgb, var(--a1) 28%, transparent) 55%,
+      transparent
+    );
+    filter: blur(6px);
+  }
+  .rm-light-dust i {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: var(--warm);
+    box-shadow:
+      0 0 calc(var(--s) * 2) color-mix(in srgb, var(--warm) 90%, transparent),
+      0 0 calc(var(--s) * 5) color-mix(in srgb, var(--a1) 70%, transparent);
+    opacity: 0.55;
+  }
+  .rm-stage::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    bottom: 6px;
+    width: calc(var(--disc) * 1.5);
+    height: calc(var(--disc) * 0.22);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--a1) 55%, transparent),
+      transparent
+    );
+    pointer-events: none;
+  }
   .rm-wall-sticker {
     position: absolute;
     right: 18px;
@@ -403,45 +600,35 @@ export const RoomStyle = styled.div`
     box-shadow: 3px 3px 0 var(--a2);
   }
 
-  /* ---------- HUD: the way back, the nameplate, its kin; the needs ---------- */
+  /* ---------- HUD: a poster title with the way back beside it; the level,
+     the three needs and the type orbit the circle instead of sitting in rows ---------- */
   .rm-hud {
+    --hb: 48px;
+    position: relative;
     display: grid;
-    gap: 10px;
-    --hb: 56px;
+    justify-items: center;
+    min-height: var(--hb);
+    padding: 0 calc(var(--hb) + 10px);
   }
-  /* one row at the head of the room: back, who it is, the others of its kind */
-  .rm-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-  .rm-back,
-  .rm-step {
-    flex: none;
+  .rm-back {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: var(--hb);
     height: var(--hb);
-    border-radius: 999px;
+    border-radius: 50%;
     color: var(--fg);
     background: var(--glass);
     backdrop-filter: blur(10px);
     box-shadow:
       inset 0 0 0 1px var(--line),
       0 10px 24px -14px rgba(0, 0, 0, 0.6);
-  }
-  .rm-back {
-    gap: 8px;
-    min-width: var(--hb);
-    padding: 0;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1;
     text-decoration: none;
   }
-  .rm-back:hover,
-  .rm-step-btn:hover {
+  .rm-back:hover {
     background-color: color-mix(in srgb, var(--a1) 22%, var(--glass));
   }
   .rm-back svg {
@@ -455,107 +642,43 @@ export const RoomStyle = styled.div`
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .rm-step {
-    gap: 2px;
-    margin-left: auto;
-    padding: 0 5px;
-  }
-  .rm-step-btn {
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    color: var(--fg);
-    text-decoration: none;
-  }
-  .rm-step-count {
-    min-width: 30px;
-    font-size: 12px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    text-align: center;
-    opacity: 0.8;
-  }
   .rm-name {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: fit-content;
+    display: grid;
+    justify-items: center;
+    gap: 7px;
     max-width: 100%;
     min-width: 0;
-    padding: 5px 16px 5px 5px;
-    border-radius: 999px;
-    background: var(--glass);
-    backdrop-filter: blur(10px);
-    box-shadow:
-      inset 0 0 0 1px var(--line),
-      0 10px 24px -14px rgba(0, 0, 0, 0.6);
-  }
-  .rm-medal {
-    position: relative;
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: conic-gradient(var(--a1) var(--lv), var(--track) 0);
-  }
-  .rm-medal::before {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: var(--bg);
-  }
-  .rm-medal b {
-    position: relative;
-    font-family: var(--font-display), system-ui, sans-serif;
-    font-size: 18px;
-    font-weight: 400;
-    line-height: 1;
-  }
-  .rm-medal small {
-    position: absolute;
-    left: 50%;
-    bottom: -5px;
-    padding: 0 5px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    color: #fff;
-    background: var(--heart);
-    font-size: 9px;
-    line-height: 14px;
-  }
-  .rm-id {
-    min-width: 0;
+    text-align: center;
   }
   .rm-name h1 {
+    display: -webkit-box;
+    max-width: 100%;
     overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     font-family: var(--font-display), system-ui, sans-serif;
-    font-size: clamp(18px, 5.6vw, 24px);
+    font-size: clamp(26px, 8.6vw, 40px);
     font-weight: 400;
-    line-height: 1.15;
+    line-height: 1.04;
     letter-spacing: 0.01em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+    text-shadow:
+      0 0 14px var(--bg),
+      0 0 4px var(--bg),
+      0 3px 0 color-mix(in srgb, var(--a1) 55%, transparent);
   }
   .rm-name p {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    overflow: hidden;
+    justify-content: center;
+    gap: 4px 10px;
     font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
+    font-weight: 700;
   }
-  .rm-name p > span:not(.rm-stars) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 0.8;
+  .rm-name p > span:not(.rm-stars):not(.rm-count) {
+    opacity: 0.85;
   }
   .rm-lv {
     position: absolute;
@@ -569,126 +692,226 @@ export const RoomStyle = styled.div`
     color: var(--star);
     letter-spacing: 1px;
   }
-  /* the nameplate's far end: how far to the next level of affection */
-  .rm-xp {
-    flex: none;
-    display: grid;
-    justify-items: end;
-    gap: 3px;
-    margin-left: auto;
-    padding-left: 8px;
-    line-height: 1;
-    text-align: right;
-  }
-  .rm-xp b {
-    font-family: var(--font-display), system-ui, sans-serif;
-    font-size: 15px;
-    font-weight: 400;
+  .rm-count {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--glass);
+    box-shadow: inset 0 0 0 1px var(--line);
     font-variant-numeric: tabular-nums;
+    line-height: 1.3;
   }
-  .rm-xp b::before {
-    content: '♥ ';
-    color: var(--heart);
+  /* the others of its species peek in at the stage's two edges, like figures
+     behind a half-open door: tap one, swipe, or press an arrow key to call it */
+  .rm-step {
+    display: contents;
   }
-  .rm-xp small {
-    font-size: 10.5px;
-    font-weight: 700;
-    opacity: 0.7;
-    white-space: nowrap;
+  .rm-door {
+    --w: max(46px, calc((100% - var(--disc)) / 2 + var(--disc) * 0.08));
+    position: absolute;
+    z-index: 2;
+    top: calc(var(--pt) + var(--disc) / 2);
+    width: var(--w);
+    height: calc(var(--disc) * 0.78);
+    margin-top: calc(var(--disc) * -0.39);
+    overflow: hidden;
+    color: var(--fg);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-mask-image: linear-gradient(var(--to), transparent, #000 55%);
+    mask-image: linear-gradient(var(--to), transparent, #000 55%);
   }
-  .rm-xp > i {
-    width: 64px;
-    height: 5px;
+  .rm-door-prev {
+    --to: 90deg;
+    left: 0;
+  }
+  .rm-door-next {
+    --to: 270deg;
+    right: 0;
+  }
+  .rm-door img {
+    position: absolute;
+    top: 50%;
+    width: calc(var(--disc) * 0.66);
+    max-width: none;
+    height: auto;
+    margin-top: calc(var(--disc) * -0.33);
+    object-fit: contain;
+    filter: brightness(0.5) saturate(0.7) blur(1.2px);
+    opacity: 0.85;
+    pointer-events: none;
+    user-select: none;
+  }
+  .rm-door-prev img {
+    right: calc(var(--w) * -0.15);
+  }
+  .rm-door-next img {
+    left: calc(var(--w) * -0.15);
+    transform: scaleX(-1);
+  }
+  .rm-door small {
+    position: absolute;
+    bottom: 6%;
+    left: 50%;
+    max-width: 92%;
+    padding: 2px 8px;
     overflow: hidden;
     border-radius: 999px;
-    background: var(--track);
+    background: var(--glass);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-size: 10px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transform: translate(-50%, 8px);
+    opacity: 0;
   }
-  .rm-xp > i > i {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--heart), var(--a1));
+  .rm-door:hover img,
+  .rm-door:focus-visible img {
+    filter: brightness(0.95) saturate(1) blur(0);
+    opacity: 1;
   }
-  @media (max-width: 359px) {
-    .rm-xp small {
-      display: none;
-    }
-    .rm-xp > i {
-      width: 44px;
-    }
+  .rm-door-prev:hover img,
+  .rm-door-prev:focus-visible img {
+    transform: translateX(10px);
   }
-  .rm-needs {
-    min-height: 46px;
+  .rm-door-next:hover img,
+  .rm-door-next:focus-visible img {
+    transform: translateX(-10px) scaleX(-1);
+  }
+  .rm-door:hover small,
+  .rm-door:focus-visible small {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* ---------- the orbit: every piece sits on the circle's rim by angle ---------- */
+  .rm-medal,
+  .rm-ring,
+  .rm-sticker {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(var(--ang))
+      translateY(calc(var(--R) * -1 - var(--out)))
+      rotate(calc(var(--ang) * -1 + var(--tilt, 0deg)));
+  }
+  .rm-medal {
+    --ang: -40deg;
+    --out: 2px;
+    display: grid;
+    place-items: center;
+    width: var(--ms);
+    height: var(--ms);
+    border-radius: 50%;
+    background: conic-gradient(var(--a1) var(--lv), var(--track) 0);
+    box-shadow: 0 12px 22px -10px rgba(0, 0, 0, 0.7);
+  }
+  .rm-medal::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+  .rm-medal b {
+    position: relative;
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: calc(var(--ms) * 0.4);
+    font-weight: 400;
+    line-height: 1;
+  }
+  .rm-medal small {
+    position: absolute;
+    left: 50%;
+    bottom: -8px;
+    padding: 0 7px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    color: #fff;
+    background: var(--heart);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 16px;
+    white-space: nowrap;
   }
   .rm-rings {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    display: contents;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .rm-ring {
-    position: relative;
+    --out: 12px;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 4px 6px;
-    min-width: 0;
-    padding: 7px 9px;
-    border-radius: 14px;
-    background: var(--glass);
-    backdrop-filter: blur(10px);
-    box-shadow: inset 0 0 0 1px var(--line);
+    place-items: center;
+    width: var(--gs);
+    height: var(--gs);
+    border-radius: 50%;
+    background: conic-gradient(var(--a1) var(--p, 0%), var(--track) 0);
+    box-shadow: 0 12px 22px -10px rgba(0, 0, 0, 0.7);
+  }
+  .rm-ring::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+  .rm-ring:nth-child(1) {
+    --ang: 218deg;
+  }
+  .rm-ring:nth-child(2) {
+    --ang: 180deg;
+  }
+  .rm-ring:nth-child(3) {
+    --ang: 142deg;
   }
   .rm-ring-icon {
-    grid-row: span 2;
-    font-size: 17px;
+    position: relative;
+    font-size: calc(var(--gs) * 0.42);
     line-height: 1;
   }
   .rm-ring-text {
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    bottom: -9px;
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
     gap: 4px;
-    min-width: 0;
-    line-height: 1;
+    padding: 0 7px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--line);
+    line-height: 16px;
+    white-space: nowrap;
   }
   .rm-ring-text small {
-    overflow: hidden;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    text-overflow: ellipsis;
     opacity: 0.8;
   }
   .rm-ring-text b {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
   }
   .rm-meter {
-    display: block;
-    height: 5px;
-    overflow: hidden;
-    border-radius: 3px;
-    background: var(--track);
+    display: none;
   }
-  .rm-meter i {
-    display: block;
-    width: var(--p);
-    height: 100%;
-    border-radius: inherit;
-    background: var(--a1);
-  }
-  /* loading: the meter's place, no number yet */
+  /* loading: the ring's place, no number yet */
   .rm-ring[data-pending] b {
     visibility: hidden;
   }
   .rm-ring[data-low] {
-    box-shadow: inset 0 0 0 1.5px var(--warn);
+    background: conic-gradient(var(--warn) var(--p, 0%), var(--track) 0);
   }
-  .rm-ring[data-low] .rm-meter i {
+  .rm-ring[data-low] .rm-ring-text {
+    color: #fff;
     background: var(--warn);
+    box-shadow: none;
   }
   .rm-ring[data-need='hunger'] {
     --fxc: var(--feed);
@@ -758,14 +981,18 @@ export const RoomStyle = styled.div`
 
   /* ---------- the stage: the circle, the Pokémon, the sticker ---------- */
   .rm-stage {
+    --pt: 30px;
     position: relative;
     z-index: 1;
     display: grid;
     justify-items: center;
-    padding-top: 18px;
+    padding-top: var(--pt);
+    padding-bottom: 52px;
   }
   .rm-disc {
     --R: calc(var(--disc) / 2);
+    --ms: 58px;
+    --gs: 52px;
     --u: calc(var(--R) / 6);
     position: relative;
     display: flex;
@@ -821,21 +1048,20 @@ export const RoomStyle = styled.div`
     border-color: rgba(255, 212, 71, 0.7);
   }
   .rm-sticker {
-    position: relative;
-    z-index: 2;
-    margin-top: -18px;
-    max-width: calc(100vw - 48px);
+    --ang: 38deg;
+    --out: 6px;
+    --tilt: -4deg;
+    max-width: calc(var(--disc) * 0.8);
     overflow: hidden;
-    padding: 7px 16px;
+    padding: 6px 12px;
     border-radius: 10px;
-    transform: rotate(-3deg);
     color: var(--ink);
     background: var(--a1);
     box-shadow:
-      4px 4px 0 var(--a2),
+      3px 3px 0 var(--a2),
       0 12px 22px -12px rgba(0, 0, 0, 0.6);
     font-family: var(--font-display), system-ui, sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     line-height: 1.1;
     letter-spacing: 0.04em;
     text-overflow: ellipsis;
@@ -1056,7 +1282,7 @@ export const RoomStyle = styled.div`
     position: absolute;
     z-index: -1;
     left: 50%;
-    top: calc(var(--disc) / 2 + 18px);
+    top: calc(var(--disc) / 2 + var(--pt));
     width: calc(var(--disc) * 2.3);
     aspect-ratio: 1;
     border-radius: 50%;
@@ -1227,7 +1453,7 @@ export const RoomStyle = styled.div`
   .rm-field input:focus-visible,
   .rm-close:focus-visible,
   .rm-back:focus-visible,
-  .rm-step-btn:focus-visible {
+  .rm-door:focus-visible {
     outline: 3px solid var(--a1);
     outline-offset: 2px;
   }
@@ -1382,10 +1608,10 @@ export const RoomStyle = styled.div`
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--a1) 25%, transparent);
   }
   .rm-level {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    display: flex;
     align-items: baseline;
-    gap: 8px 10px;
+    justify-content: space-between;
+    gap: 10px;
   }
   .rm-level b {
     font-family: var(--font-display), system-ui, sans-serif;
@@ -1397,58 +1623,119 @@ export const RoomStyle = styled.div`
     color: var(--heart);
   }
   .rm-level small {
-    justify-self: end;
     font-size: 12px;
     font-weight: 600;
     opacity: 0.75;
   }
-  .rm-level-bar {
-    grid-column: 1 / -1;
-    height: 10px;
-    overflow: hidden;
+  /* the way to the top level: a heart line, a stop at each reward */
+  .rm-track {
+    position: relative;
+    height: 74px;
+    margin: 6px 22px 0;
+  }
+  .rm-track > i {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10px;
+    height: 8px;
     border-radius: 999px;
-    background: var(--track);
+    background:
+      linear-gradient(90deg, var(--a1), var(--heart)) 0 0 / var(--reach) 100%
+        no-repeat,
+      color-mix(in srgb, var(--a1) 20%, var(--track));
   }
-  .rm-level-bar i {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--heart), var(--a1));
-  }
-  .rm-unlocks {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    margin: 12px 0 0;
+  .rm-track ul {
+    margin: 0;
     padding: 0;
     list-style: none;
   }
-  .rm-unlocks li {
+  .rm-track li {
+    position: absolute;
+    left: var(--at);
+    top: 0;
     display: grid;
     justify-items: center;
-    gap: 2px;
-    min-width: 0;
-    padding: 8px 4px;
-    border-radius: 12px;
-    background: var(--surface);
+    gap: 1px;
+    width: 76px;
+    margin-left: -38px;
     text-align: center;
-    opacity: 0.55;
+    opacity: 0.6;
   }
-  .rm-unlocks li[data-open] {
-    background: color-mix(in srgb, var(--a1) 18%, transparent);
-    box-shadow: inset 0 0 0 1.5px var(--a1);
-    opacity: 1;
+  .rm-track li span {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: -8px;
+    border-radius: 50%;
+    color: var(--a1);
+    background: var(--bg);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--a1) 48%, var(--track));
+    font-size: 14px;
+    line-height: 1;
   }
-  .rm-unlocks span {
-    font-size: 18px;
-    line-height: 1.2;
-  }
-  .rm-unlocks b {
+  .rm-track li b {
+    margin-top: 4px;
     font-size: 11px;
   }
-  .rm-unlocks small {
+  .rm-track li small {
     font-size: 10px;
     opacity: 0.8;
+  }
+  .rm-track li[data-open] {
+    opacity: 1;
+  }
+  .rm-track li[data-open] span {
+    color: var(--ink);
+    background: var(--heart);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--heart) 30%, transparent),
+      0 6px 14px -4px var(--heart);
+  }
+  /* one sheet of paper in the room's colours, its sections ruled apart */
+  .rm-paper {
+    border-radius: 22px;
+    background: linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--a1) 14%, var(--surface)),
+      color-mix(in srgb, var(--a2) 30%, var(--surface))
+    );
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 20px 40px -28px color-mix(in srgb, var(--a1) 70%, #000);
+  }
+  .rm-paper > .rm-card {
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .rm-paper > .rm-card + .rm-card {
+    border-top: 1px dashed var(--line);
+  }
+  .rm-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .rm-radar-n {
+    fill: var(--a1);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .rm-radar-hint {
+    justify-self: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.85;
   }
   .rm-radar {
     display: grid;
@@ -1458,7 +1745,7 @@ export const RoomStyle = styled.div`
   .rm-radar svg {
     display: block;
     width: 100%;
-    max-width: 260px;
+    max-width: 320px;
     margin: 0 auto;
     overflow: visible;
   }
@@ -1469,9 +1756,10 @@ export const RoomStyle = styled.div`
     stroke-width: 1;
   }
   .rm-radar-shape {
-    fill: color-mix(in srgb, var(--a1) 35%, transparent);
+    fill: color-mix(in srgb, var(--a1) 45%, transparent);
     stroke: var(--a1);
-    stroke-width: 2;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--a1) 70%, transparent));
     stroke-linejoin: round;
   }
   .rm-radar text {
@@ -1629,6 +1917,7 @@ export const RoomStyle = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 8px;
   }
   .rm-field input {
     flex: 1 1 140px;
@@ -1807,7 +2096,7 @@ export const RoomStyle = styled.div`
 
   /* ---------- desktop: the scene card left, the profile column right ---------- */
   @media (min-width: 960px) {
-    --disc: clamp(220px, calc(100dvh - 515px), 400px);
+    --disc: clamp(220px, calc(100dvh - 555px), 400px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 400px;
     grid-template-rows: minmax(0, 1fr) auto auto;
@@ -1841,48 +2130,33 @@ export const RoomStyle = styled.div`
       right: 40px;
     }
     .rm-hud {
-      gap: 12px;
-      --hb: 58px;
-    }
-    .rm-head {
-      gap: 10px;
-    }
-    .rm-back {
-      padding: 0 22px 0 16px;
-    }
-    .rm-back-text {
-      position: static;
-      width: auto;
-      height: auto;
-      overflow: visible;
-      clip-path: none;
+      --hb: 56px;
+      padding: 0 calc(var(--hb) + 16px);
     }
     .rm-name {
-      flex: 0 1 auto;
-      gap: 12px;
-      padding: 6px 22px 6px 6px;
-    }
-    .rm-xp {
-      display: none;
-    }
-    .rm-medal {
-      width: 58px;
-      height: 58px;
-    }
-    .rm-medal b {
-      font-size: 22px;
+      gap: 9px;
     }
     .rm-name h1 {
-      font-size: 30px;
+      -webkit-line-clamp: 1;
+      font-size: clamp(34px, 3.6vw, 52px);
     }
     .rm-name p {
+      gap: 4px 12px;
       font-size: 13px;
     }
-    .rm-ring {
-      padding: 9px 12px;
+    .rm-disc {
+      --ms: 76px;
+      --gs: 64px;
     }
-    .rm-ring-icon {
-      font-size: 20px;
+    .rm-medal small {
+      font-size: 11px;
+      line-height: 18px;
+    }
+    .rm-ring-text small {
+      font-size: 11px;
+    }
+    .rm-ring-text b {
+      font-size: 12px;
     }
     .rm-bubble {
       max-width: 440px;
@@ -1890,7 +2164,8 @@ export const RoomStyle = styled.div`
       font-size: 15px;
     }
     .rm-stage {
-      padding-top: 24px;
+      --pt: 36px;
+      padding-bottom: 66px;
     }
     .rm-disc::before {
       inset: -26px;
@@ -1900,9 +2175,8 @@ export const RoomStyle = styled.div`
       height: 18px;
     }
     .rm-sticker {
-      margin-top: -20px;
       font-size: 20px;
-      padding: 8px 20px;
+      padding: 8px 18px;
     }
     .rm-dock {
       display: contents;
@@ -1960,34 +2234,86 @@ export const RoomStyle = styled.div`
 
   @media (max-width: 359px) {
     .rm-hud {
-      --hb: 48px;
+      --hb: 44px;
     }
-    .rm-head {
-      gap: 6px;
+    .rm-disc {
+      --ms: 52px;
+      --gs: 46px;
     }
-    .rm-step-btn {
-      width: 34px;
-      height: 34px;
+  }
+  /* phone: let the Pokémon own the stage; smaller orbit badges sit outside it */
+  @media (max-width: 599px) {
+    .rm-room {
+      gap: 2px;
+      padding: 10px 12px 12px;
+      min-height: calc(100dvh - 64px - var(--dock));
     }
-    .rm-step-count {
-      display: none;
+    .rm-stage {
+      --pt: 20px;
+      padding-bottom: 44px;
+    }
+    .rm-disc {
+      --ms: 46px;
+      --gs: 38px;
+      box-shadow:
+        0 0 0 3px var(--a1),
+        0 0 0 8px color-mix(in srgb, var(--a1) 20%, transparent),
+        0 20px 46px -12px color-mix(in srgb, var(--a2) 80%, transparent);
     }
     .rm-ring {
-      gap: 4px 5px;
-      padding: 7px 7px;
+      --out: 7px;
+    }
+    .rm-ring::before {
+      inset: 3px;
+    }
+    .rm-ring-text {
+      bottom: -6px;
+      gap: 2px;
+      padding: 0 5px;
+      line-height: 13px;
+    }
+    .rm-ring-text small {
+      font-size: 8px;
+    }
+    .rm-ring-text b {
+      font-size: 9px;
     }
     .rm-ring-icon {
-      font-size: 15px;
+      font-size: calc(var(--gs) * 0.38);
+    }
+    .rm-medal {
+      --out: 1px;
+    }
+    .rm-medal small {
+      bottom: -6px;
+      padding-inline: 5px;
+      font-size: 8px;
+      line-height: 13px;
+    }
+    .rm-sticker {
+      display: none;
+    }
+    .rm-mega {
+      top: calc(var(--pt) + var(--disc) * 0.2);
+      font-size: calc(var(--disc) * 0.62);
+    }
+    .rm-door {
+      top: calc(var(--pt) + var(--disc) / 2);
+      height: calc(var(--disc) * 0.62);
+      margin-top: calc(var(--disc) * -0.31);
+    }
+    .rm-name p > span:not(.rm-stars):not(.rm-count) {
+      display: none;
+    }
+  }
+  /* the narrow desktop room (~500px): the care labels stay on one line */
+  @media (min-width: 960px) and (max-width: 1199px) {
+    .rm-act {
+      white-space: nowrap;
     }
   }
   @media (min-width: 1200px) {
-    --disc: clamp(240px, calc(100dvh - 460px), 400px);
-
-    .rm-hud {
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: center;
-      gap: 16px;
-    }
+    --disc: clamp(220px, calc(100dvh - 500px), 400px);
   }
 
   ${motion}

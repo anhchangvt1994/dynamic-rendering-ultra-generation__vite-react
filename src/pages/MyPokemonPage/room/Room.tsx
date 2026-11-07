@@ -31,16 +31,35 @@ import {
 import { myPokemonPath } from '../paths.mjs'
 import CareBar from './CareBar'
 import CareFx, { NEED_OF, type Fx } from './CareFx'
-import Chevron from './Chevron'
 import FeedSheet from './FeedSheet'
 import NeedRings, { LOW_NEED } from './NeedRings'
 import ProfileSheet from './ProfileSheet'
 import RoomSprite from './RoomSprite'
 import { contrast, themeFor } from './roomTheme.mjs'
+import { spriteFor } from './sprite.mjs'
 import { RoomStyle } from './styles'
 import { useReducedMotion } from './useMedia'
 
 const WALL_LINES = 7
+
+// fine dust in the light, placed once: wider down the cone, each with its own pace
+const rnd = (n: number) => {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453
+  return x - Math.floor(x)
+}
+const DUST = Array.from({ length: 26 }, (_, i) => {
+  const f = 0.3 + 0.7 * rnd(i * 5 + 1)
+  return {
+    '--x': `${(50 + (rnd(i * 5 + 2) - 0.5) * (12 + 88 * f)).toFixed(1)}%`,
+    '--y': `${(f * 100).toFixed(1)}%`,
+    '--s': `${(1.4 + rnd(i * 5 + 3) * 2.6).toFixed(1)}px`,
+    '--d': `${(-rnd(i * 5 + 4) * 12).toFixed(1)}s`,
+    '--t': `${(6 + rnd(i * 5 + 5) * 8).toFixed(1)}s`,
+    '--k': `${(2.2 + rnd(i * 5 + 6) * 3.4).toFixed(1)}s`,
+    '--dx': `${((rnd(i * 5 + 7) - 0.5) * 36).toFixed(0)}px`,
+    '--dy': `${(-14 - rnd(i * 5 + 8) * 46).toFixed(0)}px`,
+  } as CSSProperties
+})
 const FX_MS = 2200
 
 // the sprite's answer to each care, played on its own wrapper
@@ -128,6 +147,7 @@ export default function Room({
   returnIndex,
   back,
 }: Props) {
+  const navigate = useNavigate()
   const care = useCare(individual)
   const { dishes, menu } = useDishes(true)
   const [spent, setSpent] = useState<Record<string, number>>({})
@@ -232,6 +252,30 @@ export default function Room({
   const step = (by: number) =>
     siblings[(at + by + siblings.length) % siblings.length]
   const stepName = (one: Individual) => one.nickname ?? species
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const moveTo = (by: number) => {
+    const next = step(by)
+    if (next)
+      navigate(myPokemonPath(next.id), { state: { returnTo, returnIndex } })
+  }
+  useEffect(() => {
+    if (siblings.length < 2 || at < 0) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          /INPUT|TEXTAREA|SELECT|BUTTON/.test(target.tagName))
+      )
+        return
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault()
+        moveTo(event.key === 'ArrowLeft' ? -1 : 1)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [at, siblings])
 
   const words = theme.words.length ? theme.words : ['POKÉMON']
   const dark = contrast(theme.bg, '#ffffff') > contrast(theme.bg, '#111111')
@@ -275,81 +319,26 @@ export default function Room({
             {unlocks.sticker && <span className="rm-wall-sticker">★</span>}
           </div>
           <div className="rm-hud">
-            <div className="rm-head">
-              {back}
-              <header className="rm-name">
+            {back}
+            <header className="rm-name">
+              <h1>{name}</h1>
+              <p>
+                <span className="rm-lv">Lv {level}</span>
+                {individual.nickname && <span>{species}</span>}
                 <span
-                  className="rm-medal"
-                  style={{ '--lv': `${toNext}%` } as CSSProperties}
-                  aria-hidden="true"
+                  className="rm-stars"
+                  aria-label={starLabel(individual.potential.stars)}
                 >
-                  <b>{level}</b>
-                  <small>♥</small>
+                  {'★'.repeat(individual.potential.stars)}
+                  {'☆'.repeat(5 - individual.potential.stars)}
                 </span>
-                <span className="rm-id">
-                  <h1>{name}</h1>
-                  <p>
-                    <span className="rm-lv">Lv {level}</span>
-                    {individual.nickname && <span>{species}</span>}
-                    <span
-                      className="rm-stars"
-                      aria-label={starLabel(individual.potential.stars)}
-                    >
-                      {'★'.repeat(individual.potential.stars)}
-                      {'☆'.repeat(5 - individual.potential.stars)}
-                    </span>
-                  </p>
-                </span>
-                <span className="rm-xp" aria-hidden="true">
-                  <b>
-                    {nextAt === null
-                      ? 'Tối đa'
-                      : `${affection - fromAt}/${nextAt - fromAt}`}
-                  </b>
-                  <small>
-                    {nextAt === null ? 'thân thiết' : `tới Lv ${level + 1}`}
-                  </small>
-                  <i>
-                    <i style={{ width: `${toNext}%` }} />
-                  </i>
-                </span>
-              </header>
-              {siblings.length > 1 && at >= 0 && (
-                <nav className="rm-step" aria-label="Cùng loài">
-                  <LinkCustom
-                    className="rm-step-btn"
-                    to={myPokemonPath(step(-1).id)}
-                    state={{ returnTo, returnIndex }}
-                    aria-label={`Trước: ${stepName(step(-1))}`}
-                  >
-                    <Chevron size={16} />
-                  </LinkCustom>
-                  <span className="rm-step-count" aria-hidden="true">
+                {siblings.length > 1 && at >= 0 && (
+                  <span className="rm-count" aria-hidden="true">
                     {at + 1}/{siblings.length}
                   </span>
-                  <LinkCustom
-                    className="rm-step-btn"
-                    to={myPokemonPath(step(1).id)}
-                    state={{ returnTo, returnIndex }}
-                    aria-label={`Tiếp: ${stepName(step(1))}`}
-                  >
-                    <Chevron dir="right" size={16} />
-                  </LinkCustom>
-                </nav>
-              )}
-            </div>
-            <div className="rm-needs">
-              {(needs || !care.error) && (
-                <NeedRings
-                  needs={needs}
-                  bump={
-                    fx && NEED_OF[fx.kind]
-                      ? { need: NEED_OF[fx.kind]!, n: fx.n }
-                      : undefined
-                  }
-                />
-              )}
-            </div>
+                )}
+              </p>
+            </header>
           </div>
 
           <div className="rm-bubble-wrap">
@@ -375,7 +364,34 @@ export default function Room({
           </div>
         </div>
 
-        <div className="rm-stage">
+        <div
+          className="rm-stage"
+          onTouchStart={(event) => {
+            const touch = event.touches[0]
+            touchStart.current = { x: touch.clientX, y: touch.clientY }
+          }}
+          onTouchEnd={(event) => {
+            const start = touchStart.current
+            touchStart.current = null
+            if (!start || siblings.length < 2 || at < 0) return
+            const touch = event.changedTouches[0]
+            const dx = touch.clientX - start.x
+            const dy = touch.clientY - start.y
+            if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3)
+              moveTo(dx < 0 ? 1 : -1)
+          }}
+        >
+          <div className="rm-light" aria-hidden="true">
+            <span className="rm-light-cone" />
+            <span className="rm-light-rays" />
+            <span className="rm-light-rays" data-b />
+            <span className="rm-light-src" />
+            <span className="rm-light-dust">
+              {DUST.map((style, i) => (
+                <i key={i} style={style} />
+              ))}
+            </span>
+          </div>
           {fx && (
             <span
               className="rm-glow"
@@ -384,6 +400,35 @@ export default function Room({
               aria-hidden="true"
             />
           )}
+          {siblings.length > 1 && at >= 0 && (
+            <nav className="rm-step" aria-label="Cùng loài">
+              {[-1, 1]
+                .filter((by) => by === 1 || siblings.length > 2)
+                .map((by) => {
+                  const one = step(by)
+                  return (
+                    <LinkCustom
+                      key={by}
+                      className={`rm-door ${by < 0 ? 'rm-door-prev' : 'rm-door-next'}`}
+                      to={myPokemonPath(one.id)}
+                      state={{ returnTo, returnIndex }}
+                      aria-label={`${by < 0 ? 'Pokémon trước' : 'Pokémon tiếp'}: ${stepName(one)}`}
+                    >
+                      <img
+                        src={spriteFor(one.speciesId).src}
+                        alt=""
+                        draggable={false}
+                        loading="lazy"
+                      />
+                      <small aria-hidden="true">{stepName(one)}</small>
+                    </LinkCustom>
+                  )
+                })}
+            </nav>
+          )}
+          <span className="rm-mega" aria-hidden="true">
+            {words[0]}
+          </span>
           <div className="rm-disc" ref={disc}>
             {unlocks.sparkles && (
               <span className="rm-sparkles" aria-hidden="true">
@@ -403,8 +448,30 @@ export default function Room({
               />
             </span>
             {fx && <CareFx key={fx.n} fx={fx} radius={discWidth / 2} />}
+            <span
+              className="rm-medal"
+              style={{ '--lv': `${toNext}%` } as CSSProperties}
+              aria-hidden="true"
+            >
+              <b>{level}</b>
+              <small>
+                {nextAt === null
+                  ? '♥ Tối đa'
+                  : `♥ ${affection - fromAt}/${nextAt - fromAt}`}
+              </small>
+            </span>
+            {(needs || !care.error) && (
+              <NeedRings
+                needs={needs}
+                bump={
+                  fx && NEED_OF[fx.kind]
+                    ? { need: NEED_OF[fx.kind]!, n: fx.n }
+                    : undefined
+                }
+              />
+            )}
+            <span className="rm-sticker">{theme.sticker || 'Pokémon'}</span>
           </div>
-          <span className="rm-sticker">{theme.sticker || 'Pokémon'}</span>
         </div>
 
         {care.error && (
