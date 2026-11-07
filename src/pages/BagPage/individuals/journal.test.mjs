@@ -237,7 +237,7 @@ test('a v1 individual in the snapshot is upgraded on the first read, once', asyn
     vibe: async (species) => (asked.push(species), 'fierce'),
   })
   const [got] = await journal.listLocalIndividuals()
-  assert.deepEqual(asked, [25, 25], 'the individual and its receipt')
+  assert.deepEqual(asked, [25], 'once per species, for the individual and its receipt')
   assert.deepEqual(got.appearance, fresh.appearance)
   const stored = JSON.parse(storage.getItem(SHARD_KEY))
   assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
@@ -290,6 +290,45 @@ test('a trade takes the species vibe; a failing vibe falls back to the pool', as
     vibe: async () => Promise.reject(new Error('down')),
   }).tradeLocalCard(OP2, 25)
   assert.deepEqual(b.traits, await individualTraits(b.individualId))
+})
+test('the upgrade asks vibes before the lock: a slow network never holds other tabs', async () => {
+  const a = '9e3779b1-0000-4000-8000-000000000005'
+  const b = '9e3779b1-0000-4000-8000-000000000006'
+  const base = { [a]: await individualTraits(a), [b]: await individualTraits(b) }
+  const stale = (iid, speciesId) => ({
+    id: iid,
+    speciesId,
+    nickname: null,
+    personality: base[iid].personality,
+    appearance: { ...base[iid].appearance, v: 2, palette: 'ember' },
+    potential: base[iid].potential,
+    createdAt: '2026-11-04T00:00:00.000Z',
+  })
+  const storage = seed({}, { individuals: { [a]: stale(a, 4), [b]: stale(b, 7) } })
+  let held = false
+  const inner = mutex()
+  const lock = (name, fn) =>
+    inner(name, async () => {
+      held = true
+      try {
+        return await fn()
+      } finally {
+        held = false
+      }
+    })
+  const asked = []
+  const journal = make(storage, {
+    lock,
+    vibe: async (species) => {
+      asked.push([species, held])
+      return species === 4 ? 'fierce' : 'nature'
+    },
+  })
+  await journal.listLocalIndividuals()
+  assert.deepEqual(asked.sort(), [[4, false], [7, false]])
+  const stored = read(storage)
+  assert.deepEqual(stored.individuals[a].appearance, (await individualTraits(a, 'fierce')).appearance)
+  assert.deepEqual(stored.individuals[b].appearance, (await individualTraits(b, 'nature')).appearance)
 })
 test('a v2 individual (a removed palette) is re-derived to v3, a v3 one is left', async () => {
   const id = '9e3779b1-0000-4000-8000-000000000003'

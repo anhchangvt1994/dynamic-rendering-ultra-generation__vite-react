@@ -64,6 +64,7 @@ const save: VibeDeps['save'] = async (row) => {
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
     body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }),
+    signal: AbortSignal.timeout(5000),
   })
 }
 

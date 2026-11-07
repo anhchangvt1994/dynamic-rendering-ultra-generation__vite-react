@@ -62,6 +62,16 @@ test('Pokédex data that can not be read is 502, nothing stored', async () => {
   }
 })
 
+test('a hung store does not hold the answer', async () => {
+  const t = Date.now()
+  const r = await vibeFor(
+    '25',
+    deps({ save: () => new Promise(() => {}), saveWaitMs: 20 })
+  )
+  assert.equal(r.status, 200)
+  assert.ok(Date.now() - t < 1000)
+})
+
 test('a failed store still answers', async () => {
   const r = await vibeFor(
     '25',

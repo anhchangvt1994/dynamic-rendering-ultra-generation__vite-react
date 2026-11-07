@@ -32,6 +32,23 @@ test('any failure is null and is asked again later', async () => {
   assert.equal(await flaky(130), 'fierce')
 })
 
+test('a hung route gives up: null after the timeout, asked again later', async () => {
+  let calls = 0
+  let signal
+  const vibe = createSpeciesVibe(
+    async (url, init) => {
+      signal = init?.signal
+      return ++calls === 1 ? new Promise(() => {}) : ok({ vibe: 'mystic' })()
+    },
+    { timeoutMs: 20 }
+  )
+  const t = Date.now()
+  assert.equal(await vibe(94), null)
+  assert.ok(Date.now() - t < 1000)
+  assert.ok(signal instanceof AbortSignal, 'the fetch can be aborted')
+  assert.equal(await vibe(94), 'mystic')
+})
+
 test('an invalid species asks nothing', async () => {
   let calls = 0
   const vibe = createSpeciesVibe(async () => (calls++, ok({ vibe: 'cute' })()))

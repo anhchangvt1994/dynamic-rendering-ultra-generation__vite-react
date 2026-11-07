@@ -62,6 +62,16 @@ export async function upgradeSnapshot(snapshot, vibe = async () => null) {
   return changed
 }
 
+// The species whose individuals or receipts still need the v3 upgrade.
+const staleSpecies = (snapshot) => {
+  const out = new Set()
+  for (const one of Object.values(snapshot.individuals ?? {}))
+    if (one?.appearance?.v !== 3) out.add(one?.speciesId)
+  for (const r of Object.values(snapshot.trades ?? {}))
+    if (r?.traits?.appearance?.v !== 3) out.add(r?.speciesId)
+  return out
+}
+
 export function createShardJournal({
   storage = globalThis.localStorage,
   lock = webLock(),
@@ -76,10 +86,26 @@ export function createShardJournal({
     return lock(SHARD_KEY, fn)
   }
   const load = () => readShardSnapshot(storage)
-  // the reads that hand out individuals see v2 only
-  const loadUpgraded = async () => {
+  // Vibes for these species (and every stale one), asked in parallel BEFORE
+  // the lock — a slow network never holds other tabs. A corrupt snapshot is
+  // left for the locked read to report.
+  const vibesBefore = async (...species) => {
+    const wanted = new Set(species)
+    try {
+      for (const s of staleSpecies(load())) wanted.add(s)
+    } catch {
+      // reported inside the lock
+    }
+    const list = [...wanted]
+    const got = await Promise.all(list.map((s) => safeVibe(vibe, s)))
+    return new Map(list.map((s, i) => [s, got[i]]))
+  }
+  // the reads that hand out individuals see v3 only; a species not asked
+  // before the lock (changed meanwhile) draws from the pool
+  const loadUpgraded = async (vibes) => {
     const snapshot = load()
-    if (await upgradeSnapshot(snapshot, vibe)) save(snapshot)
+    if (await upgradeSnapshot(snapshot, async (s) => vibes.get(s) ?? null))
+      save(snapshot)
     return snapshot
   }
   const save = (snapshot) =>
@@ -156,9 +182,10 @@ export function createShardJournal({
       if (!validSpecies(speciesId)) throw fail('invalid_species')
       operationId = operationId.toLowerCase()
       // asked outside the lock: a slow network never holds other tabs
-      const speciesVibeNow = await safeVibe(vibe, speciesId)
+      const vibes = await vibesBefore(speciesId)
+      const speciesVibeNow = vibes.get(speciesId) ?? null
       return exclusive(async () => {
-        const snapshot = await loadUpgraded()
+        const snapshot = await loadUpgraded(vibes)
         const prior = snapshot.trades[operationId]
         if (prior) {
           if (prior.speciesId !== speciesId) throw fail('operation_conflict')
@@ -206,15 +233,17 @@ export function createShardJournal({
         }
         return { individualId: one.id, nickname: one.nickname }
       }),
-    listLocalIndividuals: (speciesId) =>
-      exclusive(async () =>
-        Object.values((await loadUpgraded()).individuals)
+    listLocalIndividuals: async (speciesId) => {
+      const vibes = await vibesBefore()
+      return exclusive(async () =>
+        Object.values((await loadUpgraded(vibes)).individuals)
           .filter((i) => speciesId === undefined || i.speciesId === speciesId)
           .sort(
             (a, b) =>
               b.createdAt.localeCompare(a.createdAt) || (a.id < b.id ? 1 : -1)
           )
-      ),
+      )
+    },
     craftLocalCard: (operationId, speciesId) =>
       exclusive(async () => {
         if (!validOperation(operationId)) throw fail('invalid_operation')
