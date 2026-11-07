@@ -126,15 +126,11 @@ void main() {
     top = max(top, w[i]);
   }
   vec3 out_ = lab;
-  float main_ = 0.0;
   if (sum > 1e-6) {
     for (int i = 0; i < 3; i++) {
       float k = w[i] / sum * free;
       out_ += k * (uTarget[i] - uSource[i]);
     }
-    // the main region at full strength, even where a neighbouring cluster
-    // shares its hue (a shade of the same colour)
-    main_ = w[0] / top;
   }
   if (uEffect == 1) {
     vec3 metal = vec3(0.5 + (out_.x - 0.5) * 1.35, out_.yz * 0.6);
@@ -144,13 +140,16 @@ void main() {
   if (uHasMarks > 0.5) {
     vec4 flow = texture2D(uFlow, cellUv(uv, uFrame, uFlowCols, vec2(uTile), uFlowSize));
     vec4 mark = texture2D(uMarks, flow.rg);
-    float cover = mark.a * flow.b * main_ * free;
+    // on any region pixel (marks sit on the whole body), fading out where a
+    // pixel is near no region at all
+    float cover = mark.a * flow.b * free * smoothstep(0.05, 0.3, top);
     if (cover > 0.001) {
       vec3 tone = mark.rgb / max(mark.a, 1e-4);
       tone /= max(tone.r + tone.g + tone.b, 1e-4);
       vec3 ink = tone.r * uDark + tone.g * uLight + tone.b * uAccent;
-      // keep the body's shading under the mark
-      ink.x = clamp(ink.x + (out_.x - uTarget[0].x), 0.0, 1.0);
+      // keep half the body's shading under the mark: enough to follow the
+      // form, not so much that a dark shade swallows a dark mark
+      ink.x = clamp(ink.x + 0.5 * (out_.x - uTarget[0].x), 0.0, 1.0);
       out_ = mix(out_, ink, cover);
     }
   }

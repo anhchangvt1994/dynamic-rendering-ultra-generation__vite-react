@@ -12,14 +12,17 @@ const TONES = {
   flower: 'accent',
   stars: 'accent',
 }
-// size range per kind, × body
+// size range per kind, × body (the whole silhouette, not the main region)
 const SIZES = {
-  spots: [0.05, 0.08],
-  patch: [0.12, 0.2],
-  scar: [0.1, 0.16],
-  flower: [0.06, 0.09],
-  stars: [0.04, 0.06],
+  spots: [0.08, 0.12],
+  patch: [0.18, 0.26],
+  scar: [0.16, 0.22],
+  flower: [0.1, 0.14],
+  stars: [0.07, 0.1],
 }
+/** no mark is drawn smaller than this share of the frame's long side */
+export const MIN_SIZE = 0.055
+const MIN_STARS = 3
 const STRIPE_LENGTH = 1.6
 // a stripe on a thin limb still reads: never shorter than this × body
 const STRIPE_MIN = 0.2
@@ -49,12 +52,72 @@ const unpack = (bits, size) => {
   return out
 }
 
+const SPREAD = 0.0016
+const LIGHT_CHROMA = 0.04
+const smooth = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+const linear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+const oklab = (r, g, b) => {
+  const [R, G, B] = [r, g, b].map((c) => linear(c / 255))
+  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B)
+  const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B)
+  const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B)
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ]
+}
+
+/**
+ * The whole silhouette the shader recolours, from frame 0's RGBA (w × h,
+ * straight alpha): a size × size cell is on when at least half its pixels are
+ * opaque, not locked (ink, pale highlight — the shader's rule) and near one
+ * of the colour regions. → {size, mask}
+ */
+export function bodyMask(rgba, w, h, clusters, lock, size = 64) {
+  const mask = new Uint8Array(size * size)
+  const sources = (clusters ?? []).slice(0, 3).map((c) => c.lab)
+  if (!w || !h || !sources.length) return { size, mask }
+  const good = (i) => {
+    if (rgba[i + 3] <= 127) return false
+    const [L, a, b] = oklab(rgba[i], rgba[i + 1], rgba[i + 2])
+    const C = Math.hypot(a, b)
+    const locked = Math.max(
+      1 - smooth(lock.ink - 0.03, lock.ink + 0.03, L),
+      smooth(lock.light - 0.03, lock.light + 0.03, L) *
+        (1 - smooth(LIGHT_CHROMA - 0.02, LIGHT_CHROMA + 0.02, C))
+    )
+    if (locked >= 0.5) return false
+    let top = 0
+    for (const s of sources)
+      top = Math.max(top, Math.exp(-((a - s[1]) ** 2 + (b - s[2]) ** 2) / SPREAD))
+    return top > 0.3
+  }
+  // each cell's pixel span; a frame smaller than the grid shares pixels
+  const span = (c, n) => {
+    const lo = Math.min(n - 1, Math.floor((c * n) / size))
+    return [lo, Math.max(lo + 1, Math.floor(((c + 1) * n) / size))]
+  }
+  for (let cy = 0; cy < size; cy++) {
+    const [y0, y1] = span(cy, h)
+    for (let cx = 0; cx < size; cx++) {
+      const [x0, x1] = span(cx, w)
+      let hits = 0
+      for (let y = y0; y < y1; y++)
+        for (let x = x0; x < x1; x++) if (good((y * w + x) * 4)) hits++
+      if (2 * hits >= (x1 - x0) * (y1 - y0)) mask[cy * size + cx] = 1
+    }
+  }
+  return { size, mask }
+}
+
 // the region in true units: cell sides sx/size × sy/size, and each inside
 // cell's distance to the nearest outside cell or the frame's border
-function region(rig) {
-  const size = rig.primary.size
-  const mask = unpack(rig.primary.bits, size)
-  const { w = 1, h = 1 } = rig.frame ?? {}
+function region(mask, size, frame) {
+  const { w = 1, h = 1 } = frame ?? {}
   const sx = w / Math.max(w, h)
   const sy = h / Math.max(w, h)
   const cw = sx / size
@@ -118,7 +181,7 @@ function scatter(R, random, kind, count, body, near) {
   const [lo, hi] = SIZES[kind]
   const shapes = []
   for (let n = 0; n < count; n++) {
-    const size = (lo + (hi - lo) * random()) * body
+    const size = Math.max(MIN_SIZE, (lo + (hi - lo) * random()) * body)
     let spacing = SPACING
     let placed = null
     for (let round = 0; !placed && round < 12; round++, spacing *= RELAX)
@@ -232,7 +295,11 @@ function stripes(R, random, branches, count, body) {
         kind: 'stripes',
         x: p.x,
         y: p.y,
-        size: Math.max(STRIPE_LENGTH * p.radius * scale, STRIPE_MIN * body),
+        size: Math.max(
+          STRIPE_LENGTH * p.radius * scale,
+          STRIPE_MIN * body,
+          MIN_SIZE
+        ),
         angle: p.tangent + Math.PI / 2 + ((random() - 0.5) * Math.PI) / 18,
         tone: 'dark',
         branch: r.index,
@@ -241,38 +308,46 @@ function stripes(R, random, branches, count, body) {
   return shapes
 }
 
+const measure = (R) => Math.sqrt(R.cells.length * R.cw * R.ch)
+
 /**
  * Where an individual's marks ({kind, count, seed} or null) sit on its rig:
  * [{kind, x, y, size, angle, tone, branch?}]; [] when there is nowhere to
- * put them.
+ * put them. `body` ({size, mask} from bodyMask) is the whole silhouette:
+ * marks are spread over it and sized by it; stripes keep to the limbs of the
+ * main region. Without one (or an empty one) the main region stands in.
  */
-export function planMarks(marks, rig) {
+export function planMarks(marks, rig, body = null) {
   if (!marks || !marks.count || !rig?.primary || rig.noMarks) return []
-  const R = region(rig)
-  if (!R.cells.length) return []
+  const P = region(unpack(rig.primary.bits, rig.primary.size), rig.primary.size, rig.frame)
+  const B = body?.mask?.some(Boolean) ? region(body.mask, body.size, rig.frame) : P
+  if (!B.cells.length) return []
   const random = mulberry32(marks.seed)
-  const body = Math.sqrt(R.cells.length * R.cw * R.ch)
-  if (marks.kind === 'stripes' && rig.branches?.length) {
-    const shapes = stripes(R, random, rig.branches, marks.count, body)
+  const unit = measure(B)
+  if (marks.kind === 'stripes' && rig.branches?.length && P.cells.length) {
+    const shapes = stripes(P, random, rig.branches, marks.count, unit)
     if (shapes.length) return shapes
   }
   if (marks.kind === 'stripes')
     // no skeleton: short dashes across the body instead
-    return scatter(R, random, 'spots', marks.count, body).map((s) => ({
+    return scatter(B, random, 'spots', marks.count, unit).map((s) => ({
       ...s,
       kind: 'stripes',
       size: s.size * 2,
     }))
   if (marks.kind === 'stars') {
-    const r = STAR_CLUSTER * body
-    const centre = candidate(R, random, r * 0.6) ?? candidate(R, random, 0)
-    return scatter(R, random, 'stars', marks.count, body, { ...centre, r })
+    const r = STAR_CLUSTER * unit
+    const centre = candidate(B, random, r * 0.6) ?? candidate(B, random, 0)
+    const count = Math.max(MIN_STARS, marks.count)
+    return scatter(B, random, 'stars', count, unit, { ...centre, r })
   }
   return SIZES[marks.kind]
-    ? scatter(R, random, marks.kind, marks.count, body)
+    ? scatter(B, random, marks.kind, marks.count, unit)
     : []
 }
 
+const OUTLINE_PX = 3
+const OUTLINE_ALPHA = 0.6
 const COLOURS = {
   dark: 'rgb(255,0,0)',
   light: 'rgb(0,255,0)',
@@ -366,6 +441,15 @@ export function drawMarks(ctx, shapes, px = 512, frame = { w: 1, h: 1 }) {
       ctx.lineCap = 'round'
       ctx.stroke()
     } else {
+      if (s.kind === 'stars' || s.kind === 'flower') {
+        // a dark rim under the fill (3 px at 512) so they read on any body
+        ctx.globalAlpha = OUTLINE_ALPHA
+        ctx.strokeStyle = COLOURS.dark
+        ctx.lineWidth = (OUTLINE_PX * Math.min(sx, sy)) / 512
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+        ctx.globalAlpha = 1
+      }
       ctx.fillStyle = COLOURS[s.tone]
       ctx.fill()
     }

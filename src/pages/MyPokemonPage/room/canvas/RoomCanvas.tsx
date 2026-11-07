@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { Appearance } from 'pages/BagPage/individuals/client'
 import { paletteUniforms } from './colour.mjs'
 import type { Scene3 } from './gl'
-import { drawMarks, planMarks } from './marks.mjs'
+import { bodyMask, drawMarks, planMarks } from './marks.mjs'
 import { loadRig } from './rig'
 import type { Rig } from './rig'
 
@@ -24,8 +24,41 @@ type Props = {
 
 const MARKS_PX = 512
 
+type Body = ReturnType<typeof bodyMask> | null
+const bodies = new WeakMap<Rig, Body>()
+
+// the silhouette marks spread over, read once per rig from sheet frame 0;
+// null (the main region stands in) when the pixels can not be read
+function bodyOf(rig: Rig): Body {
+  if (bodies.has(rig)) return bodies.get(rig) ?? null
+  let body: Body = null
+  try {
+    const { w, h } = rig.json.frame
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (ctx) {
+      ctx.drawImage(rig.sheet, 0, 0, w, h, 0, 0, w, h)
+      body = bodyMask(
+        ctx.getImageData(0, 0, w, h).data,
+        w,
+        h,
+        rig.json.clusters,
+        rig.json.lock,
+        rig.json.primary?.size
+      )
+    }
+  } catch {
+    // a tainted or lost canvas: plan on the main region
+  }
+  bodies.set(rig, body)
+  return body
+}
+
 function marksFor(rig: Rig, appearance: Appearance) {
-  const shapes = planMarks(appearance.marks, rig.json)
+  if (!appearance.marks) return null
+  const shapes = planMarks(appearance.marks, rig.json, bodyOf(rig))
   if (!shapes.length) return null
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = MARKS_PX

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { drawMarks, planMarks } from './marks.mjs'
+import { readFileSync } from 'node:fs'
+import { MIN_SIZE, bodyMask, drawMarks, planMarks } from './marks.mjs'
+import { oklabToRgb } from './colour.mjs'
 
 const SIZE = 64
 
@@ -61,7 +63,8 @@ test('as many shapes as the count, each centred on the main region', () => {
   for (const kind of KINDS)
     for (const count of [1, 4, 10]) {
       const shapes = planMarks({ kind, count, seed: 77 + count }, rig)
-      assert.equal(shapes.length, count, `${kind} × ${count}`)
+      const want = kind === 'stars' ? Math.max(3, count) : count
+      assert.equal(shapes.length, want, `${kind} × ${count}`)
       for (const s of shapes) {
         assert.equal(s.kind, kind)
         assert.equal(s.tone, TONES[kind])
@@ -76,7 +79,7 @@ test('spots keep their spacing and their distance from the edge', () => {
   const body = 56 / 64
   const shapes = planMarks({ kind: 'spots', count: 8, seed: 5 }, rig)
   for (const s of shapes) {
-    assert.ok(s.size >= 0.05 * body - 1e-9 && s.size <= 0.08 * body + 1e-9)
+    assert.ok(s.size >= 0.08 * body - 1e-9 && s.size <= 0.12 * body + 1e-9)
     const edge = Math.min(
       s.x - 4 / 64,
       60 / 64 - s.x,
@@ -156,6 +159,153 @@ test('nothing to mark: no main region, no marks, or a species without marks', ()
     ),
     []
   )
+})
+
+// a frame w × h painted by `at(x, y)` → [L, a, b] | null (transparent)
+const frameOf = (w, h, at) => {
+  const rgba = new Uint8ClampedArray(w * h * 4)
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const lab = at(x, y)
+      if (!lab) continue
+      const rgb = oklabToRgb(lab)
+      rgba.set([...rgb.map((c) => Math.round(c * 255)), 255], (y * w + x) * 4)
+    }
+  return rgba
+}
+const BODY = [0.6, 0.1, 0.05]
+const CLUSTER = [{ lab: BODY, share: 1 }]
+const LOCK = { ink: 0.2, light: 0.92 }
+const on = (m, x, y) => m.mask[y * m.size + x] === 1
+
+test('bodyMask: opaque, unlocked, near a region; half a cell is enough', () => {
+  // 128 px: 2 × 2 px per cell. Body 32..96; an ink blot 40..56; a far
+  // colour 70..86 (no region near it); the right column 96..97 covers half
+  // of cell 48 only when the cell is 2 px wide
+  const rgba = frameOf(128, 128, (x, y) => {
+    if (x < 32 || x >= 97 || y < 32 || y >= 96) return null
+    if (x >= 40 && x < 56 && y >= 40 && y < 56) return [0.1, 0, 0]
+    if (x >= 70 && x < 86 && y >= 70 && y < 86) return [0.6, -0.1, -0.1]
+    return BODY
+  })
+  const m = bodyMask(rgba, 128, 128, CLUSTER, LOCK)
+  assert.equal(m.size, 64)
+  assert.ok(on(m, 16, 16) && on(m, 30, 40), 'body')
+  assert.ok(!on(m, 10, 10), 'transparent')
+  assert.ok(!on(m, 22, 22), 'ink is locked')
+  assert.ok(!on(m, 38, 38), 'far from every region')
+  assert.ok(on(m, 48, 20), 'half the cell opaque')
+  assert.ok(!on(m, 49, 20))
+})
+
+test('bodyMask: a frame smaller than the grid still has a body', () => {
+  const rgba = frameOf(20, 20, (x, y) =>
+    x >= 4 && x < 16 && y >= 4 && y < 16 ? BODY : null
+  )
+  const m = bodyMask(rgba, 20, 20, CLUSTER, LOCK)
+  assert.ok(on(m, 32, 32))
+  assert.ok(!on(m, 2, 2))
+  assert.equal(bodyMask(new Uint8ClampedArray(0), 0, 0, CLUSTER, LOCK).mask.some(Boolean), false)
+})
+
+const bodyOf = (x0, y0, x1, y1) => {
+  const mask = new Uint8Array(SIZE * SIZE)
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) mask[y * SIZE + x] = 1
+  return { size: SIZE, mask }
+}
+
+test('with a body mask, marks sit on the whole body and are sized by it', () => {
+  // a small main region (8 × 8 cells) on a big body (56 × 56)
+  const rig = rectRig(28, 28, 36, 36)
+  const body = bodyOf(4, 4, 60, 60)
+  const unit = 56 / 64
+  const sizes = {
+    spots: [0.08, 0.12],
+    patch: [0.18, 0.26],
+    scar: [0.16, 0.22],
+    flower: [0.1, 0.14],
+    stars: [0.07, 0.1],
+  }
+  for (const [kind, [lo, hi]] of Object.entries(sizes)) {
+    const shapes = planMarks({ kind, count: 5, seed: 41 }, rig, body)
+    assert.equal(shapes.length, 5, kind)
+    let off = 0
+    for (const s of shapes) {
+      assert.ok(s.size >= lo * unit - 1e-9 && s.size <= hi * unit + 1e-9, `${kind} ${s.size}`)
+      assert.ok(on(body, Math.floor(s.x * SIZE), Math.floor(s.y * SIZE)))
+      if (!cellOn(rig, s.x, s.y)) off++
+    }
+    if (kind !== 'stars') assert.ok(off > 0, `${kind} leaves the main region`)
+  }
+})
+
+test('stripes keep the main region but take the body size', () => {
+  const r = 0.5 / SIZE
+  const rig = rectRig(20, 20, 44, 44, [
+    { points: line([0.35, 0.5], [0.65, 0.5]), radius: Array(12).fill(r) },
+  ])
+  const body = bodyOf(4, 4, 60, 60)
+  for (const s of planMarks({ kind: 'stripes', count: 4, seed: 9 }, rig, body)) {
+    assert.ok(cellOn(rig, s.x, s.y))
+    assert.ok(s.size >= 0.2 * (56 / 64) - 1e-9, `size ${s.size}`)
+  }
+})
+
+test('a tiny body never makes a mark smaller than MIN_SIZE', () => {
+  assert.equal(MIN_SIZE, 0.055)
+  const rig = rectRig(30, 30, 34, 34)
+  for (const kind of ['spots', 'stars', 'flower', 'stripes'])
+    for (const s of planMarks({ kind, count: 3, seed: 2 }, rig, bodyOf(30, 30, 34, 34)))
+      assert.ok(s.size >= MIN_SIZE - 1e-12, `${kind} ${s.size}`)
+})
+
+test('an empty body mask falls back to the main region', () => {
+  const rig = rectRig()
+  const shapes = planMarks({ kind: 'spots', count: 4, seed: 8 }, rig, bodyOf(0, 0, 0, 0))
+  assert.equal(shapes.length, 4)
+  for (const s of shapes) assert.ok(cellOn(rig, s.x, s.y))
+})
+
+test('old star counts draw at least three', () => {
+  assert.equal(planMarks({ kind: 'stars', count: 1, seed: 4 }, rectRig()).length, 3)
+})
+
+test('stars and flowers get a dark outline under the fill', () => {
+  const log = []
+  const ctx = new Proxy(
+    { globalAlpha: 1 },
+    {
+      get: (t, k) =>
+        k in t
+          ? t[k]
+          : (...a) => log.push([k, t.strokeStyle, t.fillStyle, t.globalAlpha, t.lineWidth]),
+      set: (t, k, v) => ((t[k] = v), true),
+    }
+  )
+  drawMarks(
+    ctx,
+    [{ kind: 'stars', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'accent' }],
+    512,
+    { w: 200, h: 100 }
+  )
+  const stroke = log.findIndex(([k]) => k === 'stroke')
+  const fill = log.findIndex(([k]) => k === 'fill')
+  assert.ok(stroke >= 0 && stroke < fill, 'stroke first')
+  const [, style, , alpha, width] = log[stroke]
+  assert.equal(style, 'rgb(255,0,0)')
+  assert.equal(alpha, 0.6)
+  assert.ok(Math.abs(width - (3 * 0.5) / 512) < 1e-12)
+  assert.equal(log[fill][3], 1, 'the fill is opaque')
+  log.length = 0
+  drawMarks(ctx, [{ kind: 'spots', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'dark' }])
+  assert.ok(!log.some(([k]) => k === 'stroke'), 'spots have no outline')
+})
+
+test('the shader covers every region pixel and keeps half the shading', () => {
+  const src = readFileSync(new URL('./shader.ts', import.meta.url), 'utf8')
+  assert.match(src, /mark\.a \* flow\.b \* free \* smoothstep\(0\.05, 0\.3, top\)/)
+  assert.match(src, /ink\.x \+ 0\.5 \* \(out_\.x - uTarget\[0\]\.x\)/)
+  assert.doesNotMatch(src, /main_/)
 })
 
 test('drawMarks paints each tone in its own channel', () => {
