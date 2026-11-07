@@ -8,7 +8,7 @@
  * Picking in a range is `u32 mod n`; the small modulo bias is ignored.
  */
 import { digest } from '../../../utils/secure.mjs'
-import { MARK_KINDS, SET_KEYS, TIER_KEYS, VIBES } from './palettes.mjs'
+import { SET_KEYS, TIER_KEYS, VIBES } from './palettes.mjs'
 export const PERSONALITIES = [
   'Hiền',
   'Nghịch',
@@ -24,9 +24,29 @@ export const PERSONALITIES = [
   'Cẩn thận',
 ]
 
-// cumulative weights of MARK_KINDS: spots 30, stripes 25, patch 20, scar 12,
-// flower 8, stars 5
-const MARK_STEPS = [30, 55, 75, 87, 95, 100]
+// cumulative weights: spots 30, stripes 25, patch 20, scar 12, flower 8,
+// stars 5; a cute species: hearts 45, stars 25, flower 20, spots 10
+const MARK_STEPS = [
+  [30, 'spots'],
+  [55, 'stripes'],
+  [75, 'patch'],
+  [87, 'scar'],
+  [95, 'flower'],
+  [100, 'stars'],
+]
+const CUTE_STEPS = [
+  [45, 'hearts'],
+  [70, 'stars'],
+  [90, 'flower'],
+  [100, 'spots'],
+]
+
+/**
+ * Bumped whenever the rule gives a v3 appearance something new for the same
+ * id (the local journal re-derives every individual once when it changes).
+ * 2: cute marks (hearts) and counts of three at least.
+ */
+export const APPEARANCE_RULE = 2
 
 const encoder = new TextEncoder()
 
@@ -61,15 +81,17 @@ export async function individualTraits(id, vibe = null) {
   let marks = null
   if ((await pick('marks', 100)) < 60) {
     const k = await pick('marks-kind', 100)
-    const kind = MARK_KINDS[MARK_STEPS.findIndex((step) => k < step)]
-    marks = {
-      kind,
-      count:
-        kind === 'stars'
-          ? 3 + (await pick('marks-count', 5))
-          : 1 + (await pick('marks-count', 10)),
-      seed: await pick('marks-seed', 2147483648),
-    }
+    const steps = vibe === 'cute' ? CUTE_STEPS : MARK_STEPS
+    const [, kind] = steps.find(([step]) => k < step)
+    // enough marks to spread over the whole body: stars 3–7, the big patch
+    // and scar 2–5, the rest 3–10
+    const count =
+      kind === 'stars'
+        ? 3 + (await pick('marks-count', 5))
+        : kind === 'patch' || kind === 'scar'
+          ? 2 + (await pick('marks-count', 4))
+          : 3 + (await pick('marks-count', 8))
+    marks = { kind, count, seed: await pick('marks-seed', 2147483648) }
   }
   const offsets = []
   for (let i = 0; i < 6; i++) offsets.push((await pick(`p${i}`, 11)) - 5)

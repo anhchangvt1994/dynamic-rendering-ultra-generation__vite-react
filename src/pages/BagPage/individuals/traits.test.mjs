@@ -11,6 +11,9 @@ import {
   paletteOf,
 } from './palettes.mjs'
 
+// counts: stars 3–7, patch and scar 2–5, the rest 3–10 (spread over the body)
+const RANGES = { stars: [3, 7], patch: [2, 5], scar: [2, 5] }
+
 const golden = JSON.parse(
   readFileSync(new URL('./golden.json', import.meta.url), 'utf8')
 )
@@ -90,7 +93,7 @@ test('4000 random ids stay inside every range and match the weights', async () =
       assert.deepEqual(Object.keys(a.marks).sort(), ['count', 'kind', 'seed'])
       assert.ok(MARK_KINDS.includes(a.marks.kind))
       kinds[a.marks.kind]++
-      const [lo, hi] = a.marks.kind === 'stars' ? [3, 7] : [1, 10]
+      const [lo, hi] = RANGES[a.marks.kind] ?? [3, 10]
       assert.ok(
         Number.isInteger(a.marks.count) &&
           a.marks.count >= lo &&
@@ -122,10 +125,41 @@ test('4000 random ids stay inside every range and match the weights', async () =
     scar: 12,
     flower: 8,
     stars: 5,
+    hearts: 0,
   }
   for (const kind of MARK_KINDS)
     near(kinds[kind] / marked, weights[kind] / 100, 0.04, kind)
-  assert.ok(counts.has(1) && counts.has(10))
+  assert.ok(counts.has(3) && counts.has(10))
+  assert.equal(kinds.hearts, 0, 'hearts are for cute species only')
+})
+
+test('a cute species gets only hearts, stars, flowers and spots, hearts most', async () => {
+  const N = 3000
+  const kinds = { hearts: 0, stars: 0, flower: 0, spots: 0 }
+  let marked = 0
+  for (let i = 0; i < N; i++) {
+    const { appearance: a } = await individualTraits(randomUUID(), 'cute')
+    if (!a.marks) continue
+    marked++
+    assert.ok(a.marks.kind in kinds, a.marks.kind)
+    kinds[a.marks.kind]++
+    const [lo, hi] = RANGES[a.marks.kind] ?? [3, 10]
+    assert.ok(a.marks.count >= lo && a.marks.count <= hi, `${a.marks.kind} × ${a.marks.count}`)
+  }
+  const want = { hearts: 45, stars: 25, flower: 20, spots: 10 }
+  for (const [kind, w] of Object.entries(want))
+    assert.ok(
+      Math.abs(kinds[kind] / marked - w / 100) <= 0.04,
+      `${kind}: ${(kinds[kind] / marked).toFixed(3)} vs ${w / 100}`
+    )
+})
+
+test('every other vibe keeps the plain weights, no hearts', async () => {
+  for (const vibe of ['cool', 'fierce', 'mystic', 'nature'])
+    for (let i = 0; i < 300; i++) {
+      const { appearance: a } = await individualTraits(randomUUID(), vibe)
+      assert.notEqual(a.marks?.kind, 'hearts', vibe)
+    }
 })
 
 test('with a vibe, 70% of common/rare palettes come from its set, the rest from the pool', async () => {

@@ -10,7 +10,7 @@ const read = (path) =>
   readFileSync(new URL(`../../../../${path}`, import.meta.url), 'utf8')
 const sql = read('supabase/tests/database/pokemon_individuals.test.sql')
 const migration = read(
-  'supabase/migrations/20261117000000_pokemon_vibe_palettes.sql'
+  'supabase/migrations/20261117000300_pokemon_cute_marks.sql'
 )
 const array = (keys) => `array[${keys.map((k) => `'${k}'`).join(',')}]`
 

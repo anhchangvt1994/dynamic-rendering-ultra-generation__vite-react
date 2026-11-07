@@ -218,3 +218,37 @@ test('no regions: nothing to swap', () => {
   assert.equal(u.count, 0)
   assert.equal(u.source.length, 9)
 })
+
+test('a cute palette stays bright: main L .65 at least, no shift dims or greys it', () => {
+  const down = [
+    [8, -10, -6],
+    [-8, -10, -6],
+    [0, -10, -6],
+  ]
+  for (const p of PALETTES.filter((q) => q.vibe === 'cute'))
+    for (const L of [0.2, 0.35, 0.5, 0.75, 0.95]) {
+      const clusters = [
+        { lab: [L, 0.08, 0.05], share: 0.6 },
+        { lab: [Math.min(0.98, L + 0.15), -0.05, -0.06], share: 0.4 },
+      ]
+      const u = paletteUniforms(app(p.key, down), clusters)
+      const plain = paletteUniforms(app(p.key), clusters)
+      const tag = `${p.key} L${L}`
+      assert.ok(at(u, 0)[0] >= 0.65 - 1e-6, `main L ${tag}: ${at(u, 0)[0]}`)
+      for (const i of [0, 1]) {
+        assert.ok(chroma(at(u, i)) >= chroma(at(plain, i)) - 1e-6, `chroma ${i} ${tag}`)
+        assert.ok(at(u, i)[0] >= at(plain, i)[0] - 1e-6, `L ${i} ${tag}`)
+      }
+    }
+})
+
+test('other palettes still take a downward shift', () => {
+  const shift = [
+    [0, -10, -6],
+    [0, 0, 0],
+    [0, 0, 0],
+  ]
+  const plain = paletteUniforms(app('cobalt'), CLUSTERS)
+  const moved = paletteUniforms(app('cobalt', shift), CLUSTERS)
+  near(moved.target[0], plain.target[0] - 0.06, 1e-6)
+})

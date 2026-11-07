@@ -26,13 +26,17 @@ test('marksLabel: null without marks, kind and count with them', () => {
     marksLabel({ ...a, marks: { kind: 'stripes', count: 6, seed: 1 } }),
     'Lằn · 6 vệt'
   )
+  assert.equal(
+    marksLabel({ ...a, marks: { kind: 'hearts', count: 5, seed: 1 } }),
+    'Tim · 5 trái'
+  )
 })
 test('marksLabel: an old one- or two-star individual shows three stars, as drawn', () => {
   const a = { v: 2, palette: 'origin', shift: [], marks: null }
   const stars = (count) => marksLabel({ ...a, marks: { kind: 'stars', count, seed: 1 } })
-  assert.equal(stars(1), 'Chòm sao · 3 ngôi')
-  assert.equal(stars(2), 'Chòm sao · 3 ngôi')
-  assert.equal(stars(6), 'Chòm sao · 6 ngôi')
+  assert.equal(stars(1), 'Sao · 3 ngôi')
+  assert.equal(stars(2), 'Sao · 3 ngôi')
+  assert.equal(stars(6), 'Sao · 6 ngôi')
   assert.equal(
     marksLabel({ ...a, marks: { kind: 'spots', count: 1, seed: 1 } }),
     'Đốm · 1 chấm'

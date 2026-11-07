@@ -11,6 +11,7 @@ const TONES = {
   scar: 'light',
   flower: 'accent',
   stars: 'accent',
+  hearts: 'accent',
 }
 // size range per kind, × body (the whole silhouette, not the main region)
 const SIZES = {
@@ -19,6 +20,7 @@ const SIZES = {
   scar: [0.16, 0.22],
   flower: [0.1, 0.14],
   stars: [0.07, 0.1],
+  hearts: [0.1, 0.14],
 }
 /** no mark is drawn smaller than this share of the frame's long side */
 export const MIN_SIZE = 0.055
@@ -27,7 +29,10 @@ const STRIPE_LENGTH = 1.6
 // a stripe on a thin limb still reads: never shorter than this × body
 const STRIPE_MIN = 0.2
 const SPACING = 1.5
-const STAR_CLUSTER = 0.25
+// a heart leans at most this far either way: it stays upright
+const HEART_TILT = 0.3
+// a mark sits first within this share of its zone's radius from the centre
+const CORE = 0.3
 const TRIES = 40
 const RELAX = 0.85
 const TAU = Math.PI * 2
@@ -158,15 +163,9 @@ function region(mask, size, frame) {
 // true-unit distance between two 0–1 points
 const dist = (R, a, b) => Math.hypot((a.x - b.x) * R.sx, (a.y - b.y) * R.sy)
 
-// a point inside a random cell whose edge clears `margin`
-function candidate(R, random, margin, near) {
-  const ok = R.cells.filter(
-    (c) =>
-      c.edge >= margin &&
-      (!near ||
-        dist(R, near, { x: (c.x + 0.5) / R.size, y: (c.y + 0.5) / R.size }) <=
-          near.r)
-  )
+// a point inside a random cell of `cells` whose edge clears `margin`
+function candidate(R, cells, random, margin) {
+  const ok = cells.filter((c) => c.edge >= margin)
   if (!ok.length) return null
   const c = ok[Math.floor(random() * ok.length)]
   return {
@@ -175,32 +174,94 @@ function candidate(R, random, margin, near) {
   }
 }
 
-// Poisson-disk darts; the spacing gives way a step at a time rather than
-// leave a mark out
-function scatter(R, random, kind, count, body, near) {
+// `count` zones of equal area over the region, so marks spread over the
+// whole body rather than gather in one place: bands along its long axis
+// (about as many as keep a zone square), each band cut across into its
+// share of the zones. The bands that take one zone more are picked at random.
+function zones(R, random, count) {
+  const { cells } = R
+  const span = (k) => {
+    let lo = Infinity
+    let hi = -Infinity
+    for (const c of cells) {
+      lo = Math.min(lo, c[k])
+      hi = Math.max(hi, c[k])
+    }
+    return hi - lo + 1
+  }
+  const w = span('x') * R.cw
+  const h = span('y') * R.ch
+  const [long, short] = h >= w ? ['y', 'x'] : ['x', 'y']
+  const ratio = Math.max(w, h) / Math.max(Math.min(w, h), 1e-9)
+  const rows = Math.max(1, Math.min(count, Math.round(Math.sqrt(count * ratio))))
+  const per = Array(rows).fill(Math.floor(count / rows))
+  const order = [...per.keys()]
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  order.slice(0, count % rows).forEach((k) => per[k]++)
+  const slice = (list, n, a, b) => {
+    const sorted = [...list].sort((p, q) => p[a] - q[a] || p[b] - q[b])
+    return Array.from({ length: n }, (_, k) =>
+      sorted.slice(
+        Math.round((k * sorted.length) / n),
+        Math.round(((k + 1) * sorted.length) / n)
+      )
+    )
+  }
+  return slice(cells, rows, long, short).flatMap((band, k) =>
+    slice(band, per[k], short, long)
+  )
+}
+
+// a zone's cells near its centre first (a jittered grid, not darts that
+// may all land on the zones' shared borders), then the whole zone
+function cores(R, zone) {
+  let cx = 0
+  let cy = 0
+  for (const c of zone) {
+    cx += c.x
+    cy += c.y
+  }
+  cx /= zone.length
+  cy /= zone.length
+  const r = Math.sqrt((zone.length * R.cw * R.ch) / Math.PI)
+  const near = (c) => Math.hypot((c.x - cx) * R.cw, (c.y - cy) * R.ch)
+  const core = zone.filter((c) => near(c) <= CORE * r)
+  return core.length ? [core, zone] : [zone]
+}
+
+// one mark per zone, darts inside its core then the zone; the spacing gives
+// way a step at a time rather than leave a mark out
+function scatter(R, random, kind, count, body) {
   const [lo, hi] = SIZES[kind]
   const shapes = []
-  for (let n = 0; n < count; n++) {
+  for (const zone of zones(R, random, count)) {
+    const cells = zone.length ? zone : R.cells
+    const tiers = cores(R, cells)
     const size = Math.max(MIN_SIZE, (lo + (hi - lo) * random()) * body)
     let spacing = SPACING
     let placed = null
     for (let round = 0; !placed && round < 12; round++, spacing *= RELAX)
       for (let t = 0; !placed && t < TRIES; t++) {
-        const p = candidate(R, random, 0.5 * size * (round < 6 ? 1 : 0), near)
+        const pool = tiers[Math.min(tiers.length - 1, round >> 1)]
+        const p = candidate(R, pool, random, 0.5 * size * (round < 6 ? 1 : 0))
         if (!p) break
         if (
           shapes.every((s) => dist(R, s, p) >= spacing * Math.max(s.size, size))
         )
           placed = p
       }
-    if (!placed) placed = candidate(R, random, 0, near)
-    if (!placed) break
+    if (!placed) placed = candidate(R, cells, random, 0)
+    if (!placed) continue
+    const turn = random()
     shapes.push({
       kind,
       x: placed.x,
       y: placed.y,
       size,
-      angle: random() * TAU,
+      angle: kind === 'hearts' ? (turn - 0.5) * 2 * HEART_TILT : turn * TAU,
       tone: TONES[kind],
     })
   }
@@ -260,18 +321,15 @@ function runs(R, b, index) {
   return out
 }
 
-// across the longest limbs of the main region, shared out by length
+// across every limb of the main region (as many as the count allows, the
+// longest first), shared out by length
 function stripes(R, random, branches, count, body) {
   const ranked = branches
     .flatMap((b, index) => runs(R, b, index))
     .map((b) => ({ b, index: b.index, len: branchLength(R, b) }))
     .sort((a, b) => b.len - a.len || a.index - b.index)
   if (!ranked.length) return []
-  const want = Math.max(
-    count >= 3 ? Math.min(2, ranked.length) : 1,
-    Math.min(ranked.length, Math.ceil(count / 2))
-  )
-  const used = ranked.slice(0, want)
+  const used = ranked.slice(0, Math.min(ranked.length, count))
   const total = used.reduce((s, r) => s + r.len, 0) || used.length
   const share = used.map((r) => ({ ...r, n: 1, rest: 0 }))
   let left = count - share.length
@@ -335,12 +393,8 @@ export function planMarks(marks, rig, body = null) {
       kind: 'stripes',
       size: s.size * 2,
     }))
-  if (marks.kind === 'stars') {
-    const r = STAR_CLUSTER * unit
-    const centre = candidate(B, random, r * 0.6) ?? candidate(B, random, 0)
-    const count = Math.max(MIN_STARS, marks.count)
-    return scatter(B, random, 'stars', count, unit, { ...centre, r })
-  }
+  if (marks.kind === 'stars')
+    return scatter(B, random, 'stars', Math.max(MIN_STARS, marks.count), unit)
   return SIZES[marks.kind]
     ? scatter(B, random, marks.kind, marks.count, unit)
     : []
@@ -348,6 +402,11 @@ export function planMarks(marks, rig, body = null) {
 
 const OUTLINE_PX = 3
 const OUTLINE_ALPHA = 0.6
+// the kinds drawn with a rim, and (on a glowing palette) a halo
+const RIMMED = new Set(['stars', 'flower', 'hearts'])
+// the halo's blur, × the mark's size in texture pixels
+const GLOW_BLUR = 0.3
+const GLOW_COLOUR = 'rgba(0,0,255,0.9)'
 const COLOURS = {
   dark: 'rgb(255,0,0)',
   light: 'rgb(0,255,0)',
@@ -407,6 +466,15 @@ function path(ctx, s) {
       }
       ctx.closePath()
       break
+    case 'hearts':
+      // plump: two round lobes, a soft point below
+      ctx.moveTo(0, r * 0.95)
+      ctx.bezierCurveTo(-r * 0.35, r * 0.62, -r * 1.02, r * 0.2, -r * 0.96, -r * 0.3)
+      ctx.bezierCurveTo(-r * 0.9, -r * 0.88, -r * 0.2, -r * 0.98, 0, -r * 0.48)
+      ctx.bezierCurveTo(r * 0.2, -r * 0.98, r * 0.9, -r * 0.88, r * 0.96, -r * 0.3)
+      ctx.bezierCurveTo(r * 1.02, r * 0.2, r * 0.35, r * 0.62, 0, r * 0.95)
+      ctx.closePath()
+      break
     default:
       ctx.arc(0, 0, r, 0, TAU)
   }
@@ -414,9 +482,16 @@ function path(ctx, s) {
 
 /**
  * The marks into a px × px texture over frame 0 (`frame` its w, h): alpha is
- * coverage, red dark, green light, blue accent.
+ * coverage, red dark, green light, blue accent. `glow` (a cute palette) puts
+ * a soft accent halo under stars, flowers and hearts.
  */
-export function drawMarks(ctx, shapes, px = 512, frame = { w: 1, h: 1 }) {
+export function drawMarks(
+  ctx,
+  shapes,
+  px = 512,
+  frame = { w: 1, h: 1 },
+  { glow = false } = {}
+) {
   const long = Math.max(frame.w, frame.h)
   const sx = frame.w / long
   const sy = frame.h / long
@@ -441,7 +516,15 @@ export function drawMarks(ctx, shapes, px = 512, frame = { w: 1, h: 1 }) {
       ctx.lineCap = 'round'
       ctx.stroke()
     } else {
-      if (s.kind === 'stars' || s.kind === 'flower') {
+      if (glow && RIMMED.has(s.kind)) {
+        ctx.shadowColor = GLOW_COLOUR
+        ctx.shadowBlur = GLOW_BLUR * s.size * px
+        ctx.fillStyle = COLOURS.accent
+        ctx.fill()
+        ctx.shadowBlur = 0
+        ctx.shadowColor = 'rgba(0,0,0,0)'
+      }
+      if (RIMMED.has(s.kind)) {
         // a dark rim under the fill (3 px at 512) so they read on any body
         ctx.globalAlpha = OUTLINE_ALPHA
         ctx.strokeStyle = COLOURS.dark

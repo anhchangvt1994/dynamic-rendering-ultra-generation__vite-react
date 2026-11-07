@@ -54,6 +54,7 @@ const shifted = (lab, [dh, ds, dl] = [0, 0, 0]) => {
 }
 
 const EFFECTS = { metal: 1, invert: 2 }
+const CUTE_FLOOR = 0.65
 
 const chroma = ([, a, b]) => Math.hypot(a, b)
 const hueOf = ([, a, b]) => Math.atan2(b, a)
@@ -134,8 +135,15 @@ export function paletteUniforms(appearance, clusters) {
       : own
   const source = new Float32Array(9)
   const target = new Float32Array(9)
+  // a cute palette stays bright and vivid: the shift may only lift it, and
+  // the main region is never darker than CUTE_FLOOR
+  const cute = palette.vibe === 'cute'
   const targets = bases.map((base, i) => {
-    const lab = shifted(base, appearance?.shift?.[i])
+    const [dh, ds, dl] = appearance?.shift?.[i] ?? [0, 0, 0]
+    const lab = cute
+      ? shifted(base, [dh, Math.max(0, ds), Math.max(0, dl)])
+      : shifted(base, [dh, ds, dl])
+    if (cute && i === 0) lab[0] = Math.max(CUTE_FLOOR, lab[0])
     source.set(own[i], i * 3)
     target.set(lab, i * 3)
     return Array.from(target.subarray(i * 3, i * 3 + 3))

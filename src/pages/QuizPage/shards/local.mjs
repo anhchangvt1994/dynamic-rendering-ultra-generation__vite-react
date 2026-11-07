@@ -7,7 +7,10 @@ import { shardRule, winsShard } from './rules.mjs'
 import { randomId, webLock } from '../../../utils/secure.mjs'
 import { drawChestShards } from './chestRewards.mjs'
 import { parseChestReceipt } from './chestReceipt.mjs'
-import { individualTraits } from '../../BagPage/individuals/traits.mjs'
+import {
+  APPEARANCE_RULE,
+  individualTraits,
+} from '../../BagPage/individuals/traits.mjs'
 import { normalizeNickname } from '../../BagPage/individuals/nickname.mjs'
 import { speciesVibe } from '../../BagPage/individuals/speciesVibe.mjs'
 
@@ -40,35 +43,45 @@ const safeVibe = async (vibe, speciesId) => {
   }
 }
 
+// a snapshot from an older rule re-derives every appearance once
+const sameRule = (snapshot) => snapshot.appearanceRule === APPEARANCE_RULE
+
 /**
- * Brings every appearance older than v3 (individuals and trade receipts) to
- * the v3 its id and species' vibe give, in place. True when something
- * changed, so the caller saves.
+ * Brings every appearance older than v3 (individuals and trade receipts) —
+ * or every one, when the snapshot comes from an older rule — to what its id
+ * and species' vibe give now, in place. True when something changed, so the
+ * caller saves.
  */
 export async function upgradeSnapshot(snapshot, vibe = async () => null) {
+  const all = !sameRule(snapshot)
   let changed = false
   for (const one of Object.values(snapshot.individuals ?? {}))
-    if (one.appearance?.v !== 3) {
+    if (all || one.appearance?.v !== 3) {
       const v = await safeVibe(vibe, one.speciesId)
       one.appearance = (await individualTraits(one.id, v)).appearance
       changed = true
     }
   for (const r of Object.values(snapshot.trades ?? {}))
-    if (r.traits?.appearance?.v !== 3) {
+    if (all || r.traits?.appearance?.v !== 3) {
       const v = await safeVibe(vibe, r.speciesId)
       r.traits.appearance = (await individualTraits(r.individualId, v)).appearance
       changed = true
     }
+  if (all) {
+    snapshot.appearanceRule = APPEARANCE_RULE
+    changed = true
+  }
   return changed
 }
 
-// The species whose individuals or receipts still need the v3 upgrade.
+// The species whose individuals or receipts still need the upgrade.
 const staleSpecies = (snapshot) => {
+  const all = !sameRule(snapshot)
   const out = new Set()
   for (const one of Object.values(snapshot.individuals ?? {}))
-    if (one?.appearance?.v !== 3) out.add(one?.speciesId)
+    if (all || one?.appearance?.v !== 3) out.add(one?.speciesId)
   for (const r of Object.values(snapshot.trades ?? {}))
-    if (r?.traits?.appearance?.v !== 3) out.add(r?.speciesId)
+    if (all || r?.traits?.appearance?.v !== 3) out.add(r?.speciesId)
   return out
 }
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createShardJournal, SHARD_KEY } from '../../QuizPage/shards/local.mjs'
-import { individualTraits } from './traits.mjs'
+import { APPEARANCE_RULE, individualTraits } from './traits.mjs'
 
 const memory = () => {
   const data = new Map()
@@ -347,6 +347,7 @@ test('a v2 individual (a removed palette) is re-derived to v3, a v3 one is left'
   const storage = seed(
     {},
     {
+      appearanceRule: APPEARANCE_RULE,
       individuals: {
         [id]: row(id, fresh, {
           v: 2,
@@ -367,4 +368,52 @@ test('a v2 individual (a removed palette) is re-derived to v3, a v3 one is left'
   assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
   assert.deepEqual(stored.individuals[keep].appearance, kept.appearance)
   assert.deepEqual(asked, [1], 'only the stale one asks')
+})
+
+test('a v3 snapshot from an older rule is re-derived once, then left alone', async () => {
+  const id = '9e3779b1-0000-4000-8000-000000000007'
+  const op = 'f0f0f0f0-0000-4000-8000-0000000000f7'
+  const fresh = await individualTraits(id, 'cute')
+  const old = { ...fresh.appearance, marks: { kind: 'stripes', count: 1, seed: 9 } }
+  const storage = seed(
+    {},
+    {
+      individuals: {
+        [id]: {
+          id,
+          speciesId: 35,
+          nickname: null,
+          personality: fresh.personality,
+          appearance: old,
+          potential: fresh.potential,
+          createdAt: '2026-11-04T00:00:00.000Z',
+        },
+      },
+      trades: {
+        [op]: {
+          operationId: op,
+          speciesId: 35,
+          individualId: id,
+          cardCount: 0,
+          traits: { ...fresh, appearance: old },
+        },
+      },
+    }
+  )
+  let writes = 0
+  const setItem = storage.setItem
+  storage.setItem = (k, v) => (writes++, setItem(k, v))
+  const asked = []
+  const journal = make(storage, {
+    vibe: async (species) => (asked.push(species), 'cute'),
+  })
+  const [got] = await journal.listLocalIndividuals()
+  assert.deepEqual(got.appearance, fresh.appearance)
+  const stored = read(storage)
+  assert.equal(stored.appearanceRule, APPEARANCE_RULE)
+  assert.deepEqual(stored.trades[op].traits.appearance, fresh.appearance)
+  assert.deepEqual(asked, [35])
+  await journal.listLocalIndividuals()
+  assert.equal(writes, 1, 'no second write')
+  assert.deepEqual(asked, [35], 'no second ask')
 })

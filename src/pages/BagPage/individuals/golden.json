@@ -26,7 +26,7 @@
         ],
         "marks": {
           "kind": "scar",
-          "count": 4,
+          "count": 3,
           "seed": 2006725191
         }
       },
@@ -70,8 +70,8 @@
           ]
         ],
         "marks": {
-          "kind": "stripes",
-          "count": 2,
+          "kind": "hearts",
+          "count": 6,
           "seed": 868363178
         }
       },
@@ -407,7 +407,7 @@
         ],
         "marks": {
           "kind": "spots",
-          "count": 1,
+          "count": 5,
           "seed": 504830083
         }
       },
@@ -452,7 +452,7 @@
         ],
         "marks": {
           "kind": "scar",
-          "count": 1,
+          "count": 4,
           "seed": 894911317
         }
       },
@@ -578,8 +578,8 @@
           ]
         ],
         "marks": {
-          "kind": "stripes",
-          "count": 7,
+          "kind": "stars",
+          "count": 4,
           "seed": 370725110
         }
       },
@@ -665,7 +665,7 @@
         ],
         "marks": {
           "kind": "flower",
-          "count": 10,
+          "count": 8,
           "seed": 836671705
         }
       },

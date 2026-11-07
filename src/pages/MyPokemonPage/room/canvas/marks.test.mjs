@@ -41,7 +41,7 @@ const limbRig = () => {
     { points: line([0.5, 0.4], [0.5, 0.85]), radius: Array(12).fill(r) },
   ])
 }
-const KINDS = ['spots', 'stripes', 'patch', 'scar', 'flower', 'stars']
+const KINDS = ['spots', 'stripes', 'patch', 'scar', 'flower', 'stars', 'hearts']
 const TONES = {
   spots: 'dark',
   stripes: 'dark',
@@ -49,6 +49,7 @@ const TONES = {
   scar: 'light',
   flower: 'accent',
   stars: 'accent',
+  hearts: 'accent',
 }
 
 test('the same marks on the same rig give the same shapes', () => {
@@ -136,14 +137,72 @@ test('stripes on a thin limb still read: at least 0.2 × body long', () => {
     assert.ok(s.size >= 0.2 * body - 1e-9, `size ${s.size}`)
 })
 
-test('stars gather in one cluster', () => {
-  const rig = rectRig()
-  const body = 56 / 64
-  const shapes = planMarks({ kind: 'stars', count: 6, seed: 3 }, rig)
-  const cx = shapes.reduce((s, p) => s + p.x, 0) / shapes.length
-  const cy = shapes.reduce((s, p) => s + p.y, 0) / shapes.length
+// the share of marks in each of n equal bands of the body along x or y
+const bands = (shapes, n, axis, lo, hi) => {
+  const out = Array(n).fill(0)
   for (const s of shapes)
-    assert.ok(Math.hypot(s.x - cx, s.y - cy) <= 2 * 0.25 * body)
+    out[Math.min(n - 1, Math.floor(((s[axis] - lo) / (hi - lo)) * n))]++
+  return out
+}
+
+// the widest stretch of the body, along `axis`, that no mark reaches (a
+// mark reaches half its size either side of its centre)
+const widestGap = (shapes, axis, lo, hi) => {
+  const spans = shapes
+    .map((s) => [s[axis] - s.size / 2, s[axis] + s.size / 2])
+    .sort((a, b) => a[0] - b[0])
+  let gap = 0
+  let edge = lo
+  for (const [a, b] of spans) {
+    gap = Math.max(gap, a - edge)
+    edge = Math.max(edge, b)
+  }
+  return Math.max(gap, hi - edge) / (hi - lo)
+}
+
+test('marks spread over the whole body, of every kind and every count', () => {
+  // a tall body (24 × 60 cells) and a wide one (60 × 24)
+  const tall = bodyOf(20, 2, 44, 62)
+  const wide = bodyOf(2, 20, 62, 44)
+  for (const kind of ['spots', 'patch', 'scar', 'flower', 'stars', 'hearts'])
+    for (let seed = 1; seed <= 40; seed++) {
+      const count = kind === 'patch' || kind === 'scar' ? 2 + (seed % 4) : 3 + (seed % 8)
+      // two marks leave at most half the body bare, three or more 42%
+      const bare = count === 2 ? 0.5 : 0.42
+      const tag = `${kind} × ${count} seed ${seed}`
+      const a = planMarks({ kind, count, seed }, rectRig(20, 2, 44, 62), tall)
+      const b = planMarks({ kind, count, seed }, rectRig(2, 20, 62, 44), wide)
+      assert.equal(a.length, count, tag)
+      assert.ok(widestGap(a, 'y', 2 / 64, 62 / 64) < bare, `${tag} tall`)
+      assert.ok(widestGap(b, 'x', 2 / 64, 62 / 64) < bare, `${tag} wide`)
+      // three marks: one in each third
+      if (count === 3) {
+        assert.ok(bands(a, 3, 'y', 2 / 64, 62 / 64).every(Boolean), `${tag} tall thirds`)
+        assert.ok(bands(b, 3, 'x', 2 / 64, 62 / 64).every(Boolean), `${tag} wide thirds`)
+      }
+    }
+})
+
+test('six marks or more on a square body touch all four quarters', () => {
+  const body = bodyOf(4, 4, 60, 60)
+  for (const kind of ['spots', 'stars', 'hearts', 'flower'])
+    for (const seed of [11, 12, 13, 14, 15]) {
+      const shapes = planMarks({ kind, count: 6, seed }, rectRig(), body)
+      const q = new Set(shapes.map((s) => `${s.x < 0.5 ? 0 : 1}${s.y < 0.5 ? 0 : 1}`))
+      assert.equal(q.size, 4, `${kind} ${seed}`)
+    }
+})
+
+test('stripes run over every limb, not only the longest', () => {
+  const r = 4 / SIZE
+  const rig = rectRig(4, 4, 60, 60, [
+    { points: line([0.1, 0.2], [0.9, 0.2]), radius: Array(12).fill(r) },
+    { points: line([0.1, 0.45], [0.7, 0.45]), radius: Array(12).fill(r) },
+    { points: line([0.2, 0.7], [0.6, 0.7]), radius: Array(12).fill(r) },
+    { points: line([0.8, 0.4], [0.8, 0.8]), radius: Array(12).fill(r) },
+  ])
+  const shapes = planMarks({ kind: 'stripes', count: 4, seed: 5 }, rig)
+  assert.equal(new Set(shapes.map((s) => s.branch)).size, 4)
 })
 
 test('nothing to mark: no main region, no marks, or a species without marks', () => {
@@ -225,6 +284,7 @@ test('with a body mask, marks sit on the whole body and are sized by it', () => 
     scar: [0.16, 0.22],
     flower: [0.1, 0.14],
     stars: [0.07, 0.1],
+    hearts: [0.1, 0.14],
   }
   for (const [kind, [lo, hi]] of Object.entries(sizes)) {
     const shapes = planMarks({ kind, count: 5, seed: 41 }, rig, body)
@@ -235,7 +295,7 @@ test('with a body mask, marks sit on the whole body and are sized by it', () => 
       assert.ok(on(body, Math.floor(s.x * SIZE), Math.floor(s.y * SIZE)))
       if (!cellOn(rig, s.x, s.y)) off++
     }
-    if (kind !== 'stars') assert.ok(off > 0, `${kind} leaves the main region`)
+    assert.ok(off > 0, `${kind} leaves the main region`)
   }
 })
 
@@ -270,18 +330,30 @@ test('old star counts draw at least three', () => {
   assert.equal(planMarks({ kind: 'stars', count: 1, seed: 4 }, rectRig()).length, 3)
 })
 
-test('stars and flowers get a dark outline under the fill', () => {
+const recorder = () => {
   const log = []
   const ctx = new Proxy(
-    { globalAlpha: 1 },
+    { globalAlpha: 1, shadowBlur: 0, shadowColor: 'rgba(0,0,0,0)' },
     {
       get: (t, k) =>
         k in t
           ? t[k]
-          : (...a) => log.push([k, t.strokeStyle, t.fillStyle, t.globalAlpha, t.lineWidth]),
+          : (...a) =>
+              log.push([k, t.strokeStyle, t.fillStyle, t.globalAlpha, t.lineWidth, t.shadowBlur, t.shadowColor, a]),
       set: (t, k, v) => ((t[k] = v), true),
     }
   )
+  return { log, ctx }
+}
+
+test('stars, flowers and hearts get a dark outline under the fill', () => {
+  const { log, ctx } = recorder()
+  for (const kind of ['flower', 'hearts']) {
+    drawMarks(ctx, [{ kind, x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'accent' }])
+    const stroke = log.findIndex(([k]) => k === 'stroke')
+    assert.ok(stroke >= 0 && stroke < log.findIndex(([k]) => k === 'fill'), kind)
+    log.length = 0
+  }
   drawMarks(
     ctx,
     [{ kind: 'stars', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'accent' }],
@@ -299,6 +371,44 @@ test('stars and flowers get a dark outline under the fill', () => {
   log.length = 0
   drawMarks(ctx, [{ kind: 'spots', x: 0.5, y: 0.5, size: 0.08, angle: 0, tone: 'dark' }])
   assert.ok(!log.some(([k]) => k === 'stroke'), 'spots have no outline')
+})
+
+test('a heart is a closed curve: two lobes and a point below', () => {
+  const { log, ctx } = recorder()
+  drawMarks(ctx, [{ kind: 'hearts', x: 0.5, y: 0.5, size: 0.1, angle: 0, tone: 'accent' }])
+  const curves = log.filter(([k]) => k === 'bezierCurveTo')
+  assert.ok(curves.length >= 4, 'drawn with curves')
+  assert.ok(log.some(([k]) => k === 'closePath'))
+})
+
+test('glow: a soft accent halo under hearts, stars and flowers only, then a crisp mark', () => {
+  const { log, ctx } = recorder()
+  const shapes = ['hearts', 'stars', 'flower', 'spots'].map((kind) => ({
+    kind,
+    x: 0.5,
+    y: 0.5,
+    size: 0.1,
+    angle: 0,
+    tone: kind === 'spots' ? 'dark' : 'accent',
+  }))
+  drawMarks(ctx, shapes, 512, { w: 1, h: 1 }, { glow: true })
+  const glows = log.filter(([k, , , , , blur]) => k === 'fill' && blur > 0)
+  assert.equal(glows.length, 3, 'one halo per glowing kind')
+  for (const g of glows) {
+    assert.match(g[6], /^rgba\(0,\s*0,\s*255/, 'the halo is accent')
+    assert.ok(g[5] >= 0.1 * 512 * 0.2, 'soft: blur grows with the mark')
+  }
+  // the rim and the final fill are crisp
+  for (const [k, , , , , blur] of log)
+    if (k === 'stroke') assert.equal(blur, 0)
+  const fills = log.filter(([k]) => k === 'fill')
+  assert.equal(fills.at(-1)[5], 0)
+  const first = log.findIndex(([k, , , , , blur]) => k === 'fill' && blur > 0)
+  const rim = log.findIndex(([k]) => k === 'stroke')
+  assert.ok(first < rim, 'halo under the rim')
+  log.length = 0
+  drawMarks(ctx, shapes, 512)
+  assert.ok(!log.some(([, , , , , blur]) => blur > 0), 'no glow unless asked')
 })
 
 test('the shader covers every region pixel and keeps half the shading', () => {

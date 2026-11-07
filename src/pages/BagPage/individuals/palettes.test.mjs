@@ -10,6 +10,7 @@ import {
   VIBE_LABELS,
   paletteOf,
 } from './palettes.mjs'
+import { hexToOklab } from '../../MyPokemonPage/room/canvas/colour.mjs'
 
 test('five vibes, each labelled', () => {
   assert.deepEqual(VIBES, ['cute', 'cool', 'fierce', 'mystic', 'nature'])
@@ -95,7 +96,7 @@ test('an unknown key falls back to origin', () => {
   assert.equal(paletteOf(undefined).key, 'origin')
 })
 
-test('six mark kinds in weight order, each labelled', () => {
+test('seven mark kinds, hearts last, each labelled', () => {
   assert.deepEqual(MARK_KINDS, [
     'spots',
     'stripes',
@@ -103,7 +104,21 @@ test('six mark kinds in weight order, each labelled', () => {
     'scar',
     'flower',
     'stars',
+    'hearts',
   ])
   assert.deepEqual(MARK_LABELS.stripes, { label: 'Lằn', unit: 'vệt' })
+  assert.deepEqual(MARK_LABELS.hearts, { label: 'Tim', unit: 'trái' })
   for (const kind of MARK_KINDS) assert.ok(MARK_LABELS[kind].label)
+})
+
+test('cute palettes are bright and vivid: no pale or near-white colour', () => {
+  const chroma = ([, a, b]) => Math.hypot(a, b)
+  const cute = PALETTES.filter((p) => p.vibe === 'cute')
+  assert.equal(cute.length, 7)
+  for (const p of cute) {
+    const [main, second, accent] = p.colors.map(hexToOklab)
+    assert.ok(main[0] >= 0.7 && chroma(main) >= 0.14, `${p.key} main`)
+    assert.ok(second[0] >= 0.7 && chroma(second) >= 0.11, `${p.key} second`)
+    assert.ok(chroma(accent) >= 0.1, `${p.key} accent`)
+  }
 })

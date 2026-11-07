@@ -15,7 +15,7 @@ export const paletteLabel = (appearance) => {
   return p.tier === 'origin' ? p.label : `${p.label} · ${TIER_LABELS[p.tier]}`
 }
 
-/** "Lằn · 6 vệt", or null when the body has no marks. */
+/** "Lằn · 6 vệt", "Tim · 5 trái", or null when the body has no marks. */
 export const marksLabel = (appearance) => {
   const m = appearance?.marks
   if (!m) return null

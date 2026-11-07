@@ -32,13 +32,15 @@ const set = (vibe, list) =>
 export const PALETTES = [
   row('origin', 'origin', 'Nguyên bản', null),
   ...set('cute', [
-    ['strawberry-milk', 'Sữa dâu', '#f7a8c4 #fff1f5 #5fb4e0'],
-    ['mint-cream', 'Bạc hà kem', '#9fe3c8 #f2fff9 #f0789e'],
-    ['banana', 'Bơ chuối', '#ffe08a #fffaf0 #ef7fa8'],
-    ['lavender', 'Oải hương', '#c7b3f2 #f7f2ff #ffc94d'],
-    ['cotton-candy', 'Kẹo bông', '#ffb3e1 #b8e8ff #fff27a'],
-    ['peach-milk', 'Đào sữa', '#ffc4a3 #fff4ec #4fb8a6'],
-    ['cloud', 'Mây trời', '#a9d8ff #ffffff #ff8fb0'],
+    // bright, vivid, a little neon: never pale or near-white (the room
+    // keeps them bright too, colour.mjs)
+    ['strawberry-milk', 'Sữa dâu', '#ff5fa8 #7dfcff #fff23d'],
+    ['mint-cream', 'Bạc hà kem', '#3dffb8 #ff9fd8 #b47cff'],
+    ['banana', 'Bơ chuối', '#fff23d #ff8fc8 #4fd2ff'],
+    ['lavender', 'Oải hương', '#c08aff #ff9fd8 #fff23d'],
+    ['cotton-candy', 'Kẹo bông', '#ff6ee0 #5ce1ff #fff23d'],
+    ['peach-milk', 'Đào sữa', '#ff8a4c #ff9fd8 #3dffb8'],
+    ['cloud', 'Mây trời', '#29c5ff #8fffdc #ff5fa8'],
   ]),
   ...set('cool', [
     ['cobalt', 'Cobalt', '#2f5bd3 #cfe0ff #ffb52e'],
@@ -150,6 +152,7 @@ export const MARK_KINDS = [
   'scar',
   'flower',
   'stars',
+  'hearts',
 ]
 
 export const MARK_LABELS = {
@@ -158,5 +161,6 @@ export const MARK_LABELS = {
   patch: { label: 'Bớt', unit: 'mảng' },
   scar: { label: 'Sẹo', unit: 'vết' },
   flower: { label: 'Hoa', unit: 'bông' },
-  stars: { label: 'Chòm sao', unit: 'ngôi' },
+  stars: { label: 'Sao', unit: 'ngôi' },
+  hearts: { label: 'Tim', unit: 'trái' },
 }

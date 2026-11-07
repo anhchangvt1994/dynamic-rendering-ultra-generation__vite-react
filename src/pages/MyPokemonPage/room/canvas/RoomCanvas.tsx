@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Appearance } from 'pages/BagPage/individuals/client'
+import { paletteOf } from 'pages/BagPage/individuals/palettes.mjs'
 import { paletteUniforms } from './colour.mjs'
 import type { Scene3 } from './gl'
 import { bodyMask, drawMarks, planMarks } from './marks.mjs'
@@ -64,7 +65,9 @@ function marksFor(rig: Rig, appearance: Appearance) {
   canvas.width = canvas.height = MARKS_PX
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
-  drawMarks(ctx, shapes, MARKS_PX, rig.json.frame)
+  drawMarks(ctx, shapes, MARKS_PX, rig.json.frame, {
+    glow: paletteOf(appearance.palette).vibe === 'cute',
+  })
   return canvas
 }
 
