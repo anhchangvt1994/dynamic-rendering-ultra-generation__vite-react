@@ -28,7 +28,8 @@ import {
 } from './catalog.mjs'
 import FeaturedEncounter from './FeaturedEncounter'
 import { useIndividualList } from 'pages/BagPage/individuals/individualStore'
-import { collectionIds } from './ownership.mjs'
+import { collectionIds, ownedSpecies } from './ownership.mjs'
+import { useDexSpecies } from './useDexSpecies'
 import { HomePageStyle, PokemonListStyle } from './styles'
 
 const caughtSnapshot = () => [...getCaught()].sort((a, b) => a - b).join(',')
@@ -86,9 +87,10 @@ function HomePage() {
     () => ''
   )
   const ownership = useIndividualList(true, null)
+  const dexIds = useDexSpecies(ownership.items)
   const ownedIds = useMemo(
-    () => new Set(ownership.items?.map((item) => item.speciesId) ?? []),
-    [ownership.items]
+    () => ownedSpecies(ownership.items ?? [], dexIds),
+    [ownership.items, dexIds]
   )
   const markedIds = useMemo(
     () =>
@@ -101,8 +103,8 @@ function HomePage() {
     [caughtKey]
   )
   const caughtIds = useMemo(
-    () => collectionIds(markedIds, ownership.items ?? []),
-    [markedIds, ownership.items]
+    () => collectionIds(markedIds, ownership.items ?? [], dexIds),
+    [markedIds, ownership.items, dexIds]
   )
   const { data, isFetching, isError, refetch } = useGetPokemonListQuery({
     limit: POKEMON_COUNT,
