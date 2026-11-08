@@ -55,6 +55,9 @@ const ChestStyle = styled.dialog`
   ${dialogCss}
   --dialog-w: 620px;
 
+  .scene::-webkit-scrollbar {
+    display: none;
+  }
   .scene {
     position: relative;
     display: grid;
@@ -62,6 +65,7 @@ const ChestStyle = styled.dialog`
     gap: 10px;
     max-height: calc(100svh - 24px);
     overflow: hidden auto;
+    scrollbar-width: none;
     padding: 26px 16px 20px;
     border-radius: 30px;
     background:
