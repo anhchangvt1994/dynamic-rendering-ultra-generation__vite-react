@@ -189,6 +189,7 @@ export const DialogStyle = styled.dialog`
     display: none;
   }
   .ind-item {
+    position: relative;
     display: grid;
     grid-template-columns: 72px 1fr;
     gap: 4px 12px;

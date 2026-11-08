@@ -65,3 +65,53 @@ export const itemBranches = (options, bag = null) =>
 
 export const needsChoice = (ready) => ready.length >= 2
 export const defaultChoice = (ready) => (ready.length === 1 ? ready[0].to : null)
+
+/** Stage for the branch bubbles: centre sprite rect and the area bubbles may use. */
+export const STAGE = { w: 300, h: 170, sprite: { x: 115, y: 50, w: 70, h: 70 } }
+
+/**
+ * Bubble rects (x, y = top-left, size) for `count` branches, none over the
+ * centre sprite, none overlapping, all inside STAGE. One branch gets a big
+ * bubble to the right; more spread over a left/right/top/bottom ring.
+ */
+export function bubbleLayout(count) {
+  if (count <= 0) return []
+  if (count === 1) return [{ x: 188, y: 20, size: 112 }]
+  const size = count <= 4 ? 56 : 40
+  const { w, h } = STAGE
+  const slots = []
+  // two columns either side of the sprite, then top and bottom rows
+  const side = [
+    [8, 12], [w - size - 8, 12], [8, h - size - 14], [w - size - 8, h - size - 14],
+    [8, 58], [w - size - 8, 58],
+    [w / 2 - size / 2 - size - 12, 4], [w / 2 + size / 2 + 12, 4],
+  ]
+  for (let i = 0; i < Math.min(count, side.length); i++) {
+    slots.push({ x: Math.round(side[i][0]), y: Math.round(side[i][1]), size })
+  }
+  return slots
+}
+
+const okText = (reason) =>
+  reasonText(reason).replace(/^Cần /, 'Đạt ').replace(/ \(đang .*\)$/, '')
+
+/**
+ * Branches for the prompt: [{to, ready, lines:[{ok,text}]}], ready first.
+ * Without `item`: branches reachable without one (lines from the ready alt,
+ * else the alt with most conditions met). With `item`: branches that stone fits.
+ */
+export function promptBranches(options, item = null) {
+  const out = []
+  for (const b of options?.branches ?? []) {
+    const alts = b.alts.filter((a) => (item ? a.kind === 'item' && a.item === item : a.kind !== 'item'))
+    if (!alts.length) continue
+    const met = (a) => a.reasons.filter((r) => r.ok).length
+    const best = alts.find((a) => a.ok) ?? alts.reduce((x, y) => (met(y) > met(x) ? y : x))
+    out.push({
+      to: b.to,
+      ready: alts.some((a) => a.ok),
+      lines: best.reasons.map((r) => ({ ok: r.ok, text: r.ok ? okText(r) : reasonText(r) })),
+    })
+  }
+  return [...out.filter((b) => b.ready), ...out.filter((b) => !b.ready)]
+}

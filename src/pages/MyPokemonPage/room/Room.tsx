@@ -37,6 +37,7 @@ import ProfileSheet from './ProfileSheet'
 import RoomSprite from './RoomSprite'
 import { contrast, themeFor } from './roomTheme.mjs'
 import { spriteFor } from './sprite.mjs'
+import EvolveBadge from '../evolution/EvolveBadge'
 import { dockGesture, sheetDragClose } from './dockGesture.mjs'
 import { RoomStyle } from './styles'
 import { useReducedMotion } from './useMedia'
@@ -350,6 +351,11 @@ export default function Room({
                   {'★'.repeat(individual.potential.stars)}
                   {'☆'.repeat(5 - individual.potential.stars)}
                 </span>
+                <EvolveBadge
+                  individualId={individual.id}
+                  version={affection}
+                  inline
+                />
                 {siblings.length > 1 && at >= 0 && (
                   <span className="rm-count" aria-hidden="true">
                     {at + 1}/{siblings.length}

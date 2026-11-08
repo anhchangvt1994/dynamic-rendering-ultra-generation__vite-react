@@ -7,6 +7,7 @@ import { useIndividualList } from './individualStore'
 import { useNaming } from './useIndividuals'
 import { DialogStyle } from './styles'
 import { myPokemonPath } from 'pages/MyPokemonPage/paths.mjs'
+import EvolveBadge from 'pages/MyPokemonPage/evolution/EvolveBadge'
 
 type Props = {
   speciesId: number | null
@@ -41,6 +42,7 @@ function Item({ item, name }: { item: any; name: string }) {
   return (
     <li className="ind-item" data-individual={item.id}>
       <IndividualArt speciesId={item.speciesId} name={name} size={72} />
+      <EvolveBadge individualId={item.id} />
       <span className="ind-item-main">
         <strong>{item.nickname ?? name}</strong>
         <span>

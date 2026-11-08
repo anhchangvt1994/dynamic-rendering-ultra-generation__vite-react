@@ -14,6 +14,7 @@ import {
 import LoadingBoundary from 'utils/LoadingBoundary'
 import useScrollRestoration from 'hooks/useScrollRestoration'
 import { preloadPath, preloadWhenIdle } from 'app/router/routeModules'
+import EvolutionHost from 'pages/MyPokemonPage/evolution/EvolutionHost'
 
 // Memoized Outlet wrapper that only re-renders when route location changes
 const OutletWrapper = React.memo(() => {
@@ -160,6 +161,7 @@ function Layout() {
 
         <MenuBar isOpen={isShowMenuBar} onClose={onHideMenu} />
         {searchBarOfPage}
+        <EvolutionHost />
       </MainContainerStyle>
     </div>
   )

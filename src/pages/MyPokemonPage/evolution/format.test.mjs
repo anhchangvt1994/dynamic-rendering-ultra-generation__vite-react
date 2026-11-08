@@ -80,3 +80,43 @@ test('needsChoice and defaultChoice for 0, 1 and 3 branches', () => {
   assert.equal(defaultChoice(r(1)), 10)
   assert.equal(defaultChoice(r(3)), null)
 })
+
+test('bubbleLayout keeps every bubble inside the stage and off the centre sprite', async () => {
+  const { bubbleLayout, STAGE } = await import('./format.mjs')
+  assert.deepEqual(STAGE, { w: 300, h: 170, sprite: { x: 115, y: 50, w: 70, h: 70 } })
+  const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  for (let n = 1; n <= 8; n++) {
+    const bubbles = bubbleLayout(n)
+    assert.equal(bubbles.length, n)
+    bubbles.forEach((b, i) => {
+      const r = { x: b.x, y: b.y, w: b.size, h: b.size }
+      assert.ok(b.x >= 0 && b.y >= 0 && b.x + b.size <= STAGE.w && b.y + b.size <= STAGE.h, `n=${n} #${i} outside`)
+      assert.ok(!hit(r, STAGE.sprite), `n=${n} #${i} covers the sprite`)
+      bubbles.slice(i + 1).forEach((o, j) =>
+        assert.ok(!hit(r, { x: o.x, y: o.y, w: o.size, h: o.size }), `n=${n} #${i}/#${i + 1 + j} overlap`)
+      )
+    })
+  }
+})
+
+test('promptBranches: ready first, item-only left out, lines from the closest alt', async () => {
+  const { promptBranches } = await import('./format.mjs')
+  const r = (code, ok, need, have) => ({ code, ok, need, have })
+  const options = {
+    branches: [
+      { to: 197, alts: [{ kind: 'affection', ok: false, reasons: [r('affection', false, 220), r('time', false, 'night')] }] },
+      { to: 134, alts: [{ kind: 'item', item: 'water-stone', ok: true, reasons: [] }] },
+      { to: 196, alts: [{ kind: 'affection', ok: true, reasons: [r('affection', true, 220), r('time', true, 'day')] }] },
+    ],
+  }
+  const view = promptBranches(options)
+  assert.deepEqual(view.map((b) => [b.to, b.ready]), [[196, true], [197, false]])
+  assert.deepEqual(view[0].lines, [
+    { ok: true, text: 'Đạt thân thiết 220' },
+    { ok: true, text: 'Đạt ban ngày' },
+  ])
+  assert.equal(view[1].lines[1].text, 'Cần ban đêm')
+  const stone = promptBranches(options, 'water-stone')
+  assert.deepEqual(stone.map((b) => [b.to, b.ready]), [[134, true]])
+  assert.deepEqual(promptBranches(null), [])
+})
