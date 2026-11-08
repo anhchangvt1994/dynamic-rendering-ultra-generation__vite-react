@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { ITEMS } from './items.mjs'
 import { GENERATIONS } from '../HomePage/catalog.mjs'
@@ -15,24 +15,55 @@ const TIME_MIGRATION = new URL(
   import.meta.url
 )
 
+const MIGRATIONS = new URL('../../../supabase/migrations/', import.meta.url)
+
+/** Every quiz_items insert of every migration, in migration order. */
+const catalogueRows = () =>
+  readdirSync(MIGRATIONS)
+    .filter((file) => file.endsWith('.sql'))
+    .sort()
+    .flatMap((file) => {
+      const sql = readFileSync(new URL(file, MIGRATIONS), 'utf8')
+      return [
+        ...sql.matchAll(
+          /insert into public\.quiz_items \(id, tier, hard, rank\) values([\s\S]*?);/g
+        ),
+      ].flatMap((block) =>
+        [
+          ...block[1].matchAll(
+            /\('([a-z0-9-]+)', (\d), (true|false), (\d+)\)/g
+          ),
+        ].map(([, id, tier, hard, rank]) => [
+          id,
+          Number(tier),
+          hard === 'true',
+          Number(rank),
+        ])
+      )
+    })
+
 test('the database catalogue is the items.mjs catalogue, in its order', () => {
-  const sql = readFileSync(MIGRATION, 'utf8')
-  const block = sql.match(
-    /insert into public\.quiz_items \(id, tier, hard, rank\) values([\s\S]*?);/
-  )
-  assert.ok(block, 'the migration seeds public.quiz_items')
-  const rows = [
-    ...block[1].matchAll(/\('([a-z0-9-]+)', (\d), (true|false), (\d+)\)/g),
-  ].map(([, id, tier, hard, rank]) => [
-    id,
-    Number(tier),
-    hard === 'true',
-    Number(rank),
-  ])
+  const rows = catalogueRows()
+  assert.ok(rows.length > 0, 'the migrations seed public.quiz_items')
   assert.deepEqual(
     rows,
     ITEMS.map((item, rank) => [item.id, item.tier, Boolean(item.hard), rank])
   )
+})
+
+test('every item an evolution needs is in the catalogue', () => {
+  const sql = readFileSync(
+    new URL('../../../supabase/seed/pokemon_evolution_v1.sql', import.meta.url),
+    'utf8'
+  )
+  const needed = new Set(
+    [
+      ...sql.matchAll(/^  \(\d+, \d+, \d+, '[a-z-]+', [^,]+, '([a-z0-9-]+)'/gm),
+    ].map((m) => m[1])
+  )
+  assert.ok(needed.size > 20, 'the seed has item evolutions')
+  const known = new Set(ITEMS.map((item) => item.id))
+  for (const id of needed) assert.ok(known.has(id), `${id} is not in ITEMS`)
 })
 
 test('the database plays the ranges the page offers: all, or a generation', () => {

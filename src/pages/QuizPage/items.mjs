@@ -39,6 +39,20 @@ export const GROUPS = {
   },
 }
 
+/** Stand-ins for the trade evolutions and the games' special evolution items. */
+const evoItem = (id, name, who) => ({
+  id,
+  name,
+  kind: 'stone',
+  group: 'evo',
+  tier: 1,
+  effect: `Dùng lên Pokémon hợp để tiến hoá ngay: ${who}.`,
+  stats: [
+    ['Tiến hoá', 'Tức thì'],
+    ['Dùng', '1 lần'],
+  ],
+})
+
 const KINDS = {
   candy: 'Kẹo',
   vitamin: 'Thuốc bổ',
@@ -443,6 +457,37 @@ export const ITEMS = [
   status('pecha-berry', 'Pecha Berry', 'trúng độc'),
   status('rawst-berry', 'Rawst Berry', 'bỏng'),
   status('aspear-berry', 'Aspear Berry', 'đóng băng'),
+  evoItem(
+    'linking-cord',
+    'Linking Cord',
+    'Kadabra → Alakazam, Machoke → Machamp, Graveler → Golem, Haunter → Gengar và các Pokémon tiến hoá khi trao đổi'
+  ),
+  evoItem(
+    'kings-rock',
+    "King's Rock",
+    'Poliwhirl → Politoed, Slowpoke → Slowking'
+  ),
+  evoItem('metal-coat', 'Metal Coat', 'Onix → Steelix, Scyther → Scizor'),
+  evoItem('protector', 'Protector', 'Rhydon → Rhyperior'),
+  evoItem('dragon-scale', 'Dragon Scale', 'Seadra → Kingdra'),
+  evoItem('black-augurite', 'Black Augurite', 'Scyther → Kleavor'),
+  evoItem('electirizer', 'Electirizer', 'Electabuzz → Electivire'),
+  evoItem('magmarizer', 'Magmarizer', 'Magmar → Magmortar'),
+  evoItem('up-grade', 'Up-Grade', 'Porygon → Porygon2'),
+  evoItem('dubious-disc', 'Dubious Disc', 'Porygon2 → Porygon-Z'),
+  evoItem('peat-block', 'Peat Block', 'Ursaring → Ursaluna'),
+  evoItem('prism-scale', 'Prism Scale', 'Feebas → Milotic'),
+  evoItem('reaper-cloth', 'Reaper Cloth', 'Dusclops → Dusknoir'),
+  evoItem('deep-sea-tooth', 'Deep Sea Tooth', 'Clamperl → Huntail'),
+  evoItem('deep-sea-scale', 'Deep Sea Scale', 'Clamperl → Gorebyss'),
+  evoItem('sachet', 'Sachet', 'Spritzee → Aromatisse'),
+  evoItem('whipped-dream', 'Whipped Dream', 'Swirlix → Slurpuff'),
+  evoItem('tart-apple', 'Tart Apple', 'Applin → Flapple'),
+  evoItem('sweet-apple', 'Sweet Apple', 'Applin → Appletun'),
+  evoItem('syrupy-apple', 'Syrupy Apple', 'Applin → Dipplin'),
+  evoItem('metal-alloy', 'Metal Alloy', 'Duraludon → Archaludon'),
+  evoItem('auspicious-armor', 'Auspicious Armor', 'Charcadet → Armarouge'),
+  evoItem('malicious-armor', 'Malicious Armor', 'Charcadet → Ceruledge'),
 ]
 
 const ORDER = new Map(ITEMS.map((item, index) => [item.id, index]))
