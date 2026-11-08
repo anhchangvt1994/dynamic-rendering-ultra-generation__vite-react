@@ -113,7 +113,7 @@ export function useBuild(individualId: string | null) {
       ),
     [run, individualId]
   )
-  const useItem = useCallback(
+  const applyItem = useCallback(
     async (item: string, stat?: number) => {
       const build = await run(`item:${item}:${stat ?? ''}`, (d, id) =>
         sendItem(d, id, individualId, item, stat ?? null)
@@ -147,7 +147,7 @@ export function useBuild(individualId: string | null) {
     busy,
     actionError,
     setMove,
-    useItem,
+    applyItem,
     awaken,
   }
 }

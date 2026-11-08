@@ -34,7 +34,7 @@ export default function BuildPanel({ item, affection }: Props) {
     busy,
     actionError,
     setMove,
-    useItem,
+    applyItem,
     awaken,
   } = useBuild(item.id)
   const { bag } = useBagStore()
@@ -253,7 +253,10 @@ export default function BuildPanel({ item, affection }: Props) {
                         }
                         title={reason ?? undefined}
                         onClick={() =>
-                          !busy && !reason && build.iv[i] < 31 && useItem(id, i)
+                          !busy &&
+                          !reason &&
+                          build.iv[i] < 31 &&
+                          applyItem(id, i)
                         }
                       >
                         {statLabel(i)}
@@ -265,7 +268,7 @@ export default function BuildPanel({ item, affection }: Props) {
                     type="button"
                     className="rm-btn rm-primary"
                     aria-disabled={busy || !!reason || undefined}
-                    onClick={() => !busy && !reason && useItem(id)}
+                    onClick={() => !busy && !reason && applyItem(id)}
                   >
                     Dùng
                   </button>
