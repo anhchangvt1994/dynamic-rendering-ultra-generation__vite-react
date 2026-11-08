@@ -34,7 +34,9 @@ const chain = (from, to, details) => ({
   chain: {
     species: sp(from),
     evolution_details: [],
-    evolves_to: [{ species: sp(to), evolution_details: details, evolves_to: [] }],
+    evolves_to: [
+      { species: sp(to), evolution_details: details, evolves_to: [] },
+    ],
   },
 })
 const one = (details, from = 1, to = 2) => parseChain(chain(from, to, details))
@@ -74,7 +76,13 @@ test('walks nested evolves_to', () => {
       ],
     },
   })
-  assert.deepEqual(rows.map((r) => [r.from, r.to]), [[1, 2], [2, 3]])
+  assert.deepEqual(
+    rows.map((r) => [r.from, r.to]),
+    [
+      [1, 2],
+      [2, 3],
+    ]
+  )
 })
 
 test('alternatives are separate alts', () => {
@@ -82,8 +90,14 @@ test('alternatives are separate alts', () => {
     detail('level-up', { min_happiness: 220, time_of_day: 'day' }),
     detail('level-up', { min_happiness: 220, time_of_day: 'night' }),
   ])
-  assert.deepEqual(rows.map((r) => r.alt), [0, 1])
-  assert.deepEqual(rows.map((r) => r.timeOfDay), ['day', 'night'])
+  assert.deepEqual(
+    rows.map((r) => r.alt),
+    [0, 1]
+  )
+  assert.deepEqual(
+    rows.map((r) => r.timeOfDay),
+    ['day', 'night']
+  )
 })
 
 test('plain trade becomes linking-cord', () => {
@@ -132,7 +146,10 @@ test('unsupported conditions are unavailable, never thrown', () => {
   assert.equal(code(detail('level-up', { min_move_count: 20 })), 'battle')
   assert.equal(code(detail('level-up', { min_steps: 1000 })), 'steps')
   assert.equal(code(detail('level-up', { needs_overworld_rain: true })), 'rain')
-  assert.equal(code(detail('level-up', { turn_upside_down: true })), 'upside-down')
+  assert.equal(
+    code(detail('level-up', { turn_upside_down: true })),
+    'upside-down'
+  )
   assert.equal(code(detail('level-up', { region: named('alola') })), 'region')
   assert.equal(code(detail('level-up', { party_type: named('dark') })), 'other')
   assert.equal(code(detail('shed')), 'other')
@@ -161,7 +178,11 @@ test('gender, stats, move and location map through', () => {
 
 test('affection, beauty and happiness map through', () => {
   const [r] = one([
-    detail('level-up', { min_affection: 2, min_beauty: 170, min_happiness: 220 }),
+    detail('level-up', {
+      min_affection: 2,
+      min_beauty: 170,
+      min_happiness: 220,
+    }),
   ])
   assert.equal(r.minAffection, 2)
   assert.equal(r.minBeauty, 170)
@@ -174,8 +195,17 @@ test('evolutions without details (breeding) produce no row', () => {
 
 test('version-grouped details keep only the default ones', () => {
   const rows = one([
-    detail('level-up', { location: named('eterna-forest'), version_group: named('diamond-pearl'), near_special_rock: true }),
-    detail('use-item', { item: named('leaf-stone'), version_group: named('sword-shield'), is_default: true, required_pokemon_form: named('eevee') }),
+    detail('level-up', {
+      location: named('eterna-forest'),
+      version_group: named('diamond-pearl'),
+      near_special_rock: true,
+    }),
+    detail('use-item', {
+      item: named('leaf-stone'),
+      version_group: named('sword-shield'),
+      is_default: true,
+      required_pokemon_form: named('eevee'),
+    }),
   ])
   assert.equal(rows.length, 1)
   assert.equal(rows[0].item, 'leaf-stone')
@@ -187,22 +217,51 @@ test('without a default every detail is kept; version noise is ignored', () => {
     detail('level-up', { min_level: 30, version_group: named('x-y') }),
     detail('level-up', { min_level: 32, version_group: named('sun-moon') }),
   ])
-  assert.deepEqual(rows.map((r) => [r.minLevel, r.unavailable]), [[30, null], [32, null]])
+  assert.deepEqual(
+    rows.map((r) => [r.minLevel, r.unavailable]),
+    [
+      [30, null],
+      [32, null],
+    ]
+  )
 })
 
 test('new unsupported keys are unavailable', () => {
   const code = (d) => one([d])[0].unavailable
   assert.equal(code(detail('level-up', { near_special_rock: true })), 'other')
-  assert.equal(code(detail('level-up', { used_move: named('rage-fist') })), 'battle')
-  assert.equal(code(detail('level-up', { allowed_natures: [named('low-key')] })), 'other')
+  assert.equal(
+    code(detail('level-up', { used_move: named('rage-fist') })),
+    'battle'
+  )
+  assert.equal(
+    code(detail('level-up', { allowed_natures: [named('low-key')] })),
+    'other'
+  )
 })
 
 test('regional-form evolutions are unavailable', () => {
   const rows = one([
     detail('level-up', { min_level: 20, is_default: true }),
-    detail('level-up', { min_level: 20, time_of_day: 'night', is_default: true, required_pokemon_form: named('rattata-alola'), evolved_pokemon_form: named('raticate-alola') }),
+    detail('level-up', {
+      min_level: 20,
+      time_of_day: 'night',
+      is_default: true,
+      required_pokemon_form: named('rattata-alola'),
+      evolved_pokemon_form: named('raticate-alola'),
+    }),
   ])
-  assert.deepEqual(rows.map((r) => r.unavailable), [null, 'region'])
+  assert.deepEqual(
+    rows.map((r) => r.unavailable),
+    [null, 'region']
+  )
+})
+
+test('a time of day the clock cannot tell is unavailable', () => {
+  const [r] = one([
+    detail('use-item', { item: named('peat-block'), time_of_day: 'full-moon' }),
+  ])
+  assert.equal(r.unavailable, 'other')
+  assert.equal(r.timeOfDay, null)
 })
 
 test('malformed data fails loudly', () => {

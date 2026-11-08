@@ -155,7 +155,7 @@ insert into public.pokemon_evolutions (from_species, to_species, alt, trigger, m
   (215, 461, 0, 'level-up', null, null, null, null, null, 'night', null, null, null, null, null, null, null, null, 'held-item'),
   (215, 903, 0, 'level-up', null, null, null, null, null, 'day', null, null, null, null, null, null, null, null, 'held-item'),
   (216, 217, 0, 'level-up', 30, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
-  (217, 901, 0, 'use-item', null, 'peat-block', null, null, null, 'full-moon', null, null, null, null, null, null, null, null, null),
+  (217, 901, 0, 'level-up', null, null, null, null, null, null, null, null, null, null, null, null, null, null, 'other'),
   (218, 219, 0, 'level-up', 38, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (220, 221, 0, 'level-up', 33, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (221, 473, 0, 'level-up', null, null, null, null, null, null, null, 'ancient-power', null, null, null, null, null, null, null),

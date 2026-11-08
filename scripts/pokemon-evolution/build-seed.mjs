@@ -77,13 +77,17 @@ const HANDLED_KEYS = new Set([
   'required_pokemon_form',
   'evolved_pokemon_form',
 ])
+const TIMES = new Set(['day', 'dusk', 'night'])
 const CHUNK = 500
 
 const fail = (msg) => {
   throw new Error(`pokemon-evolution seed: ${msg}`)
 }
 const range = (n) => Array.from({ length: n }, (_, i) => i + 1)
-const lit = (s) => (s === null || s === undefined ? 'null' : `'${String(s).replaceAll("'", "''")}'`)
+const lit = (s) =>
+  s === null || s === undefined
+    ? 'null'
+    : `'${String(s).replaceAll("'", "''")}'`
 const num = (v) => (v === null || v === undefined ? 'null' : Number(v))
 const present = (v) => v !== null && v !== undefined && v !== '' && v !== false
 
@@ -96,17 +100,26 @@ const slug = (ref) => ref?.name ?? null
 /** First unsupported condition of one PokéAPI evolution detail, or null. */
 function unsupported(d, trigger) {
   if (BATTLE_TRIGGERS.has(trigger)) return 'battle'
-  if (present(d.min_damage_taken) || present(d.min_move_count) || present(d.used_move))
+  if (
+    present(d.min_damage_taken) ||
+    present(d.min_move_count) ||
+    present(d.used_move)
+  )
     return 'battle'
   if (present(d.min_steps)) return 'steps'
   if (present(d.needs_overworld_rain)) return 'rain'
   if (present(d.turn_upside_down)) return 'upside-down'
-  if (present(d.region) || present(d.base_form) || present(d.evolved_pokemon_form))
+  if (
+    present(d.region) ||
+    present(d.base_form) ||
+    present(d.evolved_pokemon_form)
+  )
     return 'region'
   if (trigger === 'level-up' && present(d.held_item)) return 'held-item'
   if (trigger !== 'level-up' && trigger !== 'use-item' && trigger !== 'trade')
     return 'other'
   if (present(d.party_type)) return 'other'
+  if (present(d.time_of_day) && !TIMES.has(d.time_of_day)) return 'other'
   for (const [key, value] of Object.entries(d))
     if (!HANDLED_KEYS.has(key) && present(value)) return 'other'
   return null
@@ -134,7 +147,9 @@ export function parseChain(payload) {
         let item = null
         if (!unavailable) {
           if (trigger === 'trade')
-            item = d.trade_species ? LINKING_CORD : (slug(d.held_item) ?? LINKING_CORD)
+            item = d.trade_species
+              ? LINKING_CORD
+              : (slug(d.held_item) ?? LINKING_CORD)
           else if (trigger === 'use-item')
             item = slug(d.item) ?? fail(`evolution ${from}→${to} has no item`)
         }
@@ -149,14 +164,18 @@ export function parseChain(payload) {
           minHappiness: d.min_happiness ?? null,
           minAffection: d.min_affection ?? null,
           minBeauty: d.min_beauty ?? null,
-          timeOfDay: d.time_of_day || null,
+          timeOfDay: TIMES.has(d.time_of_day) ? d.time_of_day : null,
           gender: d.gender ?? null,
           knownMove: slug(d.known_move),
           knownMoveType: slug(d.known_move_type),
           relativeStats: d.relative_physical_stats ?? null,
-          partySpecies: d.party_species ? speciesId(d.party_species, 'party') : null,
+          partySpecies: d.party_species
+            ? speciesId(d.party_species, 'party')
+            : null,
           partyType: slug(d.party_type),
-          tradeSpecies: d.trade_species ? speciesId(d.trade_species, 'trade') : null,
+          tradeSpecies: d.trade_species
+            ? speciesId(d.trade_species, 'trade')
+            : null,
           location: slug(d.location),
           unavailable,
         })
@@ -258,7 +277,11 @@ export async function fetchChains(dir, ids = range(TOTAL)) {
     if (!chainId) fail(`species ${id} has no evolution chain`)
     chainIds.add(chainId)
   }
-  return pool([...chainIds].sort((a, b) => a - b), 10, get('evolution-chain'))
+  return pool(
+    [...chainIds].sort((a, b) => a - b),
+    10,
+    get('evolution-chain')
+  )
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -279,5 +302,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const report = path.join(ROOT, '.superpowers/qa/evolution-missing-items.json')
   fs.mkdirSync(path.dirname(report), { recursive: true })
   fs.writeFileSync(report, JSON.stringify(missing, null, 2))
-  console.log(`wrote ${path.relative(ROOT, output)} (${rows.length} rows, ${missing.length} items missing from the catalogue)`)
+  console.log(
+    `wrote ${path.relative(ROOT, output)} (${rows.length} rows, ${missing.length} items missing from the catalogue)`
+  )
 }
