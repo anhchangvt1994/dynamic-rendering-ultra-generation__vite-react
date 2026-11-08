@@ -53,16 +53,17 @@ export const buildStyle = css`
     top: 0;
     right: 2px;
     font-style: normal;
-    font-size: 11px;
-    font-weight: 800;
-    color: #1f9d55;
+    font-size: 12px;
+    font-weight: 900;
+    color: #6ee7a0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     pointer-events: none;
     animation: bp-pop 2.2s ease-out forwards;
   }
   .bp-head .bp-delta {
     position: static;
     margin-left: 8px;
-    font-size: 13px;
+    font-size: 14px;
     display: inline-block;
   }
   .bp-head b {
@@ -101,7 +102,7 @@ export const buildStyle = css`
   }
   .bp-stats td[data-up] > :first-child,
   .bp-stats td[data-up] {
-    color: #1f9d55;
+    color: #6ee7a0;
   }
   .bp-up,
   .bp-down {
