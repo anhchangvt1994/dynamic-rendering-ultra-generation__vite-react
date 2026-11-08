@@ -21,7 +21,7 @@ export type BuildStatus = 'loading' | 'ready' | 'error' | 'unavailable'
  * operation id kept across a retry after a network error; a reply for
  * another account or individual is dropped.
  */
-export function useBuild(individualId: string | null) {
+export function useBuild(individualId: string | null, version = 0) {
   const account = useAccount()
   const mode = modeFor(account.status)
   const key = `${mode}:${account.user?.id ?? ''}:${individualId ?? ''}`
@@ -66,12 +66,17 @@ export function useBuild(individualId: string | null) {
   useEffect(() => {
     pending.current = null
     setActionError(null)
-    load()
     const current = epoch.current
     return () => {
       current.next()
     }
-  }, [load])
+  }, [key])
+
+  // another change (care) moved what the build derives from: fetch again,
+  // keeping the old build on screen meanwhile
+  useEffect(() => {
+    load()
+  }, [load, version])
 
   const run = useCallback(
     async (

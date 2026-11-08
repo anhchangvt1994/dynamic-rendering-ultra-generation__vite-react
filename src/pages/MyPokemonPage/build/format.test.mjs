@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   abilityLabel,
+  starsFor,
   mergeLearnset,
   moveLockReason,
   NATURE_VI,
@@ -75,4 +76,9 @@ test('mergeLearnset: one row per move, open first, nearest route when locked', (
     ]
   )
   assert.equal(rows[0].power, 40)
+})
+
+test('starsFor: the build wins over the birth stars', () => {
+  assert.equal(starsFor(null, 2), 2)
+  assert.equal(starsFor({ stars: 4 }, 2), 4)
 })

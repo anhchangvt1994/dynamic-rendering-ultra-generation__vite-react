@@ -105,3 +105,6 @@ export function mergeLearnset(learnset, moves, build, bag, affection = 0) {
         a.move.localeCompare(b.move)
     )
 }
+
+/** Stars now: the server's build (items and awakening raise them), else the birth stars. */
+export const starsFor = (build, birthStars) => build?.stars ?? birthStars

@@ -22,10 +22,14 @@ const itemName = (id: string) =>
   (ITEMS as { id: string; name: string }[]).find((item) => item.id === id)
     ?.name ?? titleCase(id)
 
-type Props = { item: Individual; affection: number }
+type Props = {
+  item: Individual
+  affection: number
+  api: ReturnType<typeof useBuild>
+}
 
 /** Server-computed stats, ability, 4 moves, and the rare items that grow them. */
-export default function BuildPanel({ item, affection }: Props) {
+export default function BuildPanel({ item, affection, api }: Props) {
   const {
     build,
     status,
@@ -36,7 +40,8 @@ export default function BuildPanel({ item, affection }: Props) {
     setMove,
     applyItem,
     awaken,
-  } = useBuild(item.id)
+  } = api
+
   const { bag } = useBagStore()
   const learnset = useLearnset(build?.species ?? null, status === 'ready')
   const [slot, setSlot] = useState<number | null>(null)
