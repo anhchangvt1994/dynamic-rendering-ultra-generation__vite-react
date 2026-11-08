@@ -5,12 +5,14 @@ import { refreshShards } from '../shardStore'
 import { submitName, submitTrade, type TradeReceipt } from './client'
 import { refreshIndividuals, useIndividualList } from './individualStore'
 import { createTradeController } from './operations.mjs'
+import { enqueueWelcome } from './welcomeQueue.mjs'
 
 export type TradeState = {
   kind: 'submitting' | 'uncertain' | 'error' | 'success'
   retryable: boolean
   code?: string
   receipt?: TradeReceipt
+  batch?: boolean
 }
 
 /** Renaming works anywhere an individual is listed, with no trade controller. */
@@ -44,7 +46,14 @@ export function useIndividuals(enabled: boolean) {
         ? `server:${userId}`
         : null
   const [states, setStates] = useState<Record<number, TradeState>>({})
-  const [welcome, setWelcome] = useState<{ receipt: TradeReceipt } | null>(null)
+  const [welcomes, setWelcomes] = useState<{ receipts: TradeReceipt[] }[]>([])
+  const welcome = welcomes[0] ?? null
+  const [batchSummary, setBatchSummary] = useState<{
+    speciesId: number
+    receipts: TradeReceipt[]
+    failures: { index: number; kind: 'error' | 'uncertain'; code?: string }[]
+    uncertain: boolean
+  } | null>(null)
   const controller = useRef<ReturnType<typeof createTradeController> | null>(
     null
   )
@@ -52,7 +61,8 @@ export function useIndividuals(enabled: boolean) {
 
   useEffect(() => {
     setStates({})
-    setWelcome(null)
+    setWelcomes([])
+    setBatchSummary(null)
     controller.current = null
     if (!enabled || !ownerKey) return
     const mine = createTradeController({
@@ -64,10 +74,22 @@ export function useIndividuals(enabled: boolean) {
         refreshShards()
         refreshIndividuals()
       },
+      onBatch: (
+        speciesId: number,
+        result: NonNullable<typeof batchSummary>
+      ) => {
+        setBatchSummary({ ...result, speciesId })
+        setWelcomes((queue: { receipts: TradeReceipt[] }[]) =>
+          enqueueWelcome(queue, result.receipts)
+        )
+      },
       onState: (speciesId: number, state: TradeState) => {
         setStates((s) => ({ ...s, [speciesId]: state }))
-        if (state.kind === 'success' && state.receipt)
-          setWelcome({ receipt: state.receipt })
+        // a batch is shown as one group when it ends (onBatch)
+        if (state.kind === 'success' && state.receipt && !state.batch)
+          setWelcomes((queue: { receipts: TradeReceipt[] }[]) =>
+            enqueueWelcome(queue, [state.receipt!])
+          )
       },
     })
     controller.current = mine
@@ -82,8 +104,21 @@ export function useIndividuals(enabled: boolean) {
     (speciesId: number) => controller.current?.trade(speciesId),
     []
   )
+  const tradeMany = useCallback(
+    (speciesId: number, quantity: number, available: number) =>
+      controller.current?.tradeMany(speciesId, quantity, available),
+    []
+  )
+  const retryMany = useCallback(
+    (speciesId: number) => controller.current?.retryMany(speciesId),
+    []
+  )
   const name = useNaming()
-  const dismissWelcome = useCallback(() => setWelcome(null), [])
+  const dismissWelcome = useCallback(
+    () => setWelcomes((queue) => queue.slice(1)),
+    []
+  )
+  const dismissBatchSummary = useCallback(() => setBatchSummary(null), [])
   const counts = useMemo(() => {
     const out: Record<number, number> = {}
     for (const item of all.items ?? [])
@@ -96,11 +131,27 @@ export function useIndividuals(enabled: boolean) {
       available: ownerKey !== null,
       states,
       trade,
+      tradeMany,
+      retryMany,
+      batchSummary,
+      dismissBatchSummary,
       name,
       welcome,
       dismissWelcome,
       counts,
     }),
-    [ownerKey, states, trade, name, welcome, dismissWelcome, counts]
+    [
+      ownerKey,
+      states,
+      trade,
+      tradeMany,
+      retryMany,
+      batchSummary,
+      dismissBatchSummary,
+      name,
+      welcome,
+      dismissWelcome,
+      counts,
+    ]
   )
 }

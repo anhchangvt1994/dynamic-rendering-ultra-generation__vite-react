@@ -5,5 +5,12 @@ export const OWNED_COLLECTION_PATH = '/?view=caught&owned=1'
 export const myPokemonPath = (id) =>
   id ? `${MY_POKEMON_PATH}/${encodeURIComponent(id)}` : MY_POKEMON_PATH
 
+/** Keep the mounted page while moving between individual rooms. */
+export const individualNavigationState = (returnTo, returnIndex) => ({
+  returnTo,
+  returnIndex,
+  keepPage: true,
+})
+
 export const findIndividual = (items, id) =>
   (id && items?.find((item) => item.id === id)) || null

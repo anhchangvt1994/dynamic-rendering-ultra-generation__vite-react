@@ -171,7 +171,10 @@ export default function Pot({
     const r = row.getBoundingClientRect()
     const o = on.getBoundingClientRect()
     const to = row.scrollLeft + o.left - r.left - (r.width - o.width) / 2
-    row.scrollTo({ left: Math.max(0, to), behavior: reduce ? 'auto' : 'smooth' })
+    row.scrollTo({
+      left: Math.max(0, to),
+      behavior: reduce ? 'auto' : 'smooth',
+    })
   }, [targetId, targets.length])
   // on phones the pot's buttons dock at the screen's bottom: the page's
   // back-to-top ball (BackToTop) reads this flag and rises above them

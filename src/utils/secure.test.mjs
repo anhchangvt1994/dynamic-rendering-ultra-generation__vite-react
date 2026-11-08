@@ -3,7 +3,8 @@ import { createHash, getRandomValues } from 'node:crypto'
 import { test } from 'node:test'
 import { randomId, sha256, tabLock, webLock } from './secure.mjs'
 
-const V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const V4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 test('randomId: a v4 uuid even where randomUUID is missing (http on a LAN ip)', () => {
   const ids = new Set()
@@ -20,7 +21,14 @@ test('randomId: uses randomUUID when there is one', () => {
 })
 
 test('sha256: matches node for empty, short, multi-block and unicode input', () => {
-  for (const s of ['', 'abc', 'a'.repeat(55), 'a'.repeat(56), 'a'.repeat(200), 'Pokémon:hue-mag']) {
+  for (const s of [
+    '',
+    'abc',
+    'a'.repeat(55),
+    'a'.repeat(56),
+    'a'.repeat(200),
+    'Pokémon:hue-mag',
+  ]) {
     const bytes = new TextEncoder().encode(s)
     const want = createHash('sha256').update(bytes).digest('hex')
     assert.equal(Buffer.from(sha256(bytes)).toString('hex'), want, s)
@@ -44,7 +52,11 @@ test('tabLock: runs one holder of a name at a time, in order', async () => {
 
 test('tabLock: a failed holder releases the lock', async () => {
   const lock = tabLock()
-  await assert.rejects(lock('k', async () => { throw new Error('boom') }))
+  await assert.rejects(
+    lock('k', async () => {
+      throw new Error('boom')
+    })
+  )
   assert.equal(await lock('k', async () => 1), 1)
 })
 

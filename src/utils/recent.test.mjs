@@ -19,7 +19,10 @@ test('newest first, no duplicates, capped at 10', () => {
 
 test('keeps the base form id a form brings along', () => {
   const storage = memory()
-  pushRecent({ id: 10264, name: 'koraidon-swimming-build', baseId: 1007 }, storage)
+  pushRecent(
+    { id: 10264, name: 'koraidon-swimming-build', baseId: 1007 },
+    storage
+  )
   assert.equal(getRecent(storage)[0].baseId, 1007)
 })
 

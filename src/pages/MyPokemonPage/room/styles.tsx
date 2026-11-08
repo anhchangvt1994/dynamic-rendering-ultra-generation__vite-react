@@ -145,6 +145,19 @@ const moteTwinkle = keyframes`
 
 const motion = css`
   @media (prefers-reduced-motion: no-preference) {
+    @media (max-width: 959px) {
+      .rm-profile {
+        transition:
+          grid-template-rows 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+          padding 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+          opacity 0.26s ease,
+          transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+          visibility 0s linear 0.38s;
+      }
+      .rm-profile[data-open] {
+        transition-delay: 0s;
+      }
+    }
     .pat div {
       animation: ${drift} 46s linear infinite alternate;
     }
@@ -887,6 +900,7 @@ export const RoomStyle = styled.div`
     box-shadow: inset 0 0 0 1px var(--line);
     line-height: 16px;
     white-space: nowrap;
+    justify-content: center;
   }
   .rm-ring-text small {
     font-size: 10px;
@@ -1418,6 +1432,7 @@ export const RoomStyle = styled.div`
     min-height: 44px;
     padding: 6px 0 4px;
     cursor: pointer;
+    touch-action: pan-x;
   }
   .rm-grab {
     width: 36px;
@@ -1458,15 +1473,50 @@ export const RoomStyle = styled.div`
     outline-offset: 2px;
   }
   .rm-profile {
-    display: none;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 2px 2px 10px;
     scrollbar-width: none;
   }
+  @media (max-width: 959px) {
+    .rm-profile {
+      display: grid;
+      grid-template-rows: 0fr;
+      padding: 0 2px;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    .rm-profile[data-open] {
+      grid-template-rows: 1fr;
+      align-content: start;
+      gap: 10px;
+      padding: 2px 2px 10px;
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+    /* the 0fr collapse clips the paper; once open, the paper is what scrolls */
+    .rm-profile {
+      overflow: hidden;
+    }
+    .rm-profile-body {
+      min-height: 0;
+      overflow: hidden;
+    }
+    .rm-profile[data-open] > .rm-profile-body {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+  }
   .rm-profile[data-open] {
+    display: grid;
+    align-content: start;
+  }
+  /* paper and siblings share one box: it is the single row that collapses */
+  .rm-profile-body {
     display: grid;
     align-content: start;
     gap: 10px;
@@ -2041,6 +2091,7 @@ export const RoomStyle = styled.div`
     overflow-y: auto;
     max-height: 54dvh;
     list-style: none;
+    scrollbar-width: none;
   }
   .rm-dish {
     display: flex;

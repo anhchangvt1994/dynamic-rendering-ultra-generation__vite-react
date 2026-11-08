@@ -1,4 +1,11 @@
-import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
+import {
+  memo,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import { AmberStyle } from './amberStyles'
 import { visiblePieces } from './fracture.mjs'
@@ -32,7 +39,7 @@ const curved = (points: number[][], edges: { c1: number[]; c2: number[] }[]) =>
     .join('')}Z`
 
 /** Refracted artwork suspended below a faceted, translucent resin surface. */
-export default function AmberCard({
+export default memo(function AmberCard({
   speciesId,
   name,
   count,
@@ -668,4 +675,4 @@ export default function AmberCard({
       )}
     </AmberStyle>
   )
-}
+})

@@ -138,7 +138,7 @@ test('placeSprite: a measured visual centre wins over the box midpoint', () => {
   assert.equal(p.y, (50 - 30) * 2)
 })
 
-test('placeSprite: a round frame fits the body\'s diagonal, not its box', () => {
+test("placeSprite: a round frame fits the body's diagonal, not its box", () => {
   const p = placeSprite({
     natural: { width: 100, height: 100 },
     content: { x: 0, y: 0, width: 100, height: 100, cx: 50, cy: 50 },

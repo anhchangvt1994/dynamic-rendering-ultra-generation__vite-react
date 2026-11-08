@@ -28,7 +28,7 @@ import {
   type CareReceipt,
   type CareState,
 } from '../care/useCare'
-import { myPokemonPath } from '../paths.mjs'
+import { individualNavigationState, myPokemonPath } from '../paths.mjs'
 import CareBar from './CareBar'
 import CareFx, { NEED_OF, type Fx } from './CareFx'
 import FeedSheet from './FeedSheet'
@@ -37,6 +37,7 @@ import ProfileSheet from './ProfileSheet'
 import RoomSprite from './RoomSprite'
 import { contrast, themeFor } from './roomTheme.mjs'
 import { spriteFor } from './sprite.mjs'
+import { dockGesture, sheetDragClose } from './dockGesture.mjs'
 import { RoomStyle } from './styles'
 import { useReducedMotion } from './useMedia'
 
@@ -153,6 +154,13 @@ export default function Room({
   const [spent, setSpent] = useState<Record<string, number>>({})
   const [feeding, setFeeding] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const dockTouch = useRef<{
+    x: number
+    y: number
+    top: number
+    startedInProfile: boolean
+    wasOpen: boolean
+  } | null>(null)
   const [fx, setFx] = useState<Fx | null>(null)
   const reduced = useReducedMotion()
   const disc = useRef<HTMLDivElement>(null)
@@ -220,6 +228,7 @@ export default function Room({
     const before = state?.affection ?? 0
     const receipt = await care.act(action, dishId)
     if (receipt) {
+      setSheetOpen(false)
       const dish = dishId
         ? menu?.dishes.find((one) => one.id === dishId)
         : undefined
@@ -253,10 +262,19 @@ export default function Room({
     siblings[(at + by + siblings.length) % siblings.length]
   const stepName = (one: Individual) => one.nickname ?? species
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+  // remember the page before the first room, so back skips the siblings
+  const siblingState = individualNavigationState(
+    returnTo,
+    Number.isInteger(returnIndex)
+      ? returnIndex
+      : (window.history.state?.idx ?? 1) - 1
+  )
   const moveTo = (by: number) => {
     const next = step(by)
     if (next)
-      navigate(myPokemonPath(next.id), { state: { returnTo, returnIndex } })
+      navigate(myPokemonPath(next.id), {
+        state: siblingState,
+      })
   }
   useEffect(() => {
     if (siblings.length < 2 || at < 0) return
@@ -411,7 +429,7 @@ export default function Room({
                       key={by}
                       className={`rm-door ${by < 0 ? 'rm-door-prev' : 'rm-door-next'}`}
                       to={myPokemonPath(one.id)}
-                      state={{ returnTo, returnIndex }}
+                      state={siblingState}
                       aria-label={`${by < 0 ? 'Pokémon trước' : 'Pokémon tiếp'}: ${stepName(one)}`}
                     >
                       <img
@@ -484,7 +502,41 @@ export default function Room({
         )}
       </section>
 
-      <div className="rm-dock" data-open={sheetOpen || undefined}>
+      <div
+        className="rm-dock"
+        data-open={sheetOpen || undefined}
+        onTouchStart={(event) => {
+          const profile = (event.target as HTMLElement).closest('.rm-profile-body')
+          const touch = event.touches[0]
+          dockTouch.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            top: profile?.scrollTop ?? 0,
+            startedInProfile: !!profile,
+            wasOpen: sheetOpen,
+          }
+        }}
+        onTouchEnd={(event) => {
+          const start = dockTouch.current
+          dockTouch.current = null
+          if (!start) return
+          const touch = event.changedTouches[0]
+          const dx = touch.clientX - start.x
+          const dy = touch.clientY - start.y
+          if (
+            start.wasOpen &&
+            start.startedInProfile &&
+            sheetDragClose(start.top, dx, dy)
+          ) {
+            setSheetOpen(false)
+            return
+          }
+          if (!start.startedInProfile) {
+            const next = dockGesture(start.wasOpen, dx, dy)
+            if (next !== null) setSheetOpen(next)
+          }
+        }}
+      >
         <button
           type="button"
           className="rm-sheet-toggle"

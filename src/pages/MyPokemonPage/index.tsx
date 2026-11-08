@@ -76,8 +76,11 @@ export default function MyPokemonPage() {
           event.altKey
         )
           return
-        const index = location.state?.returnIndex
+        // 1. an app page came before: go back to it (past any siblings);
+        // 2. otherwise (fresh tab, shared link): the owned collection
         const current = window.history.state?.idx
+        const supplied = location.state?.returnIndex
+        const index = Number.isInteger(supplied) ? supplied : current - 1
         if (
           Number.isInteger(index) &&
           Number.isInteger(current) &&

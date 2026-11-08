@@ -58,12 +58,10 @@ export default function Outline({
                 const reduce = window.matchMedia(
                   '(prefers-reduced-motion: reduce)'
                 ).matches
-                document
-                  .getElementById(item.id)
-                  ?.scrollIntoView({
-                    behavior: reduce ? 'auto' : 'smooth',
-                    block: 'start',
-                  })
+                document.getElementById(item.id)?.scrollIntoView({
+                  behavior: reduce ? 'auto' : 'smooth',
+                  block: 'start',
+                })
                 setActive(item.id)
               }}
             >

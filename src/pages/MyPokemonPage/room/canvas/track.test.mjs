@@ -27,7 +27,10 @@ const forward = (K, p) => {
   const dy = y - PIVOT[1]
   const c = Math.cos(ANGLE[K]) * SCALE[K]
   const s = Math.sin(ANGLE[K]) * SCALE[K]
-  return toUv([PIVOT[0] + c * dx - s * dy + MOVE[K][0], PIVOT[1] + s * dx + c * dy + MOVE[K][1]])
+  return toUv([
+    PIVOT[0] + c * dx - s * dy + MOVE[K][0],
+    PIVOT[1] + s * dx + c * dy + MOVE[K][1],
+  ])
 }
 const backward = (K, q) => {
   const [x, y] = toPx(q)
@@ -51,7 +54,9 @@ const flowOf = ({ noise = 0, sure = () => true } = {}) => {
       for (let x = 0; x < TILE; x++) {
         const q = [(x + 0.5) / TILE, (y + 0.5) / TILE]
         const p = backward(K, q)
-        const o = (((Math.floor(K / COLS) * TILE + y) * width) + (K % COLS) * TILE + x) * 4
+        const o =
+          ((Math.floor(K / COLS) * TILE + y) * width + (K % COLS) * TILE + x) *
+          4
         data[o] = Math.round(p[0] * 255 + (K ? noise * rand() : 0))
         data[o + 1] = Math.round(p[1] * 255 + (K ? noise * rand() : 0))
         data[o + 2] = inBody(p) && sure(K, p) ? 255 : 0
@@ -67,19 +72,43 @@ const alphaOf = (gone = () => false) => {
     for (let y = 0; y < TILE; y++)
       for (let x = 0; x < TILE; x++) {
         const p = backward(K, [(x + 0.5) / TILE, (y + 0.5) / TILE])
-        const o = ((Math.floor(K / COLS) * TILE + y) * width + (K % COLS) * TILE + x) * 4
+        const o =
+          ((Math.floor(K / COLS) * TILE + y) * width + (K % COLS) * TILE + x) *
+          4
         data[o + 3] = inBody(p) && !gone(K, p) ? 255 : 0
       }
   return { data, width, height }
 }
-const json = { frames: ANGLE.length, frame: FRAME, flow: { cols: COLS, tile: TILE } }
-const heart = { kind: 'hearts', x: 0.4, y: 0.55, size: 0.1, angle: 0.2, tone: 'accent' }
-const star = { kind: 'stars', x: 0.62, y: 0.35, size: 0.08, angle: -1, tone: 'light' }
+const json = {
+  frames: ANGLE.length,
+  frame: FRAME,
+  flow: { cols: COLS, tile: TILE },
+}
+const heart = {
+  kind: 'hearts',
+  x: 0.4,
+  y: 0.55,
+  size: 0.1,
+  angle: 0.2,
+  tone: 'accent',
+}
+const star = {
+  kind: 'stars',
+  x: 0.62,
+  y: 0.35,
+  size: 0.08,
+  angle: -1,
+  tone: 'light',
+}
 
 const near = (a, b, tol, what) =>
-  assert.ok(Math.abs(a - b) <= tol, `${what}: ${a.toFixed(4)} vs ${b.toFixed(4)}`)
+  assert.ok(
+    Math.abs(a - b) <= tol,
+    `${what}: ${a.toFixed(4)} vs ${b.toFixed(4)}`
+  )
 // isotropic px between two uv points
-const apart = (a, b) => Math.hypot((a[0] - b[0]) * FRAME.w, (a[1] - b[1]) * FRAME.h)
+const apart = (a, b) =>
+  Math.hypot((a[0] - b[0]) * FRAME.w, (a[1] - b[1]) * FRAME.h)
 
 test('frame 0 holds every mark as planned', () => {
   const frames = trackMarks([heart, star], flowOf(), json)
@@ -93,7 +122,10 @@ test('each mark moves, turns and scales with the body around it, whole', () => {
     for (const [i, s] of [heart, star].entries()) {
       const m = frames[K][i]
       const want = forward(K, [s.x, s.y])
-      assert.ok(apart([m.x, m.y], want) < 1.5, `K=${K} ${s.kind} at ${apart([m.x, m.y], want).toFixed(2)}px`)
+      assert.ok(
+        apart([m.x, m.y], want) < 1.5,
+        `K=${K} ${s.kind} at ${apart([m.x, m.y], want).toFixed(2)}px`
+      )
       near(m.angle, s.angle + ANGLE[K], 0.05, `K=${K} ${s.kind} angle`)
       near(m.size, s.size * SCALE[K], 0.006, `K=${K} ${s.kind} size`)
       assert.equal(m.kind, s.kind)
@@ -114,7 +146,10 @@ test('a mark with nothing sure around it keeps where it last was', () => {
   // frame 2: nothing sure near the heart (hidden behind an arm)
   const hidden = (K, p) => !(K === 2 && apart(p, [heart.x, heart.y]) < 40)
   const frames = trackMarks([heart], flowOf({ sure: hidden }), json)
-  assert.ok(apart([frames[1][0].x, frames[1][0].y], [heart.x, heart.y]) > 5, 'frame 1 moved')
+  assert.ok(
+    apart([frames[1][0].x, frames[1][0].y], [heart.x, heart.y]) > 5,
+    'frame 1 moved'
+  )
   assert.deepEqual(frames[2][0], frames[1][0])
   assert.notDeepEqual(frames[3][0], frames[1][0], 'found again after')
 })
@@ -134,13 +169,20 @@ const goneAt2 = (K, p) => K === 2 && apart(p, [heart.x, heart.y]) < 30
 test('a mark fades out over the frames before it hides, and in after', () => {
   // 100 ms frames: the 120 ms fade starts a frame ahead and ends a frame after
   const fast = { ...json, delays: [100, 100, 100, 100] }
-  const o = trackMarks([heart], flowOf(), fast, alphaOf(goneAt2)).map((f) => f[0].opacity ?? 1)
-  assert.deepEqual(o.map((v) => +v.toFixed(3)), [1, 0.833, 0, 0.833])
+  const o = trackMarks([heart], flowOf(), fast, alphaOf(goneAt2)).map(
+    (f) => f[0].opacity ?? 1
+  )
+  assert.deepEqual(
+    o.map((v) => +v.toFixed(3)),
+    [1, 0.833, 0, 0.833]
+  )
 })
 
 test('a blink shorter than a few frames never hides a mark', () => {
   const blink = { ...json, delays: [30, 30, 30, 30] }
-  const o = trackMarks([heart], flowOf(), blink, alphaOf(goneAt2)).map((f) => f[0].opacity ?? 1)
+  const o = trackMarks([heart], flowOf(), blink, alphaOf(goneAt2)).map(
+    (f) => f[0].opacity ?? 1
+  )
   assert.deepEqual(o, [1, 1, 1, 1])
 })
 

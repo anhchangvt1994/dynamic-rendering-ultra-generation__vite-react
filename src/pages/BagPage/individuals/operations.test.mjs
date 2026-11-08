@@ -60,6 +60,128 @@ const last = (states, species = 25) =>
 const pending = (storage, owner = 'local') =>
   JSON.parse(storage.getItem(tradePendingKey(owner)) ?? '{}')
 
+test('batch trades use independent ids, continue after terminal failures, and retain uncertain operations', async () => {
+  const ids = [OP, OP2, IND]
+  const outcomes = []
+  const { controller, states, storage } = make({
+    newId: () => ids.shift(),
+    mode: 'local',
+    submit: async (op, species) => {
+      outcomes.push(op)
+      if (op === OP2) throw Object.assign(new Error('insufficient_cards'), { code: 'insufficient_cards' })
+      if (op === IND) throw new Error('network')
+      return receipt(op, species)
+    },
+  })
+  const result = await controller.tradeMany(25, 3)
+  assert.deepEqual(outcomes, [OP, OP2, IND])
+  assert.deepEqual(result, {
+    receipts: [receipt(OP, 25)],
+    failures: [{ index: 2, kind: 'error', code: 'insufficient_cards' }, { index: 3, kind: 'uncertain' }],
+    uncertain: true,
+  })
+  assert.deepEqual(
+    JSON.parse(storage.getItem(`${tradePendingKey('local')}:batch`)),
+    { 25: IND }
+  )
+  assert.deepEqual(states.filter(([, s]) => s.kind === 'success').map(([, s]) => s.receipt), [receipt(OP, 25)])
+})
+
+test('batch quantity clamps to available and rejects nonpositive counts', async () => {
+  const { controller } = make()
+  assert.deepEqual(await controller.tradeMany(25, 4, 2), {
+    receipts: [receipt(OP, 25), receipt(OP2, 25)], failures: [], uncertain: false,
+  })
+  await assert.rejects(controller.tradeMany(25, 0), /invalid_quantity/)
+})
+
+test('batch retry reuses the uncertain operation id instead of minting another', async () => {
+  const attempts = []
+  const ids = [OP, OP2]
+  const { controller, storage } = make({
+    newId: () => ids.shift(),
+    submit: async (id, species) => {
+      attempts.push(id)
+      if (attempts.length === 1) throw new Error('network')
+      return receipt(id, species)
+    },
+  })
+  await controller.tradeMany(25, 1)
+  assert.deepEqual(await controller.retryMany(25), {
+    receipts: [receipt(OP, 25)], failures: [], uncertain: false,
+  })
+  assert.deepEqual(attempts, [OP, OP])
+  assert.deepEqual(JSON.parse(storage.getItem(`${tradePendingKey('local')}:batch`)), {})
+})
+
+test('resume replays persisted batch ids and returns their receipts', async () => {
+  const storage = memory()
+  storage.setItem(`${tradePendingKey('local')}:batch`, JSON.stringify({ 25: OP }))
+  const attempts = []
+  const { controller } = make({
+    storage,
+    submit: async (id, species) => (attempts.push(id), receipt(id, species)),
+  })
+  const results = await controller.resume()
+  assert.deepEqual(attempts, [OP])
+  assert.deepEqual(results, [{
+    speciesId: 25,
+    result: { receipts: [receipt(OP, 25)], failures: [], uncertain: false },
+  }])
+})
+
+test('storage cleanup failure does not hide a committed batch receipt', async () => {
+  const storage = memory()
+  let writes = 0
+  const setItem = storage.setItem
+  storage.setItem = (key, value) => {
+    writes += 1
+    if (writes === 2) throw new Error('quota')
+    setItem(key, value)
+  }
+  const { controller, states } = make({ storage })
+  const result = await controller.tradeMany(25, 1)
+  assert.deepEqual(result.receipts, [receipt(OP, 25)])
+  assert.equal(states.find(([, state]) => state.kind === 'success')?.[1].receipt.operationId, OP)
+})
+
+test('dispose prevents later batch items and suppresses stale callbacks', async () => {
+  const ids = [OP, OP2]
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  const calls = []
+  const { controller, states } = make({
+    newId: () => ids.shift(),
+    submit: async (id, species) => {
+      calls.push(id)
+      if (calls.length === 1) await gate
+      return receipt(id, species)
+    },
+  })
+  const batch = controller.tradeMany(25, 2)
+  controller.dispose()
+  release()
+  await batch
+  assert.deepEqual(calls, [OP])
+  assert.deepEqual(states.map(([, state]) => state.kind), ['submitting'])
+})
+
+test('client_outdated stops a batch and preserves the committed operation id', async () => {
+  const ids = [OP, OP2]
+  const calls = []
+  const { controller, storage } = make({
+    newId: () => ids.shift(),
+    submit: async (id) => {
+      calls.push(id)
+      throw Object.assign(new Error('client_outdated'), { code: 'client_outdated' })
+    },
+  })
+  const result = await controller.tradeMany(25, 2)
+  assert.deepEqual(calls, [OP])
+  assert.deepEqual(result.failures, [{ index: 1, kind: 'error', code: 'client_outdated' }])
+  assert.deepEqual(JSON.parse(storage.getItem(`${tradePendingKey('local')}:batch`)), { 25: OP })
+})
+
 test('the pending key is its own, per owner', () => {
   assert.equal(
     tradePendingKey('server:u1'),
@@ -227,7 +349,10 @@ test('adapter: a receipt from a newer server is client_outdated, final, with its
   const r = receipt()
   const newer = {
     rpc: async () => ({
-      data: { ...r, traits: { ...r.traits, appearance: { v: 4, anything: true } } },
+      data: {
+        ...r,
+        traits: { ...r.traits, appearance: { v: 4, anything: true } },
+      },
       error: null,
     }),
   }
@@ -320,4 +445,68 @@ test('a resumed trade after reload surfaces the receipt for the welcome', async 
   const { controller, states } = make({ storage })
   await controller.resume()
   assert.deepEqual(last(states).receipt, receipt())
+})
+
+const withoutRandomUUID = async (fn) => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  const real = globalThis.crypto
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: { getRandomValues: (a) => real.getRandomValues(a) },
+  })
+  try {
+    return await fn()
+  } finally {
+    Object.defineProperty(globalThis, 'crypto', original)
+  }
+}
+
+test('batch trade works where crypto.randomUUID is missing (http on a LAN ip)', async () => {
+  await withoutRandomUUID(async () => {
+    const seen = []
+    const states = []
+    const controller = createTradeController({
+      ownerKey: 'local',
+      storage: memory(),
+      submit: async (op, species) => {
+        seen.push(op)
+        return receipt(op, species)
+      },
+      onState: (species, state) => states.push([species, state]),
+    })
+    const result = await controller.tradeMany(25, 2, 2)
+    assert.equal(result.receipts.length, 2)
+    assert.equal(new Set(seen).size, 2)
+    for (const id of seen) assert.match(id, /^[0-9a-f-]{36}$/)
+  })
+})
+
+test('a failure before the request is reported, never swallowed', async () => {
+  const states = []
+  const summaries = []
+  const controller = createTradeController({
+    ownerKey: 'local',
+    storage: memory(),
+    submit: async (op, species) => receipt(op, species),
+    newId: () => {
+      throw new Error('no ids')
+    },
+    onState: (species, state) => states.push([species, state]),
+    onBatch: (species, summary) => summaries.push(summary),
+  })
+  const result = await controller.tradeMany(25, 1, 1)
+  assert.equal(result.receipts.length, 0)
+  assert.deepEqual(result.failures, [
+    { index: 1, kind: 'error', code: 'id_unavailable' },
+  ])
+  assert.equal(last(states).kind, 'error')
+  assert.equal(summaries.length, 1)
+})
+
+test('batch successes are tagged so the page can show them as one group', async () => {
+  const { controller, states } = make({ newId: (() => { const q = [OP, OP2]; return () => q.shift() })() })
+  await controller.tradeMany(25, 2, 2)
+  const successes = states.filter(([, s]) => s.kind === 'success')
+  assert.equal(successes.length, 2)
+  for (const [, s] of successes) assert.equal(s.batch, true)
 })

@@ -573,7 +573,11 @@ test('unopened chests survive a reload until opened', async () => {
 
 test('a wrong answer leaves no chest to open', async () => {
   const storage = memory()
-  const engine = createLocalEngine({ storage, random: seeded(6), now: clock().now })
+  const engine = createLocalEngine({
+    storage,
+    random: seeded(6),
+    now: clock().now,
+  })
   const round = await engine.start(KANTO)
   const wrong = round.options.find((id) => id !== round.answerId)
   await engine.answer(round, wrong)

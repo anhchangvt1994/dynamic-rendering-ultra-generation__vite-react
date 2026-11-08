@@ -1,5 +1,5 @@
-import styled from 'styled-components'
 import { dialogCss } from 'pages/QuizPage/useModal'
+import styled from 'styled-components'
 
 export const DialogStyle = styled.dialog`
   ${dialogCss}
@@ -147,6 +147,10 @@ export const DialogStyle = styled.dialog`
     text-align: left;
     font-size: 13px;
   }
+  .ind-field label {
+    text-align: center;
+    margin-bottom: 12px;
+  }
   .ind-field input {
     font: inherit;
     font-size: 16px;
@@ -172,6 +176,11 @@ export const DialogStyle = styled.dialog`
     margin: 0;
     padding: 0;
     width: 100%;
+  }
+  .ind-results {
+    max-height: min(52svh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .ind-item {
     display: grid;

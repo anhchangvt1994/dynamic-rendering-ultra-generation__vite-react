@@ -33,7 +33,8 @@ test('marksLabel: null without marks, kind and count with them', () => {
 })
 test('marksLabel: an old one- or two-star individual shows three stars, as drawn', () => {
   const a = { v: 2, palette: 'origin', shift: [], marks: null }
-  const stars = (count) => marksLabel({ ...a, marks: { kind: 'stars', count, seed: 1 } })
+  const stars = (count) =>
+    marksLabel({ ...a, marks: { kind: 'stars', count, seed: 1 } })
   assert.equal(stars(1), 'Sao · 3 ngôi')
   assert.equal(stars(2), 'Sao · 3 ngôi')
   assert.equal(stars(6), 'Sao · 6 ngôi')

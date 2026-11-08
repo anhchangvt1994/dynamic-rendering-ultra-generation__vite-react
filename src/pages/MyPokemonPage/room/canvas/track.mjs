@@ -61,7 +61,9 @@ export function trackMarks(shapes, flow, json, body) {
           c,
         ])
       }
-    const now = shapes.map((s, i) => fit(s, last[i], P, w, h, long, cell) ?? last[i])
+    const now = shapes.map(
+      (s, i) => fit(s, last[i], P, w, h, long, cell) ?? last[i]
+    )
     out.push(now)
     last = now
   }
@@ -105,8 +107,7 @@ function fade(raw, json) {
         len += delay(j)
         j = (j + 1) % n
       }
-      if (len < MIN_HIDE_MS)
-        for (let k = K; k !== j; k = (k + 1) % n) o[k] = 1
+      if (len < MIN_HIDE_MS) for (let k = K; k !== j; k = (k + 1) % n) o[k] = 1
     }
   return o.map((_, K) => {
     let v = 1
@@ -140,7 +141,9 @@ function shown(s, K, flow, body, json) {
     for (let x = 0; x < tile; x++) {
       const o = ((oy + y) * flow.width + ox + x) * 4
       if (body.data[((oy + y) * body.width + ox + x) * 4 + 3] < 128) continue
-      const d = ((flow.data[o] / 255) * w - cx) ** 2 + ((flow.data[o + 1] / 255) * h - cy) ** 2
+      const d =
+        ((flow.data[o] / 255) * w - cx) ** 2 +
+        ((flow.data[o + 1] / 255) * h - cy) ** 2
       sum += Math.exp(-d / (2 * sigma * sigma))
     }
   return sum

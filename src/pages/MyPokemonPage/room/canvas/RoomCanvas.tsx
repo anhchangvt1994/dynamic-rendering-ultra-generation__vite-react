@@ -128,7 +128,8 @@ function marksFor(
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
   const flow = flowOf(rig)
-  const frames = flow ? trackMarks(shapes, flow, rig.json, sheetAlphaOf(rig) ?? undefined)
+  const frames = flow
+    ? trackMarks(shapes, flow, rig.json, sheetAlphaOf(rig) ?? undefined)
     : [shapes]
   let shown = -1
   return {
@@ -241,7 +242,10 @@ export default function RoomCanvas({
       const { startScene } = await import('./gl')
       if (abort.signal.aborted) return false
       try {
-        const colours = paletteUniforms(appearanceRef.current, rig.json.clusters)
+        const colours = paletteUniforms(
+          appearanceRef.current,
+          rig.json.clusters
+        )
         scene.current = startScene(
           canvas,
           rig,

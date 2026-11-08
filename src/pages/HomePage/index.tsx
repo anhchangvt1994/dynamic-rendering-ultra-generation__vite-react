@@ -429,7 +429,11 @@ function HomePage() {
               {filterSummary && <em> · {filterSummary}</em>}
             </span>
             {activeFilters && (
-              <button type="button" className="clear-filters" onClick={clearFilters}>
+              <button
+                type="button"
+                className="clear-filters"
+                onClick={clearFilters}
+              >
                 Xóa bộ lọc <FieldIcon name="close" size={13} />
               </button>
             )}

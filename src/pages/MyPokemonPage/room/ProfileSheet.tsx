@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { FLAVOR_LABEL, STATS } from 'pages/KitchenPage/kitchen.mjs'
 import type { Individual } from 'pages/BagPage/individuals/client'
 import {
   marksLabel,
@@ -9,9 +7,11 @@ import {
   sizeOf,
   starLabel,
 } from 'pages/BagPage/individuals/display.mjs'
-import PaletteDots from 'pages/BagPage/individuals/PaletteDots'
 import { nameError } from 'pages/BagPage/individuals/messages.mjs'
+import PaletteDots from 'pages/BagPage/individuals/PaletteDots'
 import { useNaming } from 'pages/BagPage/individuals/useIndividuals'
+import { FLAVOR_LABEL, STATS } from 'pages/KitchenPage/kitchen.mjs'
+import { type CSSProperties, useState } from 'react'
 import {
   CARE,
   levelOf,
@@ -94,13 +94,15 @@ function Nickname({ item }: { item: Individual }) {
           Lưu biệt danh
         </button>
       </div>
-      <span
-        className="rm-field-msg"
-        role="alert"
-        data-ok={(!error && saved) || undefined}
-      >
-        {error ?? (saved ? 'Đã lưu' : '')}
-      </span>
+      {error && (
+        <span
+          className="rm-field-msg"
+          role="alert"
+          data-ok={(!error && saved) || undefined}
+        >
+          {error ?? (saved ? 'Đã lưu' : '')}
+        </span>
+      )}
     </form>
   )
 }
@@ -141,6 +143,9 @@ export default function ProfileSheet({
   const next = nextLevelAt(affection)
   const from = CARE.LEVELS[level - 1] ?? 0
   const progress = next === null ? 1 : (affection - from) / (next - from)
+  const top = CARE.LEVELS.length
+  // how far along the whole way to the top level
+  const reach = Math.min(1, (level - 1 + progress) / (top - 1))
 
   const unlocks = UNLOCKS.map((unlock) => ({
     ...unlock,
@@ -149,103 +154,115 @@ export default function ProfileSheet({
 
   return (
     <div className="rm-profile" id="rm-profile" data-open={open || undefined}>
-      <section className="rm-card rm-card-level" aria-labelledby="rm-h-level">
-        <h2 id="rm-h-level">Thân thiết</h2>
-        <div className="rm-level">
-          <b>
-            <span aria-hidden="true">♥</span> Lv {level}
-          </b>
-          <small>
-            {next === null ? 'Cấp tối đa' : `${affection}/${next} điểm`}
-          </small>
-          <span
-            className="rm-level-bar"
+      <div className="rm-profile-body">
+      <div className="rm-paper">
+        <section className="rm-card rm-card-level" aria-labelledby="rm-h-level">
+          <h2 id="rm-h-level">Thân thiết</h2>
+          <p className="rm-level">
+            <b>
+              <span aria-hidden="true">♥</span> Lv {level}
+            </b>
+            <small>
+              {next === null ? 'Cấp tối đa' : `${affection}/${next} điểm`}
+            </small>
+          </p>
+          <div
+            className="rm-track"
             role="progressbar"
             aria-label="Tiến độ cấp thân thiết"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
+            aria-valuenow={Math.round(reach * 100)}
+            style={{ '--reach': `${reach * 100}%` } as CSSProperties}
           >
-            <i style={{ width: `${Math.round(progress * 100)}%` }} />
-          </span>
-        </div>
-        <ul className="rm-unlocks" aria-label="Mở khoá theo cấp">
-          {unlocks.map((unlock) => (
-            <li key={unlock.level} data-open={unlock.open || undefined}>
-              <span aria-hidden="true">{unlock.icon}</span>
-              <b>{unlock.label}</b>
-              <small>{unlock.open ? 'Đã mở' : `Lv ${unlock.level}`}</small>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rm-card" aria-labelledby="rm-h-stats">
-        <h2 id="rm-h-stats">Trưởng thành</h2>
-        {care ? (
-          <StatRadar stats={care.stats} cap={statCap(stars)} />
-        ) : pending ? (
-          <StatRadar stats={{}} cap={statCap(stars)} pending />
-        ) : (
-          <p className="rm-muted">Chưa có chỉ số.</p>
-        )}
-      </section>
-
-      <section className="rm-card" aria-labelledby="rm-h-profile">
-        <h2 id="rm-h-profile">Hồ sơ</h2>
-        <blockquote className="rm-persona">
-          <b>{personality.name}</b>
-          <p>{personality.line}</p>
-        </blockquote>
-        <dl className="rm-facts">
-          <div>
-            <dt>Sắc độ</dt>
-            <dd data-palette={item.appearance.palette}>
-              <PaletteDots
-                appearance={item.appearance}
-                speciesId={item.speciesId}
-              />
-              {paletteLabel(item.appearance)}
-            </dd>
+            <i />
+            <ul aria-label="Mở khoá theo cấp">
+              {unlocks.map((unlock) => (
+                <li
+                  key={unlock.level}
+                  data-open={unlock.open || undefined}
+                  style={
+                    {
+                      '--at': `${((unlock.level - 1) / (top - 1)) * 100}%`,
+                    } as CSSProperties
+                  }
+                >
+                  <span aria-hidden="true">{unlock.icon}</span>
+                  <b>{unlock.label}</b>
+                  <small>{unlock.open ? 'Đã mở' : `Lv ${unlock.level}`}</small>
+                </li>
+              ))}
+            </ul>
           </div>
-          {marks && item.appearance.marks && (
-            <div>
-              <dt>Đặc điểm</dt>
-              <dd data-marks={item.appearance.marks.kind}>{marks}</dd>
-            </div>
+        </section>
+
+        <section className="rm-card" aria-labelledby="rm-h-stats">
+          <h2 id="rm-h-stats">Trưởng thành</h2>
+          {care ? (
+            <StatRadar stats={care.stats} cap={statCap(stars)} />
+          ) : pending ? (
+            <StatRadar stats={{}} cap={statCap(stars)} pending />
+          ) : (
+            <p className="rm-muted">Chưa có chỉ số.</p>
           )}
-          <div>
-            <dt>Kích thước</dt>
-            <dd data-size={size.key}>{sizeLabel(size)}</dd>
-          </div>
-          {likes && (
+        </section>
+
+        <section className="rm-card" aria-labelledby="rm-h-profile">
+          <h2 id="rm-h-profile">Hồ sơ</h2>
+          <blockquote className="rm-persona">
+            <b>{personality.name}</b>
+            <p>{personality.line}</p>
+          </blockquote>
+          <dl className="rm-facts">
             <div>
-              <dt>Khẩu vị</dt>
-              <dd>
-                Thích vị {flavorOf(likes.like)}, ghét vị{' '}
-                {flavorOf(likes.dislike)}
+              <dt>Sắc độ</dt>
+              <dd data-palette={item.appearance.palette}>
+                <PaletteDots
+                  appearance={item.appearance}
+                  speciesId={item.speciesId}
+                />
+                {paletteLabel(item.appearance)}
               </dd>
             </div>
-          )}
-          <div>
-            <dt>Tiềm năng</dt>
-            <dd>
-              <span className="rm-stars" aria-label={starLabel(stars)}>
-                {'★'.repeat(stars)}
-                {'☆'.repeat(5 - stars)}
-              </span>
-              <span className="rm-cap">Trần chỉ số {statCap(stars)}</span>
-            </dd>
-          </div>
-          {date(item.createdAt) && (
+            {marks && item.appearance.marks && (
+              <div>
+                <dt>Đặc điểm</dt>
+                <dd data-marks={item.appearance.marks.kind}>{marks}</dd>
+              </div>
+            )}
             <div>
-              <dt>Nhận ngày</dt>
-              <dd>{date(item.createdAt)}</dd>
+              <dt>Kích thước</dt>
+              <dd data-size={size.key}>{sizeLabel(size)}</dd>
             </div>
-          )}
-        </dl>
-        <Nickname item={item} />
-      </section>
+            {likes && (
+              <div>
+                <dt>Khẩu vị</dt>
+                <dd>
+                  Thích vị {flavorOf(likes.like)}, ghét vị{' '}
+                  {flavorOf(likes.dislike)}
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Tiềm năng</dt>
+              <dd>
+                <span className="rm-stars" aria-label={starLabel(stars)}>
+                  {'★'.repeat(stars)}
+                  {'☆'.repeat(5 - stars)}
+                </span>
+                <span className="rm-cap">Trần chỉ số {statCap(stars)}</span>
+              </dd>
+            </div>
+            {date(item.createdAt) && (
+              <div>
+                <dt>Nhận ngày</dt>
+                <dd>{date(item.createdAt)}</dd>
+              </div>
+            )}
+          </dl>
+          <Nickname item={item} />
+        </section>
+      </div>
 
       {siblings.length > 1 && (
         <nav aria-label="Chọn bạn đồng hành" className="rm-card rm-siblings">
@@ -267,6 +284,7 @@ export default function ProfileSheet({
           </ul>
         </nav>
       )}
+      </div>
     </div>
   )
 }

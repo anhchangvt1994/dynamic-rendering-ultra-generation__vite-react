@@ -32,13 +32,12 @@ const checkedCount = (speciesId, value) => {
   return value
 }
 
-/** Ready to craft, then closest to ready, then card-only rows, then species id. */
+/** Amber first, then shard count descending, with species id as stable tie-break. */
 export const shardRows = (rows) =>
   [...rows].sort(
     (a, b) =>
-      Number(b.count >= b.required) - Number(a.count >= a.required) ||
-      progress(b) - progress(a) ||
-      Number(a.count === 0) - Number(b.count === 0) ||
+      Number(b.cardCount > 0) - Number(a.cardCount > 0) ||
+      b.count - a.count ||
       a.speciesId - b.speciesId
   )
 

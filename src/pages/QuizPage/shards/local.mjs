@@ -64,7 +64,9 @@ export async function upgradeSnapshot(snapshot, vibe = async () => null) {
   for (const r of Object.values(snapshot.trades ?? {}))
     if (all || r.traits?.appearance?.v !== 3) {
       const v = await safeVibe(vibe, r.speciesId)
-      r.traits.appearance = (await individualTraits(r.individualId, v)).appearance
+      r.traits.appearance = (
+        await individualTraits(r.individualId, v)
+      ).appearance
       changed = true
     }
   if (all) {

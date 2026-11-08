@@ -237,7 +237,11 @@ test('a v1 individual in the snapshot is upgraded on the first read, once', asyn
     vibe: async (species) => (asked.push(species), 'fierce'),
   })
   const [got] = await journal.listLocalIndividuals()
-  assert.deepEqual(asked, [25], 'once per species, for the individual and its receipt')
+  assert.deepEqual(
+    asked,
+    [25],
+    'once per species, for the individual and its receipt'
+  )
   assert.deepEqual(got.appearance, fresh.appearance)
   const stored = JSON.parse(storage.getItem(SHARD_KEY))
   assert.deepEqual(stored.individuals[id].appearance, fresh.appearance)
@@ -294,7 +298,10 @@ test('a trade takes the species vibe; a failing vibe falls back to the pool', as
 test('the upgrade asks vibes before the lock: a slow network never holds other tabs', async () => {
   const a = '9e3779b1-0000-4000-8000-000000000005'
   const b = '9e3779b1-0000-4000-8000-000000000006'
-  const base = { [a]: await individualTraits(a), [b]: await individualTraits(b) }
+  const base = {
+    [a]: await individualTraits(a),
+    [b]: await individualTraits(b),
+  }
   const stale = (iid, speciesId) => ({
     id: iid,
     speciesId,
@@ -304,7 +311,10 @@ test('the upgrade asks vibes before the lock: a slow network never holds other t
     potential: base[iid].potential,
     createdAt: '2026-11-04T00:00:00.000Z',
   })
-  const storage = seed({}, { individuals: { [a]: stale(a, 4), [b]: stale(b, 7) } })
+  const storage = seed(
+    {},
+    { individuals: { [a]: stale(a, 4), [b]: stale(b, 7) } }
+  )
   let held = false
   const inner = mutex()
   const lock = (name, fn) =>
@@ -325,10 +335,19 @@ test('the upgrade asks vibes before the lock: a slow network never holds other t
     },
   })
   await journal.listLocalIndividuals()
-  assert.deepEqual(asked.sort(), [[4, false], [7, false]])
+  assert.deepEqual(asked.sort(), [
+    [4, false],
+    [7, false],
+  ])
   const stored = read(storage)
-  assert.deepEqual(stored.individuals[a].appearance, (await individualTraits(a, 'fierce')).appearance)
-  assert.deepEqual(stored.individuals[b].appearance, (await individualTraits(b, 'nature')).appearance)
+  assert.deepEqual(
+    stored.individuals[a].appearance,
+    (await individualTraits(a, 'fierce')).appearance
+  )
+  assert.deepEqual(
+    stored.individuals[b].appearance,
+    (await individualTraits(b, 'nature')).appearance
+  )
 })
 test('a v2 individual (a removed palette) is re-derived to v3, a v3 one is left', async () => {
   const id = '9e3779b1-0000-4000-8000-000000000003'
@@ -374,7 +393,10 @@ test('a v3 snapshot from an older rule is re-derived once, then left alone', asy
   const id = '9e3779b1-0000-4000-8000-000000000007'
   const op = 'f0f0f0f0-0000-4000-8000-0000000000f7'
   const fresh = await individualTraits(id, 'cute')
-  const old = { ...fresh.appearance, marks: { kind: 'stripes', count: 1, seed: 9 } }
+  const old = {
+    ...fresh.appearance,
+    marks: { kind: 'stripes', count: 1, seed: 9 },
+  }
   const storage = seed(
     {},
     {

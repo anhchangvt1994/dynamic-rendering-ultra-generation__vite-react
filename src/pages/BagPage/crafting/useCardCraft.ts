@@ -8,6 +8,7 @@ import { createCraftController } from './operations.mjs'
 export type CraftState = {
   kind: 'submitting' | 'uncertain' | 'error' | 'success'
   retryable: boolean
+  origin?: 'user' | 'resume'
   code?: string
   receipt?: CraftReceipt
 }

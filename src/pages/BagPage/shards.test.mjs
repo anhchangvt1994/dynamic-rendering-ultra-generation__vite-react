@@ -270,21 +270,25 @@ test('server: card-only species become rows; shards and cards join per species',
   )
 })
 
-test('rows order: ready, progress, then card-only, then species id', () => {
+test('rows prioritize amber count, then shard count descending, stable by species id', () => {
   const r = (speciesId, count, cardCount) => ({
     ...row(speciesId, count, 10),
     cardCount,
   })
+  const input = [
+    r(9, 0, 1),
+    r(3, 0, 2),
+    r(7, 5, 0),
+    r(8, 10, 4),
+    r(2, 2, 0),
+    r(6, 5, 3),
+  ]
+  const before = input.map((x) => x.speciesId)
   assert.deepEqual(
-    shardRows([
-      r(9, 0, 1),
-      r(3, 0, 2),
-      r(7, 5, 0),
-      r(8, 10, 4),
-      r(2, 2, 0),
-    ]).map((x) => x.speciesId),
-    [8, 7, 2, 3, 9]
+    shardRows(input).map((x) => x.speciesId),
+    [8, 6, 3, 9, 7, 2]
   )
+  assert.deepEqual(input.map((x) => x.speciesId), before)
 })
 
 test('a failed card read is an error, never an empty or shards-only pocket', async () => {
@@ -340,8 +344,8 @@ test('local: cards from the journal appear, card-only included', async () => {
   assert.deepEqual(
     out.rows.map((r) => [r.speciesId, r.count, r.cardCount]),
     [
-      [150, 2, 0],
       [25, 0, 3],
+      [150, 2, 0],
     ]
   )
 })

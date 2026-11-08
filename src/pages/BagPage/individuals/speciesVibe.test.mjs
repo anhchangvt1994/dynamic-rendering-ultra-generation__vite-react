@@ -21,7 +21,10 @@ test('any failure is null and is asked again later', async () => {
     async () => ({ ok: false, json: async () => ({ vibe: 'cute' }) }),
     ok({ vibe: 'sparkly' }),
     ok(null),
-    async () => ({ ok: true, json: async () => Promise.reject(new Error('x')) }),
+    async () => ({
+      ok: true,
+      json: async () => Promise.reject(new Error('x')),
+    }),
   ])
     assert.equal(await createSpeciesVibe(fetchImpl)(25), null)
   let calls = 0
@@ -52,6 +55,7 @@ test('a hung route gives up: null after the timeout, asked again later', async (
 test('an invalid species asks nothing', async () => {
   let calls = 0
   const vibe = createSpeciesVibe(async () => (calls++, ok({ vibe: 'cute' })()))
-  for (const id of [0, 1026, 2.5, '25', null]) assert.equal(await vibe(id), null)
+  for (const id of [0, 1026, 2.5, '25', null])
+    assert.equal(await vibe(id), null)
   assert.equal(calls, 0)
 })

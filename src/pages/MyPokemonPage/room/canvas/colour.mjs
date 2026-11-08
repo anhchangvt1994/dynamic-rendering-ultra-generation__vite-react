@@ -119,7 +119,9 @@ const SCAR_DEEP = 0.3
 const ROSE = (15 * Math.PI) / 180
 function scarTone(main, L) {
   const C = chroma(main)
-  return C < 0.03 ? polar(L, 0.09, ROSE) : polar(L, Math.max(0.08, C * 1.4), hueOf(main))
+  return C < 0.03
+    ? polar(L, 0.09, ROSE)
+    : polar(L, Math.max(0.08, C * 1.4), hueOf(main))
 }
 
 // the accent drawn from the main so the two always go together: on a light
@@ -140,13 +142,23 @@ function accentTone(main, accentHex) {
   const gap = own && !grey ? hueGap(own, main) : 180
   const ownC = own ? chroma(own) : 0
   if (L >= LIGHT_BODY) {
-    const h = grey ? (own ? hueOf(own) : 0) : gap <= NEIGHBOUR ? hueOf(own) : hueOf(main)
-    const c = grey ? Math.min(0.12, ownC) : Math.min(0.24, Math.max(0.1, C * 1.25))
+    const h = grey
+      ? own
+        ? hueOf(own)
+        : 0
+      : gap <= NEIGHBOUR
+        ? hueOf(own)
+        : hueOf(main)
+    const c = grey
+      ? Math.min(0.12, ownC)
+      : Math.min(0.24, Math.max(0.1, C * 1.25))
     return polar(L - DEEP, c, h)
   }
   const pale = Math.min(0.95, Math.max(0.82, L + 0.3))
-  if (own && (grey || gap <= NEIGHBOUR)) return polar(pale, Math.min(0.12, ownC), hueOf(own))
-  if (own && gap >= COMPLEMENT) return polar(pale, Math.min(SOFT, ownC), hueOf(own))
+  if (own && (grey || gap <= NEIGHBOUR))
+    return polar(pale, Math.min(0.12, ownC), hueOf(own))
+  if (own && gap >= COMPLEMENT)
+    return polar(pale, Math.min(SOFT, ownC), hueOf(own))
   return polar(pale, Math.min(0.12, Math.max(C, 0.06)), hueOf(main))
 }
 

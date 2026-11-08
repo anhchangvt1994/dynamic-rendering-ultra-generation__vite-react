@@ -18,7 +18,12 @@ export default function CopyLink() {
   }
 
   return (
-    <button type="button" className="blog-copy" data-state={state} onClick={copy}>
+    <button
+      type="button"
+      className="blog-copy"
+      data-state={state}
+      onClick={copy}
+    >
       <span aria-live="polite">
         {state === 'done'
           ? 'Đã chép liên kết'

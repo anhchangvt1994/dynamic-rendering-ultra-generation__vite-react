@@ -12,8 +12,7 @@ const artwork = (id) => `${BASE}/other/official-artwork/${id}.png`
 export function spriteFor(id) {
   return {
     src: `/api/image/${id}.webp`,
-    fallback:
-      id > MODEL_MAX ? artwork(id) : `${BASE}/other/showdown/${id}.gif`,
+    fallback: id > MODEL_MAX ? artwork(id) : `${BASE}/other/showdown/${id}.gif`,
   }
 }
 
@@ -87,7 +86,7 @@ export function placeSprite({
       )
     : target / Math.max(content.width, content.height)
   // whole device pixels, the nearest step: a 1x screen has few, and 0.65x of
-  // the target reads worse than 1.3x, so it may overshoot by up to a third 
+  // the target reads worse than 1.3x, so it may overshoot by up to a third
   let steps = Math.round(fill * dpr)
   if (steps / dpr > fill * (4 / 3)) steps -= 1
   const scale = pixel ? Math.max(1, steps) / dpr : fill

@@ -1,15 +1,15 @@
+import { useModal } from 'pages/QuizPage/useModal'
 import { useEffect, useState } from 'react'
 import AmberCard from '../crafting/AmberCard'
-import { useModal } from 'pages/QuizPage/useModal'
 import type { TradeReceipt } from './client'
-import IndividualArt from './IndividualArt'
 import {
+  paletteLabel,
   personalityLine,
   sizeLabel,
   sizeOf,
   starLabel,
-  paletteLabel,
 } from './display.mjs'
+import IndividualArt from './IndividualArt'
 import { nameError } from './messages.mjs'
 import { DialogStyle } from './styles'
 
@@ -90,7 +90,7 @@ export default function WelcomeDialog({ receipt, name, save, onClose }: Props) {
             submit()
           }}
         >
-          <label htmlFor="welcome-nick">Đặt biệt danh (tuỳ chọn)</label>
+          <label htmlFor="welcome-nick">Biệt Danh</label>
           <input
             id="welcome-nick"
             value={nickname}

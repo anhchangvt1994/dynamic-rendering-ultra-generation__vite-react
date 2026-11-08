@@ -32,7 +32,7 @@ const rotr = (x, n) => (x >>> n) | (x << (32 - n))
 /** SHA-256 of bytes, in plain js (for where crypto.subtle is missing). */
 export function sha256(bytes) {
   const len = bytes.length
-  const padded = new Uint8Array((((len + 9 + 63) >> 6) << 6))
+  const padded = new Uint8Array(((len + 9 + 63) >> 6) << 6)
   padded.set(bytes)
   padded[len] = 0x80
   const view = new DataView(padded.buffer)

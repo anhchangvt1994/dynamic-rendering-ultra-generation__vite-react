@@ -1,4 +1,6 @@
 import {
+  memo,
+  startTransition,
   useEffect,
   useMemo,
   useRef,
@@ -11,11 +13,18 @@ import { craftMessage } from './crafting/messages.mjs'
 import type { CraftState } from './crafting/useCardCraft'
 import IndividualsDialog from './individuals/IndividualsDialog'
 import TradeDialog from './individuals/TradeDialog'
+import TradeResultDialog from './individuals/TradeResultDialog'
 import WelcomeDialog from './individuals/WelcomeDialog'
 import { tradeMessage } from './individuals/messages.mjs'
 import type { useIndividuals } from './individuals/useIndividuals'
 import type { ShardRow } from './shardStore'
-import { shelfCounts, shelfFilter, shelfWindow } from './shelfPaging.mjs'
+import {
+  shelfCounts,
+  shelfFilter,
+  shelfRenderWindow,
+  shelfRowPitch,
+  shelfWindow,
+} from './shelfPaging.mjs'
 
 // the join plays for this long, then the real (refreshed) numbers show
 const JOIN_MS = 850
@@ -48,12 +57,25 @@ const Shelf = styled.div`
     cursor: pointer;
   }
   .shard-grid {
+    --shard-columns: 1;
     list-style: none;
     margin: 0;
-    padding: 54px 0 0;
+    /* 54px lead; the rows not mounted keep their height as padding */
+    padding: calc(54px + var(--shard-top, 0px)) 0 var(--shard-bottom, 0px);
     display: grid;
     gap: 62px 18px;
+    grid-auto-rows: minmax(457px, auto);
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+  }
+  @media (min-width: 640px) {
+    .shard-grid {
+      --shard-columns: 2;
+    }
+  }
+  @media (min-width: 1024px) {
+    .shard-grid {
+      --shard-columns: 3;
+    }
   }
   /* a specimen case: the stone breaks out of the top edge, on its own plinth */
   .shard {
@@ -74,6 +96,9 @@ const Shelf = styled.div`
       inset 0 0 0 1px rgba(255, 214, 140, 0.16),
       inset 0 -14px 24px rgba(0, 0, 0, 0.3);
     text-align: left;
+    /* its own compositor layer: rasterised once, ahead of the scroll, so a
+       fast flick moves finished layers instead of painting tiles late */
+    will-change: transform;
   }
   .shard::before {
     content: '';
@@ -218,15 +243,46 @@ const Shelf = styled.div`
     margin-right: 3px;
     font-variant-numeric: tabular-nums;
   }
-  .shard[data-ready]:not([data-joining]) {
+  /* the ready glow pulses as opacity on a pre-painted layer, never by
+     repainting a 34px blur every frame */
+  .shard[data-ready]:not([data-joining])::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 0 0 2px #fff0b0,
+      0 0 34px rgba(255, 190, 70, 0.5);
+    opacity: 0;
+    pointer-events: none;
     animation: shard-ready 1800ms ease-in-out infinite;
   }
   @keyframes shard-ready {
     50% {
-      box-shadow:
-        inset 0 0 0 2px #fff0b0,
-        0 0 34px rgba(255, 190, 70, 0.5);
+      opacity: 1;
     }
+  }
+  /* cost control: inside the amber SVG the endless motion (sparks, sweeps,
+     straining pieces) re-rasterises every filter each frame, so it only plays
+     under a pointer. Everything else holds still while the shelf scrolls. */
+  .shard:not(:hover):not(:focus-within) .amber-spark,
+  .shard:not(:hover):not(:focus-within) .amber-piece,
+  .shard:not(:hover):not(:focus-within) .amber-ghost {
+    animation: none;
+  }
+  .shard:not(:hover):not(:focus-within) .amber-sweep {
+    display: none;
+  }
+  /* a row mounted mid-scroll paints without its SVG filters (turbulence and
+     lighting are the slow part); they return once the shelf settles */
+  .shard-grid[data-scrolling] .shard svg [filter],
+  .shard-grid[data-scrolling] .shard svg use[filter] {
+    filter: none !important;
+  }
+  .shard-grid[data-scrolling] .shard,
+  .shard-grid[data-scrolling] .shard *,
+  .shard-grid[data-scrolling] .shard::after {
+    animation-play-state: paused !important;
   }
   .shard-craft {
     font: inherit;
@@ -564,7 +620,8 @@ const Shelf = styled.div`
     .shard-skeleton > i,
     .shard-skeleton span i,
     .shard[data-fresh],
-    .shard[data-ready] {
+    .shard[data-ready],
+    .shard[data-ready]::after {
       animation: none;
     }
   }
@@ -572,7 +629,7 @@ const Shelf = styled.div`
 
 type Individuals = ReturnType<typeof useIndividuals>
 
-function Row({
+const Row = memo(function Row({
   row,
   state,
   craft,
@@ -643,7 +700,9 @@ function Row({
       data-joining={playing || undefined}
       data-species={row.speciesId}
       data-fresh={fresh === undefined ? undefined : ''}
-      style={fresh === undefined ? undefined : ({ '--n': fresh } as CSSProperties)}
+      style={
+        fresh === undefined ? undefined : ({ '--n': fresh } as CSSProperties)
+      }
       aria-label={`${row.name}, ${row.count} trên ${row.required} mảnh${
         row.count >= row.required ? ', đủ mảnh' : ''
       }, ${row.cardCount} viên hổ phách, tỉ lệ rơi ${Math.round(row.drop * 100)}%`}
@@ -763,7 +822,7 @@ function Row({
       </div>
     </li>
   )
-}
+})
 
 /** A case on its way, the shape of a real one. */
 function Bone() {
@@ -792,6 +851,15 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number][0]
 // long enough for the skeletons to read as "coming", short enough not to wait
 const PAGE_MS = 320
+// the nearest ancestor that scrolls: the bag scrolls inside <main>, not the window
+function scrollParent(node: HTMLElement): HTMLElement | Window {
+  for (let n = node.parentElement; n; n = n.parentElement)
+    if (/(auto|scroll)/.test(getComputedStyle(n).overflowY)) return n
+  return window
+}
+// grid geometry shared with .shard-grid: lead padding, row 392 + gap 62
+const SHELF_LEAD = 54
+const SHELF_ROW_PITCH = 454
 
 export default function ShardShelf({
   rows,
@@ -813,15 +881,126 @@ export default function ShardShelf({
   individuals?: Individuals
 }) {
   const [confirming, setConfirming] = useState<number | null>(null)
+  const [offerTrade, setOfferTrade] = useState<number | null>(null)
   const [listing, setListing] = useState<number | null>(null)
+  const [heldOrder, setHeldOrder] = useState<ShardRow[] | null>(null)
+  const orderHeld =
+    confirming !== null ||
+    offerTrade !== null ||
+    Boolean(individuals?.welcome || individuals?.batchSummary)
+  const displayRows = useMemo(
+    () => (orderHeld ? (heldOrder ?? rows ?? []) : (rows ?? [])),
+    [orderHeld, heldOrder, rows]
+  )
+  useEffect(() => {
+    if (orderHeld && heldOrder === null) setHeldOrder(rows ?? [])
+    if (!orderHeld && heldOrder !== null) setHeldOrder(null)
+  }, [orderHeld, heldOrder, rows])
   const [filter, setFilter] = useState<Filter>('all')
   const [pages, setPages] = useState(1)
   const [paging, setPaging] = useState(false)
+  // the band of grid rows in view: it changes a few times per screen of
+  // scrolling, not on every scroll event
+  const [band, setBand] = useState({
+    first: 0,
+    last: 2,
+    columns: 1,
+    pitch: SHELF_ROW_PITCH,
+    direction: 'down' as 'up' | 'down',
+  })
+  const grid = useRef<HTMLUListElement>(null)
   // rows from this index on came with the last page: they rise in
   const freshFrom = useRef(Infinity)
   const counts = useMemo(() => shelfCounts(rows ?? []), [rows])
-  const kept = useMemo(() => shelfFilter(rows ?? [], filter), [rows, filter])
+  const kept = useMemo(
+    () => shelfFilter(displayRows, filter),
+    [displayRows, filter]
+  )
   const view = shelfWindow({ total: kept.length, pages })
+  const showGrid = Boolean(rows && kept.length)
+  useEffect(() => {
+    if (!showGrid) return
+    let frame = 0
+    const node = grid.current
+    if (!node) return
+    const scroller = scrollParent(node)
+    let previousOffset = 0
+    let direction: 'up' | 'down' = 'down'
+    const measure = () => {
+      const columns =
+        Number.parseInt(
+          getComputedStyle(node).getPropertyValue('--shard-columns'),
+          10
+        ) || 1
+      const edge = scroller === window ? null : (scroller as HTMLElement)
+      const style = getComputedStyle(node)
+      const pitch = shelfRowPitch({
+        heights: Array.from(
+          node.children,
+          (child) => child.getBoundingClientRect().height
+        ),
+        gap: Number.parseFloat(style.rowGap),
+        fallback: SHELF_ROW_PITCH,
+      })
+      const rootTop = edge ? edge.getBoundingClientRect().top : 0
+      const gridTop = node.getBoundingClientRect().top
+      const offset = Math.max(0, rootTop + SHELF_LEAD - gridTop)
+      if (offset !== previousOffset)
+        direction = offset > previousOffset ? 'down' : 'up'
+      previousOffset = offset
+      const height = edge ? edge.clientHeight : window.innerHeight
+      const first = Math.floor(offset / pitch)
+      const last = Math.ceil((offset + height) / pitch)
+      // a transition: mounting rows is sliced between frames, never one long task
+      startTransition(() =>
+        setBand((prev) =>
+          prev.first === first &&
+          prev.last === last &&
+          prev.columns === columns &&
+          prev.pitch === pitch &&
+          prev.direction === direction
+            ? prev
+            : { first, last, columns, pitch, direction }
+        )
+      )
+    }
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    })
+    resizeObserver.observe(node)
+    let idle = 0
+    const update = () => {
+      // set once per gesture: rewriting it on every scroll event restyles the grid
+      if (node.dataset.scrolling === undefined) node.dataset.scrolling = ''
+      window.clearTimeout(idle)
+      idle = window.setTimeout(() => delete node.dataset.scrolling, 160)
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    measure()
+    scroller.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(idle)
+      resizeObserver.disconnect()
+      delete node.dataset.scrolling
+      scroller.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [showGrid, filter])
+  const renderWindow = shelfRenderWindow({
+    // while a page loads, its skeleton rows are part of the shelf's height
+    total: view.shown + (paging ? view.next : 0),
+    columns: band.columns,
+    rowHeight: band.pitch,
+    scrollTop: band.first * band.pitch,
+    viewportHeight: (band.last - band.first) * band.pitch,
+    overscan: 1,
+    direction: band.direction,
+    directionalOverscan: 3,
+  })
   const more = () => {
     if (paging || view.done) return
     freshFrom.current = view.shown
@@ -847,7 +1026,12 @@ export default function ShardShelf({
   const sentinel = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const node = sentinel.current
-    if (!node || !view.auto || paging || typeof IntersectionObserver === 'undefined')
+    if (
+      !node ||
+      !view.auto ||
+      paging ||
+      typeof IntersectionObserver === 'undefined'
+    )
       return
     const observer = new IntersectionObserver(
       (entries) => {
@@ -871,10 +1055,20 @@ export default function ShardShelf({
   // one mounted live region: each new result is announced once
   const [announcement, setAnnouncement] = useState('')
   const seen = useRef<Record<number, CraftState>>({})
+  const offeredCrafts = useRef(new Set<number>())
   useEffect(() => {
     for (const [id, state] of Object.entries(states)) {
       if (seen.current[Number(id)] === state) continue
       seen.current[Number(id)] = state
+      if (
+        state.kind === 'success' &&
+        state.origin === 'user' &&
+        !offeredCrafts.current.has(Number(id))
+      ) {
+        offeredCrafts.current.add(Number(id))
+        setHeldOrder((held) => held ?? rows ?? [])
+        setOfferTrade((current) => current ?? Number(id))
+      }
       const name =
         rows?.find((r) => r.speciesId === Number(id))?.name ?? `#${id}`
       const text = craftMessage(name, state)
@@ -921,6 +1115,29 @@ export default function ShardShelf({
       <p className="shard-live" role="status" aria-live="polite">
         {announcement}
       </p>
+      {individuals?.batchSummary &&
+        individuals.batchSummary.failures.length > 0 && (
+          <p className="shard-banner" role="status" data-batch-summary>
+            Đã đổi {individuals.batchSummary.receipts.length} Pokémon
+            {individuals.batchSummary.failures.length > 0 &&
+              ` · ${individuals.batchSummary.failures.length} lượt chưa xong${individuals.batchSummary.uncertain ? ' (kết quả chưa rõ)' : ''}`}
+            {individuals.batchSummary.uncertain && (
+              <button
+                type="button"
+                onClick={() =>
+                  void individuals
+                    .retryMany(individuals.batchSummary!.speciesId)
+                    ?.catch(() => {})
+                }
+              >
+                Kiểm tra lại lượt cuối
+              </button>
+            )}
+            <button type="button" onClick={individuals.dismissBatchSummary}>
+              Đóng
+            </button>
+          </p>
+        )}
       {(error || pending > 0) && (
         <p className="shard-banner" role="status">
           {error
@@ -962,26 +1179,49 @@ export default function ShardShelf({
               className="shard-grid"
               aria-label="Mảnh và hổ phách Pokémon"
               aria-busy={paging || undefined}
+              ref={grid}
+              style={
+                {
+                  '--shard-top': `${renderWindow.top}px`,
+                  '--shard-bottom': `${renderWindow.bottom}px`,
+                } as CSSProperties
+              }
             >
-              {kept.slice(0, view.shown).map((row, index) => (
-                <Row
-                  key={row.speciesId}
-                  row={row}
-                  fresh={
-                    index >= freshFrom.current
-                      ? index - freshFrom.current
-                      : undefined
-                  }
-                  state={states[row.speciesId]}
-                  craft={craft}
-                  tradeState={individuals?.states[row.speciesId]}
-                  owned={individuals?.counts[row.speciesId] ?? 0}
-                  onTrade={individuals?.available ? setConfirming : undefined}
-                  onList={setListing}
-                />
-              ))}
+              {kept
+                .slice(renderWindow.start, renderWindow.end)
+                .map((row, offset) => {
+                  const index = renderWindow.start + offset
+                  return (
+                    <Row
+                      key={row.speciesId}
+                      row={row}
+                      fresh={
+                        index >= freshFrom.current
+                          ? index - freshFrom.current
+                          : undefined
+                      }
+                      state={states[row.speciesId]}
+                      craft={craft}
+                      tradeState={individuals?.states[row.speciesId]}
+                      owned={individuals?.counts[row.speciesId] ?? 0}
+                      onTrade={
+                        individuals?.available ? setConfirming : undefined
+                      }
+                      onList={setListing}
+                    />
+                  )
+                })}
               {paging &&
-                Array.from({ length: view.next }, (_, i) => <Bone key={`b${i}`} />)}
+                Array.from(
+                  {
+                    length: Math.max(
+                      0,
+                      renderWindow.end -
+                        Math.max(renderWindow.start, view.shown)
+                    ),
+                  },
+                  (_, i) => <Bone key={`b${i}`} />
+                )}
             </ul>
           ) : (
             <p className="shelf-empty">
@@ -1025,23 +1265,57 @@ export default function ShardShelf({
       {individuals && (
         <>
           <TradeDialog
-            speciesId={confirming}
-            name={confirming === null ? '' : nameOf(confirming)}
-            onCancel={() => setConfirming(null)}
-            onConfirm={() => {
-              const id = confirming
+            speciesId={confirming ?? offerTrade}
+            name={
+              (confirming ?? offerTrade) === null
+                ? ''
+                : nameOf(confirming ?? offerTrade!)
+            }
+            available={
+              rows?.find((row) => row.speciesId === (confirming ?? offerTrade))
+                ?.cardCount ?? 0
+            }
+            onCancel={() => {
               setConfirming(null)
-              if (id !== null) individuals.trade(id)
+              setOfferTrade(null)
+            }}
+            onConfirm={(quantity) => {
+              const id = confirming ?? offerTrade
+              setConfirming(null)
+              setOfferTrade(null)
+              const available =
+                rows?.find((row) => row.speciesId === id)?.cardCount ?? 0
+              if (id !== null)
+                void individuals
+                  .tradeMany(id, quantity, available)
+                  ?.catch(() => {})
             }}
           />
           <WelcomeDialog
-            receipt={individuals.welcome?.receipt ?? null}
+            receipt={
+              individuals.welcome?.receipts.length === 1
+                ? individuals.welcome.receipts[0]
+                : null
+            }
             name={
               individuals.welcome
-                ? nameOf(individuals.welcome.receipt.speciesId)
+                ? nameOf(individuals.welcome.receipts[0].speciesId)
                 : ''
             }
             save={individuals.name}
+            onClose={individuals.dismissWelcome}
+          />
+          <TradeResultDialog
+            receipts={
+              individuals.welcome && individuals.welcome.receipts.length > 1
+                ? individuals.welcome.receipts
+                : null
+            }
+            name={
+              individuals.welcome
+                ? nameOf(individuals.welcome.receipts[0].speciesId)
+                : ''
+            }
             onClose={individuals.dismissWelcome}
           />
           <IndividualsDialog

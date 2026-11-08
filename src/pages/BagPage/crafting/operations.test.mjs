@@ -55,6 +55,19 @@ const last = (events) => events.filter(Array.isArray).at(-1)
 const kinds = (events, species = 150) =>
   events.filter((e) => e[0] === species).map((e) => e[1])
 
+test('fresh craft success is tagged user while recovered craft success is tagged resume', async () => {
+  const storage = memory()
+  const fresh = make({ storage })
+  await fresh.controller.craft(150)
+  assert.equal(last(fresh.events)[2].origin, 'user')
+
+  const pending = memory()
+  pending.setItem(pendingKey('local'), JSON.stringify({ 150: OP1 }))
+  const recovered = make({ storage: pending })
+  await recovered.controller.resume()
+  assert.equal(last(recovered.events)[2].origin, 'resume')
+})
+
 test('success: persists the id first, submits it, clears it, refreshes, and reports the receipt', async () => {
   const storage = memory()
   const seen = []

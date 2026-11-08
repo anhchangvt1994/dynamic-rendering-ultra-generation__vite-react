@@ -1,9 +1,5 @@
 import { useSearchParams } from 'react-router'
-import {
-  BLOG_ENABLED,
-  listStoreKey,
-  useGetArticlesQuery,
-} from 'app/apis/blog'
+import { BLOG_ENABLED, listStoreKey, useGetArticlesQuery } from 'app/apis/blog'
 import type { ArticleCard } from 'app/apis/blog'
 import BattleMessage from 'components/common/BattleMessage'
 import BlogSkeleton from 'components/PageSkeleton/BlogSkeleton'
@@ -86,9 +82,23 @@ export default function BlogPage() {
     <BlogStyle className="blog-page">
       <header className="blog-hero">
         <svg className="hero-ball" viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="46" fill="none" stroke="#172d45" strokeWidth="6" />
+          <circle
+            cx="50"
+            cy="50"
+            r="46"
+            fill="none"
+            stroke="#172d45"
+            strokeWidth="6"
+          />
           <path d="M4 50h92" stroke="#172d45" strokeWidth="6" />
-          <circle cx="50" cy="50" r="13" fill="none" stroke="#172d45" strokeWidth="6" />
+          <circle
+            cx="50"
+            cy="50"
+            r="13"
+            fill="none"
+            stroke="#172d45"
+            strokeWidth="6"
+          />
         </svg>
         <h1 className="hero-title">
           <span>Sổ tay thực địa</span>
@@ -97,11 +107,7 @@ export default function BlogPage() {
       </header>
 
       <div className="blog-tags" role="group" aria-label="Lọc theo nhãn">
-        <button
-          type="button"
-          aria-pressed={!tag}
-          onClick={() => setTag('')}
-        >
+        <button type="button" aria-pressed={!tag} onClick={() => setTag('')}>
           Tất cả <span className="n">{articles.length}</span>
         </button>
         {tags.map((name) => (
@@ -113,7 +119,10 @@ export default function BlogPage() {
           >
             {name}{' '}
             <span className="n">
-              {articles.filter((article) => article.tags?.includes(name)).length}
+              {
+                articles.filter((article) => article.tags?.includes(name))
+                  .length
+              }
             </span>
           </button>
         ))}

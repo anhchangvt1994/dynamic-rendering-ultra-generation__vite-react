@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { STATS } from 'pages/KitchenPage/kitchen.mjs'
 import { STAT_KEYS } from '../care/care.mjs'
 
-const R = 52
+const R = 62
 const point = (i: number, r: number) => {
   const a = (Math.PI * 2 * i) / STAT_KEYS.length - Math.PI / 2
   return [Math.cos(a) * r, Math.sin(a) * r]
@@ -36,7 +36,7 @@ export default function StatRadar({
       data-pending={pending || undefined}
       aria-busy={pending || undefined}
     >
-      <svg viewBox="-124 -78 248 156" aria-hidden="true" focusable="false">
+      <svg viewBox="-124 -92 248 184" aria-hidden="true" focusable="false">
         <g className="rm-radar-grid">
           <polygon points={ring(R)} />
           <polygon points={ring(R / 2)} />
@@ -48,6 +48,7 @@ export default function StatRadar({
         <polygon className="rm-radar-shape" points={shape} />
         {STAT_KEYS.map((key, i) => {
           const [x, y] = point(i, R + 14)
+          const value = stats[key] ?? 0
           return (
             <text
               key={key}
@@ -57,11 +58,19 @@ export default function StatRadar({
               dominantBaseline="middle"
             >
               {STATS[key as keyof typeof STATS].label}
+              {!pending && (
+                <tspan className="rm-radar-n" x={x} dy="12">
+                  {value}
+                </tspan>
+              )}
             </text>
           )
         })}
       </svg>
-      <figcaption>
+      {!pending && STAT_KEYS.every((key) => !stats[key]) && (
+        <p className="rm-radar-hint">Chăm sóc để lớn lên</p>
+      )}
+      <figcaption className="rm-sr">
         <ul className="rm-stat-list">
           {STAT_KEYS.map((key) => {
             const stat = STATS[key as keyof typeof STATS]

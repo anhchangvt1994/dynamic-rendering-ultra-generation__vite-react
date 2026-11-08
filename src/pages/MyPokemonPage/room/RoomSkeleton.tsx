@@ -39,7 +39,9 @@ const RoomSkeletonStyle = styled(RoomStyle)`
     display: flex;
     margin-bottom: 4px;
     align-items: center;
-    font-size: clamp(18px, 5.6vw, 24px);
+    justify-content: center;
+    font-size: clamp(26px, 8.6vw, 40px);
+    line-height: 1.04;
   }
   .rm-h::before {
     content: '\\200b';
@@ -51,11 +53,6 @@ const RoomSkeletonStyle = styled(RoomStyle)`
   }
   .rm-name .rm-stars {
     opacity: 0.35;
-  }
-  .rm-xp .rm-skel {
-    width: 56px;
-    height: 26px;
-    border-radius: 8px;
   }
   .rm-disc {
     background: rgba(255, 255, 255, 0.06);
@@ -77,22 +74,62 @@ const RoomSkeletonStyle = styled(RoomStyle)`
   .rm-card .rm-skel {
     border-radius: 12px;
   }
-  .rm-card-level .rm-skel {
-    height: 160px;
+  .rm-card-level .rm-level {
+    min-height: 26px;
   }
-  .rm-card-stats .rm-skel {
-    height: 297px;
+  .rm-skel-level {
+    width: 72px;
+    height: 26px;
   }
-  .rm-card-profile .rm-skel {
-    height: 417px;
+  .rm-skel-points {
+    width: 88px;
+    height: 12px;
+  }
+  .rm-card-level .rm-track {
+    isolation: isolate;
+  }
+  .rm-card-level .rm-track > i {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .rm-skel-level-stop {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: var(--stop);
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    border-radius: 50%;
+    background: #272a30;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  }
+  .rm-skel-level-stop:nth-of-type(2) {
+    --stop: 0%;
+  }
+  .rm-skel-level-stop:nth-of-type(3) {
+    --stop: 50%;
+  }
+  .rm-skel-level-stop:nth-of-type(4) {
+    --stop: 100%;
+  }
+  .rm-skel-radar {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 248 / 184;
+    margin: 0 auto;
+  }
+  .rm-skel-persona {
+    width: 100%;
+    height: 64px;
+    margin-bottom: 12px;
+  }
+  .rm-skel-facts {
+    width: 100%;
+    height: 156px;
   }
   @media (min-width: 960px) {
     .rm-h {
-      font-size: 30px;
-    }
-    /* a usual name's width, so the needs beside it keep theirs */
-    .rm-h .rm-skel {
-      width: 5em;
+      font-size: clamp(34px, 3.6vw, 52px);
     }
   }
 `
@@ -105,12 +142,6 @@ const THEME = {
   '--a2': '#2a2d33',
   '--ink': '#ffffff',
 } as CSSProperties
-
-const CARDS = [
-  ['level', 'Thân thiết'],
-  ['stats', 'Trưởng thành'],
-  ['profile', 'Hồ sơ'],
-] as const
 
 const none = () => {}
 
@@ -139,41 +170,24 @@ export default function RoomSkeleton({
         <div className="rm-floor" aria-hidden="true" />
         <div className="rm-upper">
           <div className="rm-hud">
-            <div className="rm-head">
-              {back ?? (
-                <LinkCustom
-                  className="rm-back"
-                  to={OWNED_COLLECTION_PATH}
-                  aria-label="Về Bộ sưu tập"
-                >
-                  <Chevron size={20} />
-                  <span className="rm-back-text">Bộ sưu tập</span>
-                </LinkCustom>
-              )}
-              <span className="rm-name" aria-hidden="true">
-                <span
-                  className="rm-medal"
-                  style={{ '--lv': '0%' } as CSSProperties}
-                >
-                  <b>1</b>
-                  <small>♥</small>
-                </span>
-                <span className="rm-id">
-                  <span className="rm-h">
-                    <span className="rm-skel" />
-                  </span>
-                  <p>
-                    <span className="rm-stars">☆☆☆☆☆</span>
-                  </p>
-                </span>
-                <span className="rm-xp">
-                  <span className="rm-skel" />
-                </span>
+            {back ?? (
+              <LinkCustom
+                className="rm-back"
+                to={OWNED_COLLECTION_PATH}
+                aria-label="Về Bộ sưu tập"
+              >
+                <Chevron size={20} />
+                <span className="rm-back-text">Bộ sưu tập</span>
+              </LinkCustom>
+            )}
+            <span className="rm-name" aria-hidden="true">
+              <span className="rm-h">
+                <span className="rm-skel" />
               </span>
-            </div>
-            <div className="rm-needs" aria-hidden="true">
-              <NeedRings needs={null} />
-            </div>
+              <p>
+                <span className="rm-stars">☆☆☆☆☆</span>
+              </p>
+            </span>
           </div>
           <div className="rm-bubble-wrap">
             <p className="rm-bubble">
@@ -185,8 +199,16 @@ export default function RoomSkeleton({
           </div>
         </div>
         <div className="rm-stage" aria-hidden="true">
-          <div className="rm-disc" />
-          <span className="rm-sticker">{' '}</span>
+          <div className="rm-disc">
+            <span
+              className="rm-medal"
+              style={{ '--lv': '0%' } as CSSProperties}
+            >
+              <b>1</b>
+            </span>
+            <NeedRings needs={null} />
+            <span className="rm-sticker"> </span>
+          </div>
         </div>
       </section>
       <div className="rm-dock" aria-hidden="true" inert>
@@ -198,12 +220,34 @@ export default function RoomSkeleton({
           </span>
         </span>
         <div className="rm-profile">
-          {CARDS.map(([key, title]) => (
-            <section key={key} className={`rm-card rm-card-${key}`}>
-              <h2>{title}</h2>
-              <span className="rm-skel" />
-            </section>
-          ))}
+          <div className="rm-profile-body">
+            <div className="rm-paper">
+              <section className="rm-card rm-card-level">
+                <h2>Thân thiết</h2>
+                <p className="rm-level">
+                  <b className="rm-skel rm-skel-level" />
+                  <span className="rm-skel rm-skel-points" />
+                </p>
+                <div className="rm-track" aria-hidden="true">
+                  <i />
+                  <span className="rm-skel-level-stop" />
+                  <span className="rm-skel-level-stop" />
+                  <span className="rm-skel-level-stop" />
+                </div>
+              </section>
+              <section className="rm-card rm-card-stats">
+                <h2>Trưởng thành</h2>
+                <div className="rm-radar" aria-hidden="true">
+                  <span className="rm-skel rm-skel-radar" />
+                </div>
+              </section>
+              <section className="rm-card rm-card-profile">
+                <h2>Hồ sơ</h2>
+                <span className="rm-skel rm-skel-persona" />
+                <span className="rm-skel rm-skel-facts" />
+              </section>
+            </div>
+          </div>
         </div>
         <CareBar
           individualId={id}

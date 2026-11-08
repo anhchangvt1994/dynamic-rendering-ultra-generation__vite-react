@@ -109,7 +109,7 @@ export function createCraftController({
     }
   }
 
-  const run = async (speciesId) => {
+  const run = async (speciesId, origin) => {
     const pending = readPending()
     if (pending === null)
       return emit(speciesId, {
@@ -150,7 +150,7 @@ export function createCraftController({
       )
         throw new Error('invalid_receipt')
       clear()
-      emit(speciesId, { kind: 'success', retryable: false, receipt })
+      emit(speciesId, { kind: 'success', retryable: false, receipt, origin })
       await settle()
     } catch (error) {
       const code = terminalCode(error)
@@ -168,7 +168,9 @@ export function createCraftController({
     if (!live) return Promise.resolve()
     const running = inflight.get(speciesId)
     if (running) return running
-    const task = run(speciesId).finally(() => inflight.delete(speciesId))
+    const task = run(speciesId, 'user').finally(() =>
+      inflight.delete(speciesId)
+    )
     inflight.set(speciesId, task)
     return task
   }
@@ -181,7 +183,7 @@ export function createCraftController({
       if (pending === null) return
       const species = Object.keys(pending).map(Number)
       for (const id of species) emit(id, { kind: 'uncertain', retryable: true })
-      await Promise.all(species.map(craft))
+      await Promise.all(species.map((id) => run(id, 'resume')))
     },
     dispose() {
       live = false

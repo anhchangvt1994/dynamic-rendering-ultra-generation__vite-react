@@ -27,7 +27,12 @@ const Drop = styled.div`
     height: 124px;
     border-radius: 16px;
     background:
-      radial-gradient(circle at 50% 60%, #ffcf6acc, #ffb43a55 45%, transparent 75%),
+      radial-gradient(
+        circle at 50% 60%,
+        #ffcf6acc,
+        #ffb43a55 45%,
+        transparent 75%
+      ),
       #1a2a48;
     overflow: hidden;
   }

@@ -1307,10 +1307,9 @@ export const BagStyle = styled.section`
       height: 92px;
     }
     .tag-card {
-      grid-template-columns: 30px minmax(0, 1fr);
+      grid-template-columns: 1fr;
       align-items: center;
-      justify-items: start;
-      gap: 8px;
+      justify-items: center;
       height: 52px;
       padding: 11px 10px 0;
       top: 28px;
@@ -1323,21 +1322,7 @@ export const BagStyle = styled.section`
       height: 30px;
     }
     .tag-label {
-      display: block;
-      width: 100%;
-      height: 16px;
-      overflow: hidden;
-      font-size: 12px;
-      font-weight: 900;
-      line-height: 16px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      color: #fff;
-    }
-    .tag-label .bone {
-      width: 80%;
-      height: 10px;
-      margin-top: 3px;
+      display: none;
     }
     .tag-count {
       position: absolute;

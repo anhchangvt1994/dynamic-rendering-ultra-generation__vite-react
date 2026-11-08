@@ -19,7 +19,7 @@ export const enum SeoTagsEnum {
   author = 'author',
   author_link = 'author_link',
   googlebot = 'googlebot',
-  'google_site_verification' = 'google-site-verification',
+  google_site_verification = 'google-site-verification',
   alternate = 'alternate',
   geo_region = 'geo.region',
   geo_placename = 'geo.placename',

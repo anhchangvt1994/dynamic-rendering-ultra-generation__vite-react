@@ -50,8 +50,7 @@ export default function BlogDetailPage() {
   )
   const outline = useMemo(() => outlineOf(blocks), [blocks])
   const related = useMemo(
-    () =>
-      nextTwo(Array.isArray(list) ? (list as ArticleCard[]) : [], slug),
+    () => nextTwo(Array.isArray(list) ? (list as ArticleCard[]) : [], slug),
     [list, slug]
   )
 

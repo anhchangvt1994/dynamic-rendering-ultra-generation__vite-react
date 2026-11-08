@@ -1,6 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { MY_POKEMON_PATH, myPokemonPath, findIndividual } from './paths.mjs'
+import {
+  MY_POKEMON_PATH,
+  myPokemonPath,
+  findIndividual,
+  individualNavigationState,
+} from './paths.mjs'
 
 test('the list lives at /pokemon-cua-toi and a detail under it', () => {
   assert.equal(MY_POKEMON_PATH, '/pokemon-cua-toi')
@@ -10,6 +15,14 @@ test('the list lives at /pokemon-cua-toi and a detail under it', () => {
 
 test('an id is escaped so it can never leave the route', () => {
   assert.equal(myPokemonPath('a/b?c'), '/pokemon-cua-toi/a%2Fb%3Fc')
+})
+
+test('individual navigation preserves the mounted page between siblings', () => {
+  assert.deepEqual(individualNavigationState('/?view=caught', 3), {
+    returnTo: '/?view=caught',
+    returnIndex: 3,
+    keepPage: true,
+  })
 })
 
 test('findIndividual returns the owned individual or null', () => {
