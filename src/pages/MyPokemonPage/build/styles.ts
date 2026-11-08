@@ -45,6 +45,64 @@ export const buildStyle = css`
   .bp-stats td:first-of-type {
     font-weight: 800;
   }
+  .bp-stats td {
+    position: relative;
+  }
+  .bp-delta {
+    position: absolute;
+    top: 0;
+    right: 2px;
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 800;
+    color: #1f9d55;
+    pointer-events: none;
+    animation: bp-pop 2.2s ease-out forwards;
+  }
+  .bp-head .bp-delta {
+    position: static;
+    margin-left: 8px;
+    font-size: 13px;
+    display: inline-block;
+  }
+  .bp-head b {
+    position: relative;
+  }
+  @keyframes bp-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    15% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bp-delta {
+      animation: bp-fade 2.2s steps(1) forwards;
+    }
+    @keyframes bp-fade {
+      0%,
+      90% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+  }
+  .bp-stats td[data-up] > :first-child,
+  .bp-stats td[data-up] {
+    color: #1f9d55;
+  }
   .bp-up,
   .bp-down {
     margin-left: 4px;

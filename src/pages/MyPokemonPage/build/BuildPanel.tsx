@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from 'react'
+import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { TYPE_DATA } from 'components/pokemon-page/type-data.mjs'
 import { useBagStore } from 'pages/BagPage/bagStore'
 import type { Individual } from 'pages/BagPage/individuals/client'
@@ -6,6 +6,7 @@ import { ITEMS } from 'pages/QuizPage/items.mjs'
 import MovePicker from './MovePicker'
 import {
   abilityLabel,
+  buildDiff,
   natureEffect,
   NATURE_VI,
   statLabel,
@@ -46,6 +47,16 @@ export default function BuildPanel({ item, affection, api }: Props) {
   const learnset = useLearnset(build?.species ?? null, status === 'ready')
   const [slot, setSlot] = useState<number | null>(null)
   const [choosing, setChoosing] = useState(false)
+  const [fx, setFx] = useState<ReturnType<typeof buildDiff>>(null)
+  const seen = useRef(build)
+  useEffect(() => {
+    const diff = buildDiff(seen.current, build)
+    seen.current = build
+    if (!diff) return
+    setFx(diff)
+    const t = setTimeout(() => setFx(null), 2200)
+    return () => clearTimeout(t)
+  }, [build])
 
   if (status === 'unavailable')
     return (
@@ -106,7 +117,14 @@ export default function BuildPanel({ item, affection, api }: Props) {
       <section className="rm-card bp" aria-labelledby="rm-h-build">
         <h2 id="rm-h-build">Chỉ số chiến đấu</h2>
         <p className="bp-head">
-          <b>Lv {build.level}</b>
+          <b data-up={fx && fx.level > 0 ? '' : undefined}>
+            Lv {build.level}
+            {fx && fx.level > 0 && (
+              <em className="bp-delta" role="status">
+                +{fx.level} cấp!
+              </em>
+            )}
+          </b>
           <span className="rm-stars" aria-label={`${build.stars} sao`}>
             {'★'.repeat(build.stars)}
             {'☆'.repeat(5 - build.stars)}
@@ -115,6 +133,7 @@ export default function BuildPanel({ item, affection, api }: Props) {
         </p>
         <div
           className="rm-track bp-exp"
+          data-gain={fx && fx.exp > 0 ? '' : undefined}
           role="progressbar"
           aria-label="Kinh nghiệm đến cấp kế"
           aria-valuemin={0}
@@ -150,7 +169,12 @@ export default function BuildPanel({ item, affection, api }: Props) {
                     </span>
                   )}
                 </th>
-                <td>{value}</td>
+                <td data-up={fx?.stats[i] > 0 ? '' : undefined}>
+                  {value}
+                  {fx && fx.stats[i] > 0 && (
+                    <em className="bp-delta">+{fx.stats[i]}</em>
+                  )}
+                </td>
                 <td>
                   <span
                     className="bp-bar"
@@ -175,6 +199,9 @@ export default function BuildPanel({ item, affection, api }: Props) {
                     <i />
                   </span>
                   <small>{build.ev[i]}</small>
+                  {fx && fx.ev[i] > 0 && (
+                    <em className="bp-delta">+{fx.ev[i]}</em>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  buildDiff,
   abilityLabel,
   starsFor,
   mergeLearnset,
@@ -81,4 +82,30 @@ test('mergeLearnset: one row per move, open first, nearest route when locked', (
 test('starsFor: the build wins over the birth stars', () => {
   assert.equal(starsFor(null, 2), 2)
   assert.equal(starsFor({ stars: 4 }, 2), 4)
+})
+
+test('buildDiff: deltas per stat, EV, level and exp', () => {
+  const a = {
+    species: 25,
+    level: 5,
+    exp: 10,
+    stats: [20, 10, 10, 10, 10, 10],
+    ev: [0, 0, 0, 0, 0, 0],
+  }
+  const b = {
+    ...a,
+    level: 6,
+    exp: 14,
+    stats: [22, 10, 11, 10, 10, 10],
+    ev: [4, 0, 0, 0, 0, 0],
+  }
+  assert.deepEqual(buildDiff(a, b), {
+    level: 1,
+    exp: 4,
+    stats: [2, 0, 1, 0, 0, 0],
+    ev: [4, 0, 0, 0, 0, 0],
+  })
+  assert.equal(buildDiff(a, a), null)
+  assert.equal(buildDiff(null, b), null)
+  assert.equal(buildDiff(a, { ...b, species: 26 }), null)
 })

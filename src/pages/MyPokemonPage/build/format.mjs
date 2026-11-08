@@ -108,3 +108,14 @@ export function mergeLearnset(learnset, moves, build, bag, affection = 0) {
 
 /** Stars now: the server's build (items and awakening raise them), else the birth stars. */
 export const starsFor = (build, birthStars) => build?.stars ?? birthStars
+
+/** What changed between two builds of one individual; null when nothing did. */
+export function buildDiff(prev, next) {
+  if (!prev || !next || prev.species !== next.species) return null
+  const stats = next.stats.map((v, i) => v - prev.stats[i])
+  const ev = next.ev.map((v, i) => v - prev.ev[i])
+  const level = next.level - prev.level
+  const exp = next.exp - prev.exp
+  if (!level && !exp && !stats.some(Boolean) && !ev.some(Boolean)) return null
+  return { level, exp, stats, ev }
+}
