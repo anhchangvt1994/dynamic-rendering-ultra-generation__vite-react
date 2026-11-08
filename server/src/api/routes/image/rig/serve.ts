@@ -158,7 +158,7 @@ export const serveRig = async (url: string) => {
   const animated = webp
   start(key, async () =>
     buildInWorker({
-      source: await fetchSource(key),
+      source: (await fetchSource(key)).image,
       webp: animated,
       still: null,
       key,

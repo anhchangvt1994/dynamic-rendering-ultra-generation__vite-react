@@ -2,7 +2,12 @@ import { TemplatedApp } from 'uWebSockets.js'
 import { serveRig } from './rig/serve'
 import { serveImage } from './serve'
 
-const STATUS = { 200: '200 OK', 202: '202 Accepted', 404: '404 Not Found' }
+const STATUS = {
+  200: '200 OK',
+  202: '202 Accepted',
+  404: '404 Not Found',
+  503: '503 Service Unavailable',
+}
 
 /** GET /api/image/<key>.webp and /api/image/rig/<key>/<file> (uWebSockets) */
 const ImageRouter = {

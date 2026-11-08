@@ -12,8 +12,9 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import sharp from 'sharp'
+import { smoothAlongTime, sourceChanges } from './temporal'
 
-export const PIPELINE_VERSION = 14
+export const PIPELINE_VERSION = 15
 
 export type PipelineOptions = {
   /** longest side of the output, px */
@@ -29,6 +30,8 @@ export type PipelineOptions = {
   rifeDir?: string
   /** frames out per source frame when `rifeDir` is set (2–8, default 4) */
   fpsFactor?: number
+  /** extra sharpening, for the last-resort source only (see sources.ts) */
+  sharpen?: boolean
 }
 
 // Scale2x (EPX): staircase edges become clean curves; works on 32-bit pixels
@@ -158,6 +161,7 @@ export async function upscaleAnimation(
     esrganTimeoutMs,
     rifeDir,
     fpsFactor,
+    sharpen = false,
   }: PipelineOptions
 ): Promise<Buffer> {
   const meta = await sharp(source, { animated: true, pages: -1 }).metadata()
@@ -349,8 +353,10 @@ export async function upscaleAnimation(
       let scaled = colour
         .removeAlpha()
         .resize(tw, th, { kernel: 'lanczos3', fit: 'fill' })
-      // the sharp-only path ends soft after the last stretch: bring it back
-      if (!useEsrgan) scaled = scaled.sharpen({ sigma: 0.7, m1: 0.3, m2: 1.5 })
+      // the sharp-only path ends soft after the last stretch: bring it back;
+      // the last-resort source (blurrier) gets it on the ESRGAN path too
+      if (!useEsrgan || sharpen)
+        scaled = scaled.sharpen({ sigma: 0.7, m1: 0.3, m2: 1.5 })
       const rgb = await scaled.raw().toBuffer()
       const alpha = useEsrgan
         ? await sharp(masksAt(f))
@@ -374,64 +380,22 @@ export async function upscaleAnimation(
   }
 
   // The upscaler and RIFE leave a little frame-to-frame flicker (edges and
-  // colours shifting a pixel or two). A short blend along time, wrapping round
-  // the loop, averages it out; alpha gets the wider blend and is then pushed
-  // back to crisp so a fast edge keeps no ghost tail.
-  if (m > 2) {
-    const fs4 = tw * th * 4
-    const src = Buffer.from(out)
-    const blend = (ch: number, r: number, s: number) => {
-      const taps = [1]
-      for (let j = 0; j < 2 * r; j++)
-        for (let q = taps.length; q > 0; q--)
-          taps[q] = (taps[q] ?? 0) + taps[q - 1]
-      const sum = taps.reduce((x, y) => x + y)
-      for (let f = 0; f < m; f++) {
-        const bases = taps.map((_, j) => ((((f + j - r) % m) + m) % m) * fs4)
-        const b = f * fs4
-        for (let i = ch; i < fs4; i += 4) {
-          let acc = 0
-          for (let j = 0; j < taps.length; j++)
-            acc += taps[j] * src[bases[j] + i]
-          out[b + i] = Math.round(src[b + i] * (1 - s) + (acc / sum) * s)
-        }
-      }
-    }
-    for (let ch = 0; ch < 3; ch++) blend(ch, 1, 0.5)
-    blend(3, 2, 0.8)
-    // outline ink: the dark strokes are the same drawing in every frame, but
-    // the upscaler draws them a little thicker or thinner each time, so they
-    // get a wider blend of their own
-    {
-      const ds = 0.85
-      const dr = 2
-      const dt = 110
-      const cur = Buffer.from(out)
-      const taps = [1]
-      for (let j = 0; j < 2 * dr; j++)
-        for (let q = taps.length; q > 0; q--)
-          taps[q] = (taps[q] ?? 0) + taps[q - 1]
-      const sum = taps.reduce((x, y) => x + y)
-      for (let f = 0; f < m; f++) {
-        const b = f * fs4
-        for (let i = 0; i < fs4; i += 4) {
-          const l = (cur[b + i] + cur[b + i + 1] + cur[b + i + 2]) / 3
-          if (l > dt + 40) continue
-          const k = l < dt ? ds : (ds * (dt + 40 - l)) / 40
-          for (let ch = 0; ch < 3; ch++) {
-            let acc = 0
-            for (let j = 0; j < taps.length; j++)
-              acc += taps[j] * cur[((((f + j - dr) % m) + m) % m) * fs4 + i + ch]
-            out[b + i + ch] = Math.round(cur[b + i + ch] * (1 - k) + (acc / sum) * k)
-          }
-        }
-      }
-    }
-    for (let i = 3; i < out.length; i += 4) {
-      const a = (out[i] - 128) * 2 + 128
-      out[i] = a < 0 ? 0 : a > 255 ? 255 : a
-    }
-  }
+  // colours shifting a pixel or two): a blend along time averages it out,
+  // only where the source frames say nothing moved (no double strokes)
+  if (m > 2)
+    await smoothAlongTime(out, {
+      w,
+      h,
+      tw,
+      th,
+      frames: m,
+      k,
+      changes: sourceChanges(
+        Array.from({ length: n }, (_, f) => frameAt(f)),
+        w,
+        h
+      ),
+    })
 
   return sharp(out, {
     raw: { width: tw, height: th * m, channels: 4, pageHeight: th },

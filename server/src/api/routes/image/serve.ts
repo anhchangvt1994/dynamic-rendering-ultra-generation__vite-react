@@ -6,6 +6,8 @@ import { PROCESS_ENV } from '../../../utils/InitEnv'
 import { Worker } from 'worker_threads'
 import { workerJob } from './job'
 import { PIPELINE_VERSION } from './pipeline'
+import { pickSource } from './sources'
+import { removeFile, stagedFile, writeAtomic } from './staged'
 
 /**
  * GET /api/image/<key>.webp (express, fastify and uWebSockets adapters
@@ -19,10 +21,12 @@ import { PIPELINE_VERSION } from './pipeline'
  */
 
 export const SOURCE = String(PROCESS_ENV.ANIMATED_SOURCE_URL || '').trim()
-const LGPE_SOURCE =
-  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/lets-go-pikachu-lets-go-eevee/{key}.gif'
+const SOURCE_CHAIN = [
+  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/lets-go-pikachu-lets-go-eevee/{key}.gif',
+  'https://s3.pokeos.com/pokeos-uploads/assets/pokemon/home/animated/{key}.gif?v=3',
+]
 /** Bump when the source selection changes: invalidates animation and rig caches. */
-export const SOURCE_VERSION = 1
+export const SOURCE_VERSION = 3
 export const SIZE = Number(PROCESS_ENV.ANIMATED_SIZE) || 800
 const QUALITY = Number(PROCESS_ENV.ANIMATED_QUALITY) || 95
 export const JOB_TIMEOUT_MS =
@@ -87,25 +91,14 @@ const fetchFrom = async (template: string, key: string) => {
   }
 }
 
-// LGPE sprites are 384px animated GIFs for some species; keep the existing
-// source as a fallback for generations/forms absent from that set.
-export const fetchSource = async (key: string) => {
-  let preferred: Buffer | null = null
-  try {
-    preferred = await fetchFrom(LGPE_SOURCE, key)
-  } catch {
-    // A transient LGPE failure must not block the configured source.
-  }
-  if (preferred) return preferred
-  if (!SOURCE) throw new Missing()
-  const fallback = await fetchFrom(SOURCE, key)
-  if (!fallback) throw new Missing()
-  return fallback
-}
+// The configured source is tried only after both preferred catalogs 404; the
+// pipeline's sharpening is reserved for it (`sharpen`).
+export const fetchSource = (key: string) =>
+  pickSource(key, SOURCE_CHAIN, SOURCE, fetchFrom, Missing)
 
 // The build runs in its own worker thread: the main thread keeps answering
 // requests whatever the upscale (pixel loops, ESRGAN) is doing.
-const buildInWorker = (source: Buffer) =>
+const buildInWorker = (source: Buffer, sharpen: boolean) =>
   new Promise<Buffer>((resolve, reject) => {
     const worker = new Worker(
       path.join(__dirname, `worker${path.extname(__filename)}`),
@@ -119,6 +112,7 @@ const buildInWorker = (source: Buffer) =>
             esrganModel: ESRGAN_MODEL || undefined,
             rifeDir: RIFE_DIR || undefined,
             fpsFactor: FPS_FACTOR,
+            sharpen,
             // each of the (up to two) passes dies before the worker is cut off
             esrganTimeoutMs: Math.floor(JOB_TIMEOUT_MS / 2) - 5000,
           },
@@ -145,7 +139,11 @@ export const animationFor = (key: string): Buffer | null => {
     cacheDir,
     `${PIPELINE_VERSION}-${SOURCE_VERSION}-${SIZE}-${key}.webp`
   )
-  if (fs.existsSync(file)) return fs.readFileSync(file)
+  const gif = stagedFile(file)
+  if (fs.existsSync(file)) {
+    void removeFile(gif).catch(() => undefined)
+    return fs.readFileSync(file)
+  }
   if (missing.has(key)) throw new Missing()
   if (Date.now() - (failed.get(key) ?? 0) < 60000)
     throw new Error('failed lately')
@@ -153,11 +151,12 @@ export const animationFor = (key: string): Buffer | null => {
     inflight.set(
       key,
       withSlot(async () => {
-        const source = await fetchSource(key)
-        const webp = await buildInWorker(source)
-        const tmp = `${file}.${process.pid}.tmp`
-        await fs.promises.writeFile(tmp, webp)
-        await fs.promises.rename(tmp, file) // never a half-written file
+        const { image, sharpen } = await fetchSource(key)
+        const gif = stagedFile(file)
+        await writeAtomic(gif, image)
+        const webp = await buildInWorker(image, sharpen)
+        await writeAtomic(file, webp) // publish only complete WebP
+        await removeFile(gif)
         return webp
       })
         .catch((err) => {
@@ -215,13 +214,13 @@ export const serveImage = async (url: string) => {
     status: number,
     type: string,
     body: Buffer,
-    kind: 'animated' | 'still' | '' = ''
+    kind: 'animated' | 'gif' | 'still' | '' = ''
   ) => ({
     status,
     type,
     body,
     kind,
-    cache: kind === 'animated' ? CACHED : 'no-store',
+    cache: kind === 'animated' ? CACHED : 'no-cache',
   })
   const none = () => reply(404, 'text/plain', Buffer.from('Not found'))
   const key = readKey(url)
@@ -233,6 +232,12 @@ export const serveImage = async (url: string) => {
     // no animation for it, or it failed lately: the still is all there is
   }
   if (webp) return reply(200, 'image/webp', webp, 'animated')
+  const gif = path.join(
+    cacheDir,
+    `${PIPELINE_VERSION}-${SOURCE_VERSION}-${SIZE}-${key}.gif`
+  )
+  if (fs.existsSync(gif))
+    return reply(200, 'image/gif', fs.readFileSync(gif), 'gif')
   const still = await stillFor(key)
   return still ? reply(200, still.type, still.body, 'still') : none()
 }
