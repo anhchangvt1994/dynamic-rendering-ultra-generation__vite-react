@@ -56,3 +56,27 @@ export async function submitName(
 ): Promise<{ individualId: string; nickname: string | null }> {
   return nameIndividual(await deps(mode), individualId, nickname)
 }
+
+/** What the server computes for one individual (pokemon_build). Stat order: hp, atk, def, spa, spd, spe. */
+export type Build = {
+  species: number
+  level: number
+  exp: number
+  expFloor: number
+  expNext: number | null
+  cap: number
+  capped: boolean
+  stars: number
+  bonusStars: number
+  awakened: boolean
+  itemUses: number
+  iv: number[]
+  ev: number[]
+  stats: number[]
+  moves: (string | null)[]
+  nature: number
+  ability: { name: string; hidden: boolean; slot: number }
+  gender: 'male' | 'female' | 'none'
+  shiny: boolean
+  size: number
+}
