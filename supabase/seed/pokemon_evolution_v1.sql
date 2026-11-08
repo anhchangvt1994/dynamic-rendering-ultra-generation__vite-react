@@ -346,7 +346,8 @@ insert into public.pokemon_evolutions (from_species, to_species, alt, trigger, m
   (585, 586, 1, 'level-up', 34, null, null, null, null, null, null, null, null, null, null, null, null, null, 'region'),
   (585, 586, 2, 'level-up', 34, null, null, null, null, null, null, null, null, null, null, null, null, null, 'region'),
   (585, 586, 3, 'level-up', 34, null, null, null, null, null, null, null, null, null, null, null, null, null, 'region'),
-  (588, 589, 0, 'use-item', null, 'linking-cord', null, null, null, null, null, null, null, null, null, null, 616, null, null),
+  (588, 589, 0, 'level-up', null, null, null, null, null, null, null, null, null, null, null, null, 616, null, null),
+  (588, 589, 1, 'use-item', null, 'linking-cord', null, null, null, null, null, null, null, null, null, null, null, null, null),
   (590, 591, 0, 'level-up', 39, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (592, 593, 0, 'level-up', 40, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (595, 596, 0, 'level-up', 36, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
@@ -361,7 +362,8 @@ insert into public.pokemon_evolutions (from_species, to_species, alt, trigger, m
   (610, 611, 0, 'level-up', 38, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (611, 612, 0, 'level-up', 48, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (613, 614, 0, 'level-up', 37, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
-  (616, 617, 0, 'use-item', null, 'linking-cord', null, null, null, null, null, null, null, null, null, null, 588, null, null),
+  (616, 617, 0, 'level-up', null, null, null, null, null, null, null, null, null, null, null, null, 588, null, null),
+  (616, 617, 1, 'use-item', null, 'linking-cord', null, null, null, null, null, null, null, null, null, null, null, null, null),
   (619, 620, 0, 'level-up', 50, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (622, 623, 0, 'level-up', 43, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (624, 625, 0, 'level-up', 52, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
@@ -498,11 +500,11 @@ insert into public.pokemon_evolutions (from_species, to_species, alt, trigger, m
   (810, 811, 0, 'level-up', 16, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (811, 812, 0, 'level-up', 35, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (813, 814, 0, 'level-up', 16, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
-  (814, 815, 0, 'level-up', 35, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
-  (816, 817, 0, 'level-up', 16, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
-  (817, 818, 0, 'level-up', 35, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
+  (814, 815, 0, 'level-up', 35, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
 on conflict (from_species, to_species, alt) do nothing;
 insert into public.pokemon_evolutions (from_species, to_species, alt, trigger, min_level, item, min_happiness, min_affection, min_beauty, time_of_day, gender, known_move, known_move_type, relative_stats, party_species, party_type, trade_species, location, unavailable) values
+  (816, 817, 0, 'level-up', 16, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+  (817, 818, 0, 'level-up', 35, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (819, 820, 0, 'level-up', 24, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (821, 822, 0, 'level-up', 18, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
   (822, 823, 0, 'level-up', 38, null, null, null, null, null, null, null, null, null, null, null, null, null, null),

@@ -113,10 +113,17 @@ test('trade with held item uses that item', () => {
   assert.equal(r.item, 'metal-coat')
 })
 
-test('trade for a species', () => {
-  const [r] = one([detail('trade', { trade_species: sp(588) })])
-  assert.equal(r.item, 'linking-cord')
-  assert.equal(r.tradeSpecies, 588)
+test('trade for a species: owning it, or a linking cord (two alternatives)', () => {
+  const rows = one([detail('trade', { trade_species: sp(588) })])
+  assert.equal(rows.length, 2)
+  const [owning, cord] = rows
+  assert.deepEqual([owning.alt, cord.alt], [0, 1])
+  assert.equal(owning.tradeSpecies, 588)
+  assert.equal(owning.item, null)
+  assert.equal(owning.trigger, 'level-up')
+  assert.equal(cord.item, 'linking-cord')
+  assert.equal(cord.tradeSpecies, null)
+  assert.equal(cord.trigger, 'use-item')
 })
 
 test('use-item keeps the item and its modifiers', () => {

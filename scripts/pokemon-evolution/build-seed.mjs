@@ -140,25 +140,28 @@ export function parseChain(payload) {
       const chosen = details.some((d) => d.is_default)
         ? details.filter((d) => d.is_default)
         : details
-      chosen.forEach((d, alt) => {
+      let alt = 0
+      chosen.forEach((d) => {
         const trigger =
           d.trigger?.name ?? fail(`evolution ${from}→${to} has no trigger`)
         const unavailable = unsupported(d, trigger)
         let item = null
         if (!unavailable) {
           if (trigger === 'trade')
-            item = d.trade_species
-              ? LINKING_CORD
-              : (slug(d.held_item) ?? LINKING_CORD)
+            item = d.trade_species ? null : (slug(d.held_item) ?? LINKING_CORD)
           else if (trigger === 'use-item')
             item = slug(d.item) ?? fail(`evolution ${from}→${to} has no item`)
         }
+        // trading for a species: own that species, or use a Linking Cord
+        const swap = !unavailable && trigger === 'trade' && d.trade_species
         rows.push({
           from,
           to,
-          alt,
+          alt: alt++,
           trigger:
-            unavailable || trigger === 'level-up' ? 'level-up' : 'use-item',
+            unavailable || trigger === 'level-up' || swap
+              ? 'level-up'
+              : 'use-item',
           minLevel: d.min_level ?? null,
           item,
           minHappiness: d.min_happiness ?? null,
@@ -179,6 +182,14 @@ export function parseChain(payload) {
           location: slug(d.location),
           unavailable,
         })
+        if (swap)
+          rows.push({
+            ...rows.at(-1),
+            alt: alt++,
+            trigger: 'use-item',
+            item: LINKING_CORD,
+            tradeSpecies: null,
+          })
       })
       walk(next)
     }
