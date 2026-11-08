@@ -11,6 +11,7 @@ export const DialogStyle = styled.dialog`
     justify-items: center;
     max-height: calc(100svh - 24px);
     overflow: hidden auto;
+    scrollbar-width: none;
     padding: 28px 18px 20px;
     border-radius: 26px;
     text-align: center;
@@ -181,6 +182,11 @@ export const DialogStyle = styled.dialog`
     max-height: min(52svh, 420px);
     overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .ind-panel::-webkit-scrollbar,
+  .ind-results::-webkit-scrollbar {
+    display: none;
   }
   .ind-item {
     display: grid;

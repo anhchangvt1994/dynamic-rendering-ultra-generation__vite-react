@@ -324,6 +324,10 @@ const CookFxStyle = styled.div`
     /* one size for the cooking and its result: nothing moves when it turns */
     height: min(560px, calc(100dvh - 32px));
     overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .cf-stage::-webkit-scrollbar {
+    display: none;
   }
   .cf-pot {
     width: 180px;
