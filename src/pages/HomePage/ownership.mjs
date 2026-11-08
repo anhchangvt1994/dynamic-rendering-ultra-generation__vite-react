@@ -1,10 +1,10 @@
-/** Species of the individuals, plus the dex's (a species evolved from stays owned). */
-export function ownedSpecies(items = [], dexIds = []) {
-  return new Set([...items.map((item) => item.speciesId), ...(dexIds ?? [])])
-}
+/** Species the player owns right now (an evolved-from species is not one). */
+export const ownedSpecies = (items = []) =>
+  new Set(items.map((item) => item.speciesId))
 
+/** The collection also keeps every species in the dex (evolved-from ones). */
 export function collectionIds(caughtIds, items = [], dexIds = []) {
-  return new Set([...caughtIds, ...ownedSpecies(items, dexIds)])
+  return new Set([...caughtIds, ...ownedSpecies(items), ...(dexIds ?? [])])
 }
 
 export function latestOwned(items = [], speciesId) {

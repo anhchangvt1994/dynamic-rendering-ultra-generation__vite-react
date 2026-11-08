@@ -89,8 +89,8 @@ function HomePage() {
   const ownership = useIndividualList(true, null)
   const dexIds = useDexSpecies(ownership.items)
   const ownedIds = useMemo(
-    () => ownedSpecies(ownership.items ?? [], dexIds),
-    [ownership.items, dexIds]
+    () => ownedSpecies(ownership.items ?? []),
+    [ownership.items]
   )
   const markedIds = useMemo(
     () =>

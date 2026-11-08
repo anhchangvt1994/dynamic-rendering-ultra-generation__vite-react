@@ -71,8 +71,9 @@ test('ownedLabel names the count and the room', () => {
 test('evolved-from species stay owned and in the collection', () => {
   const items = [item('a', 5)] // Charmander became Charmeleon
   const dex = [4, 5]
-  assert.deepEqual(ownership.ownedSpecies(items, dex), new Set([4, 5]))
-  assert.deepEqual(ownership.ownedSpecies(items, undefined), new Set([5]))
+  // "currently owned" stays the individuals' species; only the collection adds the dex
+  assert.deepEqual(ownership.ownedSpecies(items, dex), new Set([5]))
+  assert.deepEqual(ownership.ownedSpecies(items), new Set([5]))
   assert.deepEqual(
     ownership.collectionIds(new Set([1]), items, dex),
     new Set([1, 4, 5])
