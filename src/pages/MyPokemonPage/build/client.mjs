@@ -81,3 +81,50 @@ export const awaken = (deps, operationId, individualId) =>
     p_operation: operationId,
     p_individual: individualId,
   })
+
+/**
+ * What the server validates a species' moves against, read-only and public:
+ * learnset rows (a machine row carries the TM item) and each move's data.
+ */
+export async function fetchLearnset({ mode, supabase }, species) {
+  needServer({ mode, supabase })
+  const [learn, machines] = await Promise.all([
+    supabase
+      .from('pokemon_learnset')
+      .select('move, method, level')
+      .eq('species', species),
+    supabase.from('pokemon_machines').select('item_id, move'),
+  ])
+  if (learn.error || machines.error) throw fail('network')
+  const itemOf = Object.fromEntries(
+    machines.data.map((row) => [row.move, row.item_id])
+  )
+  const learnset = learn.data
+    .map((row) => ({
+      move: row.move,
+      method: row.method,
+      level: row.level,
+      item: row.method === 'machine' ? itemOf[row.move] : undefined,
+    }))
+    // a machine move with no TM in the catalogue can't be set yet
+    .filter((row) => row.method !== 'machine' || row.item)
+  const names = [...new Set(learn.data.map((row) => row.move))]
+  const { data, error } = await supabase
+    .from('pokemon_moves_ref')
+    .select('move, type, power, accuracy, pp, damage_class')
+    .in('move', names)
+  if (error) throw fail('network')
+  const moves = Object.fromEntries(
+    data.map((row) => [
+      row.move,
+      {
+        type: row.type,
+        power: row.power,
+        accuracy: row.accuracy,
+        pp: row.pp,
+        damageClass: row.damage_class,
+      },
+    ])
+  )
+  return { learnset, moves }
+}

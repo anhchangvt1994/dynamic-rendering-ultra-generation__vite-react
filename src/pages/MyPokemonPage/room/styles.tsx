@@ -1,4 +1,5 @@
 import styled, { css, keyframes } from 'styled-components'
+import { buildStyle } from '../build/styles'
 
 const shake = keyframes`
   0%, 100% { transform: translateX(0) }
@@ -2367,5 +2368,6 @@ export const RoomStyle = styled.div`
     --disc: clamp(220px, calc(100dvh - 500px), 400px);
   }
 
+  ${buildStyle}
   ${motion}
 `

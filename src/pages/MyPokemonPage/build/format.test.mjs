@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   abilityLabel,
+  mergeLearnset,
   moveLockReason,
   NATURE_VI,
   statLabel,
@@ -49,4 +50,29 @@ test('moveLockReason', () => {
     )
     assert.equal(moveLockReason({ method }, build, {}, 150), null)
   }
+})
+
+test('mergeLearnset: one row per move, open first, nearest route when locked', () => {
+  const learnset = [
+    { move: 'ember', method: 'level-up', level: 30 },
+    { move: 'ember', method: 'egg', level: 0 },
+    { move: 'tackle', method: 'level-up', level: 1 },
+    { move: 'flamethrower', method: 'machine', item: 'tm-fire', level: 0 },
+  ]
+  const rows = mergeLearnset(
+    learnset,
+    { tackle: { type: 'normal', power: 40, pp: 35 } },
+    { level: 10 },
+    {},
+    150
+  )
+  assert.deepEqual(
+    rows.map((r) => [r.move, r.method, r.reason]),
+    [
+      ['tackle', 'level-up', null],
+      ['ember', 'egg', null],
+      ['flamethrower', 'machine', 'Cần TM Flamethrower'],
+    ]
+  )
+  assert.equal(rows[0].power, 40)
 })

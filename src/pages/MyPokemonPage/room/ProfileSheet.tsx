@@ -22,6 +22,7 @@ import {
 import { LIKES } from '../care/likes.mjs'
 import type { CareState } from '../care/useCare'
 import { myPokemonPath } from '../paths.mjs'
+import BuildPanel from '../build/BuildPanel'
 import StatRadar from './StatRadar'
 
 const date = (iso: string) => {
@@ -206,6 +207,8 @@ export default function ProfileSheet({
             <p className="rm-muted">Chưa có chỉ số.</p>
           )}
         </section>
+
+        <BuildPanel item={item} affection={affection} />
 
         <section className="rm-card" aria-labelledby="rm-h-profile">
           <h2 id="rm-h-profile">Hồ sơ</h2>

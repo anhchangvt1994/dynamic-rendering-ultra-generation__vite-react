@@ -70,3 +70,38 @@ export function moveLockReason(entry, build, bag, affection = 0) {
     ? null
     : `Cần thân thiết cấp ${AFFECTION_MOVES_LEVEL}`
 }
+
+const METHOD_ORDER = { 'level-up': 0, machine: 1, egg: 2, tutor: 3 }
+export const METHOD_VI = {
+  'level-up': 'Lên cấp',
+  machine: 'TM',
+  egg: 'Trứng',
+  tutor: 'Dạy chiêu',
+}
+
+/**
+ * One row per move for the picker: the route that opens it (else the
+ * nearest one) and why it is still locked. Open moves first.
+ */
+export function mergeLearnset(learnset, moves, build, bag, affection = 0) {
+  const byMove = new Map()
+  for (const entry of learnset) {
+    const reason = moveLockReason(entry, build, bag, affection)
+    const best = byMove.get(entry.move)
+    const better =
+      !best ||
+      (reason === null && best.reason !== null) ||
+      ((reason === null) === (best.reason === null) &&
+        (METHOD_ORDER[entry.method] ?? 9) < (METHOD_ORDER[best.method] ?? 9))
+    if (better) byMove.set(entry.move, { ...entry, reason })
+  }
+  return [...byMove.values()]
+    .map((row) => ({ ...row, ...(moves[row.move] ?? {}) }))
+    .sort(
+      (a, b) =>
+        (a.reason === null ? 0 : 1) - (b.reason === null ? 0 : 1) ||
+        (METHOD_ORDER[a.method] ?? 9) - (METHOD_ORDER[b.method] ?? 9) ||
+        a.level - b.level ||
+        a.move.localeCompare(b.move)
+    )
+}
