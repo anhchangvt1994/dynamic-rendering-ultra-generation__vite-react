@@ -11,13 +11,18 @@ import { fieldFor, flowSheet, premultiplied, TILE, writeTile } from './flow'
 import { cellOf, encodeSheet, sheetPlan } from './sheet'
 import { skeleton } from './skeleton'
 import type { Branch } from './skeleton'
+import { eyeMask } from './eye'
 
 export { sheetPlan } from './sheet'
 
-// 2: the flow is locally affine (marks keep their shape on a waving tail)
-export const RIG_VERSION = 2
+// 3: per-frame eye protection mask
+// 4: eye mask recomputed (cached v3 masks missed most of the sclera)
+// 5: eye rim accepts mid-dark outlines, so every animation frame keeps its mask
+// 6: lower-resolution optical flow (128px)
+// 7: eye protection is limited to compact upper-face components
+export const RIG_VERSION = 7
 /** longest side the flow is computed at */
-const FLOW_SIDE = 256
+const FLOW_SIDE = 128
 const PRIMARY = 64
 const BATCH = 16
 const CLUSTER_FRAMES = 16
@@ -87,7 +92,7 @@ export async function buildRig(
   animatedWebp: Buffer | null,
   still: Buffer | null,
   key?: string | number
-): Promise<{ json: RigJson; sheet: Buffer; flow: Buffer }> {
+): Promise<{ json: RigJson; sheet: Buffer; flow: Buffer; eye: Buffer }> {
   const image = animatedWebp ?? still ?? source
   if (!image) throw new Error('a rig needs an image')
   const animated = !!animatedWebp
@@ -106,6 +111,7 @@ export async function buildRig(
   const kept = new Map(plan.keep.map((f, K) => [f, K]))
   const every = Math.max(1, Math.ceil(plan.keep.length / CLUSTER_FRAMES))
   const cells: Uint8Array[] = []
+  const eyeSheet = Buffer.alloc(plan.cols * cell.w * plan.rows * cell.h)
   const sampled: Uint8Array[] = []
   let first: Float32Array | null = null
   let straightFirst: Uint8Array | null = null
@@ -126,6 +132,14 @@ export async function buildRig(
         straightFirst = straight
       }
       cells.push(big[f - start])
+      const eye = eyeMask(big[f - start], cell.w, cell.h)
+      const ex = (K % plan.cols) * cell.w
+      const ey = Math.floor(K / plan.cols) * cell.h
+      for (let y = 0; y < cell.h; y++)
+        eyeSheet.set(
+          eye.subarray(y * cell.w, (y + 1) * cell.w),
+          (ey + y) * plan.cols * cell.w + ex
+        )
       if (K % every === 0) sampled.push(straight)
       writeTile(
         flow,
@@ -153,13 +167,19 @@ export async function buildRig(
     branches: skeleton(mask, PRIMARY).branches,
     ...(override?.noMarks ? { noMarks: true as const } : {}),
   }
-  const [sheet, flowPng] = await Promise.all([
+  const [sheet, flowPng, eyePng] = await Promise.all([
     encodeSheet(cells, cell.w, cell.h, plan.cols, plan.rows),
     sharp(flow.data, {
       raw: { width: flow.width, height: flow.height, channels: 4 },
     })
       .png({ compressionLevel: 9 })
       .toBuffer(),
+    sharp(
+      Buffer.from(eyeSheet),
+      { raw: { width: plan.cols * cell.w, height: plan.rows * cell.h, channels: 1 } }
+    )
+      .png({ palette: false, compressionLevel: 9 })
+      .toBuffer(),
   ])
-  return { json, sheet, flow: flowPng }
+  return { json, sheet, flow: flowPng, eye: eyePng }
 }

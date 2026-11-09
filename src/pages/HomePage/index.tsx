@@ -2,6 +2,7 @@ import { useGetPokemonListQuery } from 'app/apis/pokemon'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import AppSelect from 'components/common/Select'
 import PokemonCard from 'components/home-page/pokemon-card'
+import type { CSSProperties } from 'react'
 import {
   useEffect,
   useMemo,
@@ -30,7 +31,7 @@ import FeaturedEncounter from './FeaturedEncounter'
 import { useIndividualList } from 'pages/BagPage/individuals/individualStore'
 import { collectionIds, ownedSpecies } from './ownership.mjs'
 import { useDexSpecies } from './useDexSpecies'
-import { HomePageStyle, PokemonListStyle } from './styles'
+import { HomePageStyle, PokemonListStyle, CatalogLoadingStyle } from './styles'
 
 const caughtSnapshot = () => [...getCaught()].sort((a, b) => a - b).join(',')
 
@@ -139,7 +140,10 @@ function HomePage() {
       typeIds,
     ]
   )
-  const waiting = !data && isFetching
+  // the list, or (in the collection) the owned species that decide it
+  const waitingOwned =
+    filters.caughtOnly && ownership.loading && !ownership.items
+  const waiting = (!data && isFetching) || (!!data && waitingOwned)
   const failed = !data && isError
   // the scope (all, collection, owned) is a tab, not a filter to clear
   const activeFilters = !!(query || filters.generation || filters.type)
@@ -450,10 +454,25 @@ function HomePage() {
           </p>
         )}
         {waiting ? (
-          <div className="catalog-state" role="status">
-            <Pokeball className="loading-ball" />
-            <p>Đang mở Pokédex…</p>
-          </div>
+          <CatalogLoadingStyle
+            className="catalog-loading"
+            role="status"
+            aria-busy="true"
+          >
+            <span className="sr-only">Đang mở Pokédex…</span>
+            <div className="catalog-loading-grid" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, index) => (
+                <div className="catalog-loading-card" key={index}>
+                  <span className="catalog-loading-number" />
+                  <span
+                    className="catch-ball"
+                    style={{ '--i': index } as CSSProperties}
+                  />
+                  <span className="bone catalog-loading-name" />
+                </div>
+              ))}
+            </div>
+          </CatalogLoadingStyle>
         ) : failed ? (
           <div className="catalog-state" role="alert">
             <Pokeball />
@@ -468,14 +487,11 @@ function HomePage() {
               Thử lại
             </button>
           </div>
-        ) : filters.caughtOnly &&
-          (ownership.error || ownership.loading) &&
-          !entries.length ? (
+        ) : filters.caughtOnly && ownership.error && !entries.length ? (
           <div className="catalog-state" role="status">
             <p>
-              {ownership.error
-                ? 'Chưa thể xác định đầy đủ Bộ sưu tập. Hãy thử tải lại Pokémon sở hữu.'
-                : 'Đang tải Pokémon sở hữu…'}
+              Chưa thể xác định đầy đủ Bộ sưu tập. Hãy thử tải lại Pokémon sở
+              hữu.
             </p>
           </div>
         ) : entries.length ? (

@@ -30,6 +30,7 @@ const FILES: Record<string, string> = {
   'rig.json': 'application/json',
   'sheet.webp': 'image/webp',
   'flow.png': 'image/png',
+  'eye.png': 'image/png',
 }
 
 /** "/api/image/rig/25/flow.png" → ["25", "flow.png"]; null if malformed */
@@ -45,7 +46,7 @@ const dirOf = (key: string) =>
     `${RIG_VERSION}-${PIPELINE_VERSION}-${SOURCE_VERSION}-${SIZE}-${key}`
   )
 
-type Built = { json: unknown; sheet: Buffer; flow: Buffer }
+type Built = { json: unknown; sheet: Buffer; flow: Buffer; eye: Buffer }
 
 const buildInWorker = (data: {
   source: Buffer | null
@@ -70,12 +71,13 @@ const buildInWorker = (data: {
           json: message.json,
           sheet: Buffer.from(message.sheet),
           flow: Buffer.from(message.flow),
+          eye: Buffer.from(message.eye),
         }),
       reject
     )
   })
 
-// rig.json goes last: its presence means the other two are there
+// rig.json goes last: its presence means all rig assets are there
 const store = async (dir: string, built: Built) => {
   await fs.promises.mkdir(dir, { recursive: true })
   const put = async (name: string, body: Buffer | string) => {
@@ -86,6 +88,7 @@ const store = async (dir: string, built: Built) => {
   }
   await put('sheet.webp', built.sheet)
   await put('flow.png', built.flow)
+  await put('eye.png', built.eye)
   await put('rig.json', JSON.stringify(built.json))
 }
 

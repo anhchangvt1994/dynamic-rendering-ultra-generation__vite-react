@@ -1,3 +1,5 @@
+import { boneCss } from 'components/PageSkeleton/bone'
+
 export const HomePageStyle = styled.div`
   /* the side gutter, for strips that scroll under it to the screen edge */
   --gutter: 40px;
@@ -717,6 +719,57 @@ export const HomePageStyle = styled.div`
       content: attr(data-short);
       font-size: 12px;
     }
+  }
+`
+
+export const CatalogLoadingStyle = styled.div`
+  ${boneCss}
+  .catalog-loading-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .catalog-loading-card {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    height: 258px;
+    min-width: 0;
+    padding: 15px 18px 17px;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .catalog-loading-number {
+    width: 44px;
+    height: 12px;
+    border-radius: 4px;
+    background: #a3b1c0;
+    opacity: .55;
+  }
+  .catalog-loading-card .catch-ball {
+    width: 52px;
+    margin: auto;
+  }
+  .catalog-loading-name {
+    width: 64%;
+    height: 16px;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  @media (max-width: 900px) {
+    .catalog-loading-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 680px) {
+    .catalog-loading-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+    .catalog-loading-card { height: 211px; padding: 11px 13px 14px; border-radius: 14px; }
+    .catalog-loading-card .catch-ball { width: 44px; }
   }
 `
 

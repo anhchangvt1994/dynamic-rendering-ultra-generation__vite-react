@@ -10,6 +10,7 @@ import Console from '../utils/ConsoleHandler'
 import { PROCESS_ENV } from '../utils/InitEnv'
 import { getResourceBudget } from '../utils/ResourceBudget'
 import { createHash } from 'crypto'
+import apiImage from './routes/image/index.uws'
 import apiLighthouse from './routes/lighthouse/index.uws'
 import apiQuiz from './routes/quiz/index.uws'
 import apiVibe from './routes/vibe/index.uws'
@@ -523,6 +524,8 @@ const apiService = (async () => {
       // NOTE - Handle API Quiz (round media)
       apiQuiz.init(app)
       apiVibe.init(app)
+      // NOTE - Pokémon animations / stills / rigs (api/routes/image)
+      apiImage.init(app)
 
       _app = {
         all: (pattern, handler) => {

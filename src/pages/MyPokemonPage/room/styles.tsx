@@ -665,18 +665,17 @@ export const RoomStyle = styled.div`
     text-align: center;
   }
   .rm-name h1 {
-    display: -webkit-box;
+    --name-max: 40px;
+    display: block;
     max-width: 100%;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
     font-family: var(--font-display), system-ui, sans-serif;
-    font-size: clamp(26px, 8.6vw, 40px);
+    /* first paint: an estimate; fitName() (Room.tsx) measures the real width
+       and sizes the name to fill the row on one line */
+    font-size: clamp(14px, 8.6vw, var(--name-max));
     font-weight: 400;
     line-height: 1.04;
     letter-spacing: 0.01em;
-    overflow-wrap: anywhere;
-    text-wrap: balance;
+    white-space: nowrap;
     text-shadow:
       0 0 14px var(--bg),
       0 0 4px var(--bg),
@@ -1866,7 +1865,7 @@ export const RoomStyle = styled.div`
   }
   .rm-facts > div {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 80px minmax(0, 1fr);
     align-items: center;
     gap: 12px;
     min-height: 44px;
@@ -2200,8 +2199,8 @@ export const RoomStyle = styled.div`
       gap: 9px;
     }
     .rm-name h1 {
-      -webkit-line-clamp: 1;
-      font-size: clamp(34px, 3.6vw, 52px);
+      --name-max: 52px;
+      font-size: clamp(14px, 3.6vw, var(--name-max));
     }
     .rm-name p {
       gap: 4px 12px;

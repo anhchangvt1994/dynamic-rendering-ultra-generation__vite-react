@@ -89,6 +89,7 @@ export function startScene(
   const { json } = rig
   const sheet = texture(rig.sheet)
   const flow = texture(rig.flow)
+  const eye = texture(rig.eye)
   layer?.frame(0)
   const marks = layer ? texture(layer.canvas) : null
   const [dark, light, accent] = [
@@ -110,6 +111,7 @@ export function startScene(
       uCols: { value: json.sheet.cols },
       uFrame: { value: 0 },
       uFlow: { value: flow },
+      uEye: { value: eye },
       uFlowSize: { value: new Vector2(rig.flow.width, rig.flow.height) },
       uFlowCols: { value: json.flow.cols },
       uTile: { value: json.flow.tile },
@@ -161,6 +163,7 @@ export function startScene(
       material.dispose()
       sheet.dispose()
       flow.dispose()
+      eye.dispose()
       marks?.dispose()
       renderer.dispose()
       if (!keepContext) renderer.forceContextLoss()

@@ -17,10 +17,11 @@ buildRig(
   buffer(workerData.still),
   workerData.key
 )
-  .then(({ json, sheet, flow }) => {
+  .then(({ json, sheet, flow, eye }) => {
     const s = new Uint8Array(sheet)
     const f = new Uint8Array(flow)
-    parentPort?.postMessage({ json, sheet: s, flow: f }, [s.buffer, f.buffer])
+    const e = new Uint8Array(eye)
+    parentPort?.postMessage({ json, sheet: s, flow: f, eye: e }, [s.buffer, f.buffer, e.buffer])
   })
   .catch((err) =>
     parentPort?.postMessage({ error: String(err?.message || err) })

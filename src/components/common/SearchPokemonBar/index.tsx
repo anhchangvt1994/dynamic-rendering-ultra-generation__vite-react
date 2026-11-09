@@ -194,9 +194,16 @@ const SearchPokemonBar = ({ isOpen, onClose }: SearchBarProps) => {
               ))}
             </div>
           ) : waiting ? (
-            <p className="hint" role="status">
-              Đang mở Pokédex…
-            </p>
+            <div className="search-loading" role="status" aria-busy="true">
+              <span className="sr-only">Đang mở Pokédex…</span>
+              {Array.from({ length: 4 }, (_, index) => (
+                <div className="search-loading-row" key={index} aria-hidden="true">
+                  <span className="catch-ball" style={{ '--i': index } as React.CSSProperties} />
+                  <span className="bone search-loading-name" />
+                  <span className="bone search-loading-dex" />
+                </div>
+              ))}
+            </div>
           ) : results.length ? (
             <SearchResults
               keyword={keyword}

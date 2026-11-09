@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { boneCss } from 'components/PageSkeleton/bone'
 export const OverlayStyle = styled.div`
   position: fixed;
   inset: 0;
@@ -119,6 +120,36 @@ export const SearchBarStyle = styled.div`
   }
 `
 export const SearchBodyStyle = styled.div`
+  ${boneCss}
+  .search-loading {
+    margin-top: 16px;
+  }
+  .search-loading-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 70px;
+    margin-top: 10px;
+    padding: 6px 14px 6px 8px;
+    border-radius: 12px;
+    background: #ffffff0b;
+    box-shadow: inset 0 0 0 1px #ffffff14;
+  }
+  .search-loading-row:first-of-type { margin-top: 0; }
+  .search-loading-row .catch-ball {
+    width: 56px;
+    height: 56px;
+  }
+  .search-loading-name { width: min(48%, 170px); height: 20px; }
+  .search-loading-dex { width: 48px; height: 12px; margin-left: auto; }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .hint {
     margin: 20px 0;
     color: #b6c8d8;

@@ -127,6 +127,31 @@ function useWidth(ref: RefObject<HTMLElement | null>, fallback: number) {
   return width
 }
 
+// never under the site's 11px floor
+const NAME_MIN = 11
+
+/**
+ * Sizes the name to fill the header's row on one line (never past its design
+ * size, --name-max): the CSS size is a first paint, this measures the real
+ * text and scales to the exact room, like the Pokémon page's name.
+ */
+function fitName(title: HTMLElement) {
+  const hud = title.closest<HTMLElement>('.rm-hud')
+  if (!hud) return
+  const style = getComputedStyle(hud)
+  const room =
+    hud.clientWidth -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight)
+  const width = title.scrollWidth
+  if (!room || !width) return
+  const own = getComputedStyle(title)
+  const size = parseFloat(own.fontSize)
+  const max = parseFloat(own.getPropertyValue('--name-max')) || 40
+  const fitted = Math.floor(((size * room) / width) * 0.98 * 10) / 10
+  title.style.fontSize = `${Math.min(max, Math.max(NAME_MIN, fitted))}px`
+}
+
 type Props = {
   individual: Individual
   species: string
@@ -168,6 +193,23 @@ export default function Room({
   const disc = useRef<HTMLDivElement>(null)
   const actor = useRef<HTMLSpanElement>(null)
   const discWidth = useWidth(disc, 200)
+  const title = useRef<HTMLHeadingElement>(null)
+
+  // the name fills its row; refitted when the text, the font or the width changes
+  useLayoutEffect(() => {
+    const el = title.current
+    const hud = el?.closest<HTMLElement>('.rm-hud')
+    if (!el || !hud) return
+    const fit = () => {
+      el.style.fontSize = ''
+      fitName(el)
+    }
+    fit()
+    document.fonts?.ready.then(fit)
+    const observer = new ResizeObserver(fit)
+    observer.observe(hud)
+    return () => observer.disconnect()
+  }, [individual.nickname, individual.speciesId, species])
 
   const theme = themeFor(typesOf(individual.speciesId))
   const name = individual.nickname ?? species
@@ -342,7 +384,7 @@ export default function Room({
           <div className="rm-hud">
             {back}
             <header className="rm-name">
-              <h1>{name}</h1>
+              <h1 ref={title}>{name}</h1>
               <p>
                 <span className="rm-lv">Lv {level}</span>
                 {individual.nickname && <span>{species}</span>}
@@ -510,7 +552,9 @@ export default function Room({
         className="rm-dock"
         data-open={sheetOpen || undefined}
         onTouchStart={(event) => {
-          const profile = (event.target as HTMLElement).closest('.rm-profile-body')
+          const profile = (event.target as HTMLElement).closest(
+            '.rm-profile-body'
+          )
           const touch = event.touches[0]
           dockTouch.current = {
             x: touch.clientX,

@@ -20,7 +20,7 @@ export type RigJson = {
   noMarks?: true
 }
 
-export type Rig = { json: RigJson; sheet: ImageBitmap; flow: ImageBitmap }
+export type Rig = { json: RigJson; sheet: ImageBitmap; flow: ImageBitmap; eye: ImageBitmap }
 
 const POLL_MS = 1500
 const POLLS = 80
@@ -52,11 +52,12 @@ async function fetchRig(speciesId: number): Promise<Rig | null> {
       }
       if (!res.ok) return null
       const json = (await res.json()) as RigJson
-      const [sheet, flow] = await Promise.all([
+      const [sheet, flow, eye] = await Promise.all([
         bitmap(`${base}/sheet.webp`),
         bitmap(`${base}/flow.png`),
+        bitmap(`${base}/eye.png`),
       ])
-      const rig = { json, sheet, flow }
+      const rig = { json, sheet, flow, eye }
       loaded.set(speciesId, rig)
       return rig
     }

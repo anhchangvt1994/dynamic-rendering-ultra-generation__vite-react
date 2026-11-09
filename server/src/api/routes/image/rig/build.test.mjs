@@ -61,9 +61,9 @@ test('dropped frames hand their delay to the frame kept before them', () => {
 })
 
 test('an animation: one sheet cell and one flow tile per displayed frame', async () => {
-  const { json, sheet, flow } = await buildRig(tiny, await animated(), null)
-  assert.equal(RIG_VERSION, 2)
-  assert.equal(json.v, 2)
+  const { json, sheet, flow, eye } = await buildRig(tiny, await animated(), null)
+  assert.equal(RIG_VERSION, 7)
+  assert.equal(json.v, 7)
   assert.equal(json.frames, 8)
   assert.deepEqual(json.src, { n: 4, k: 2 })
   assert.deepEqual(json.delays, Array(8).fill(50))
@@ -78,6 +78,12 @@ test('an animation: one sheet cell and one flow tile per displayed frame', async
   assert.equal(f.format, 'png')
   assert.equal(f.width, 3 * 128)
   assert.equal(f.height, 3 * 128)
+  const e = await sharp(eye).metadata()
+  assert.equal(e.format, 'png')
+  assert.equal(e.width, 3 * 512)
+  assert.equal(e.height, 3 * 512)
+  const eyePixels = await sharp(eye).raw().toBuffer()
+  assert.equal(eyePixels.some((value) => value > 0), false, 'tiny fixture has no eye')
   assert.ok(json.clusters.length >= 1 && json.clusters.length <= 3)
   assert.deepEqual(json.lock, { ink: 0.32, light: 0.93 })
   assert.equal(json.primary.size, 64)
@@ -94,8 +100,11 @@ test('an animation: one sheet cell and one flow tile per displayed frame', async
 
 test('a still alone: one frame, a second long, the identity flow', async () => {
   const still = await sharp(tiny, { page: 0 }).png().toBuffer()
-  const { json, sheet, flow } = await buildRig(null, null, still)
+  const { json, sheet, flow, eye } = await buildRig(null, null, still)
   assert.equal(json.frames, 1)
+  const eyeMeta = await sharp(eye).metadata()
+  assert.equal(eyeMeta.width, 512)
+  assert.equal(eyeMeta.height, 512)
   assert.deepEqual(json.delays, [1000])
   assert.deepEqual(json.src, { n: 1, k: 1 })
   assert.deepEqual(json.sheet, { cols: 1, size: 512 })

@@ -24,6 +24,7 @@ uniform float uCols;
 uniform float uFrame;
 
 uniform sampler2D uFlow;
+uniform sampler2D uEye;     // white pixels protect eyes from recolouring
 uniform vec2 uFlowSize;    // px
 uniform float uFlowCols;
 uniform float uTile;
@@ -197,7 +198,11 @@ void main() {
   // the new hue, or they stay the old colour in speckles on the recoloured body
   float tint = (1.0 - smoothstep(uLock.x - 0.03, uLock.x + 0.03, lab.x)) *
     smoothstep(0.02, 0.06, chroma);
-  if (free > 0.01 && lab.x > 0.6 && chroma < 0.08 && scleraAt(uv, texel.rgb / alpha) > 0.5) free = 0.0;
+  float eyeProtected = texture2D(uEye, cellUv(uv, uFrame, uCols, uCell, uSheetSize)).r;
+  if (eyeProtected > 0.5) {
+    free = 0.0;
+    tint = 0.0;
+  }
   if ((free > 0.01 || tint > 0.01) && (dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK || lab.x > 0.8) && chroma < 0.07 && eyeAt(uv) > 0.5) {
     free = 0.0;
     tint = 0.0;
