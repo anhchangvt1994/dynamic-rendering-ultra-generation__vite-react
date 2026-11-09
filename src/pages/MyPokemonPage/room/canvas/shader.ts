@@ -46,6 +46,8 @@ uniform vec2 uFit;         // the frame's share of the canvas, per axis
 
 const float LIGHT_CHROMA = 0.04;
 const float SPREAD = 0.0016;
+const float EYE_DARK = 0.6;   // an eye's iris is darker than this (luma)
+const float EYE_REACH = 0.06; // how far from the iris its highlight sits (of the frame)
 
 vec3 toLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
@@ -109,6 +111,26 @@ float reliefAt(vec2 uv, float fallback) {
   return t.a > 0.5 ? dot(t.rgb / t.a, vec3(0.299, 0.587, 0.114)) : fallback;
 }
 
+// a white catch-light dot of the sprite at uv
+float glintAt(vec2 uv) {
+  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec3 c = t.rgb / max(t.a, 1e-3);
+  float hi = max(c.r, max(c.g, c.b));
+  float lo = min(c.r, min(c.g, c.b));
+  return t.a > 0.5 && lo > 0.86 && hi - lo < 0.1 ? 1.0 : 0.0;
+}
+// a dark pixel with a catch-light close by is an eye's iris: a body never has
+// a white dot beside a dark patch, an eye always does
+float eyeAt(vec2 uv) {
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.785398;
+    vec2 dir = vec2(cos(a), sin(a));
+    for (int j = 1; j <= 4; j++)
+      if (glintAt(uv + dir * EYE_REACH * float(j) / 4.0) > 0.5) return 1.0;
+  }
+  return 0.0;
+}
+
 void main() {
   vec2 uv = (vUv - 0.5) / uFit + 0.5;
   if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
@@ -132,6 +154,8 @@ void main() {
     smoothstep(uLock.y - 0.03, uLock.y + 0.03, lab.x) *
       (1.0 - smoothstep(LIGHT_CHROMA - 0.02, LIGHT_CHROMA + 0.02, chroma)));
   float free = 1.0 - lock;
+  if (free > 0.01 && dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK && eyeAt(uv) > 0.5)
+    free = 0.0;
 
   float w[3];
   float sum = 0.0;

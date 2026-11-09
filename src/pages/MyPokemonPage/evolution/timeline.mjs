@@ -8,15 +8,6 @@ const seg = (u, a, b) => clamp((u - a) / (b - a))
 const ease = (x) => x * x * (3 - 2 * x)
 const out = (x) => 1 - (1 - x) ** 3
 
-const CAPTIONS = [
-  [0.2, 1.2, 'Có điều gì đó đang xảy ra…'],
-  [1.2, 3.0, 'Ánh sáng dồn lại…'],
-  [3.0, 4.4, 'Vòng hệ hiện ra'],
-  [4.4, 6.2, 'Quét cấu trúc cơ thể'],
-  [6.3, 8.0, 'Nước dậy sóng quanh nó…'],
-  [8.4, 11.2, 'Tiến hoá!'],
-]
-
 /** Sprite whiteness before the evolution: 2 → 12 Hz, amplitude .25 → 1, white hold 3.0–4.4 s. */
 export function flickerWeight(u, { reduced = false } = {}) {
   const envelope = u < 4.4 ? 1 : 1 - seg(u, 4.4, 5)
@@ -49,10 +40,9 @@ export function frameAt(u, { reduced = false } = {}) {
   const waveOn = w > 3 && w < 5 ? seg(w, 3, 3.6) : w >= 5.3 && w < 7.4 ? 1 - seg(w, 6.6, 7.4) : 0
   const burst = !reduced
   const shardP = out(seg(w, 5.1, 6.2))
-  const caption = CAPTIONS.find(([a, z]) => u >= a && u < z)
 
   return {
-    scrim: u < 0.8 ? ease(seg(u, 0, 0.8)) : 1 - ease(seg(u, 14.2, 15)),
+    scrim: 1 - ease(seg(u, 14.2, 15)),
     oldOpacity: 1 - seg(w, 5.0, 5.3),
     newOpacity: appear,
     oldScale: 1 - 0.12 * ease(seg(w, 3.6, 5.0)),
@@ -78,7 +68,6 @@ export function frameAt(u, { reduced = false } = {}) {
     stamp: out(seg(w, 9.9, 10.2)),
     deltas: [0, 1, 2].map((i) => seg(w, 10.1 + i * 0.15, 10.4 + i * 0.15)),
     badge: ease(seg(w, 10.6, 10.9)),
-    caption: caption ? caption[2] : '',
     waves: waveOn,
   }
 }

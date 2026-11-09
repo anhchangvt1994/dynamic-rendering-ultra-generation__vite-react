@@ -7,8 +7,11 @@ import { snoozeKey } from './queue.mjs'
 import { snooze } from './snooze'
 import { useEvolution, type EvolveResult } from './useEvolution'
 import { useSpeciesNames } from './useSpeciesNames'
+import { preloadRig } from '../room/canvas/rig'
+import { warmPlan, warmUp } from './warm.mjs'
 
-const EvolveFx = lazy(() => import('./EvolveFx'))
+const loadFx = () => import('./EvolveFx')
+const EvolveFx = lazy(loadFx)
 
 function Active({ request }: { request: EvolutionRequest }) {
   const api = useEvolution(request.individualId)
@@ -29,11 +32,29 @@ function Active({ request }: { request: EvolutionRequest }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready.map((b) => b.to).join(',')])
 
+  // the animated sprite of each form on offer is built while the player chooses
+  const forms = [
+    ...branches,
+    ...stones.flatMap((s) => s.targets.map((to) => ({ to, ready: true }))),
+  ]
+  const warmKey = warmPlan(forms, selected).join(',')
+  useEffect(() => {
+    warmKey.split(',').filter(Boolean).forEach((id) => void warmUp(Number(id)))
+  }, [warmKey])
+
+  // the scene's chunk is ready before the prompt hands over to it
+  useEffect(() => void loadFx(), [])
+
   // an item was used: the confirmation is the click itself
   useEffect(() => {
     if (request.kind !== 'run' || ran.current === request.id) return
     ran.current = request.id
-    evolve(request.branch ?? 0, request.item).then((r) => r && setResult(r))
+    evolve(request.branch ?? 0, request.item).then((r) => {
+      if (!r) return
+      void warmUp(r.receipt.to)
+      void preloadRig(r.receipt.to)
+      setResult(r)
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request.id])
 
@@ -76,6 +97,7 @@ function Active({ request }: { request: EvolutionRequest }) {
       open={branches.length > 0 || stones.length > 0 || Boolean(error)}
       stones={stones}
       onStone={async (item, to) => {
+        void warmUp(to)
         const r = await evolve(to, item)
         if (r) setResult(r)
       }}
@@ -91,6 +113,7 @@ function Active({ request }: { request: EvolutionRequest }) {
       onLater={later}
       onConfirm={async () => {
         if (selected === null) return
+        void warmUp(selected)
         const r = await evolve(selected, request.item)
         if (r) setResult(r)
       }}

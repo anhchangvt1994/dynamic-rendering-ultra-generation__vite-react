@@ -24,34 +24,74 @@ export const buildStyle = css`
   .bp-exp {
     margin-bottom: 14px;
   }
+  /* one row per stat: name and value on the left, IV over EV as two
+     meters on the right; nothing wraps, at 320px or at any width */
   .bp-stats {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
     font-variant-numeric: tabular-nums;
   }
-  .bp-stats th,
-  .bp-stats td {
-    padding: 5px 4px;
-    text-align: left;
-    font-weight: 600;
+  .bp-stats li {
+    display: grid;
+    grid-template-columns: 4.8em 2.4em minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
   }
-  .bp-stats thead th {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    opacity: 0.6;
+  .bp-name {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
   }
-  .bp-stats td:first-of-type {
-    font-weight: 800;
-  }
-  .bp-stats td {
+  .bp-val {
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
     position: relative;
+    text-align: right;
+  }
+  .bp-stats li[data-up] .bp-val {
+    color: #3fbf7a;
+  }
+  .bp-meters {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  .bp-m {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.7em minmax(0, 1fr) 2.4ch;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+  }
+  .bp-m u {
+    text-decoration: none;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    opacity: 0.55;
+  }
+  .bp-m small {
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .bp-m[data-max] small {
+    opacity: 1;
+    color: var(--a1);
   }
   .bp-delta {
     position: absolute;
-    top: 0;
-    right: 2px;
+    top: -2px;
+    right: 0;
     font-style: normal;
     font-size: 12px;
     font-weight: 900;
@@ -100,10 +140,6 @@ export const buildStyle = css`
       }
     }
   }
-  .bp-stats td[data-up] > :first-child,
-  .bp-stats td[data-up] {
-    color: #6ee7a0;
-  }
   .bp-up,
   .bp-down {
     margin-left: 4px;
@@ -116,13 +152,10 @@ export const buildStyle = css`
     color: #4da3ff;
   }
   .bp-bar {
-    display: inline-block;
-    width: min(64px, 14vw);
+    display: block;
     height: 6px;
-    margin-right: 6px;
     border-radius: 999px;
     background: var(--track);
-    vertical-align: middle;
     overflow: hidden;
   }
   .bp-bar i {
@@ -131,11 +164,11 @@ export const buildStyle = css`
     height: 100%;
     background: var(--a1);
   }
-  .bp-bar[data-ev] i {
+  .bp-m[data-ev] i {
     background: var(--a2);
   }
-  .bp-stats small {
-    opacity: 0.75;
+  .bp-m[data-max] i {
+    box-shadow: 0 0 6px var(--a1);
   }
   .bp-chips {
     display: flex;
@@ -168,11 +201,15 @@ export const buildStyle = css`
   }
   .bp-slots {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
+
+    @media screen and (min-width: 375px) {
+      grid-template-columns: 1fr 1fr;
+    }
   }
   .bp-slot,
   .bp-move {

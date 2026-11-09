@@ -144,69 +144,63 @@ export default function BuildPanel({ item, affection, api }: Props) {
           <i />
         </div>
 
-        <table className="bp-stats">
-          <thead>
-            <tr>
-              <th scope="col">Chỉ số</th>
-              <th scope="col">Giá trị</th>
-              <th scope="col">IV</th>
-              <th scope="col">EV</th>
-            </tr>
-          </thead>
-          <tbody>
-            {build.stats.map((value, i) => (
-              <tr key={i}>
-                <th scope="row">
-                  {statLabel(i)}
-                  {effect?.up === i && (
-                    <span className="bp-up" aria-label="tăng">
-                      ▲
-                    </span>
-                  )}
-                  {effect?.down === i && (
-                    <span className="bp-down" aria-label="giảm">
-                      ▼
-                    </span>
-                  )}
-                </th>
-                <td data-up={fx?.stats[i] > 0 ? '' : undefined}>
-                  {value}
-                  {fx && fx.stats[i] > 0 && (
-                    <em className="bp-delta">+{fx.stats[i]}</em>
-                  )}
-                </td>
-                <td>
-                  <span
-                    className="bp-bar"
-                    style={
-                      { '--v': `${(build.iv[i] / 31) * 100}%` } as CSSProperties
-                    }
-                  >
+        <ul className="bp-stats" aria-label="Chỉ số">
+          {build.stats.map((value, i) => (
+            <li key={i} data-up={fx && fx.stats[i] > 0 ? '' : undefined}>
+              <span className="bp-name">
+                {statLabel(i)}
+                {effect?.up === i && (
+                  <span className="bp-up" aria-label="tăng">
+                    ▲
+                  </span>
+                )}
+                {effect?.down === i && (
+                  <span className="bp-down" aria-label="giảm">
+                    ▼
+                  </span>
+                )}
+              </span>
+              <b className="bp-val">
+                {value}
+                {fx && fx.stats[i] > 0 && (
+                  <em className="bp-delta">+{fx.stats[i]}</em>
+                )}
+              </b>
+              <span className="bp-meters">
+                <span
+                  className="bp-m"
+                  data-max={build.iv[i] >= 31 || undefined}
+                  style={
+                    { '--v': `${(build.iv[i] / 31) * 100}%` } as CSSProperties
+                  }
+                >
+                  <u>IV</u>
+                  <span className="bp-bar">
                     <i />
                   </span>
                   <small>{build.iv[i]}</small>
-                </td>
-                <td>
-                  <span
-                    className="bp-bar"
-                    data-ev
-                    style={
-                      {
-                        '--v': `${(build.ev[i] / 252) * 100}%`,
-                      } as CSSProperties
-                    }
-                  >
+                </span>
+                <span
+                  className="bp-m"
+                  data-ev
+                  data-max={build.ev[i] >= 252 || undefined}
+                  style={
+                    { '--v': `${(build.ev[i] / 252) * 100}%` } as CSSProperties
+                  }
+                >
+                  <u>EV</u>
+                  <span className="bp-bar">
                     <i />
                   </span>
                   <small>{build.ev[i]}</small>
                   {fx && fx.ev[i] > 0 && (
                     <em className="bp-delta">+{fx.ev[i]}</em>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
 
         <ul className="bp-chips" aria-label="Đặc điểm">
           <li>

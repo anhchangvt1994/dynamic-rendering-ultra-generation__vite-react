@@ -21,11 +21,9 @@ test('the old form stays until the swap, the new one appears after it', () => {
   assert.equal(frameAt(0).newOpacity, 0)
 })
 
-test('the scrim rises within 0.8 s and falls at the end', () => {
-  assert.equal(frameAt(0).scrim, 0)
-  assert.ok(frameAt(0.4).scrim > 0 && frameAt(0.4).scrim < 1)
-  assert.ok(frameAt(0.8).scrim > 0.999)
-  assert.ok(frameAt(10).scrim > 0.999)
+test('the scrim is up from the first frame and falls at the end', () => {
+  assert.equal(frameAt(0).scrim, 1)
+  assert.equal(frameAt(10).scrim, 1)
   assert.ok(frameAt(14.6).scrim < 1)
   assert.equal(frameAt(TOTAL).scrim, 0)
 })
@@ -101,13 +99,6 @@ test('full-motion unit fields stay inside 0..1', () => {
     const f = frameAt(u)
     for (const k of UNIT) assert.ok(f[k] >= 0 && f[k] <= 1, `${k}=${f[k]} @${u}`)
   }
-})
-
-test('the caption follows the story', () => {
-  assert.equal(frameAt(0.1).caption, '')
-  assert.match(frameAt(1).caption, /Có điều gì đó/)
-  assert.match(frameAt(9).caption, /Tiến hoá!/)
-  assert.equal(frameAt(13).caption, '')
 })
 
 test('readyGlow breathes inside 0..1 and flashes twice every 4 s; reduced is constant', () => {

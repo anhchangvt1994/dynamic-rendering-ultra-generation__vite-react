@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '../room/useMedia'
 import EvoArt from './EvoArt'
 import { EvolveFxStyle } from './styles'
@@ -62,7 +62,8 @@ export default function EvolveFx({
     el.current[name] = node
   }
 
-  useEffect(() => {
+  // open before the first paint: the prompt hands over with no empty frame
+  useLayoutEffect(() => {
     const d = dialog.current
     if (!d) return
     if (!d.open) d.showModal?.()
@@ -84,7 +85,6 @@ export default function EvolveFx({
     const list = (name: string) =>
       Array.from(e[name]?.children ?? []) as HTMLElement[]
     let raf = 0
-    let last = ''
     const fit = () => {
       const stage = e.stage
       if (!stage) return
@@ -111,7 +111,7 @@ export default function EvolveFx({
           'baseFrequency',
           `${(0.012 + 0.004 * Math.sin(now / 650)).toFixed(4)} ${(0.03 + 0.008 * Math.cos(now / 800)).toFixed(4)}`
         )
-      set('stage', { opacity: String(Math.min(1, f.scrim * 4)) })
+      set('stage', { opacity: String(f.scrim) })
       set('old', {
         opacity: String(f.oldOpacity),
         filter: warp,
@@ -180,12 +180,6 @@ export default function EvolveFx({
         opacity: String(f.badge),
         transform: `scale(${0.8 + 0.2 * f.badge})`,
       })
-      const caption = String(f.caption)
-      if (caption !== last) {
-        last = caption
-        if (e.cap) e.cap.textContent = caption
-      }
-      set('cap', { opacity: caption ? '1' : '0' })
       if (!swapped.current && u >= SWAPPED_AT) {
         swapped.current = true
         setCanSkip(true)
@@ -209,7 +203,7 @@ export default function EvolveFx({
       aria-label={`Tiến hoá thành ${toName}`}
       data-dialog="evolve-fx"
     >
-      <div className="fx-stage" ref={reg('stage')} style={{ opacity: 0 }}>
+      <div className="fx-stage" ref={reg('stage')}>
         <svg
           width="0"
           height="0"
@@ -305,7 +299,6 @@ export default function EvolveFx({
             </div>
           </div>
         </div>
-        <div className="cap" ref={reg('cap')} />
         <div className="flash" ref={reg('flash')} />
         {canSkip && (
           <button

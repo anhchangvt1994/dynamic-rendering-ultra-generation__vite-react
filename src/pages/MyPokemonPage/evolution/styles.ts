@@ -527,14 +527,15 @@ export const EvolveFxStyle = styled.dialog`
   color: #e8ecff;
   overflow: visible;
   &::backdrop {
-    background: rgba(3, 6, 16, 0.94);
+    background: #070b16;
   }
   .fx-stage {
     position: relative;
     height: min(640px, 100svh - 16px);
     overflow: hidden;
     border-radius: 16px;
-    background: radial-gradient(70% 60% at 50% 45%, #1c2447, #080b18);
+    /* the prompt's own ground, so the hand-over shows no seam */
+    background: none;
   }
   /* the form's animation box: HERO px square, moved and scaled per frame */
   .fx-box {
@@ -736,17 +737,6 @@ export const EvolveFxStyle = styled.dialog`
     letter-spacing: 0.12em;
     opacity: 0;
     background: #0a1126cc;
-  }
-  .cap {
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    top: 58px;
-    text-align: center;
-    font: 700 14px system-ui, sans-serif;
-    text-shadow: 0 1px 6px #000;
-    opacity: 0;
-    pointer-events: none;
   }
   .flash {
     position: absolute;
