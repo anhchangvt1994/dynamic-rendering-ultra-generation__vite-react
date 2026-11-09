@@ -46,8 +46,8 @@ uniform vec2 uFit;         // the frame's share of the canvas, per axis
 
 const float LIGHT_CHROMA = 0.04;
 const float SPREAD = 0.0016;
-const float EYE_DARK = 0.72;  // an eye's iris is darker than this (luma)
-const float EYE_REACH = 0.06;  // how far from the iris its highlight sits (of the frame)
+const float EYE_DARK = 0.5;  // an eye's iris is darker than this (luma)
+const float EYE_REACH = 0.08;  // how far from the iris its highlight sits (of the frame)
 
 vec3 toLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
@@ -111,13 +111,25 @@ float reliefAt(vec2 uv, float fallback) {
   return t.a > 0.5 ? dot(t.rgb / t.a, vec3(0.299, 0.587, 0.114)) : fallback;
 }
 
-// a white catch-light dot of the sprite at uv
+// a dark outline/iris pixel of the sprite at uv
+float darkAt(vec2 uv) {
+  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec3 c = t.rgb / max(t.a, 1e-3);
+  float spread = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+  // neutral dark only: the shade under a claw still has the body's colour
+  return t.a > 0.5 && dot(c, vec3(0.299, 0.587, 0.114)) < 0.5 && spread < 0.2 ? 1.0 : 0.0;
+}
+// a white catch-light dot ringed by dark on three or four sides: only an eye has
+// one (a claw or a tooth touches the body's own colour)
 float glintAt(vec2 uv) {
   vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
   vec3 c = t.rgb / max(t.a, 1e-3);
-  float hi = max(c.r, max(c.g, c.b));
   float lo = min(c.r, min(c.g, c.b));
-  return t.a > 0.5 && lo > 0.86 && hi - lo < 0.1 ? 1.0 : 0.0;
+  if (t.a < 0.5 || lo < 0.86 || max(c.r, max(c.g, c.b)) - lo > 0.1) return 0.0;
+  const float R = 0.016;
+  float ring = darkAt(uv + vec2(R, 0.0)) + darkAt(uv - vec2(R, 0.0)) +
+    darkAt(uv + vec2(0.0, R)) + darkAt(uv - vec2(0.0, R));
+  return ring > 2.5 ? 1.0 : 0.0;
 }
 // a dark pixel with a catch-light close by is an eye's iris: a body never has
 // a white dot beside a dark patch, an eye always does
@@ -127,6 +139,33 @@ float eyeAt(vec2 uv) {
     vec2 dir = vec2(cos(a), sin(a));
     for (int j = 1; j <= 4; j++)
       if (glintAt(uv + dir * EYE_REACH * float(j) / 4.0) > 0.5) return 1.0;
+  }
+  return 0.0;
+}
+
+// a pale pixel walled in by neutral-dark ones (the iris, the lid's outline) with
+// an eye's catch-light close by is the white of an eye; a chin or a chest is
+// neither walled in nor that near a glint
+float scleraAt(vec2 uv, vec3 rgb) {
+  float spread = max(rgb.r, max(rgb.g, rgb.b)) - min(rgb.r, min(rgb.g, rgb.b));
+  if (spread > 0.14 || rgb.b - rgb.r < -0.005) return 0.0;
+  float n = 0.0;
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.785398;
+    vec2 dir = vec2(cos(a), sin(a));
+    float hit = 0.0;
+    for (int j = 1; j <= 3; j++) hit = max(hit, darkAt(uv + dir * 0.02 * float(j)));
+    n += hit;
+  }
+  if (n < 4.0) return 0.0;
+  // and one of those dark pixels is an iris (it has a catch-light by it)
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.785398;
+    vec2 dir = vec2(cos(a), sin(a));
+    for (int j = 1; j <= 3; j++) {
+      vec2 p = uv + dir * 0.02 * float(j);
+      if (darkAt(p) > 0.5 && eyeAt(p) > 0.5) return 1.0;
+    }
   }
   return 0.0;
 }
@@ -154,19 +193,37 @@ void main() {
     smoothstep(uLock.y - 0.03, uLock.y + 0.03, lab.x) *
       (1.0 - smoothstep(LIGHT_CHROMA - 0.02, LIGHT_CHROMA + 0.02, chroma)));
   float free = 1.0 - lock;
-  if (free > 0.01 && dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK && chroma < 0.14 && eyeAt(uv) > 0.5)
+  // dark tinted pixels (the shade a claw casts) keep their lightness but take
+  // the new hue, or they stay the old colour in speckles on the recoloured body
+  float tint = (1.0 - smoothstep(uLock.x - 0.03, uLock.x + 0.03, lab.x)) *
+    smoothstep(0.02, 0.06, chroma);
+  if (free > 0.01 && lab.x > 0.6 && chroma < 0.08 && scleraAt(uv, texel.rgb / alpha) > 0.5) free = 0.0;
+  if ((free > 0.01 || tint > 0.01) && (dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK || lab.x > 0.8) && chroma < 0.07 && eyeAt(uv) > 0.5) {
     free = 0.0;
+    tint = 0.0;
+  }
 
   float w[3];
   float sum = 0.0;
   float top = 0.0;
   for (int i = 0; i < 3; i++) {
     vec2 d = lab.yz - uSource[i].yz;
-    // a wide skirt, so the anti-aliased fringe of a claw is taken in too
-    float d2 = dot(d, d);
-    w[i] = i < uCount ? exp(-d2 / SPREAD) + 1e-5 * exp(-d2 / (SPREAD * 3.0)) : 0.0;
+    w[i] = i < uCount ? exp(-dot(d, d) / SPREAD) : 0.0;
     sum += w[i];
     top = max(top, w[i]);
+  }
+  // a pixel near no region (a claw's or a tooth's fringe) follows the region
+  // nearest in lightness and hue by a wide, smooth weight: its own tiny
+  // weights flip from pixel to pixel and speckle
+  float near = smoothstep(0.01, 0.15, top);
+  if (near < 1.0) {
+    sum = 0.0;
+    for (int i = 0; i < 3; i++) {
+      vec3 d3 = lab - uSource[i];
+      float wide = i < uCount ? exp(-dot(d3, d3) / 0.02) : 0.0;
+      w[i] = mix(wide * 0.15, w[i], near);
+      sum += w[i];
+    }
   }
   vec3 out_ = lab;
   // the lightness this pixel's own region is recoloured to
@@ -179,6 +236,7 @@ void main() {
     for (int i = 0; i < 3; i++) {
       float k = w[i] / sum * free;
       out_ += k * (uTarget[i] - uSource[i]);
+      out_.yz += w[i] / sum * tint * (uTarget[i].yz - uSource[i].yz);
     }
   }
   if (uEffect == 1) {
