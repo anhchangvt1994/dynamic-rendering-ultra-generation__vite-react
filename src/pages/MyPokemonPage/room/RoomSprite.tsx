@@ -1,6 +1,7 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Appearance } from 'pages/BagPage/individuals/client'
 import type { CanvasState } from './canvas/RoomCanvas'
+import { preloadRig } from './canvas/rig'
 import { alphaBox, bodyCenter, placeSprite, spriteFor } from './sprite.mjs'
 import bodies_ from './spriteBodies.json'
 
@@ -34,7 +35,12 @@ type Box = {
   cy?: number
 }
 
-const RoomCanvas = lazy(() => import('./canvas/RoomCanvas'))
+const loadCanvas = () => import('./canvas/RoomCanvas')
+const RoomCanvas = lazy(loadCanvas)
+
+// how often, and how long, to ask the server whether the animation is built
+const RETRY_MS = 3000
+const RETRIES = 100
 
 // the visible body of each picture, measured once per address
 const bodies = new Map<string, Box | null>()
@@ -76,6 +82,17 @@ type Props = {
 
 type Phase = 'primary' | 'fallback' | 'none'
 
+type Seen = {
+  src: string
+  phase: Phase
+  natural: { width: number; height: number } | null
+  body: Box | null
+  /** the fallback stands in while the server builds the animation */
+  waiting?: boolean
+  /** the animation was tried again once already */
+  retried?: boolean
+}
+
 /**
  * The room's Pokémon: our smoothed animated WebP (mirrored while it ignores
  * you), the PokéAPI pixel gif / artwork if that is missing, its first letter after. Sized by
@@ -94,14 +111,65 @@ export default function RoomSprite({
 }: Props) {
   const back = mood === 'ignoring'
   const { src, fallback } = spriteFor(speciesId)
-  const [seen, setSeen] = useState<{
-    src: string
-    phase: Phase
-    natural: { width: number; height: number } | null
-    body: Box | null
-  }>({ src, phase: 'primary', natural: null, body: null })
+  const [seen, setSeen] = useState<Seen>({
+    src,
+    phase: 'primary',
+    natural: null,
+    body: null,
+  })
   if (seen.src !== src)
     setSeen({ src, phase: 'primary', natural: null, body: null })
+  // everything the canvas needs starts now, beside the picture, not after it
+  const painting = !!appearance
+  useEffect(() => {
+    if (!painting) return
+    void preloadRig(speciesId)
+    void loadCanvas()
+    void import('./canvas/gl')
+  }, [speciesId, painting])
+  // the server answers 202 while it builds the animation: the fallback
+  // stands in, and the animation takes over the moment it is on disk
+  const waiting = seen.src === src && seen.phase === 'fallback' && seen.waiting
+  useEffect(() => {
+    if (!waiting) return
+    let live = true
+    let timer = 0
+    let tries = 0
+    const ask = async () => {
+      let answer = 0
+      try {
+        const res = await fetch(src)
+        answer = res.status
+        void res.body?.cancel()
+      } catch {
+        // offline: ask again
+        answer = 503
+      }
+      if (!live) return
+      if (answer === 200)
+        setSeen((now) =>
+          now.src === src
+            ? {
+                ...now,
+                phase: 'primary',
+                waiting: false,
+                retried: true,
+                natural: null,
+                body: null,
+              }
+            : now
+        )
+      else if ((answer === 202 || answer >= 500) && ++tries < RETRIES)
+        timer = window.setTimeout(ask, RETRY_MS)
+      else
+        setSeen((now) => (now.src === src ? { ...now, waiting: false } : now))
+    }
+    timer = window.setTimeout(ask, RETRY_MS)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [waiting, src])
   // one address, /api/image: the server answers the animation (cached) once
   // it is built, the still (not cached) while it builds it
   const phase = seen.src === src ? seen.phase : 'primary'
@@ -202,6 +270,8 @@ export default function RoomSprite({
                         now.phase === 'primary' && fallback
                           ? 'fallback'
                           : 'none',
+                      waiting:
+                        now.phase === 'primary' && !!fallback && !now.retried,
                     }
                   : now
               )

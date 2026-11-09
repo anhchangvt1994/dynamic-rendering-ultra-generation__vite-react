@@ -130,6 +130,8 @@ const buildInWorker = (source: Buffer, sharpen: boolean) =>
   })
 
 const inflight = new Map<string, Promise<Buffer>>()
+/** true while the animation for `key` is being built or waits for a slot */
+export const isBuilding = (key: string) => inflight.has(key)
 const failed = new Map<string, number>() // key → when it failed: rest a minute
 const missing = new Set<string>() // known 404s: do not ask the source again
 // Never make a request wait for a build: start it, answer "not yet" (202) and
@@ -239,5 +241,10 @@ export const serveImage = async (url: string) => {
   if (fs.existsSync(gif))
     return reply(200, 'image/gif', fs.readFileSync(gif), 'gif')
   const still = await stillFor(key)
-  return still ? reply(200, still.type, still.body, 'still') : none()
+  if (still) return reply(200, still.type, still.body, 'still')
+  // not built yet and no still to stand in: "ask again" (202), not "there is
+  // none" (404); the client keeps its fallback up meanwhile and retries
+  return isBuilding(key)
+    ? reply(202, 'text/plain', Buffer.from('Building'))
+    : none()
 }

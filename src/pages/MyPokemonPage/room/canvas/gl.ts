@@ -36,6 +36,8 @@ export type MarkLayer = {
   canvas: HTMLCanvasElement
   /** draws frame K's marks into `canvas`; false when it already holds them */
   frame(K: number): boolean
+  /** follows the marks through the other frames; calls `done` when it has */
+  track(done: () => void): void
 }
 
 export type Scene3 = {

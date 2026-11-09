@@ -127,13 +127,24 @@ function marksFor(
   canvas.width = canvas.height = MARKS_PX
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
-  const flow = flowOf(rig)
-  const frames = flow
-    ? trackMarks(shapes, flow, rig.json, sheetAlphaOf(rig) ?? undefined)
-    : [shapes]
+  // the first picture needs only frame 0: following the body through the
+  // other frames (the slow part) waits until it is on screen
+  let frames: ReturnType<typeof trackMarks> = [shapes]
   let shown = -1
   return {
     canvas,
+    track(done) {
+      const flow = flowOf(rig)
+      if (!flow) return
+      frames = trackMarks(
+        shapes,
+        flow,
+        rig.json,
+        sheetAlphaOf(rig) ?? undefined
+      )
+      shown = -1
+      done()
+    },
     frame(K) {
       const i = Math.min(K, frames.length - 1)
       if (i === shown) return false
@@ -183,6 +194,7 @@ export default function RoomCanvas({
     let visible = true
     let restored = false
     let rig: Rig | null = null
+    let marks: MarkLayer | null = null
     const still = window.matchMedia('(prefers-reduced-motion: reduce)')
 
     const size = () => {
@@ -246,17 +258,19 @@ export default function RoomCanvas({
           appearanceRef.current,
           rig.json.clusters
         )
-        scene.current = startScene(
-          canvas,
-          rig,
-          colours,
-          marksFor(rig, appearanceRef.current, colours.glow)
-        )
+        marks = marksFor(rig, appearanceRef.current, colours.glow)
+        scene.current = startScene(canvas, rig, colours, marks)
       } catch {
         return false
       }
       size()
       draw()
+      // after the first paint, in its own task
+      const layer = marks
+      if (layer && rig.json.frames > 1)
+        setTimeout(() => {
+          if (!abort.signal.aborted) layer.track(draw)
+        }, 0)
       return true
     }
 
