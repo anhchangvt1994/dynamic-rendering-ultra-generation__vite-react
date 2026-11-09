@@ -30,6 +30,8 @@ type Props = {
   stats: number[] | null
   first: boolean
   onDone: () => void
+  /** called in the layout effect that opens the dialog, before the first paint */
+  onOpen?: () => void
 }
 
 /**
@@ -46,6 +48,7 @@ export default function EvolveFx({
   stats,
   first,
   onDone,
+  onOpen,
 }: Props) {
   const reduced = useReducedMotion()
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
@@ -67,6 +70,7 @@ export default function EvolveFx({
     const d = dialog.current
     if (!d) return
     if (!d.open) d.showModal?.()
+    onOpen?.()
     // Esc closes only after the swap
     const onCancel = (event: Event) => {
       if (swapped.current) done.current()
@@ -74,6 +78,7 @@ export default function EvolveFx({
     }
     d.addEventListener('cancel', onCancel)
     return () => d.removeEventListener('cancel', onCancel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -173,7 +178,8 @@ export default function EvolveFx({
         const n = d.querySelector('b')
         if (n) n.textContent = `+${Math.round(gain * v)}`
         const bar = d.querySelector('i') as HTMLElement | null
-        if (bar) bar.style.transform = `scaleX(${gain ? v * Math.min(1, 0.25 + gain / 40) : 0})`
+        if (bar)
+          bar.style.transform = `scaleX(${gain ? v * Math.min(1, 0.25 + gain / 40) : 0})`
         d.style.opacity = String(0.35 + 0.65 * v)
       })
       set('first', {

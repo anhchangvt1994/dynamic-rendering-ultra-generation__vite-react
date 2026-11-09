@@ -11,7 +11,11 @@ import { useEvolution } from './useEvolution'
 type Props = { individualId: string; version?: number; inline?: boolean }
 
 /** A water drop on a card whose Pokémon can evolve; a click opens the prompt. */
-export default function EvolveBadge({ individualId, version = 0, inline }: Props) {
+export default function EvolveBadge({
+  individualId,
+  version = 0,
+  inline,
+}: Props) {
   const { options, ready } = useEvolution(individualId, version)
   const reduced = useReducedMotion()
   const node = useRef<HTMLButtonElement>(null)

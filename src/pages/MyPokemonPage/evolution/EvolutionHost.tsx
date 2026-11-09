@@ -17,6 +17,7 @@ function Active({ request }: { request: EvolutionRequest }) {
   const api = useEvolution(request.individualId)
   const nameOf = useSpeciesNames()
   const [result, setResult] = useState<EvolveResult | null>(null)
+  const [away, setAway] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
   const ran = useRef('')
   const { options, evolve, error, busy } = api
@@ -39,7 +40,10 @@ function Active({ request }: { request: EvolutionRequest }) {
   ]
   const warmKey = warmPlan(forms, selected).join(',')
   useEffect(() => {
-    warmKey.split(',').filter(Boolean).forEach((id) => void warmUp(Number(id)))
+    warmKey
+      .split(',')
+      .filter(Boolean)
+      .forEach((id) => void warmUp(Number(id)))
   }, [warmKey])
 
   // the scene's chunk is ready before the prompt hands over to it
@@ -76,48 +80,58 @@ function Active({ request }: { request: EvolutionRequest }) {
     closeEvolution()
   }
 
-  if (result)
-    return (
-      <Suspense fallback={null}>
-        <EvolveFx
-          fromId={result.receipt.from}
-          toId={result.receipt.to}
-          fromName={nameOf(result.receipt.from)}
-          toName={nameOf(result.receipt.to)}
-          stats={result.diff?.stats ?? null}
-          first={result.receipt.first}
-          onDone={closeEvolution}
-        />
-      </Suspense>
-    )
-  if (!shown) return null
-  const from = options?.species ?? 0
+  if (!shown && !result) return null
+  const from = options?.species ?? result?.receipt.from ?? 0
+  // the chamber stays open under the scene until the scene is on top of it
+  // (it is torn down with the scene): the room is never seen in between
   return (
-    <EvolveDialog
-      open={branches.length > 0 || stones.length > 0 || Boolean(error)}
-      stones={stones}
-      onStone={async (item, to) => {
-        void warmUp(to)
-        const r = await evolve(to, item)
-        if (r) setResult(r)
-      }}
-      fromId={from}
-      name={nameOf(from)}
-      level={options?.level ?? null}
-      branches={branches}
-      selected={selected}
-      nameOf={nameOf}
-      busy={busy}
-      error={error}
-      onSelect={setSelected}
-      onLater={later}
-      onConfirm={async () => {
-        if (selected === null) return
-        void warmUp(selected)
-        const r = await evolve(selected, request.item)
-        if (r) setResult(r)
-      }}
-    />
+    <>
+      <EvolveDialog
+        away={away}
+        open={
+          branches.length > 0 ||
+          stones.length > 0 ||
+          Boolean(error) ||
+          Boolean(result)
+        }
+        stones={stones}
+        onStone={async (item, to) => {
+          void warmUp(to)
+          const r = await evolve(to, item)
+          if (r) setResult(r)
+        }}
+        fromId={from}
+        name={nameOf(from)}
+        level={options?.level ?? null}
+        branches={branches}
+        selected={selected}
+        nameOf={nameOf}
+        busy={busy}
+        error={error}
+        onSelect={setSelected}
+        onLater={later}
+        onConfirm={async () => {
+          if (selected === null) return
+          void warmUp(selected)
+          const r = await evolve(selected, request.item)
+          if (r) setResult(r)
+        }}
+      />
+      {result && (
+        <Suspense fallback={null}>
+          <EvolveFx
+            fromId={result.receipt.from}
+            toId={result.receipt.to}
+            fromName={nameOf(result.receipt.from)}
+            toName={nameOf(result.receipt.to)}
+            stats={result.diff?.stats ?? null}
+            first={result.receipt.first}
+            onDone={closeEvolution}
+            onOpen={() => setAway(true)}
+          />
+        </Suspense>
+      )}
+    </>
   )
 }
 

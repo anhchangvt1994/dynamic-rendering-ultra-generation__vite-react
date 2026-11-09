@@ -47,6 +47,8 @@ type Props = {
   onSelect: (to: number) => void
   onConfirm: () => void
   onLater: () => void
+  /** the scene is on top: the chamber stays mounted underneath, unseen */
+  away?: boolean
 }
 
 type Form = {
@@ -95,6 +97,7 @@ export default function EvolveDialog({
   onSelect,
   onConfirm,
   onLater,
+  away,
 }: Props) {
   const ref = useModal(open, onLater)
   const reduced = useReducedMotion()
@@ -278,6 +281,7 @@ export default function EvolveDialog({
       ref={ref}
       aria-labelledby="ev-title"
       data-dialog="evolve"
+      data-away={away || undefined}
     >
       <div
         className="ch"

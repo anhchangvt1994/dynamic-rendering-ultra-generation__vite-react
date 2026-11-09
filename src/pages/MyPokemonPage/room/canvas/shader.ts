@@ -46,8 +46,8 @@ uniform vec2 uFit;         // the frame's share of the canvas, per axis
 
 const float LIGHT_CHROMA = 0.04;
 const float SPREAD = 0.0016;
-const float EYE_DARK = 0.6;   // an eye's iris is darker than this (luma)
-const float EYE_REACH = 0.06; // how far from the iris its highlight sits (of the frame)
+const float EYE_DARK = 0.72;  // an eye's iris is darker than this (luma)
+const float EYE_REACH = 0.06;  // how far from the iris its highlight sits (of the frame)
 
 vec3 toLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
@@ -154,7 +154,7 @@ void main() {
     smoothstep(uLock.y - 0.03, uLock.y + 0.03, lab.x) *
       (1.0 - smoothstep(LIGHT_CHROMA - 0.02, LIGHT_CHROMA + 0.02, chroma)));
   float free = 1.0 - lock;
-  if (free > 0.01 && dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK && eyeAt(uv) > 0.5)
+  if (free > 0.01 && dot(texel.rgb / alpha, vec3(0.299, 0.587, 0.114)) < EYE_DARK && chroma < 0.14 && eyeAt(uv) > 0.5)
     free = 0.0;
 
   float w[3];
@@ -162,7 +162,9 @@ void main() {
   float top = 0.0;
   for (int i = 0; i < 3; i++) {
     vec2 d = lab.yz - uSource[i].yz;
-    w[i] = i < uCount ? exp(-dot(d, d) / SPREAD) : 0.0;
+    // a wide skirt, so the anti-aliased fringe of a claw is taken in too
+    float d2 = dot(d, d);
+    w[i] = i < uCount ? exp(-d2 / SPREAD) + 1e-5 * exp(-d2 / (SPREAD * 3.0)) : 0.0;
     sum += w[i];
     top = max(top, w[i]);
   }

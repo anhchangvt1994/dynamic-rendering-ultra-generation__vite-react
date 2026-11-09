@@ -11,6 +11,10 @@ const noScrollbar = css`
 
 /** The prompt: a full-screen "chamber" lit in the colour of the form to come. */
 export const EvolveDialogStyle = styled.dialog`
+  /* the scene is on top (its backdrop is opaque): nothing here runs unseen */
+  &[data-away] * {
+    animation-play-state: paused !important;
+  }
   width: 100vw;
   max-width: none;
   height: 100dvh;

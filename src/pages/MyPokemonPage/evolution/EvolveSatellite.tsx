@@ -22,18 +22,15 @@ export default function EvolveSatellite({ individualId, api }: Props) {
   const reduced = useReducedMotion()
   const node = useRef<HTMLButtonElement>(null)
   const ripple = useRef<HTMLSpanElement>(null)
-  const view = satelliteView(api.options, api.items) as
-    | {
-        state: 'ready' | 'soon'
-        to: number
-        more?: number
-        have?: number | null
-        need?: number | null
-      }
-    | null
+  const view = satelliteView(api.options, api.items) as {
+    state: 'ready' | 'soon'
+    to: number
+    more?: number
+    have?: number | null
+    need?: number | null
+  } | null
   const ready = view?.state === 'ready'
-  const calm =
-    ready && isSnoozed(snoozeKey(individualId, api.options))
+  const calm = ready && isSnoozed(snoozeKey(individualId, api.options))
   useEffect(() => {
     if (!ready) return
     let raf = 0
@@ -58,7 +55,13 @@ export default function EvolveSatellite({ individualId, api }: Props) {
     : `Có thể tiến hoá thành ${nameOf(view.to)}`
   return (
     <>
-      {ready && <EvolveRippleStyle ref={ripple} data-calm={calm || undefined} aria-hidden="true" />}
+      {ready && (
+        <EvolveRippleStyle
+          ref={ripple}
+          data-calm={calm || undefined}
+          aria-hidden="true"
+        />
+      )}
       <EvolveSatelliteStyle
         ref={node}
         type="button"
@@ -82,8 +85,7 @@ export default function EvolveSatellite({ individualId, api }: Props) {
             {view.have}/{view.need}
           </small>
         ) : (
-          ready &&
-          (view.more ?? 0) > 0 && <small>+{view.more}</small>
+          ready && (view.more ?? 0) > 0 && <small>+{view.more}</small>
         )}
         <span className="es-drop" aria-hidden="true" />
       </EvolveSatelliteStyle>
