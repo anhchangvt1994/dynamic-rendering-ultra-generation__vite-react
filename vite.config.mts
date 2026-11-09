@@ -28,6 +28,15 @@ const PREACT_ALIASES = [
   { find: /^react\/jsx-dev-runtime$/, replacement: 'preact/jsx-dev-runtime' },
 ]
 
+// NOTE - three's prebuilt bundle is one ~1.4 MB module that cannot be split
+// or tree-shaken; its per-module sources can (sideEffects: only src/nodes).
+const THREE_ALIASES = [
+  {
+    find: /^three$/,
+    replacement: path.resolve(__dirname, 'node_modules/three/src/Three.js'),
+  },
+]
+
 export default defineConfig(({ mode, command }) => {
   const ViteConfigWithMode = getViteConfigWithMode(mode)
   const config = ViteConfigWithMode?.() ?? {}
@@ -73,7 +82,7 @@ export default defineConfig(({ mode, command }) => {
         // NOTE - Production runs on Preact (preact/compat): React DOM's
         // client is one ~180 kB module, over the 150 kB-per-file budget;
         // Preact is ~10 kB. Development keeps React for Fast Refresh.
-        ...(command === 'build' ? PREACT_ALIASES : []),
+        ...(command === 'build' ? [...PREACT_ALIASES, ...THREE_ALIASES] : []),
       ],
     },
     optimizeDeps: {

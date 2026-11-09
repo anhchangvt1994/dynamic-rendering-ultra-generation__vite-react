@@ -10,6 +10,7 @@ import splitChunkSchemas from './utils/splitChunkSchemas'
 import splitChunkStore from './utils/splitChunkStore'
 import splitChunkUtils from './utils/splitChunkUtils'
 import splitChunkPageParts from './utils/splitChunkPageParts'
+import splitChunkThree from './utils/splitChunkThree'
 import splitChunkVendors from './utils/splitChunkVendors'
 
 export default (): any => {
@@ -23,6 +24,7 @@ export default (): any => {
       }),
       NormalSplitChunks([
         jsonPartChunk,
+        splitChunkThree,
         splitChunkVendors,
         splitChunkPageParts,
         splitChunkConstants,
