@@ -13,7 +13,13 @@ import {
 } from 'react'
 import { PALETTES } from '../room/roomTheme.mjs'
 import { useReducedMotion } from '../room/useMedia'
-import { accentFor, arcSpans, holdStep, progressOf, ringLayout } from './chamber.mjs'
+import {
+  accentFor,
+  arcSpans,
+  holdStep,
+  progressOf,
+  ringLayout,
+} from './chamber.mjs'
 import EvoArt from './EvoArt'
 import { itemName } from './itemName'
 import { EvolveDialogStyle } from './styles'
@@ -96,14 +102,23 @@ export default function EvolveDialog({
 
   const forms = useMemo<Form[]>(
     () => [
-      ...branches.map((b) => ({ key: `b${b.to}`, to: b.to, ready: b.ready, lines: b.lines })),
+      ...branches
+        .filter((b) => b.ready || !stones.some((s) => s.targets.includes(b.to)))
+        .map((b) => ({
+          key: `b${b.to}`,
+          to: b.to,
+          ready: b.ready,
+          lines: b.lines,
+        })),
       ...stones.flatMap((s) =>
         s.targets.map((to) => ({
           key: `s${s.item}:${to}`,
           to,
           item: s.item,
           ready: true,
-          lines: [{ ok: true, text: `Có ${itemName(s.item)} · chạm đá để dùng` }],
+          lines: [
+            { ok: true, text: `Có ${itemName(s.item)} · chạm đá để dùng` },
+          ],
         }))
       ),
     ],
@@ -122,11 +137,14 @@ export default function EvolveDialog({
   const lines = form?.lines ?? []
   const progress = progressOf(lines)
   const types = typesOf(form?.to ?? fromId)
-  const { a, b } = accentFor(PALETTES[types[0] as keyof typeof PALETTES] ?? PALETTES.normal)
+  const { a, b } = accentFor(
+    PALETTES[types[0] as keyof typeof PALETTES] ?? PALETTES.normal
+  )
 
   // the host builds on `selected` for a branch confirm
   useEffect(() => {
-    if (form && !form.item && form.ready && form.to !== selected) onSelect(form.to)
+    if (form && !form.item && form.ready && form.to !== selected)
+      onSelect(form.to)
   }, [form, selected, onSelect])
 
   // ---- hold to evolve ----
@@ -239,7 +257,9 @@ export default function EvolveDialog({
       ? 'Một dạng đã sẵn sàng'
       : 'Chạm một dạng để chọn'
   const missing = many
-    ? branches.filter((x) => !x.ready && x.to !== form?.to)
+    ? branches.filter(
+        (x) => !x.ready && x.to !== form?.to && forms.some((f) => f.to === x.to)
+      )
     : []
   const label = busy
     ? 'Đang tiến hoá…'
@@ -254,7 +274,11 @@ export default function EvolveDialog({
             : 'Giữ để tiến hoá'
 
   return (
-    <EvolveDialogStyle ref={ref} aria-labelledby="ev-title" data-dialog="evolve">
+    <EvolveDialogStyle
+      ref={ref}
+      aria-labelledby="ev-title"
+      data-dialog="evolve"
+    >
       <div
         className="ch"
         ref={root}
@@ -274,16 +298,31 @@ export default function EvolveDialog({
             <i
               key={i}
               style={
-                { left: `${s.x}%`, width: s.s, height: s.s, animationDuration: `${s.d}s`, animationDelay: `${s.t}s` } as CSSProperties
+                {
+                  left: `${s.x}%`,
+                  width: s.s,
+                  height: s.s,
+                  animationDuration: `${s.d}s`,
+                  animationDelay: `${s.t}s`,
+                } as CSSProperties
               }
             />
           ))}
         </div>
-        <button type="button" className="ch-later" data-action="later" onClick={onLater}>
+        <button
+          type="button"
+          className="ch-later"
+          data-action="later"
+          onClick={onLater}
+        >
           Để sau
         </button>
 
-        <header className="ch-head" tabIndex={-1} autoFocus>
+        <header
+          className="ch-head"
+          tabIndex={-1}
+          ref={(n) => n?.setAttribute('autofocus', '')}
+        >
           <h2 id="ev-title">{name} muốn tiến hoá!</h2>
           <p className="ch-sub">{sub}</p>
         </header>
@@ -297,17 +336,35 @@ export default function EvolveDialog({
                 key={i}
                 d={arc(39, s.a0, s.a1)}
                 className="r-arc"
-                data-ok={lines.length ? (lines[i]?.ok ? '' : undefined) : form?.ready ? '' : undefined}
+                data-ok={
+                  lines.length
+                    ? lines[i]?.ok
+                      ? ''
+                      : undefined
+                    : form?.ready
+                      ? ''
+                      : undefined
+                }
               />
             ))}
-            <circle className="r-charge" cx="50" cy="50" r="47.6" pathLength="100" />
+            <circle
+              className="r-charge"
+              cx="50"
+              cy="50"
+              r="47.6"
+              pathLength="100"
+            />
           </svg>
           <div className="ch-pad" aria-hidden="true">
             <i />
             <i />
           </div>
           {form && (
-            <span className="ch-ghost" data-ready={form.ready || undefined} aria-hidden="true">
+            <span
+              className="ch-ghost"
+              data-ready={form.ready || undefined}
+              aria-hidden="true"
+            >
               <EvoArt id={form.to} />
             </span>
           )}
@@ -348,7 +405,12 @@ export default function EvolveDialog({
                 onClick={() => pickForm(f)}
               >
                 {f.item ? (
-                  <img src={itemSprite(f.item)} alt="" draggable={false} className="stone" />
+                  <img
+                    src={itemSprite(f.item)}
+                    alt=""
+                    draggable={false}
+                    className="stone"
+                  />
                 ) : (
                   <EvoArt id={f.to} />
                 )}
@@ -369,7 +431,8 @@ export default function EvolveDialog({
           {missing.map((m) => (
             <li key={m.to}>
               <b aria-hidden="true">✕</b>
-              {nameOf(m.to)}: {m.lines.find((l) => !l.ok)?.text ?? 'Chưa khả dụng'}
+              {nameOf(m.to)}:{' '}
+              {m.lines.find((l) => !l.ok)?.text ?? 'Chưa khả dụng'}
             </li>
           ))}
         </ul>

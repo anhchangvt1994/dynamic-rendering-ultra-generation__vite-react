@@ -389,17 +389,20 @@ export const EvolveDialogStyle = styled.dialog`
   /* short landscape: stage on the left, the rest on the right */
   @media (orientation: landscape) and (max-height: 520px) {
     .ch {
-      --s: min(80dvh, 44vw);
+      --s: min(calc(100dvh - 36px), 44vw);
       grid-template-columns: auto minmax(0, 1fr);
       grid-template-rows: 1fr auto auto 1fr;
       grid-template-areas: 'stage head' 'stage why' 'stage cta' 'stage .';
       column-gap: 20px;
       align-content: center;
-      padding: 48px 20px 12px;
+      padding: 14px 20px;
     }
     .ch-head {
       align-self: end;
-      padding: 0;
+      margin-top: 30px;
+    }
+    .ch-head h2 {
+      font-size: 17px;
     }
     .ch-stage {
       grid-row: 1 / -1;
@@ -409,8 +412,8 @@ export const EvolveDialogStyle = styled.dialog`
       align-self: start;
     }
     .ch-hold {
-      width: 72px;
-      height: 72px;
+      width: 64px;
+      height: 64px;
     }
   }
   @media (prefers-reduced-motion: reduce) {
