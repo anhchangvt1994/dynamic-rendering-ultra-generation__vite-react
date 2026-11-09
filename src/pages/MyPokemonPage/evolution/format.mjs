@@ -115,3 +115,38 @@ export function promptBranches(options, item = null) {
   }
   return [...out.filter((b) => b.ready), ...out.filter((b) => !b.ready)]
 }
+
+/** Owned stones, one entry each, with every species the stone evolves into. */
+export function stoneGroups(items = []) {
+  const groups = new Map()
+  for (const s of items)
+    if (s.owned > 0) groups.set(s.item, [...(groups.get(s.item) ?? []), s.to])
+  return [...groups].map(([item, targets]) => ({ item, targets }))
+}
+
+/**
+ * What the satellite on the disc shows: `ready` (a form can be taken now, by
+ * level/friendship or by an owned stone), `soon` (the closest unmet branch,
+ * with its level progress when it has one), or null (nothing to show).
+ */
+export function satelliteView(options, items = []) {
+  const branches = options?.branches ?? []
+  if (!branches.length) return null
+  const ready = readyBranches(options)
+  if (ready.length)
+    return { state: 'ready', to: ready[0].to, more: ready.length - 1, stone: null }
+  const stones = stoneGroups(items)
+  if (stones.length)
+    return { state: 'ready', to: stones[0].targets[0], more: stones.length - 1 + stones[0].targets.length - 1, stone: stones[0].item }
+  const open = promptBranches(options).filter((b) => !b.ready)
+  if (!open.length) return null
+  let best = null
+  for (const b of open) {
+    const raw = branches.find((x) => x.to === b.to)
+    const p = raw ? branchProgress(raw) : null
+    if (p && (!best || p.have / p.need > best.have / best.need)) best = { to: b.to, ...p }
+  }
+  return best
+    ? { state: 'soon', ...best }
+    : { state: 'soon', to: open[0].to, have: null, need: null }
+}

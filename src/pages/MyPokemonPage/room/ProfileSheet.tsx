@@ -25,8 +25,6 @@ import { myPokemonPath } from '../paths.mjs'
 import BuildPanel from '../build/BuildPanel'
 import { starsFor } from '../build/format.mjs'
 import { useBuild } from '../build/useBuild'
-import EvolutionPanel from '../evolution/EvolutionPanel'
-import { useEvolution } from '../evolution/useEvolution'
 import StatRadar from './StatRadar'
 
 const date = (iso: string) => {
@@ -144,7 +142,6 @@ export default function ProfileSheet({
   const size = sizeOf(item.id)
   const affection = care?.affection ?? 0
   const buildApi = useBuild(item.id, affection)
-  const evolutionApi = useEvolution(item.id, affection)
   const stars = starsFor(buildApi.build, item.potential.stars)
   const level = levelOf(affection)
   const next = nextLevelAt(affection)
@@ -220,8 +217,6 @@ export default function ProfileSheet({
           </section>
 
           <BuildPanel item={item} affection={affection} api={buildApi} />
-
-          <EvolutionPanel item={item} api={evolutionApi} />
 
           <section className="rm-card" aria-labelledby="rm-h-profile">
             <h2 id="rm-h-profile">Hồ sơ</h2>

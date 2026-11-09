@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useReducedMotion } from '../room/useMedia'
 import EvoArt from './EvoArt'
 import { EvolveFxStyle } from './styles'
+import { fxLayout, HERO } from './layout.mjs'
 import { frameAt, TOTAL } from './timeline.mjs'
 
 const RAYS = 8
@@ -13,7 +14,7 @@ const SHARDS = Array.from({ length: 14 }, (_, i) => {
 const WAVES = 4
 // the new form takes the place of the old one from here (timeline: w = 5.3)
 const SWAPPED_AT = 8.3
-// stat rows of the Field Notes page: HP, Attack, Speed
+// stat rows of the ticket: HP, Attack, Speed
 const ROWS = [
   ['HP', 0],
   ['Tấn công', 1],
@@ -23,6 +24,7 @@ const ROWS = [
 type Props = {
   fromId: number
   toId: number
+  fromName: string
   toName: string
   /** per-stat change from the receipt build (HP, Atk, Def, SpA, SpD, Spe) */
   stats: number[] | null
@@ -31,13 +33,15 @@ type Props = {
 }
 
 /**
- * The approved sequence: light flicker, hologram scan, water warp, burst, the
- * new form, a Field Notes page. Styles are written per frame from frameAt.
+ * Light flicker, hologram scan, water warp, burst, the new form, then the
+ * "phiếu ghi nhận" ticket. The scene is laid out in px from the stage size
+ * (fxLayout), so it fits any screen; styles are written per frame from frameAt.
  * Esc and "Bỏ qua" only work once the new form has appeared.
  */
 export default function EvolveFx({
   fromId,
   toId,
+  fromName,
   toName,
   stats,
   first,
@@ -50,6 +54,7 @@ export default function EvolveFx({
   const noise = useRef<SVGFETurbulenceElement>(null)
   const disp = useRef<SVGFEDisplacementMapElement>(null)
   const swapped = useRef(false)
+  const geo = useRef(fxLayout(320, 480))
   const [canSkip, setCanSkip] = useState(false)
   const done = useRef(onDone)
   done.current = onDone
@@ -82,10 +87,16 @@ export default function EvolveFx({
     let last = ''
     const fit = () => {
       const stage = e.stage
-      const box = e.box
-      if (!stage || !box) return
-      const k = Math.min(1, stage.clientWidth / 480, stage.clientHeight / 420)
-      box.style.setProperty('--k', String(k))
+      if (!stage) return
+      const g = fxLayout(stage.clientWidth, stage.clientHeight)
+      geo.current = g
+      const t = e.ticket
+      if (t) {
+        t.style.left = `${g.ticket.x}px`
+        t.style.top = `${g.ticket.y}px`
+        t.style.width = `${g.ticket.w}px`
+        t.style.height = `${g.ticket.h}px`
+      }
     }
     fit()
     window.addEventListener('resize', fit)
@@ -110,6 +121,13 @@ export default function EvolveFx({
         opacity: String(f.newOpacity),
         filter: warp,
         transform: `scale(${f.newScale})`,
+      })
+      const g = geo.current
+      const cx = g.start.x + (g.end.x - g.start.x) * f.lift
+      const cy = g.start.y + (g.end.y - g.start.y) * f.lift
+      const sc = 1 + (g.k - 1) * f.lift
+      set('box', {
+        transform: `translate(${cx - HERO / 2}px,${cy - HERO / 2}px) scale(${sc})`,
       })
       set('ring', {
         opacity: String(f.ringOpacity),
@@ -141,24 +159,26 @@ export default function EvolveFx({
         s.style.transform = `translate(${sh.x * f.shards}px,${sh.y * f.shards}px) rotate(${f.shards * 360}deg)`
       })
       set('flash', { opacity: String(f.flash) })
-      set('shift', { transform: `translateX(${-150 * f.shift}px)` })
-      set('page', {
-        opacity: f.pageOpen > 0 ? '1' : '0',
-        transform: `perspective(700px) rotateY(${88 * (1 - f.pageOpen)}deg)`,
-      })
       set('stamp', {
         opacity: f.stamp > 0 ? '1' : '0',
         transform: `rotate(-8deg) scale(${1 + 1.4 * (1 - f.stamp)})`,
       })
-      list('deltas').forEach((d, i) => {
-        const b = d.querySelector('b') as HTMLElement | null
-        if (!b) return
-        b.style.opacity = String(f.deltas[i])
-        b.style.transform = `translateY(${6 * (1 - f.deltas[i])}px)`
+      set('ticket', {
+        opacity: String(f.ticket),
+        transform: `translate(${g.from.x * (1 - f.ticket)}px,${g.from.y * (1 - f.ticket)}px)`,
       })
-      set('badge', {
+      list('deltas').forEach((d, i) => {
+        const v = f.deltas[i]
+        const gain = Math.max(0, stats?.[ROWS[i][1]] ?? 0)
+        const n = d.querySelector('b')
+        if (n) n.textContent = `+${Math.round(gain * v)}`
+        const bar = d.querySelector('i') as HTMLElement | null
+        if (bar) bar.style.transform = `scaleX(${gain ? v * Math.min(1, 0.25 + gain / 40) : 0})`
+        d.style.opacity = String(0.35 + 0.65 * v)
+      })
+      set('first', {
         opacity: String(f.badge),
-        transform: `translateY(${-10 * (1 - f.badge)}px)`,
+        transform: `scale(${0.8 + 0.2 * f.badge})`,
       })
       const caption = String(f.caption)
       if (caption !== last) {
@@ -181,7 +201,7 @@ export default function EvolveFx({
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', fit)
     }
-  }, [reduced, uid])
+  }, [reduced, uid, stats])
 
   return (
     <EvolveFxStyle
@@ -222,56 +242,70 @@ export default function EvolveFx({
             />
           </filter>
         </svg>
+        <div className="abs scan" ref={reg('scan')} />
         <div className="fx-box" ref={reg('box')} aria-hidden="true">
-          <div className="abs scan" ref={reg('scan')} />
-          <div className="fx-shift" ref={reg('shift')}>
-            <div className="abs ring" ref={reg('ring')} />
-            <div ref={reg('waves')}>
-              {Array.from({ length: WAVES }, (_, i) => (
-                <div className="abs wv" key={i} />
-              ))}
-            </div>
-            <div className="abs mon" ref={reg('old')}>
-              <EvoArt id={fromId} style={{ width: '100%', height: '100%' }} />
-            </div>
-            <div className="abs mon" ref={reg('new')} style={{ opacity: 0 }}>
-              <EvoArt id={toId} style={{ width: '100%', height: '100%' }} />
-            </div>
-            <div className="abs orb" ref={reg('orb')} />
-            <div ref={reg('rays')}>
-              {Array.from({ length: RAYS }, (_, i) => (
-                <div className="abs ray" key={i} />
-              ))}
-            </div>
-            <div ref={reg('shards')}>
-              {SHARDS.map((_, i) => (
-                <div className="abs sh" key={i} />
-              ))}
-            </div>
-            <div className="abs ring2" ref={reg('ring2')} />
+          <div className="abs ring" ref={reg('ring')} />
+          <div ref={reg('waves')}>
+            {Array.from({ length: WAVES }, (_, i) => (
+              <div className="abs wv" key={i} />
+            ))}
           </div>
-          <div className="abs page" ref={reg('page')}>
-            <h4>Field Notes · №&nbsp;{toId}</h4>
-            <EvoArt id={toId} className="pg-art" />
+          <div className="abs mon" ref={reg('old')}>
+            <EvoArt id={fromId} style={{ width: '100%', height: '100%' }} />
+          </div>
+          <div className="abs mon" ref={reg('new')} style={{ opacity: 0 }}>
+            <EvoArt id={toId} style={{ width: '100%', height: '100%' }} />
+          </div>
+          <div className="abs orb" ref={reg('orb')} />
+          <div ref={reg('rays')}>
+            {Array.from({ length: RAYS }, (_, i) => (
+              <div className="abs ray" key={i} />
+            ))}
+          </div>
+          <div ref={reg('shards')}>
+            {SHARDS.map((_, i) => (
+              <div className="abs sh" key={i} />
+            ))}
+          </div>
+          <div className="abs ring2" ref={reg('ring2')} />
+        </div>
+        <div className="tk" ref={reg('ticket')} aria-hidden="true">
+          <h4>
+            <span>Phiếu ghi nhận</span>
+            <span>№&nbsp;{toId}</span>
+          </h4>
+          <p className="tk-form">
+            <span>{fromName}</span>
+            <em>→</em>
+            <b>{toName}</b>
+          </p>
+          {stats && (
             <ul ref={reg('deltas')}>
-              {ROWS.map(([label, index]) => (
+              {ROWS.map(([label]) => (
                 <li key={label}>
-                  {label}
-                  {stats && <b>+{Math.max(0, stats[index] ?? 0)}</b>}
+                  <span>{label}</span>
+                  <u>
+                    <i />
+                  </u>
+                  <b>+0</b>
                 </li>
               ))}
             </ul>
+          )}
+          <div className="tk-foot">
+            {first ? (
+              <p className="tk-first" ref={reg('first')}>
+                ★ Lần đầu thành {toName}
+              </p>
+            ) : (
+              <span />
+            )}
             <div className="stamp" ref={reg('stamp')}>
               ĐÃ GHI NHẬN
             </div>
           </div>
-          {first && (
-            <div className="abs badge" ref={reg('badge')}>
-              Lần đầu tiến hoá thành {toName}!
-            </div>
-          )}
-          <div className="abs cap" ref={reg('cap')} />
         </div>
+        <div className="cap" ref={reg('cap')} />
         <div className="flash" ref={reg('flash')} />
         {canSkip && (
           <button

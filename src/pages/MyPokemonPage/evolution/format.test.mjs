@@ -120,3 +120,45 @@ test('promptBranches: ready first, item-only left out, lines from the closest al
   assert.deepEqual(stone.map((b) => [b.to, b.ready]), [[134, true]])
   assert.deepEqual(promptBranches(null), [])
 })
+
+const A = (kind, ok, extra = {}) => ({ kind, ok, reasons: [], ...extra })
+const L = (have, need) => ({ code: 'level', ok: have >= need, have, need })
+
+test('stoneGroups: one entry per owned stone with its targets', async () => {
+  const { stoneGroups } = await import('./format.mjs')
+  const items = [
+    { to: 134, item: 'water-stone', owned: 2 },
+    { to: 135, item: 'thunder-stone', owned: 1 },
+    { to: 136, item: 'fire-stone', owned: 0 },
+    { to: 196, item: 'water-stone', owned: 2 },
+  ]
+  assert.deepEqual(stoneGroups(items), [
+    { item: 'water-stone', targets: [134, 196] },
+    { item: 'thunder-stone', targets: [135] },
+  ])
+  assert.deepEqual(stoneGroups([]), [])
+})
+
+test('satelliteView: ready by level, ready by stone, closest unmet branch, nothing', async () => {
+  const { satelliteView } = await import('./format.mjs')
+  assert.equal(satelliteView(null, []), null)
+  assert.equal(satelliteView({ branches: [] }, []), null)
+  const ready = { branches: [
+    { to: 5, alts: [A('level', true)] },
+    { to: 6, alts: [A('level', true)] },
+  ] }
+  assert.deepEqual(satelliteView(ready, []), { state: 'ready', to: 5, more: 1, stone: null })
+  const stoneOnly = { branches: [{ to: 134, alts: [A('item', true, { item: 'water-stone', owned: 1 })] }] }
+  assert.deepEqual(
+    satelliteView(stoneOnly, [{ to: 134, item: 'water-stone', owned: 1 }]),
+    { state: 'ready', to: 134, more: 0, stone: 'water-stone' }
+  )
+  assert.equal(satelliteView(stoneOnly, [{ to: 134, item: 'water-stone', owned: 0 }]), null)
+  const soon = { branches: [
+    { to: 7, alts: [{ kind: 'level', ok: false, reasons: [L(3, 16)] }] },
+    { to: 8, alts: [{ kind: 'level', ok: false, reasons: [L(12, 16)] }] },
+  ] }
+  assert.deepEqual(satelliteView(soon, []), { state: 'soon', to: 8, have: 12, need: 16 })
+  const noLevel = { branches: [{ to: 9, alts: [{ kind: 'level', ok: false, reasons: [{ code: 'time', ok: false, need: 'night' }] }] }] }
+  assert.deepEqual(satelliteView(noLevel, []), { state: 'soon', to: 9, have: null, need: null })
+})

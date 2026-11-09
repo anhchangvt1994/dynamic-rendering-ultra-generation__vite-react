@@ -37,7 +37,8 @@ import ProfileSheet from './ProfileSheet'
 import RoomSprite from './RoomSprite'
 import { contrast, themeFor } from './roomTheme.mjs'
 import { spriteFor } from './sprite.mjs'
-import EvolveBadge from '../evolution/EvolveBadge'
+import EvolveSatellite from '../evolution/EvolveSatellite'
+import { useEvolution } from '../evolution/useEvolution'
 import { dockGesture, sheetDragClose } from './dockGesture.mjs'
 import { RoomStyle } from './styles'
 import { useReducedMotion } from './useMedia'
@@ -174,6 +175,7 @@ export default function Room({
   const now = care.now
   const feeling = state ? moodOf(state, individual.createdAt, now) : null
   const affection = state?.affection ?? 0
+  const evolutionApi = useEvolution(individual.id, affection)
   const level = levelOf(affection)
   const unlocks = unlocksAt(level)
   const nextAt = nextLevelAt(affection)
@@ -351,11 +353,6 @@ export default function Room({
                   {'★'.repeat(individual.potential.stars)}
                   {'☆'.repeat(5 - individual.potential.stars)}
                 </span>
-                <EvolveBadge
-                  individualId={individual.id}
-                  version={affection}
-                  inline
-                />
                 {siblings.length > 1 && at >= 0 && (
                   <span className="rm-count" aria-hidden="true">
                     {at + 1}/{siblings.length}
@@ -494,6 +491,7 @@ export default function Room({
                 }
               />
             )}
+            <EvolveSatellite individualId={individual.id} api={evolutionApi} />
             <span className="rm-sticker">{theme.sticker || 'Pokémon'}</span>
           </div>
         </div>

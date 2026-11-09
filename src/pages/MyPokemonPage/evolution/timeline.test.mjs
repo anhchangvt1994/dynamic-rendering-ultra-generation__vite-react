@@ -5,7 +5,7 @@ import { TOTAL, flickerWeight, frameAt, readyGlow } from './timeline.mjs'
 const range = (to, step) => Array.from({ length: Math.round(to / step) + 1 }, (_, i) => i * step)
 const UNIT = [
   'scrim', 'oldOpacity', 'newOpacity', 'glow', 'halo', 'ringOpacity', 'ring2Opacity',
-  'scanOn', 'orb', 'rays', 'shards', 'flash', 'shift', 'pageOpen', 'stamp', 'badge', 'waves',
+  'scanOn', 'orb', 'rays', 'shards', 'flash', 'lift', 'ticket', 'stamp', 'badge', 'waves',
 ]
 
 test('TOTAL is 15 s and frames are deterministic', () => {
@@ -39,15 +39,19 @@ test('displacement peaks near 46 around the swap and returns to 0', () => {
   assert.equal(frameAt(TOTAL).displaceScale, 0)
 })
 
-test('the field-notes page, stamp and deltas are shut before it opens and complete at the end', () => {
-  const f = frameAt(11.5)
-  assert.equal(f.pageOpen, 0)
+test('the ticket, stamp and deltas wait for the form to settle and are complete at the end', () => {
+  const f = frameAt(11.3)
+  assert.equal(f.lift, 0)
+  assert.equal(f.ticket, 0)
+  assert.ok(frameAt(12.2).lift > 0.99)
+  assert.ok(frameAt(12.2).ticket > 0)
   assert.equal(f.stamp, 0)
   assert.deepEqual(f.deltas, [0, 0, 0])
   const end = frameAt(TOTAL)
   assert.equal(end.stamp, 1)
   assert.deepEqual(end.deltas, [1, 1, 1])
-  assert.equal(end.pageOpen, 1)
+  assert.equal(end.ticket, 1)
+  assert.equal(end.lift, 1)
   assert.equal(end.badge, 1)
 })
 
@@ -103,7 +107,7 @@ test('the caption follows the story', () => {
   assert.equal(frameAt(0.1).caption, '')
   assert.match(frameAt(1).caption, /Có điều gì đó/)
   assert.match(frameAt(9).caption, /Tiến hoá!/)
-  assert.match(frameAt(13).caption, /Đã ghi vào sổ/)
+  assert.equal(frameAt(13).caption, '')
 })
 
 test('readyGlow breathes inside 0..1 and flashes twice every 4 s; reduced is constant', () => {

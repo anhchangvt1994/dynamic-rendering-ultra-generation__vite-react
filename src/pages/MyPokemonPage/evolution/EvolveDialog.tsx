@@ -1,6 +1,7 @@
 import { useModal } from 'pages/QuizPage/useModal'
 import type { CSSProperties } from 'react'
 import EvoArt from './EvoArt'
+import { itemName } from './itemName'
 import { bubbleLayout, STAGE } from './format.mjs'
 import { EvolveDialogStyle } from './styles'
 
@@ -10,8 +11,12 @@ export type PromptBranch = {
   lines: { ok: boolean; text: string }[]
 }
 
+export type StoneOption = { item: string; targets: number[] }
+
 type Props = {
   open: boolean
+  stones?: StoneOption[]
+  onStone?: (item: string, to: number) => void
   fromId: number
   name: string
   level: number | null
@@ -30,6 +35,8 @@ const pct = (v: number, of: number) => `${(v / of) * 100}%`
 /** The prompt (approved Dialog C): one big bubble, or a choice among bubbles. */
 export default function EvolveDialog({
   open,
+  stones = [],
+  onStone,
   fromId,
   name,
   level,
@@ -129,6 +136,25 @@ export default function EvolveDialog({
                 )
               })}
         </div>
+        {stones.length > 0 && (
+          <div className="ev-stones">
+            {stones.flatMap((st) =>
+              st.targets.map((to) => (
+                <button
+                  key={`${st.item}:${to}`}
+                  type="button"
+                  className="ev-btn"
+                  data-action="use-stone"
+                  aria-disabled={busy || undefined}
+                  onClick={() => !busy && onStone?.(st.item, to)}
+                >
+                  Dùng {itemName(st.item)}
+                  {many || st.targets.length > 1 ? ` → ${nameOf(to)}` : ''}
+                </button>
+              ))
+            )}
+          </div>
+        )}
         <p className="ev-err" role="alert">
           {error}
         </p>

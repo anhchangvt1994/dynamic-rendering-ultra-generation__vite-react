@@ -1004,6 +1004,10 @@ export const RoomStyle = styled.div`
     padding-top: var(--pt);
     padding-bottom: 52px;
   }
+  /* room for the evolution satellite above the rim */
+  .rm-stage:has([data-evolve-satellite]) {
+    --pt: 46px;
+  }
   .rm-disc {
     --R: calc(var(--disc) / 2);
     --ms: 58px;
@@ -2146,6 +2150,13 @@ export const RoomStyle = styled.div`
     background: #b23030;
   }
 
+  /* short landscape: the small circle has no room for the sticker next to the satellite */
+  @media (max-height: 480px) {
+    .rm-stage:has([data-evolve-satellite]) .rm-sticker {
+      display: none;
+    }
+  }
+
   /* ---------- desktop: the scene card left, the profile column right ---------- */
   @media (min-width: 960px) {
     --disc: clamp(220px, calc(100dvh - 555px), 400px);
@@ -2218,6 +2229,9 @@ export const RoomStyle = styled.div`
     .rm-stage {
       --pt: 36px;
       padding-bottom: 66px;
+    }
+    .rm-stage:has([data-evolve-satellite]) {
+      --pt: 52px;
     }
     .rm-disc::before {
       inset: -26px;
@@ -2303,6 +2317,9 @@ export const RoomStyle = styled.div`
     .rm-stage {
       --pt: 20px;
       padding-bottom: 44px;
+    }
+    .rm-stage:has([data-evolve-satellite]) {
+      --pt: 38px;
     }
     .rm-disc {
       --ms: 46px;

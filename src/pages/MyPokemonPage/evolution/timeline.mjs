@@ -15,7 +15,6 @@ const CAPTIONS = [
   [4.4, 6.2, 'Quét cấu trúc cơ thể'],
   [6.3, 8.0, 'Nước dậy sóng quanh nó…'],
   [8.4, 11.2, 'Tiến hoá!'],
-  [12.8, 14.3, 'Đã ghi vào sổ'],
 ]
 
 /** Sprite whiteness before the evolution: 2 → 12 Hz, amplitude .25 → 1, white hold 3.0–4.4 s. */
@@ -74,8 +73,8 @@ export function frameAt(u, { reduced = false } = {}) {
     raysScale: out(seg(w, 5.0, 5.5)),
     shards: burst ? shardP : 0,
     flash: burst && w > 5.0 && w < 5.5 ? 0.8 * Math.sin(Math.PI * seg(w, 5.0, 5.5)) : 0,
-    shift: ease(seg(w, 8.4, 9.2)),
-    pageOpen: seg(w, 8.8, 9.6),
+    lift: ease(seg(w, 8.4, 9.2)),
+    ticket: out(seg(w, 8.8, 9.6)),
     stamp: out(seg(w, 9.9, 10.2)),
     deltas: [0, 1, 2].map((i) => seg(w, 10.1 + i * 0.15, 10.4 + i * 0.15)),
     badge: ease(seg(w, 10.6, 10.9)),

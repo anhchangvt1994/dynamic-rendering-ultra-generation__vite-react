@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { closeEvolution, useEvolutionQueue } from './evolutionStore'
 import type { EvolutionRequest } from './evolutionStore'
 import EvolveDialog from './EvolveDialog'
-import { defaultChoice, promptBranches } from './format.mjs'
+import { defaultChoice, promptBranches, stoneGroups } from './format.mjs'
 import { snoozeKey } from './queue.mjs'
 import { snooze } from './snooze'
 import { useEvolution, type EvolveResult } from './useEvolution'
@@ -19,6 +19,7 @@ function Active({ request }: { request: EvolutionRequest }) {
   const { options, evolve, error, busy } = api
   const branches = promptBranches(options, request.item ?? null)
   const ready = branches.filter((b) => b.ready)
+  const stones = request.item ? [] : stoneGroups(api.items)
   const shown = result === null && (request.kind === 'prompt' || error)
 
   // one ready branch is chosen for the player
@@ -36,6 +37,18 @@ function Active({ request }: { request: EvolutionRequest }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request.id])
 
+  // nothing to choose and nothing went wrong: do not hold the queue
+  const empty =
+    result === null &&
+    request.kind === 'prompt' &&
+    Boolean(options) &&
+    !branches.length &&
+    !stones.length &&
+    !error
+  useEffect(() => {
+    if (empty) closeEvolution()
+  }, [empty])
+
   const later = () => {
     if (request.kind === 'prompt' && options)
       snooze(snoozeKey(request.individualId, options))
@@ -48,6 +61,7 @@ function Active({ request }: { request: EvolutionRequest }) {
         <EvolveFx
           fromId={result.receipt.from}
           toId={result.receipt.to}
+          fromName={nameOf(result.receipt.from)}
           toName={nameOf(result.receipt.to)}
           stats={result.diff?.stats ?? null}
           first={result.receipt.first}
@@ -59,7 +73,12 @@ function Active({ request }: { request: EvolutionRequest }) {
   const from = options?.species ?? 0
   return (
     <EvolveDialog
-      open={branches.length > 0 || Boolean(error)}
+      open={branches.length > 0 || stones.length > 0 || Boolean(error)}
+      stones={stones}
+      onStone={async (item, to) => {
+        const r = await evolve(to, item)
+        if (r) setResult(r)
+      }}
       fromId={from}
       name={nameOf(from)}
       level={options?.level ?? null}
