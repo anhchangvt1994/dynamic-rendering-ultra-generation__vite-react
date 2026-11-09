@@ -171,7 +171,7 @@ function fit(s, prev, P, w, h, long, cell) {
     qx += wt * p[2]
     qy += wt * p[3]
   }
-  if (W < MIN_WEIGHT) return null
+  if (W < 1e-6) return null
   px /= W
   py /= W
   qx /= W
