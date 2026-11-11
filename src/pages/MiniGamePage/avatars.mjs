@@ -1,4 +1,5 @@
-// The twelve trainer avatars and what unlocks them. The database's
+// The twelve trainer avatars and what unlocks them (level, mini-game wins,
+// Pokémon owned, team size; badges are kept for gym battles). The database's
 // trainer_set_avatar() checks the same table (trainer_avatars()).
 export const AVATARS = [
   { id: 'rookie', name: 'Tân binh', unlock: { type: 'free' } },
@@ -9,15 +10,27 @@ export const AVATARS = [
   { id: 'breeder', name: 'Người nhân giống', unlock: { type: 'level', level: 15 } },
   { id: 'ace', name: 'Át chủ bài', unlock: { type: 'level', level: 20 } },
   { id: 'champion', name: 'Nhà vô địch', unlock: { type: 'level', level: 30 } },
-  { id: 'duelist', name: 'Đấu thủ', unlock: { type: 'badge', badge: 'first_win' } },
-  { id: 'sage', name: 'Hiền giả', unlock: { type: 'badge', badge: 'flawless' } },
-  { id: 'collector', name: 'Nhà sưu tầm', unlock: { type: 'badge', badge: 'owned_20' } },
-  { id: 'captain', name: 'Đội trưởng', unlock: { type: 'badge', badge: 'full_team' } },
+  { id: 'duelist', name: 'Đấu thủ', unlock: { type: 'wins', wins: 1 } },
+  { id: 'sage', name: 'Hiền giả', unlock: { type: 'wins', wins: 10 } },
+  { id: 'collector', name: 'Nhà sưu tầm', unlock: { type: 'owned', owned: 20 } },
+  { id: 'captain', name: 'Đội trưởng', unlock: { type: 'team', size: 6 } },
 ]
 
-export const avatarUnlocked = (avatar, { level, badges }) => {
+// level: trainer level, wins: mini-game wins (all games), owned: Pokémon owned, team: team size
+export const avatarUnlocked = (avatar, { level, wins = 0, owned = 0, team = 0 }) => {
   const { unlock } = avatar
-  if (unlock.type === 'free') return true
-  if (unlock.type === 'level') return level >= unlock.level
-  return badges.includes(unlock.badge)
+  switch (unlock.type) {
+    case 'free':
+      return true
+    case 'level':
+      return level >= unlock.level
+    case 'wins':
+      return wins >= unlock.wins
+    case 'owned':
+      return owned >= unlock.owned
+    case 'team':
+      return team >= unlock.size
+    default:
+      return false
+  }
 }

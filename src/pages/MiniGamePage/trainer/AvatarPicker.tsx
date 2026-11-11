@@ -2,28 +2,34 @@ import { useState } from 'react'
 import { AVATARS, avatarUnlocked } from '../avatars.mjs'
 import AvatarArt from './AvatarArt'
 
-type Trainer = { level: number; avatar: string }
+type Trainer = { level: number; avatar: string; owned: number; team: string[] }
 
 const need = (unlock: any) =>
   unlock.type === 'level'
     ? `Cần trainer level ${unlock.level}`
-    : unlock.type === 'badge'
-      ? 'Chưa mở'
-      : ''
+    : unlock.type === 'wins'
+      ? `Thắng ${unlock.wins} ván mini-game`
+      : unlock.type === 'owned'
+        ? `Cần ${unlock.owned} Pokémon`
+        : unlock.type === 'team'
+          ? `Đội hình đủ ${unlock.size} Pokémon`
+          : ''
 
 /** The twelve avatars; a locked one says what opens it. */
 export default function AvatarPicker({
   trainer,
   onPick,
   onDone,
+  wins,
 }: {
+  wins: number
   trainer: Trainer
   onPick: (id: string) => Promise<void>
   onDone: () => void
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const state = { level: trainer.level, badges: [] as string[] }
+  const state = { level: trainer.level, wins, owned: trainer.owned, team: trainer.team.length }
   return (
     <>
       <ul className="tr-avatars">

@@ -22,6 +22,6 @@ test('minigame_rules() equals MINIGAME', () => {
 
 test('trainer_avatars() equals AVATARS', async () => {
   const { AVATARS } = await import('./avatars.mjs')
-  const body = between(migration('20261121000050_trainer_badges.sql'), '$avatars$')
+  const body = between(migration('20261122000400_avatar_unlocks.sql'), '$avatars$')
   assert.deepEqual(JSON.parse(body), AVATARS)
 })

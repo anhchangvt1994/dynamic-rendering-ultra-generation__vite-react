@@ -54,7 +54,12 @@ export default function TrainerCard({ mg }: { mg: ReturnType<typeof useMiniGame>
         </button>
       </div>
       <GameSheet open={sheet === 'avatar'} onClose={close} title="Chọn avatar">
-        <AvatarPicker trainer={trainer} onPick={mg.setAvatar} onDone={close} />
+        <AvatarPicker
+          trainer={trainer}
+          wins={Object.values(mg.status?.games ?? {}).reduce((n, g) => n + g.wins, 0)}
+          onPick={mg.setAvatar}
+          onDone={close}
+        />
       </GameSheet>
       <GameSheet open={sheet === 'team'} onClose={close} title="Đội hình">
         {sheet === 'team' && (

@@ -23,26 +23,26 @@ test('badge catalog has the eleven badges', () => {
   for (const b of BADGES) assert.ok(b.label && b.hint, b.id)
 })
 
-test('twelve unique avatars, three free, every badge unlock exists', () => {
+test('twelve unique avatars, three free, none unlocked by a badge', () => {
   assert.equal(AVATARS.length, 12)
   assert.equal(new Set(AVATARS.map((a) => a.id)).size, 12)
   assert.equal(AVATARS.filter((a) => a.unlock.type === 'free').length, 3)
   assert.equal(AVATARS[0].id, 'rookie')
-  const badgeIds = new Set(BADGES.map((b) => b.id))
-  for (const a of AVATARS) {
-    if (a.unlock.type === 'badge') assert.ok(badgeIds.has(a.unlock.badge), a.id)
-  }
+  assert.equal(AVATARS.filter((a) => a.unlock.type === 'badge').length, 0)
 })
 
-test('avatarUnlocked by level and by badge', () => {
-  const byLevel = AVATARS.find((a) => a.unlock.type === 'level' && a.unlock.level === 5)
-  assert.equal(avatarUnlocked(byLevel, { level: 4, badges: [] }), false)
-  assert.equal(avatarUnlocked(byLevel, { level: 5, badges: [] }), true)
-  const byBadge = AVATARS.find((a) => a.unlock.type === 'badge')
-  assert.equal(avatarUnlocked(byBadge, { level: 30, badges: [] }), false)
-  assert.equal(
-    avatarUnlocked(byBadge, { level: 1, badges: [byBadge.unlock.badge] }),
-    true,
-  )
-  assert.equal(avatarUnlocked(AVATARS[0], { level: 1, badges: [] }), true)
+test('avatarUnlocked by level, wins, owned and team', () => {
+  const by = (id) => AVATARS.find((a) => a.id === id)
+  const none = { level: 1, wins: 0, owned: 0, team: 0 }
+  assert.equal(avatarUnlocked(by('hiker'), { ...none, level: 4 }), false)
+  assert.equal(avatarUnlocked(by('hiker'), { ...none, level: 5 }), true)
+  assert.equal(avatarUnlocked(by('duelist'), none), false)
+  assert.equal(avatarUnlocked(by('duelist'), { ...none, wins: 1 }), true)
+  assert.equal(avatarUnlocked(by('sage'), { ...none, wins: 9 }), false)
+  assert.equal(avatarUnlocked(by('sage'), { ...none, wins: 10 }), true)
+  assert.equal(avatarUnlocked(by('collector'), { ...none, owned: 19 }), false)
+  assert.equal(avatarUnlocked(by('collector'), { ...none, owned: 20 }), true)
+  assert.equal(avatarUnlocked(by('captain'), { ...none, team: 5 }), false)
+  assert.equal(avatarUnlocked(by('captain'), { ...none, team: 6 }), true)
+  assert.equal(avatarUnlocked(AVATARS[0], none), true)
 })
