@@ -286,8 +286,11 @@ export function pokemonArtFolder(root) {
   return asked.status === 0 ? asked.stdout.trim().split('\n').pop() : undefined
 }
 
-// quietMs: leave a species alone while a file in it changed that recently or
-// an rsync temp file (.name.XXXX) is still there: the upload is not done.
+// Reconcile the inbox with the folder the server reads: every file the target
+// lacks (or holds a different copy of) is moved over; identical leftovers are
+// dropped from the inbox. Files the target has and the inbox lacks stay.
+// quietMs: leave a file alone while it changed that recently or is an rsync
+// temp file (.name.XXXX): its upload is not done.
 export function adoptPokemonArt(
   root,
   log = logDefault,
@@ -306,48 +309,56 @@ export function adoptPokemonArt(
   if (inbox === target || !fs.existsSync(inbox)) return 0
   fs.mkdirSync(target, { recursive: true })
   let moved = 0
-  for (const entry of fs.readdirSync(inbox, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue
-    const to = path.join(target, entry.name)
-    const from = path.join(inbox, entry.name)
-    if (quietMs) {
-      const files = fs.readdirSync(from, { withFileTypes: true })
+  const species = new Set()
+  const sync = (from, to, name) => {
+    for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+      const src = path.join(from, entry.name)
+      const dest = path.join(to, entry.name)
+      if (entry.isDirectory()) {
+        sync(src, dest, name || entry.name)
+        try {
+          fs.rmdirSync(src) // only succeeds once emptied
+        } catch {}
+        continue
+      }
+      if (!entry.isFile() || entry.name === '.DS_Store') continue
+      const stat = fs.statSync(src)
       if (
-        !files.length ||
-        files.some(
-          (f) =>
-            f.name.startsWith('.') ||
-            Date.now() - fs.statSync(path.join(from, f.name)).mtimeMs < quietMs
-        )
+        quietMs &&
+        (entry.name.startsWith('.') || Date.now() - stat.mtimeMs < quietMs)
       )
         continue
+      const have = fs.existsSync(dest) ? fs.statSync(dest) : null
+      if (
+        have &&
+        have.size === stat.size &&
+        Math.abs(have.mtimeMs - stat.mtimeMs) < 2
+      ) {
+        fs.rmSync(src) // already deployed
+        continue
+      }
+      fs.mkdirSync(to, { recursive: true })
+      const temp = `${dest}.adopt-${process.pid}`
+      fs.copyFileSync(src, temp)
+      fs.utimesSync(temp, stat.atime, stat.mtime)
+      fs.renameSync(temp, dest)
+      fs.rmSync(src)
+      moved++
+      species.add(name || entry.name)
     }
-    // A re-upload replaces the species: set the old folder aside, swap, drop it.
-    const old = fs.existsSync(to) ? `${to}.old-${process.pid}` : null
-    if (old) {
-      fs.rmSync(old, { recursive: true, force: true })
-      fs.renameSync(to, old)
-    }
+  }
+  for (const entry of fs.readdirSync(inbox, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const from = path.join(inbox, entry.name)
+    sync(from, path.join(target, entry.name), entry.name)
     try {
-      try {
-        fs.renameSync(from, to)
-      } catch (error) {
-        if (error.code !== 'EXDEV') throw error
-        fs.cpSync(from, to, { recursive: true })
-        fs.rmSync(from, { recursive: true, force: true })
-      }
-    } catch (error) {
-      if (old) {
-        fs.rmSync(to, { recursive: true, force: true })
-        fs.renameSync(old, to)
-      }
-      throw error
-    }
-    if (old) fs.rmSync(old, { recursive: true, force: true })
-    moved++
+      fs.rmdirSync(from)
+    } catch {}
   }
   if (moved)
-    log(`Moved ${moved} Pokémon art folders from ${inbox} to ${target}`)
+    log(
+      `Moved ${moved} files (${species.size} Pokémon) from ${inbox} to ${target}`
+    )
   return moved
 }
 
