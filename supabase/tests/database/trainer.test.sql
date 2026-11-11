@@ -53,6 +53,17 @@ insert into public.pokemon_evolution_log(user_id,operation_id,individual_id,bran
 ('a1000000-0000-4000-8000-000000000001','a5000000-0000-4000-8000-000000000001','a2000000-0000-4000-8000-000000000001',0,'{}');
 select is((select xp from public.trainer_profiles where user_id='a1000000-0000-4000-8000-000000000001'),37,'an evolution pays 15');
 
+-- the care trigger honours the daily cap of 10 (user A already earned 1 today)
+insert into public.pokemon_care_ops(user_id,operation_id,individual_id,action,receipt)
+select 'a1000000-0000-4000-8000-000000000001',('a6000000-0000-4000-8000-0000000000'||lpad(n::text,2,'0'))::uuid,'a2000000-0000-4000-8000-000000000001','pet','{}' from generate_series(1,12) n;
+select is((select xp from public.trainer_profiles where user_id='a1000000-0000-4000-8000-000000000001'),46,'12 more care actions only pay up to the daily cap');
+select is((select care_xp::int from public.trainer_profiles where user_id='a1000000-0000-4000-8000-000000000001'),10,'care xp stops at 10');
+update public.trainer_profiles set care_xp_day=care_xp_day-1 where user_id='a1000000-0000-4000-8000-000000000001';
+insert into public.pokemon_care_ops(user_id,operation_id,individual_id,action,receipt) values
+('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000002','a2000000-0000-4000-8000-000000000001','pet','{}');
+select is((select xp from public.trainer_profiles where user_id='a1000000-0000-4000-8000-000000000001'),47,'a new day resets the care counter');
+select is((select care_xp::int from public.trainer_profiles where user_id='a1000000-0000-4000-8000-000000000001'),1,'counter restarts at 1');
+
 -- row level security
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"a1000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
