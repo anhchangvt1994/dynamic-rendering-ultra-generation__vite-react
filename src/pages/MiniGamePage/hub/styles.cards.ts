@@ -63,14 +63,16 @@ export const cardsCss = css`
     overflow: hidden;
   }
 
-  /* ---- stamp card (quests): paper ---- */
+  /* ---- stamp strip (quests): paper ---- */
   .sc {
     position: relative;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 28px 64px 36px;
+    align-content: space-between;
     gap: 8px;
     height: 100%;
-    padding: 14px;
+    padding: 10px 14px;
     border-radius: 20px;
     color: var(--ink);
     background:
@@ -83,58 +85,101 @@ export const cardsCss = css`
     min-width: 0;
     min-height: 0;
   }
-  .sc h2 {
+  .sc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 28px;
+  }
+  .sc h2,
+  .sc-err {
     margin: 0;
-    font-size: 19px;
-    line-height: 26px;
+    min-width: 0;
+    font-size: 17px;
+    line-height: 28px;
     font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .sc-err {
+    font-size: 13.5px;
+    color: #9b1230;
+  }
+  .sc-lv {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -8px 0;
+    padding: 0 6px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .sc-lv:focus-visible,
+  .sc-go:focus-visible,
+  .sc-done:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
   .sc-rows {
-    display: grid;
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    display: flex;
     gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .sc-rows::-webkit-scrollbar {
+    display: none;
   }
   .sc-row {
+    flex: 0 0 180px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 4px 10px;
-    align-items: center;
-    padding: 8px 10px;
+    grid-template-rows: 22px 22px;
+    align-content: center;
+    gap: 4px 8px;
+    padding: 6px 8px 6px 12px;
     border-radius: 14px;
     background: rgba(43, 26, 61, 0.07);
+    scroll-snap-align: start;
     overflow: hidden;
   }
   .sc-row b {
-    font-size: 15px;
-    line-height: 18px;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-  .sc-row small {
     grid-column: 1;
-    font-size: 12.5px;
-    line-height: 16px;
-    opacity: 0.8;
+    font-size: 14px;
+    line-height: 22px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .sc-row small {
+    grid-column: 1;
+    font-size: 12.5px;
+    line-height: 22px;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
   .sc-row[data-empty] {
     background: transparent;
     box-shadow: inset 0 0 0 2px rgba(43, 26, 61, 0.12);
-    border-style: dashed;
+  }
+  .sc-meter {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .sc-bar {
-    grid-column: 1;
+    flex: 1;
     height: 8px;
     border-radius: 4px;
     background: rgba(43, 26, 61, 0.16);
@@ -151,13 +196,19 @@ export const cardsCss = css`
   .sc-go {
     grid-row: 1 / -1;
     grid-column: 2;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
     min-height: 44px;
-    padding: 0 14px;
+    padding: 0 12px;
     border: 0;
     border-radius: 12px;
     font: inherit;
     font-weight: 800;
     color: var(--ink);
+    text-decoration: none;
     background: linear-gradient(180deg, #ff9db3, var(--coral));
     cursor: pointer;
   }
@@ -165,18 +216,14 @@ export const cardsCss = css`
     opacity: 0.6;
     cursor: default;
   }
-  .sc-go:focus-visible,
-  .sc-done:focus-visible {
-    outline: 3px solid var(--ink);
-    outline-offset: 2px;
-  }
   .sc-stamp {
     grid-row: 1 / -1;
     grid-column: 2;
+    align-self: center;
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     font-weight: 800;
     color: var(--coral);
@@ -197,23 +244,26 @@ export const cardsCss = css`
     }
   }
   .sc-lock {
-    grid-row: 2;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 6px;
-    padding: 12px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px;
     border-radius: 14px;
     box-shadow: inset 0 0 0 2px rgba(43, 26, 61, 0.14);
   }
-  .sc-lock b {
-    font-size: 16px;
-  }
   .sc-lock span {
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 18px;
-    opacity: 0.8;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .sc-lock .sc-go {
+    grid-row: auto;
+    grid-column: auto;
+    flex: none;
   }
   .sc-streak {
     display: flex;
@@ -222,18 +272,17 @@ export const cardsCss = css`
     margin: 0;
     padding: 0 2px;
     list-style: none;
-    height: 36px;
   }
   .sc-dot {
     display: grid;
     place-items: center;
+    flex: none;
     width: 28px;
     height: 28px;
     border-radius: 50%;
     font-size: 12px;
     font-weight: 800;
     box-shadow: inset 0 0 0 2px rgba(43, 26, 61, 0.28);
-    border: 0;
   }
   .sc-dot[data-on] {
     color: var(--ink);
@@ -245,21 +294,23 @@ export const cardsCss = css`
     height: 36px;
     font-size: 17px;
   }
-  .sc-note {
-    margin: 0;
-    height: 36px;
-    font-size: 12.5px;
-    line-height: 18px;
-    opacity: 0.85;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-  .sc-note[data-error] {
-    opacity: 1;
-    font-weight: 700;
-    color: #9b1230;
+  @media (min-width: 640px) {
+    .sc {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: 28px 64px;
+      column-gap: 20px;
+    }
+    .sc-head {
+      grid-column: 1 / -1;
+    }
+    .sc-row {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .sc-streak {
+      gap: 8px;
+      justify-content: flex-end;
+    }
   }
   .sc-gift {
     position: absolute;

@@ -88,11 +88,63 @@ export const HubShellStyle = styled.div`
     height: var(--h-quests);
     border-radius: 20px;
   }
-  .hub-booths {
+  .hub-carousel {
     grid-area: booths;
-    display: grid;
+    min-width: 0;
+  }
+  /* phones: a snap row, the next cabinet peeks */
+  .hub-booths {
+    display: flex;
     gap: var(--gap);
-    grid-template-columns: minmax(0, 1fr);
+    margin-block: -14px;
+    padding-block: 14px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .hub-booths::-webkit-scrollbar {
+    display: none;
+  }
+  .hub-booths > [data-region='booth'] {
+    flex: 0 0 86%;
+    scroll-snap-align: start;
+  }
+  .hub-dots {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    height: 44px;
+  }
+  .hub-dot {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .hub-dot::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transition: transform 200ms var(--spring), background 200ms;
+  }
+  .hub-dot[data-on]::before {
+    background: var(--gold);
+    transform: scale(1.4);
+  }
+  .hub-dot:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: -6px;
+    border-radius: 12px;
   }
   [data-region='booth'] {
     height: var(--h-booth);
@@ -264,7 +316,17 @@ export const HubShellStyle = styled.div`
     --pad: 28px;
     --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
     .hub-booths {
+      display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-block: 0;
+      padding-block: 0;
+      overflow: visible;
+    }
+    .hub-booths > [data-region='booth'] {
+      flex: none;
+    }
+    .hub-dots {
+      display: none;
     }
   }
   @media (min-width: ${lg}px) {

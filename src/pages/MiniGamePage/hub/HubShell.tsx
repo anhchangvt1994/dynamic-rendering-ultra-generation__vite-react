@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type HTMLAttributes, type ReactNode } from 'react'
 import Bulbs from './Bulbs'
+import Carousel from './Carousel'
 import { shouldReveal } from './reveal.mjs'
 import { HubShellStyle } from './styles.hub'
 
@@ -45,7 +46,7 @@ export default function HubShell({ children, skeleton, ...rest }: Props) {
   )
 }
 
-/** Wrapper for the booth boxes (one per game). */
-export const HubBooths = ({ children }: { children: ReactNode }) => (
-  <div className="hub-booths">{children}</div>
+/** Wrapper for the cabinets (one per game): a snap row on phones, a grid from md. */
+export const HubBooths = ({ children, skeleton }: { children: ReactNode; skeleton?: boolean }) => (
+  <Carousel skeleton={skeleton}>{children}</Carousel>
 )

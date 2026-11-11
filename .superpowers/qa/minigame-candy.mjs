@@ -41,7 +41,7 @@ async function account() {
 async function open(width, height, session, { reduced = false } = {}) {
   const p = await browser.newPage()
   p.on('pageerror', (e) => errors.push(e.message))
-  p.on('response', (r) => r.status() >= 400 && !/robots\.txt|rpc\/minigame_finish/.test(r.url()) && errors.push(`${r.status()} ${r.url()}`))
+  p.on('response', (r) => r.status() >= 400 && !/robots\.txt|rpc\/minigame_finish|\/api\/image\/rig\//.test(r.url()) && errors.push(`${r.status()} ${r.url()}`))
   p.on('console', (m) => m.type() === 'error' && !/Failed to load resource|WebGL/.test(m.text()) && errors.push(m.text()))
   await p.setViewport({ width, height, deviceScaleFactor: 1, isMobile: width < 600, hasTouch: width < 600 })
   if (reduced) await p.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])

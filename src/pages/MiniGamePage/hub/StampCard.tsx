@@ -29,53 +29,67 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
   }
   const days = guest ? 0 : streak
   const dots = streakDots(days, items.some((i) => i.claimed))
-  const note = guest
-    ? 'Đăng nhập để nhận nhiệm vụ mỗi ngày.'
-    : `Nhận nhiệm vụ mỗi ngày: đủ ${STREAK_DAYS} ngày nhận thêm quà lớn.`
+  const level = mg.status?.trainer?.level
 
   return (
-    <section data-region="quests" style={{ ['--n' as string]: 4 }} aria-label="Nhiệm vụ hằng ngày">
+    <section data-region="quests" aria-label="Nhiệm vụ hằng ngày">
       <div className="sc">
-        <h2>Nhiệm vụ hằng ngày</h2>
+        <header className="sc-head">
+          {error ? (
+            <p className="sc-err" role="alert">
+              {error}
+            </p>
+          ) : (
+            <h2>Nhiệm vụ hằng ngày</h2>
+          )}
+          {!guest && level != null && (
+            <a className="sc-lv" href="/dang-nhap">
+              Trainer Lv {level}
+            </a>
+          )}
+        </header>
         {guest ? (
           <div className="sc-lock">
-            <b>Thẻ tem đang khóa</b>
             <span>Đăng nhập để nhận 3 nhiệm vụ và tem mỗi ngày.</span>
+            <a className="sc-go" href="/dang-nhap">
+              Đăng nhập
+            </a>
           </div>
         ) : (
-          <ul className="sc-rows">
+          <ul className="sc-rows" tabIndex={-1}>
             {Array.from({ length: SLOTS }, (_, i) => {
               const q = items[i]
               if (!q) return <li key={`e${i}`} className="sc-row" data-empty />
               return (
                 <li key={`${q.slot}-${q.kind}`} className="sc-row" data-state={q.state}>
-                  <b>{q.label}</b>
+                  <b title={q.label}>{q.label}</b>
                   {q.state === 'done' ? (
                     <button type="button" className="sc-go" disabled={pending !== null} onClick={() => onClaim(q.slot)}>
-                      Nhận quà
+                      Nhận
                     </button>
                   ) : q.state === 'claimed' ? (
-                    <span className="sc-stamp" data-slam={slam === q.slot || undefined} aria-label="Đã nhận">
+                    <span className="sc-stamp" data-slam={slam === q.slot || undefined} role="img" aria-label="Đã nhận">
                       ✓
                     </span>
                   ) : null}
                   {q.state === 'doing' ? (
-                    <>
-                      <small>
-                        {q.progress}/{q.goal}
-                      </small>
+                    <span className="sc-meter">
                       <span
                         className="sc-bar"
                         role="progressbar"
+                        aria-label={q.label}
                         aria-valuemin={0}
                         aria-valuemax={q.goal}
                         aria-valuenow={q.progress}
                       >
                         <i style={{ transform: `scaleX(${Math.min(1, q.progress / q.goal)})` }} />
                       </span>
-                    </>
+                      <small>
+                        {q.progress}/{q.goal}
+                      </small>
+                    </span>
                   ) : (
-                    <small>+{q.xp} điểm huấn luyện viên</small>
+                    <small>+{q.xp} điểm</small>
                   )}
                 </li>
               )
@@ -89,9 +103,6 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
             </li>
           ))}
         </ul>
-        <p className="sc-note" data-error={error ? '' : undefined} role={error ? 'alert' : undefined}>
-          {error ?? note}
-        </p>
         {got && (
           <div className="sc-gift">
             <GiftChest key={`${got.slot}-${got.streak}`} items={[...got.gift, ...(got.streakGift ?? [])]} />
