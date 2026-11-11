@@ -32,7 +32,7 @@ Hằng số `MINIGAME.CANDY`:
 | `COLS`, `ROWS` | 6, 7 |
 | `KINDS` theo độ khó 1/2/3 | 4, 5, 6 loại kẹo |
 | `MOVES` | 20, 18, 16 |
-| `TARGET` | 600, 800, 1000 điểm |
+| `TARGET` | 3000, 3000, 2400 điểm (chỉnh 2026-11-11: mô phỏng cho thấy 600/800/1000 thắng 100% với chơi ngẫu nhiên) |
 | `CELL` | 10 điểm cơ bản mỗi ô |
 | `TAPE` | 1000 giá trị |
 | `FLAWLESS_LEFT` | 0.25 (thắng còn ≥ 25% nước đi) |

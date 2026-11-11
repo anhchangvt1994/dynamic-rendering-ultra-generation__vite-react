@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- `MINIGAME.CANDY`: `COLS 6`, `ROWS 7`, `KINDS [4,5,6]`, `MOVES [20,18,16]`, `TARGET [600,800,1000]`, `CELL 10`, `TAPE 1000`, `FLAWLESS_LEFT 0.25`. Clock `DURATION_S 300`, `TOLERANCE_S 5`.
+- `MINIGAME.CANDY`: `COLS 6`, `ROWS 7`, `KINDS [4,5,6]`, `MOVES [20,18,16]`, `TARGET [3000,3000,2400]`, `CELL 10`, `TAPE 1000`, `FLAWLESS_LEFT 0.25`. Clock `DURATION_S 300`, `TOLERANCE_S 5`.
 - Cell index `row * COLS + col`, row 0 on top. Move `[a, b]` = adjacent cells (same row ±1 col, or same col ±1 row) and must create a line ≥ 3.
 - Tape value `i` = `md5(seed::text || ':t:' || i::text)` mapped to `0..KINDS-1`; index wraps at `TAPE`.
 - Initial board: reading order, take next tape value, skip (consume) a value that makes 3 in a row with the 2 cells to the left or above; if no valid move, regenerate the whole grid from the current tape position.
@@ -67,7 +67,7 @@
 **Interfaces:**
 - Consumes: `vectors.json`, engine rules (Task 1); current `minigame_settle`/`minigame_status` bodies in `20261122000200_minigame_quests.sql` (lines ~104–280), `minigame_start` in `20261121000100_minigame.sql`.
 - Produces (SQL, all `security definer set search_path = ''`, revoked from `public, anon, authenticated` except as noted):
-  - `minigame_rules()` — same JSON plus `"CANDY": {"COLS":6,"ROWS":7,"KINDS":[4,5,6],"MOVES":[20,18,16],"TARGET":[600,800,1000],"CELL":10,"TAPE":1000,"FLAWLESS_LEFT":0.25}`
+  - `minigame_rules()` — same JSON plus `"CANDY": {"COLS":6,"ROWS":7,"KINDS":[4,5,6],"MOVES":[20,18,16],"TARGET":[3000,3000,2400],"CELL":10,"TAPE":1000,"FLAWLESS_LEFT":0.25}`
   - `minigame_candy_lines(p_board int[]) returns int[]`
   - `minigame_candy_has_move(p_board int[]) returns boolean`
   - `minigame_candy_fill(p_tape int[], p_kinds int, p_pos int) returns jsonb` → `{board, pos}`

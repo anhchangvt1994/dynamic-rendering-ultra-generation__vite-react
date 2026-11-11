@@ -42,6 +42,16 @@ export const MINIGAME = {
   ],
   CHEST_SURE_W: { 3: 92, 4: 8 },
   CHEST_REST_W: { 1: 40, 2: 48, 3: 10, 4: 2 },
+  CANDY: {
+    COLS: 6,
+    ROWS: 7,
+    KINDS: [4, 5, 6],
+    MOVES: [20, 18, 16],
+    TARGET: [3000, 3000, 2400],
+    CELL: 10,
+    TAPE: 1000,
+    FLAWLESS_LEFT: 0.25,
+  },
 }
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x))
