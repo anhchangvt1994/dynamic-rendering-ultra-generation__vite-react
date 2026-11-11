@@ -38,11 +38,11 @@ test('mutations send the operation id and the choice only', async () => {
 test('server errors map to Vietnamese codes; guests are refused', async () => {
   const deps = {
     mode: 'server',
-    supabase: fake({ data: null, error: { message: 'item_limit' } }),
+    supabase: fake({ data: null, error: { message: 'iv_maxed' } }),
   }
   await assert.rejects(useItem(deps, 'o', 'i', 'rare-candy'), {
-    code: 'item_limit',
-    message: 'Đã dùng đủ 3 vật phẩm',
+    code: 'iv_maxed',
+    message: 'Chỉ số này đã tối đa',
   })
   await assert.rejects(fetchBuild({ mode: 'guest' }, 'i'), {
     code: 'build_unavailable',

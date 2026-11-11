@@ -8,7 +8,6 @@ export const BUILD_ERRORS = {
 }
 
 const KNOWN = [
-  'item_limit',
   'iv_maxed',
   'level_capped',
   'no_item',
@@ -20,7 +19,6 @@ const KNOWN = [
   'already_awakened',
 ]
 const MESSAGES = {
-  item_limit: 'Đã dùng đủ 3 vật phẩm',
   iv_maxed: 'Chỉ số này đã tối đa',
   level_capped: 'Đã chạm trần cấp',
   no_item: 'Không có vật phẩm này',

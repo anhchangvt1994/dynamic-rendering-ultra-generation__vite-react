@@ -15,7 +15,6 @@ import {
 import { useBuild } from './useBuild'
 import { useLearnset } from './useLearnset'
 
-const ITEM_MAX = 3
 const AWAKEN_AT = 450
 const GENDER = { male: '♂ Đực', female: '♀ Cái', none: 'Vô tính' }
 const USABLE = ['bottle-cap', 'gold-bottle-cap', 'rare-candy'] as const
@@ -95,7 +94,6 @@ export default function BuildPanel({ item, affection, api }: Props) {
       ? 1
       : (build.exp - build.expFloor) / (build.expNext - build.expFloor)
   const itemReason = (id: (typeof USABLE)[number]) => {
-    if (build.itemUses >= ITEM_MAX) return `Đã dùng đủ ${ITEM_MAX} lần`
     if (!(owned[id] > 0)) return 'Không có trong túi'
     if (id === 'rare-candy' && build.capped) return 'Đã chạm trần cấp'
     if (id === 'gold-bottle-cap' && build.iv.every((v) => v >= 31))
@@ -252,7 +250,7 @@ export default function BuildPanel({ item, affection, api }: Props) {
         <h3 className="bp-h">
           Vật phẩm hiếm{' '}
           <small>
-            {build.itemUses}/{ITEM_MAX} lần
+            {build.itemUses} lần
           </small>
         </h3>
         <ul className="bp-items">

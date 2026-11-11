@@ -1,6 +1,6 @@
 -- Pokémon build items: bottle caps, rare candy, the 3-use limit, awakening
 begin;
-select plan(28);
+select plan(30);
 
 insert into auth.users(id,email,aud,role) values
 ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','items-a@example.invalid','authenticated','authenticated'),
@@ -46,6 +46,7 @@ select throws_ok($$select public.pokemon_use_item(gen_random_uuid(),'e0000000-00
 insert into receipts values ('gold', public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000001','gold-bottle-cap'));
 select is((select v->'iv' from receipts where k='gold'),'[31,31,31,31,31,31]'::jsonb,'gold cap: every IV 31');
 select is((select (v->>'stars')::int from receipts where k='gold'),3,'perfect IVs lift 1 star to 3');
+select is((select (v->>'itemUses')::int from receipts where k='gold'),1,'the gold cap is not counted (1 = the earlier bottle cap)');
 select is((select count(*)::int from public.bag where item_id='gold-bottle-cap'),0,'the last gold cap removes the row');
 
 -- rare candy
@@ -54,8 +55,9 @@ select is((select (v->>'level')::int from receipts where k='candy'),2,'rare cand
 select is((select (v->>'itemUses')::int from receipts where k='candy'),1,'candy counts as a use');
 select public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000002','rare-candy');
 select public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000002','rare-candy');
-select throws_ok($$select public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000002','rare-candy')$$,'P0001','item_limit','the 4th use is refused');
-select is((select count from public.bag where item_id='rare-candy'),3,'the refused 4th spends no candy');
+select is((select (public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000002','rare-candy')->>'itemUses')::int),4,'a 4th use is allowed: no limit');
+select is((select count from public.bag where item_id='rare-candy'),2,'the 4th spends a candy');
+select throws_ok($$select public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000001','gold-bottle-cap')$$,'P0001','iv_maxed','the gold cap is one use per Pokémon');
 select throws_ok($$select public.pokemon_use_item(gen_random_uuid(),'e0000000-0000-4000-8000-000000000005','rare-candy')$$,'P0001','level_capped','no candy at the level cap');
 
 -- someone else's individual

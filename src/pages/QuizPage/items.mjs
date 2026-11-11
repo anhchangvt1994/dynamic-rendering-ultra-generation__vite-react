@@ -160,6 +160,7 @@ export const ITEMS = [
     stats: [
       ['IV', '6 × 31'],
       ['Áp dụng', 'Cả 6 chỉ số'],
+      ['Dùng', '1 lần / Pokémon'],
     ],
   },
   {
