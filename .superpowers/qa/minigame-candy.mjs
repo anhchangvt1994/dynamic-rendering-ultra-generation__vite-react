@@ -63,7 +63,7 @@ const clickText = (p, sel, re) => p.evaluate((s, r) => {
   return true
 }, sel, re)
 const openCandy = async (p) => {
-  await p.evaluate(() => [...document.querySelectorAll('.mgp-card')].find((c) => /Candy Rush/.test(c.innerText)).querySelector('.mgp-play').click())
+  await p.evaluate(() => [...document.querySelectorAll('[data-region="booth"]')].find((c) => /Candy Rush/.test(c.innerText)).querySelector('.mgp-play').click())
   await until(p, () => !!document.querySelector('.mg-panel'))
   await wait(400)
 }
@@ -118,7 +118,7 @@ async function signedIn(width, height) {
   const tag = `${width}x${height}`
   const acc = await account()
   const p = await open(width, height, acc.session)
-  check(`${tag}: page lists Candy Rush with its own 3 turns`, await p.evaluate(() => { const c = [...document.querySelectorAll('.mgp-card')].find((x) => /Candy Rush/.test(x.innerText)); return !!c && /Còn 3\/3 lượt/.test(c.querySelector('.mgp-turns')?.innerText ?? '') }))
+  check(`${tag}: page lists Candy Rush with its own 3 turns`, await p.evaluate(() => { const c = [...document.querySelectorAll('[data-region="booth"]')].find((x) => /Candy Rush/.test(x.innerText)); return !!c && /Còn 3\/3 lượt/.test(c.querySelector('.hub-tickets')?.innerText ?? '') }))
   await p.screenshot({ path: `${D}/candy-page-${width}.png` })
   await openCandy(p)
   await until(p, () => document.querySelectorAll('.mg-pick').length >= 1, null, 15000)

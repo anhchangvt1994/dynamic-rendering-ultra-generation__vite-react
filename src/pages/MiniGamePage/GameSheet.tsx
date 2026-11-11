@@ -68,6 +68,7 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
         }}
       >
         <span className="mg-grab" aria-hidden="true" />
+        <span className="mg-bulbs" aria-hidden="true" />
         <div className="mg-head">
           <h2>{title ?? 'Mini game'}</h2>
           <button type="button" className="mg-x" aria-label="Đóng" onClick={onClose}>

@@ -14,6 +14,7 @@ import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import Burst from './Burst'
 import ComboMeter from './ComboMeter'
 import GiftChest from './GiftChest'
+import Confetti from './hub/ConfettiFall'
 import { nextRun, tierOf } from './combo.mjs'
 import { boardComplete, remainingMs, ringProgress } from './countdown.mjs'
 import {
@@ -91,6 +92,7 @@ export default function MiniGameHost({
   const [round, setRound] = useState<Round | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const resultSeed = useMemo(() => Math.floor(Math.random() * 1e9), [outcome])
   const [before, setBefore] = useState<{ xp: number; level: number } | null>(null)
   const [barPct, setBarPct] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -433,7 +435,7 @@ export default function MiniGameHost({
               ? `${individual.nickname ?? nameOf(individual.speciesId)} · Thân thiết Lv ${bond}`
               : 'Chọn độ khó'}
           </p>
-          <ul className="mg-list">
+          <ul className="mg-list mg-tiers">
             {([1, 2, 3] as const).map((d) => {
               const low = winExp({ d, bond, remainingS: 0 })
               const high = winExp({ d, bond, remainingS: MINIGAME.DURATION_S })
@@ -572,7 +574,9 @@ export default function MiniGameHost({
       )}
 
       {phase === 'result' && outcome && (
-        <div className="mg-result" role="status">
+        <div className="mg-result" role="status" data-won={outcome.status === 'won' || undefined}>
+          {outcome.status === 'won' && <Confetti seed={resultSeed} />}
+          {outcome.status === 'won' && <span className="mg-stamp" aria-hidden="true">Thắng</span>}
           <h3>{outcome.status === 'won' ? 'Chiến thắng!' : outOfMoves ? 'Hết nước đi rồi' : 'Hết giờ rồi'}</h3>
           {'practice' in outcome ? (
             <>
