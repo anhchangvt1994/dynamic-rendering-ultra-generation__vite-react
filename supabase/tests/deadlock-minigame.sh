@@ -15,6 +15,8 @@ insert into public.pokemon_individuals(id,user_id,pokemon_id,personality,appeara
 insert into public.pokemon_care(individual_id,user_id,hunger,clean,fun,needs_at,affection) values ('$I','$U',90,60,60,now(),10);
 insert into public.bag(user_id,item_id,count) select '$U', id, 1 from public.quiz_items;
 select public.trainer_grant_xp('$U',0);
+select public.quest_ensure('$U');
+update public.minigame_quests set progress=goal where user_id='$U';
 insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values ('$R','$U','memory','$I',1,1,'{"cards":[1,1,2,2,3,3,4,4,5,5,6,6]}','{"open":null,"matched":[0,1,2,3,4,5,6,7,8,9,10,11],"flips":12,"doneAt":null,"run":6,"best":6}',now()-interval '100 seconds',now()+interval '200 seconds');
 SQL
 ( $P <<SQL
@@ -26,9 +28,17 @@ sleep 0.7
 select public.minigame_settle('$R','won')->>'status';
 SQL
 ) > $OUT/b.txt 2>&1 &
+( $P <<SQL
+select set_config('request.jwt.claims','{"sub":"$U","role":"authenticated"}',false);
+set role authenticated;
+select (public.minigame_quest_claim(1::smallint))->>'xp';
+select (public.minigame_quest_claim(2::smallint))->>'xp';
+select (public.minigame_quest_claim(3::smallint))->>'xp';
+SQL
+) > $OUT/c.txt 2>&1 &
 wait
-if grep -qiE "deadlock|40P01" $OUT/a.txt $OUT/b.txt || ! grep -q won $OUT/b.txt; then
-  echo "run $n: FAIL"; cat $OUT/a.txt $OUT/b.txt; fail=1
+if grep -qiE "deadlock|40P01" $OUT/a.txt $OUT/b.txt || ! grep -q won $OUT/b.txt || [ "$(grep -cE "^ *[0-9]+$" $OUT/c.txt)" -lt 3 ]; then
+  echo "run $n: FAIL"; cat $OUT/a.txt $OUT/b.txt $OUT/c.txt; fail=1
 else echo "run $n: ok"; fi
 done
 $P >/dev/null <<SQL
