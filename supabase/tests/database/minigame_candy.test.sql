@@ -185,5 +185,8 @@ select is((public.minigame_status())->'games'->'memory'->>'left','3','memory tur
 select throws_ok($$select public.minigame_start('chess','e2000000-0000-4000-8000-000000000007',1::smallint)$$,'P0001','bad_game','unknown game');
 select is((public.minigame_status())->'open'->'view'->>'kind','candy','status resumes the open candy round');
 select is((select progress->>'movesLeft' from public.minigame_rounds where id=(select (v->>'round')::uuid from rc where k='st')),'18','progress starts with all moves left');
+insert into rc values ('mem',public.minigame_start('memory','e2000000-0000-4000-8000-000000000006',1::smallint));
+select is((public.minigame_status())->'opens'->'memory'->>'round',(select v->>'round' from rc where k='mem'),'status keeps each game''s open round (memory)');
+select is((public.minigame_status())->'opens'->'candy'->'view'->>'kind','candy','status keeps each game''s open round (candy)');
 select * from finish();
 rollback;

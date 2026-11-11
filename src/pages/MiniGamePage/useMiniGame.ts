@@ -80,6 +80,15 @@ export type ClaimReceipt = {
   level: number
   levelUp: boolean
 }
+export type OpenRound = {
+  round: string
+  game: string
+  individualId: string | null
+  difficulty: number
+  startedAt: string
+  deadline: string
+  view: RoundView
+}
 export type MiniGameStatus = {
   trainer: {
     xp: number
@@ -96,15 +105,8 @@ export type MiniGameStatus = {
     items: QuestItem[]
   }
   games: Record<string, { left: number; resetAt: string | null; wins: number }>
-  open: {
-    round: string
-    game: string
-    individualId: string | null
-    difficulty: number
-    startedAt: string
-    deadline: string
-    view: RoundView
-  } | null
+  open: OpenRound | null
+  opens?: Record<string, OpenRound>
   now: string
 }
 

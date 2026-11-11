@@ -123,7 +123,7 @@ export default function MiniGameHost({
 
   // a round already open on the account is the one to play
   useEffect(() => {
-    const open = mg.status?.open
+    const open = mg.status?.opens?.[game] ?? mg.status?.open
     if (resumed.current || !open || open.game !== game) return
     resumed.current = true
     setPicked(open.individualId)

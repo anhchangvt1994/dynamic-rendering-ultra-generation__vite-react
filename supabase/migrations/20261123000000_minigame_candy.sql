@@ -498,6 +498,8 @@ declare
   v_game text;
   v_round public.minigame_rounds;
   v_open jsonb;
+  v_one jsonb;
+  v_opens jsonb := '{}';
 begin
   perform public.minigame_expire(v_user);
   perform public.trainer_grant_xp(v_user, 0);
@@ -512,14 +514,15 @@ begin
         else v_player.window_start + make_interval(hours => (v_rules->>'REFILL_HOURS')::integer) end,
       'wins', v_player.wins));
   end loop;
-  select * into v_round from public.minigame_rounds where user_id = v_user and status = 'open'
-    order by started_at desc limit 1;
-  if found then
-    v_open := jsonb_build_object('round', v_round.id, 'game', v_round.game,
+  for v_round in select * from public.minigame_rounds where user_id = v_user and status = 'open'
+    order by started_at desc loop
+    v_one := jsonb_build_object('round', v_round.id, 'game', v_round.game,
       'individualId', v_round.individual_id, 'difficulty', v_round.difficulty,
       'startedAt', v_round.started_at, 'deadline', v_round.deadline,
       'view', public.minigame_view(v_round));
-  end if;
+    v_open := coalesce(v_open, v_one);
+    v_opens := v_opens || jsonb_build_object(v_round.game, v_one);
+  end loop;
   return jsonb_build_object(
     'trainer', jsonb_build_object(
       'xp', v_profile.xp, 'level', v_level, 'avatar', v_profile.avatar,
@@ -536,6 +539,7 @@ begin
         join lateral (select c from jsonb_array_elements(public.minigame_quest_catalog()) c where c->>'kind' = q.kind) k on true
         where q.user_id = v_user and q.day = (now() at time zone 'utc')::date)),
     'open', v_open,
+    'opens', v_opens,
     'now', now());
 end;
 $$;
