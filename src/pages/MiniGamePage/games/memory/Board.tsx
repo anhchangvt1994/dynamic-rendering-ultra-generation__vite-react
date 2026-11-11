@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
-import type { FlipResult, RoundView } from '../../useMiniGame'
+import type { FlipResult, MemoryView } from '../../useMiniGame'
 
 type Props = {
   difficulty: 1 | 2 | 3
-  view: RoundView
+  view: MemoryView
   flip: (index: number) => Promise<FlipResult>
   disabled: boolean
   tone?: unknown

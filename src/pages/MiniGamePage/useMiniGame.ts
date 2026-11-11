@@ -25,13 +25,26 @@ export type FlipResult = {
   flips: number
   done: boolean
 }
-export type RoundView = {
+export type MemoryView = {
+  kind?: undefined
   cols: number
   cards: number
   matched: number[]
   open: number | null
   faces: Record<string, number>
 }
+export type CandyView = {
+  kind: 'candy'
+  cols: number
+  rows: number
+  kinds: number
+  movesMax: number
+  target: number
+  board: number[]
+  tape: number[]
+  pos: number
+}
+export type RoundView = MemoryView | CandyView
 export type Receipt = {
   round: string
   status: 'won' | 'lost' | 'expired'
@@ -45,7 +58,9 @@ export type Receipt = {
   comboLen: number
   combo: number
   needs: { hunger: number; clean: number; fun: number } | null
-  flips: number
+  flips?: number | null
+  score?: number | null
+  moves?: number | null
 }
 export type QuestItem = {
   slot: number
@@ -161,7 +176,7 @@ export function useMiniGame() {
     [run]
   )
   const finish = useCallback(
-    async (args: { round: string }): Promise<Receipt> => {
+    async (args: { round: string; moves?: number[][] }): Promise<Receipt> => {
       const receipt = await run((deps) => finishRound(deps, args))
       await refresh()
       return receipt
@@ -192,7 +207,7 @@ export function useMiniGame() {
   )
   const cares = useCallback(() => run((deps) => readCares(deps)), [run])
   const practice = useCallback(
-    (difficulty: number) => createPractice({ difficulty }),
+    (game: string, difficulty: number) => createPractice({ game, difficulty }),
     []
   )
 

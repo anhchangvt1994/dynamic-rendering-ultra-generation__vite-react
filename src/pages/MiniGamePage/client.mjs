@@ -7,6 +7,7 @@ export const MINIGAME_ERRORS = {
   not_found: 'Không tìm thấy ván hoặc Pokémon này',
   round_closed: 'Ván đã hết giờ',
   not_finished: 'Ván chưa kết thúc',
+  bad_move: 'Nước đi không hợp lệ',
   bad_index: 'Thẻ này không lật được',
   team_full: 'Đội đã đủ chỗ',
   not_eligible: 'Pokémon này chưa đủ điều kiện vào đội',
@@ -49,8 +50,12 @@ export const startRound = (deps, { game, individualId, difficulty }) =>
 export const flipCard = (deps, { round, index }) =>
   call(deps, 'minigame_flip', { p_round: round, p_index: index })
 
-export const finishRound = (deps, { round }) =>
-  call(deps, 'minigame_finish', { p_round: round })
+export const finishRound = (deps, { round, moves = undefined }) =>
+  call(
+    deps,
+    'minigame_finish',
+    moves === undefined ? { p_round: round } : { p_round: round, p_moves: moves }
+  )
 
 export const claimQuest = (deps, { slot }) =>
   call(deps, 'minigame_quest_claim', { p_slot: slot })

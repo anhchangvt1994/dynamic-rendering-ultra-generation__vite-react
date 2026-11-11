@@ -79,8 +79,23 @@ test('any mode but server is unavailable and calls nothing', async () => {
   }
 })
 
+test('finishRound sends the moves only when given', async () => {
+  const supabase = fake({ data: { ok: 1 }, error: null })
+  const deps = server(supabase)
+  await finishRound(deps, { round: 'r1', moves: [[0, 1], [6, 7]] })
+  await finishRound(deps, { round: 'r2', moves: [] })
+  assert.deepEqual(supabase.calls, [
+    { name: 'minigame_finish', args: { p_round: 'r1', p_moves: [[0, 1], [6, 7]] } },
+    { name: 'minigame_finish', args: { p_round: 'r2', p_moves: [] } },
+  ])
+})
+
+test('bad_move has its Vietnamese message', () => {
+  assert.equal(MINIGAME_ERRORS.bad_move, 'Nước đi không hợp lệ')
+})
+
 test('the error copy covers every code the database raises', () => {
-  for (const code of ['hungry', 'no_turns', 'round_open', 'not_found', 'round_closed', 'not_finished', 'bad_index', 'team_full', 'not_eligible', 'locked', 'not_done', 'bad_slot', 'network'])
+  for (const code of ['hungry', 'no_turns', 'round_open', 'not_found', 'round_closed', 'not_finished', 'bad_index', 'team_full', 'not_eligible', 'locked', 'not_done', 'bad_slot', 'bad_move', 'network'])
     assert.ok(MINIGAME_ERRORS[code], code)
 })
 

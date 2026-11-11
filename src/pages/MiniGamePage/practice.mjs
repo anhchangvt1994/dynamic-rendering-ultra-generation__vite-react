@@ -2,10 +2,34 @@
 // database's, run in the browser. No reward, no turn used, no network.
 import { MINIGAME } from './minigame.mjs'
 import { applyFlip } from './games/memory/rules.mjs'
+import { initialBoard, newTape } from './games/candy/engine.mjs'
 
 const SPECIES = 1025
 
-export function createPractice({ difficulty, random = Math.random }) {
+function candyPractice({ difficulty, random }) {
+  const { COLS, ROWS, KINDS, MOVES, TARGET } = MINIGAME.CANDY
+  const kinds = KINDS[difficulty - 1]
+  const tape = newTape(random, kinds)
+  const { board, pos } = initialBoard(tape, kinds)
+  return {
+    view: {
+      kind: 'candy',
+      cols: COLS,
+      rows: ROWS,
+      kinds,
+      movesMax: MOVES[difficulty - 1],
+      target: TARGET[difficulty - 1],
+      board,
+      tape,
+      pos,
+    },
+    deadline: Date.now() + MINIGAME.DURATION_S * 1000,
+    flip: undefined,
+  }
+}
+
+export function createPractice({ game = 'memory', difficulty, random = Math.random }) {
+  if (game === 'candy') return candyPractice({ difficulty, random })
   const grid = MINIGAME.GRID[difficulty - 1]
   const pool = Array.from({ length: SPECIES }, (_, i) => i + 1)
   for (let i = pool.length - 1; i > 0; i -= 1) {

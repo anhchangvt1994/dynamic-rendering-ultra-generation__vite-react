@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createPractice } from './practice.mjs'
+import { findLines, hasMove } from './games/candy/engine.mjs'
 
 const seeded = (seed) => {
   let s = seed
@@ -68,4 +69,32 @@ test('it has a deadline 5 minutes ahead', () => {
   const before = Date.now()
   const game = createPractice({ difficulty: 1 })
   assert.ok(game.deadline >= before + 299_000 && game.deadline <= Date.now() + 300_000)
+})
+
+test('a candy practice deals a legal board and a 1000-value tape', () => {
+  for (const [difficulty, kinds] of [[1, 4], [2, 5], [3, 6]]) {
+    const game = createPractice({ game: 'candy', difficulty, random: seeded(difficulty) })
+    const v = game.view
+    assert.equal(v.kind, 'candy')
+    assert.equal(v.board.length, 42)
+    assert.equal(v.tape.length, 1000)
+    assert.equal(v.kinds, kinds)
+    assert.ok(v.board.every((c) => c >= 0 && c < kinds))
+    assert.deepEqual(findLines(v.board), [])
+    assert.ok(hasMove(v.board))
+    assert.equal(game.flip, undefined)
+  }
+})
+
+test('a candy practice is the same for the same random, with the rules of the level', () => {
+  const a = createPractice({ game: 'candy', difficulty: 2, random: seeded(9) })
+  const b = createPractice({ game: 'candy', difficulty: 2, random: seeded(9) })
+  assert.deepEqual(a.view, b.view)
+  assert.equal(a.view.movesMax, 18)
+  assert.equal(a.view.target, 3000)
+  assert.ok(a.deadline > Date.now())
+})
+
+test('a practice without a game is the memory game', () => {
+  assert.equal(createPractice({ difficulty: 1, random: seeded(2) }).view.cards, 12)
 })
