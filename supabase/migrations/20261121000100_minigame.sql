@@ -153,7 +153,8 @@ begin
       'badges', (select coalesce(jsonb_agg(jsonb_build_object('id', badge, 'at', earned_at) order by earned_at), '[]')
         from public.trainer_badges where user_id = v_user)),
     'games', v_games,
-    'open', v_open);
+    'open', v_open,
+    'now', now());
 end;
 $$;
 

@@ -27,6 +27,7 @@ select set_config('request.jwt.claims','{"sub":"d1000000-0000-4000-8000-00000000
 create temp table st(k text primary key,v jsonb);
 grant all on st to authenticated;
 insert into st values ('first',public.minigame_status());
+select ok((select (v->>'now')::timestamptz from st where k='first') between now()-interval '1 minute' and now()+interval '1 minute','status carries the server clock');
 select is((select v->'trainer'->>'xp' from st where k='first'),'0','new trainer has 0 xp');
 select is((select v->'trainer'->>'avatar' from st where k='first'),'rookie','default avatar');
 select is((select v->'trainer'->>'level' from st where k='first'),'1','level 1');
