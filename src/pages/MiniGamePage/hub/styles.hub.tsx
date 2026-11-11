@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { BREAKPOINTS, REGIONS } from './regions.mjs'
+import { cabinetCss } from './styles.cabinet'
 import { cardsCss } from './styles.cards'
 
 const { md, lg } = BREAKPOINTS
@@ -100,7 +101,7 @@ export const HubShellStyle = styled.div`
 
   [data-region='title'] h1 {
     margin: 0 0 8px;
-    font-size: clamp(30px, 6.4vw, 44px);
+    font-size: clamp(26px, 7.2vw, 44px);
     line-height: 1.12;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -176,6 +177,7 @@ export const HubShellStyle = styled.div`
   }
 
   ${cardsCss}
+  ${cabinetCss}
 
   /* bulbs */
   .hub-bulbs {

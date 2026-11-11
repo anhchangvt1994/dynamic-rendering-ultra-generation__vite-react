@@ -5,13 +5,15 @@ export default function Marquee({ text, lead }: { text: string; lead: string }) 
     <section data-region="title" style={{ ['--n' as string]: 0 }}>
       <h1 className="mq" aria-label={text}>
         {text.split(' ').map((word, w) => (
-          <span key={w} className="mq-word" aria-hidden="true">
-            {[...word].map((ch) => (
-              <span key={n} className="mq-ch" style={{ ['--i' as string]: n++ }}>
-                {ch}
-              </span>
-            ))}
-            {w < text.split(' ').length - 1 ? ' ' : ''}
+          <span key={w} aria-hidden="true">
+            {w > 0 ? ' ' : ''}
+            <span className="mq-word">
+              {[...word].map((ch) => (
+                <span key={n} className="mq-ch" style={{ ['--i' as string]: n++ }}>
+                  {ch}
+                </span>
+              ))}
+            </span>
           </span>
         ))}
       </h1>

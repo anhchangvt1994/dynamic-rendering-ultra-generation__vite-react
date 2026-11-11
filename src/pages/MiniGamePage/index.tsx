@@ -3,7 +3,7 @@ import { useAccount } from 'app/supabase/account'
 import MiniGameHost from './MiniGameHost'
 import { GAMES } from './games/index.mjs'
 import { MINIGAME } from './minigame.mjs'
-import Booth from './hub/Booth'
+import Cabinet from './hub/Cabinet'
 import Marquee from './hub/Marquee'
 import HubShell, { HubBooths } from './hub/HubShell'
 import StampCard from './hub/StampCard'
@@ -42,7 +42,7 @@ export default function MiniGamePage() {
         {GAMES.map((g, i) => {
           const row = mg.status?.games?.[g.id]
           return (
-            <Booth
+            <Cabinet
               key={g.id}
               game={g}
               index={i}

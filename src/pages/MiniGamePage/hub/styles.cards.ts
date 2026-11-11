@@ -2,116 +2,6 @@ import { css } from 'styled-components'
 
 // Inner layout of the fixed regions: booths, tickets, stamp card.
 export const cardsCss = css`
-  /* ---- booth: a tilted game box on the felt ---- */
-  [data-region='booth'] {
-    rotate: -1deg;
-    transition:
-      rotate 260ms var(--ease),
-      translate 260ms var(--ease);
-  }
-  [data-region='booth']:nth-child(even) {
-    rotate: 1deg;
-  }
-  [data-region='booth']:hover,
-  [data-region='booth']:focus-within {
-    rotate: 0deg;
-    translate: 0 -4px;
-  }
-  .bx {
-    display: grid;
-    grid-template-rows: var(--art-h, 76px) auto minmax(0, 1fr) 32px 48px;
-    gap: 8px;
-    height: 100%;
-    padding: 14px 16px 16px;
-    border-radius: 28px;
-    background: linear-gradient(165deg, #43286a, var(--ink));
-    box-shadow:
-      inset 0 0 0 2px rgba(255, 207, 90, 0.55),
-      inset 0 0 0 6px rgba(43, 26, 61, 1),
-      inset 0 0 0 7px rgba(255, 255, 255, 0.12),
-      0 18px 28px rgba(2, 20, 20, 0.5);
-  }
-  .bx > * {
-    min-width: 0;
-    min-height: 0;
-  }
-  .bx-art {
-    position: relative;
-    display: grid;
-    place-items: center;
-    border-radius: 16px;
-    background: radial-gradient(70% 90% at 50% 100%, rgba(255, 207, 90, 0.35), transparent 70%), rgba(255, 255, 255, 0.07);
-    overflow: hidden;
-  }
-  .bx-lid {
-    position: absolute;
-    inset: 0 0 auto;
-    height: 20px;
-    border-radius: 16px 16px 6px 6px;
-    background: linear-gradient(180deg, #6a45a3, #4b2d78);
-    transform-origin: 0 100%;
-    transition: transform 260ms var(--ease);
-    z-index: 2;
-  }
-  .bx[data-open] .bx-lid,
-  [data-region='booth']:hover .bx-lid,
-  [data-region='booth']:focus-within .bx-lid {
-    transform: translateY(-14px) rotate(-8deg);
-  }
-  .bx-things {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    margin-top: 14px;
-  }
-  .bx-things img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.35));
-    transition: transform 260ms var(--spring);
-  }
-  .bx-things img:nth-child(2) {
-    transform: translateY(-6px);
-  }
-  .bx[data-open] .bx-things img,
-  [data-region='booth']:hover .bx-things img {
-    transform: translateY(-10px) scale(1.12);
-  }
-  .bx-card {
-    width: 34px;
-    height: 46px;
-    margin-inline: -4px;
-    border-radius: 6px;
-    background: linear-gradient(160deg, var(--c, var(--coral)), #fff3);
-    box-shadow: inset 0 0 0 2px #fff8, 0 4px 6px rgba(0, 0, 0, 0.35);
-    transform: rotate(var(--r, 0deg));
-    transition: transform 260ms var(--spring);
-  }
-  .bx[data-open] .bx-card,
-  [data-region='booth']:hover .bx-card {
-    transform: rotate(calc(var(--r, 0deg) * 1.8)) translateY(-6px);
-  }
-  .bx h2 {
-    margin: 0;
-    font-size: 21px;
-    line-height: 26px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .bx-rule {
-    margin: 0;
-    font-size: 14px;
-    line-height: 20px;
-    opacity: 0.86;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
-  }
   .hub-booth-btn {
     width: 100%;
   }
@@ -427,27 +317,9 @@ export const cardsCss = css`
     animation: sc-fade 400ms var(--ease) both;
   }
 
-  @media (min-width: 640px) {
-    .bx {
-      --art-h: 84px;
-    }
-  }
-  @media (min-width: 1024px) {
-    .bx {
-      --art-h: 92px;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
-    [data-region='booth'],
-    .bx-lid,
-    .bx-things img,
-    .bx-card,
     .sc-bar i {
       transition: none;
-    }
-    [data-region='booth']:hover,
-    [data-region='booth']:focus-within {
-      translate: none;
     }
     .hub-stub[data-tear],
     .sc-stamp[data-slam],
