@@ -125,8 +125,8 @@ declare
   v_round public.minigame_rounds;
   v_open jsonb;
 begin
-  perform public.trainer_grant_xp(v_user, 0);
   perform public.minigame_expire(v_user);
+  perform public.trainer_grant_xp(v_user, 0);
   select * into v_profile from public.trainer_profiles where user_id = v_user;
   v_level := public.trainer_level(v_profile.xp);
   foreach v_game in array array['memory'] loop

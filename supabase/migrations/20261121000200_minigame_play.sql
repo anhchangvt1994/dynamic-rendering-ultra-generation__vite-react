@@ -97,9 +97,7 @@ begin
   if v_win and jsonb_array_length(v_round.progress->'matched') <> 2 * v_pairs then
     raise exception 'not_finished' using errcode = 'P0001';
   end if;
-  perform public.trainer_grant_xp(v_round.user_id, 0);
-  select public.trainer_level(xp) into v_before from public.trainer_profiles where user_id = v_round.user_id;
-
+  -- lock order: Pokémon, care, then trainer profile (the care actions take them in this order)
   if v_round.individual_id is not null then
     select * into v_ind from public.pokemon_individuals where id = v_round.individual_id for update;
     if found then
@@ -141,6 +139,8 @@ begin
           set hunger = excluded.hunger, clean = excluded.clean, fun = excluded.fun, needs_at = excluded.needs_at;
     end if;
   end if;
+  perform public.trainer_grant_xp(v_round.user_id, 0);
+  select public.trainer_level(xp) into v_before from public.trainer_profiles where user_id = v_round.user_id;
 
   if v_win then
     v_gifts := public.quiz_chest((v_rules->'CHEST'->(v_d - 1)->>'size')::int, (v_rules->'CHEST'->(v_d - 1)->>'sure')::int,

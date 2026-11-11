@@ -29,3 +29,10 @@ test('ringProgress runs from 1 to 0 and stays inside', () => {
   assert.equal(ringProgress(400_000, 300_000), 1)
   assert.equal(ringProgress(-5, 300_000), 0)
 })
+
+test('boardComplete is true once every card is matched, so a resumed full board can be claimed', async () => {
+  const { boardComplete } = await import('./countdown.mjs')
+  assert.equal(boardComplete({ cards: 12, matched: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }), true)
+  assert.equal(boardComplete({ cards: 12, matched: [0, 1] }), false)
+  assert.equal(boardComplete({ cards: 0, matched: [] }), false)
+})

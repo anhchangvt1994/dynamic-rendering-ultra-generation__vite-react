@@ -9,7 +9,7 @@ import { MY_POKEMON_PATH } from 'pages/MyPokemonPage/paths.mjs'
 import GameSheet from './GameSheet'
 import { GAMES } from './games/index.mjs'
 import { BADGES } from './badges.mjs'
-import { remainingMs, ringProgress } from './countdown.mjs'
+import { boardComplete, remainingMs, ringProgress } from './countdown.mjs'
 import {
   MINIGAME,
   bondOf,
@@ -240,6 +240,10 @@ export default function MiniGameHost({
     : 0
   useEffect(() => {
     if (phase === 'play' && round && remaining <= 0) settle(false)
+  }, [phase, round, remaining, settle])
+  // a board resumed with every card matched (the last reply was lost): claim it
+  useEffect(() => {
+    if (phase === 'play' && round?.id && remaining > 0 && boardComplete(round.view)) settle(true)
   }, [phase, round, remaining, settle])
   useEffect(() => {
     if (phase === 'play' && remaining > 0 && remaining < LOW_MS) setMood('doze')
