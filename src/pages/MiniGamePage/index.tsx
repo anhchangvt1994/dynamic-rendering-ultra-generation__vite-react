@@ -50,6 +50,7 @@ export default function MiniGamePage() {
               left={row ? row.left : null}
               resetText={wait(row?.resetAt, now)}
               open={game === g.id}
+              hasOpen={(mg.status?.opens?.[g.id] ?? mg.status?.open)?.game === g.id}
               onPlay={() => setGame(g.id)}
             />
           )

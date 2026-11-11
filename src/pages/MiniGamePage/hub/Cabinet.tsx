@@ -3,7 +3,7 @@ import { MINIGAME } from '../minigame.mjs'
 import CandyScreen from './demo/CandyScreen'
 import MemoryScreen from './demo/MemoryScreen'
 import TicketRow from './TicketRow'
-import { boothLabel } from './tickets.mjs'
+import { boothLabel, outOfTurns } from './tickets.mjs'
 import { tiltFromPointer } from './tilt.mjs'
 
 type Game = { id: string; title: string; blurb: string }
@@ -14,6 +14,7 @@ type Props = {
   left: number | null
   resetText: string
   open: boolean
+  hasOpen?: boolean
   onPlay: () => void
 }
 
@@ -21,10 +22,10 @@ const HUE: Record<string, string> = { candy: '#ff6b8a', memory: '#5fe3b4' }
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** One arcade cabinet: a screen that plays itself, a deck, a coin slot and the Chơi button. */
-export default function Cabinet({ game, index, server, left, resetText, open, onPlay }: Props) {
+export default function Cabinet({ game, index, server, left, resetText, open, hasOpen = false, onPlay }: Props) {
   const total = MINIGAME.TURNS
   const label = boothLabel({ server, left, total, resetText })
-  const out = server && left === 0
+  const out = outOfTurns({ server, left, hasOpen })
   const root = useRef<HTMLElement>(null)
   const [seen, setSeen] = useState(false)
   const [visible, setVisible] = useState(true)

@@ -49,7 +49,7 @@ export default function TrainerCard() {
   const trainer = mg.status?.trainer
   const [sheet, setSheet] = useState<'avatar' | 'team' | null>(null)
   const [cares, setCares] = useState<Record<string, { affection: number }>>({})
-  const { items } = useIndividualList(mg.mode === 'server', null)
+  const { items, error: listError, retry: retryList } = useIndividualList(mg.mode === 'server', null)
   const { cares: readCares } = mg
   useEffect(() => {
     if (sheet === 'team') readCares().then(setCares, () => {})
@@ -129,7 +129,15 @@ export default function TrainerCard() {
         />
       </GameSheet>
       <GameSheet open={sheet === 'team'} onClose={close} title="Đội hình">
-        {sheet === 'team' && !items && <p className="mg-sub">Đang tải Pokémon…</p>}
+        {sheet === 'team' && !items && !listError && <p className="mg-sub">Đang tải Pokémon…</p>}
+        {sheet === 'team' && !items && listError && (
+          <>
+            <p className="mg-sub" role="alert">Chưa tải được danh sách Pokémon.</p>
+            <button type="button" className="hc-btn" onClick={retryList}>
+              Thử lại
+            </button>
+          </>
+        )}
         {sheet === 'team' && items && (
           <TeamPicker
             individuals={items}

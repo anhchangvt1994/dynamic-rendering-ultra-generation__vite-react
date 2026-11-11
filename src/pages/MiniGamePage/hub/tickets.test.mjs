@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ticketStates } from './tickets.mjs'
+import { ticketStates, outOfTurns } from './tickets.mjs'
 
 test('2 of 3', () => assert.deepEqual(ticketStates(2, 3), ['ready', 'ready', 'torn']))
 test('negative -> all torn', () => assert.deepEqual(ticketStates(-1, 3), ['torn', 'torn', 'torn']))
@@ -20,4 +20,10 @@ test('tear: refill or same does not', () => {
   assert.equal(shouldTear(2, 3), false)
   assert.equal(shouldTear(2, 2), false)
   assert.equal(shouldTear(2, null), false)
+})
+test('outOfTurns: zero left blocks, an open round still resumes', () => {
+  assert.equal(outOfTurns({ server: true, left: 0, hasOpen: false }), true)
+  assert.equal(outOfTurns({ server: true, left: 0, hasOpen: true }), false)
+  assert.equal(outOfTurns({ server: true, left: 1, hasOpen: false }), false)
+  assert.equal(outOfTurns({ server: false, left: 0, hasOpen: false }), false)
 })

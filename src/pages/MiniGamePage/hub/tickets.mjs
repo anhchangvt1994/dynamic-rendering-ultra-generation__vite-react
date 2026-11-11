@@ -17,3 +17,8 @@ export function boothLabel({ server, left, total, resetText }) {
 export function shouldTear(prev, next) {
   return typeof prev === 'number' && typeof next === 'number' && next < prev
 }
+
+/** No turns left on a server account blocks a new round, but an already open round can still be resumed. */
+export function outOfTurns({ server, left, hasOpen }) {
+  return !!server && left === 0 && !hasOpen
+}
