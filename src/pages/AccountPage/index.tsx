@@ -3,10 +3,12 @@ import { connectAccount, signOut, useAccount } from 'app/supabase/account'
 import { devTestAccount } from 'app/supabase/devAccount.mjs'
 import { authMessage } from 'app/supabase/messages'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { getCaught } from 'utils/caught.mjs'
 import { AccountPageStyle } from './styles'
+
+const TrainerCard = lazy(() => import('./TrainerCard'))
 
 type CodeType = 'signup' | 'email' | 'recovery'
 type Step =
@@ -292,6 +294,9 @@ export default function AccountPage() {
             <strong>{account.user?.email}</strong>
           </span>
         </p>
+        <Suspense fallback={<div style={{ height: 208 }} />}>
+          <TrainerCard />
+        </Suspense>
         <p className="count">
           <strong>{getCaught().size}</strong> Pokémon trong bộ sưu tập
         </p>
