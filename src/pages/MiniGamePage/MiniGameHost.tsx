@@ -285,7 +285,7 @@ export default function MiniGameHost({
       {phase === 'pick' && !mg.loading && (
         <>
           <p className="mg-sub">
-            Chọn Pokémon cùng chơi.
+            {server ? 'Chọn Pokémon cùng chơi.' : 'Chơi thử không cần Pokémon.'}
             {server && ` Còn ${left}/${MINIGAME.TURNS} lượt.`}
           </p>
           {noTurns && (
@@ -293,11 +293,11 @@ export default function MiniGameHost({
               Hết lượt. Lượt mới sau {until(gameStatus?.resetAt ?? null, now)}.
             </p>
           )}
-          {picks.length === 0 && listed ? (
+          {picks.length === 0 && server ? (
             <p className="mg-sub">
               Bạn chưa có Pokémon nào. Hãy đổi thẻ trong Túi đồ để có Pokémon của riêng mình.
             </p>
-          ) : (
+          ) : server && (
             <ul className="mg-list">
               {picks.map((item: Individual) => {
                 const hunger = hungerOf(item)
@@ -342,7 +342,7 @@ export default function MiniGameHost({
               })}
             </ul>
           )}
-          {!listed && (
+          {!server && (
             <button type="button" className="mg-cta" onClick={() => setPhase('level')}>
               Chơi thử
             </button>
@@ -385,7 +385,7 @@ export default function MiniGameHost({
                         <span>Exp {low}–{high}</span>
                         <span>Quà {MINIGAME.CHEST[d - 1].size} món</span>
                         <span>
-                          Thua tốn {cost.hunger} no · {cost.clean} sạch · {cost.fun} vui
+                          Thua: −{cost.hunger} no · −{cost.clean} sạch · −{cost.fun} vui
                         </span>
                       </span>
                     </span>
@@ -466,6 +466,9 @@ export default function MiniGameHost({
               </span>
             )}
           </div>
+          {remaining <= 0 && !retry && (
+            <p className="mg-sub" role="status">Hết giờ, đang chốt kết quả…</p>
+          )}
           {error && <p className="mg-error" role="alert">{error}</p>}
           {retry && (
             <button type="button" className="mg-cta" onClick={() => settle(remaining <= 0 ? false : true)}>

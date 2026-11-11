@@ -231,10 +231,10 @@ export const SheetStyle = styled.div`
   }
   .mg-mate {
     position: absolute;
-    right: -4px;
-    bottom: -28px;
-    width: 88px;
-    height: 88px;
+    right: 56px;
+    top: -42px;
+    width: 52px;
+    height: 52px;
     pointer-events: none;
     z-index: 2;
   }
@@ -270,6 +270,8 @@ export const SheetStyle = styled.div`
   }
   .mg-card {
     position: relative;
+    display: block;
+    width: 100%;
     aspect-ratio: 3 / 4;
     padding: 0;
     border: 0;
