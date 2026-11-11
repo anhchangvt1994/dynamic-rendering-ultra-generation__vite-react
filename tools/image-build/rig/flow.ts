@@ -336,8 +336,13 @@ export async function flowToFirst(
   return out
 }
 
+/**
+ * `data`: R, G = high bytes of u, v (16-bit), B = confidence, A = 255.
+ * `low`: R, G = their low bytes, A = 255.
+ */
 export type FlowSheet = {
   data: Buffer
+  low: Buffer
   width: number
   height: number
   cols: number
@@ -348,11 +353,18 @@ export function flowSheet(m: number): FlowSheet {
   const cols = Math.max(1, Math.ceil(Math.sqrt(m)))
   const width = cols * TILE
   const height = Math.max(1, Math.ceil(m / cols)) * TILE
-  return { data: Buffer.alloc(width * height * 4), width, height, cols }
+  return {
+    data: Buffer.alloc(width * height * 4),
+    low: Buffer.alloc(width * height * 4),
+    width,
+    height,
+    cols,
+  }
 }
 
 /**
- * Frame K's tile: R, G = u, v · 255, B = confidence · 255, A = 255. Each
+ * Frame K's tile: u, v as 16 bits over `data` and `low` (see FlowSheet), B =
+ * confidence · 255, A = 255. Each
  * cell is the confidence-weighted mean of its pixels, spread 4 cells into
  * the empty ones; cells still empty hold the identity.
  */
@@ -430,14 +442,20 @@ export function writeTile(
   const ox = (K % sheet.cols) * TILE
   const oy = Math.floor(K / sheet.cols) * TILE
   const byte = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 255)
+  const word = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 65535)
   for (let y = 0; y < TILE; y++)
     for (let x = 0; x < TILE; x++) {
       const j = y * TILE + x
       const o = ((oy + y) * sheet.width + ox + x) * 4
-      sheet.data[o] = byte(u[j])
-      sheet.data[o + 1] = byte(v[j])
+      const wu = word(u[j])
+      const wv = word(v[j])
+      sheet.data[o] = wu >> 8
+      sheet.data[o + 1] = wv >> 8
       sheet.data[o + 2] = byte(conf[j])
       sheet.data[o + 3] = 255
+      sheet.low[o] = wu & 255
+      sheet.low[o + 1] = wv & 255
+      sheet.low[o + 3] = 255
     }
 }
 

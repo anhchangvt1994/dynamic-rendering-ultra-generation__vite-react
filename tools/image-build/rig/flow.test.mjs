@@ -8,6 +8,8 @@ const sharp = require('sharp')
 const {
   flowToFirst,
   encodeFlow,
+  flowSheet,
+  writeTile,
   premultiplied,
   locallyAffine,
   TILE,
@@ -184,4 +186,44 @@ test('the fit trusts drawn lines over flat fill, where the flow has nothing to h
     }
   const after = rms(locallyAffine(field, frame, S, S))
   assert.ok(after < 0.008, `flat fill pulls the fit off: ${after.toFixed(4)}`)
+})
+
+const unpack = (sheet, o) => [
+  (sheet.data[o] * 256 + sheet.low[o]) / 65535,
+  (sheet.data[o + 1] * 256 + sheet.low[o + 1]) / 65535,
+]
+
+test('flow is 16-bit: a tile written with u, v reads back within 1/65535', () => {
+  const sheet = flowSheet(2)
+  const n = 8 * 8
+  writeTile(
+    sheet,
+    1,
+    { u: new Float32Array(n).fill(0.123456), v: new Float32Array(n).fill(0.654321), conf: new Float32Array(n).fill(1) },
+    8,
+    8
+  )
+  // frame 1 is the second tile of a 2-column sheet
+  const o = (0 * sheet.width + TILE) * 4
+  const [u, v] = unpack(sheet, o)
+  assert.ok(Math.abs(u - 0.123456) <= 1 / 65535, `u ${u}`)
+  assert.ok(Math.abs(v - 0.654321) <= 1 / 65535, `v ${v}`)
+  assert.equal(sheet.data[o + 2], 255)
+  assert.equal(sheet.low[o + 3], 255)
+})
+
+test('frame 0 is the identity at 16 bits', () => {
+  const sheet = flowSheet(1)
+  const n = 4 * 4
+  writeTile(
+    sheet,
+    0,
+    { u: new Float32Array(n), v: new Float32Array(n), conf: new Float32Array(n).fill(1) },
+    4,
+    4
+  )
+  const first = unpack(sheet, 0)
+  const last = unpack(sheet, (TILE - 1) * 4)
+  assert.ok(Math.abs(first[0] - 0.5 / TILE) <= 1 / 65535)
+  assert.ok(Math.abs(last[0] - (TILE - 0.5) / TILE) <= 1 / 65535)
 })
