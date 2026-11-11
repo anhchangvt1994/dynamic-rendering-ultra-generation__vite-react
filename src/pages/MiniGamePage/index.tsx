@@ -4,7 +4,7 @@ import MiniGameHost from './MiniGameHost'
 import { GAMES } from './games/index.mjs'
 import { MINIGAME } from './minigame.mjs'
 import Booth from './hub/Booth'
-import HoloCard from './hub/HoloCard'
+import Marquee from './hub/Marquee'
 import HubShell, { HubBooths } from './hub/HubShell'
 import StampCard from './hub/StampCard'
 import { useMiniGame } from './useMiniGame'
@@ -34,13 +34,10 @@ export default function MiniGamePage() {
 
   return (
     <HubShell>
-      <section data-region="title" style={{ ['--n' as string]: 0 }}>
-        <h1>Chơi cùng Pokémon</h1>
-        <p className="hub-sub">
-          Mỗi ván {MINIGAME.DURATION_S / 60} phút. Thắng để nhận exp, quà và điểm huấn luyện viên.
-        </p>
-      </section>
-      <HoloCard mg={mg} guest={guest} ready={!mg.loading} />
+      <Marquee
+        text="Chơi cùng Pokémon"
+        lead={`Mỗi ván ${MINIGAME.DURATION_S / 60} phút. Thắng để nhận exp, quà và điểm huấn luyện viên.`}
+      />
       <HubBooths>
         {GAMES.map((g, i) => {
           const row = mg.status?.games?.[g.id]

@@ -1,146 +1,7 @@
 import { css } from 'styled-components'
 
-// Inner layout of the fixed regions: glass trainer card, booths, tickets, stamp card.
+// Inner layout of the fixed regions: booths, tickets, stamp card.
 export const cardsCss = css`
-  /* ---- trainer: glass (and the guest/loading/error variants share its box) ---- */
-  .hc {
-    --rx: 0deg;
-    --ry: 0deg;
-    --sx: 50;
-    --sy: 50;
-    position: relative;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 8px 14px;
-    height: 100%;
-    padding: 16px;
-    border-radius: 20px;
-    background: linear-gradient(150deg, rgba(34, 40, 120, 0.82), rgba(14, 20, 70, 0.9));
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-      0 14px 30px rgba(4, 8, 30, 0.5);
-    transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry));
-    transition: transform 140ms var(--ease);
-    overflow: hidden;
-  }
-  .hc::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(circle at calc(var(--sx) * 1%) calc(var(--sy) * 1%), rgba(255, 255, 255, 0.2), transparent 48%),
-      linear-gradient(115deg, rgba(95, 227, 180, 0.16), rgba(255, 207, 90, 0.14) 40%, rgba(255, 107, 138, 0.16) 70%, rgba(122, 168, 255, 0.16));
-    mix-blend-mode: screen;
-  }
-  .hc::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 4px);
-  }
-  .hc > * {
-    position: relative;
-    z-index: 1;
-    min-width: 0;
-  }
-  .hc-face {
-    align-self: start;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    line-height: 0;
-    cursor: pointer;
-    box-shadow: 0 0 0 3px var(--gold);
-  }
-  .hc-face[data-ghost] {
-    cursor: default;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-  }
-  .hc-info {
-    display: grid;
-    align-content: start;
-    gap: 6px;
-  }
-  .hc-level {
-    font-size: 22px;
-    line-height: 26px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hc-xp {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 3px;
-    height: 10px;
-  }
-  .hc-xp i {
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.18);
-  }
-  .hc-xp i[data-on] {
-    background: var(--mint);
-    box-shadow: 0 0 8px rgba(95, 227, 180, 0.7);
-  }
-  .hc-team {
-    display: flex;
-    gap: 6px;
-    margin-top: 4px;
-  }
-  .hc-team i {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
-  }
-  .hc-team i[data-on] {
-    background: var(--gold);
-    box-shadow: 0 0 10px rgba(255, 207, 90, 0.7);
-  }
-  .hc-line {
-    font-size: 13px;
-    line-height: 18px;
-    color: #fff;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-  .hc-actions {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 8px;
-  }
-  .hc-btn {
-    display: inline-grid;
-    place-items: center;
-    min-height: 44px;
-    padding: 0 16px;
-    border: 0;
-    border-radius: 14px;
-    font: inherit;
-    font-weight: 800;
-    color: #fff;
-    text-decoration: none;
-    background: rgba(255, 255, 255, 0.16);
-    cursor: pointer;
-  }
-  .hc-btn[data-primary] {
-    color: var(--ink);
-    background: linear-gradient(180deg, #ff9db3, var(--coral));
-  }
-  .hc-btn:focus-visible,
-  .hc-face:focus-visible {
-    outline: 3px solid #fff;
-    outline-offset: 2px;
-  }
-
   /* ---- booth: a tilted game box on the felt ---- */
   [data-region='booth'] {
     rotate: -1deg;
@@ -577,16 +438,12 @@ export const cardsCss = css`
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hc,
     [data-region='booth'],
     .bx-lid,
     .bx-things img,
     .bx-card,
     .sc-bar i {
       transition: none;
-    }
-    .hc {
-      transform: none;
     }
     [data-region='booth']:hover,
     [data-region='booth']:focus-within {

@@ -3,8 +3,7 @@
 export const BREAKPOINTS = { md: 640, lg: 1024 }
 
 export const REGIONS = {
-  title: { base: 150, md: 184, lg: 150 },
-  trainer: { base: 200, md: 224, lg: 244 },
-  booth: { base: 312, md: 328, lg: 344 },
-  quests: { base: 432, md: 464, lg: 500 },
+  title: { base: 120, md: 140, lg: 140 },
+  booth: { base: 440, md: 520, lg: 600 },
+  quests: { base: 168, md: 136, lg: 136 },
 }

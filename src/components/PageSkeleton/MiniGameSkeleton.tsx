@@ -19,7 +19,6 @@ export default function MiniGameSkeleton() {
           <span className="bone" style={{ width: 'min(320px, 80%)', height: 40, marginBottom: 12 }} />
           <span className="bone" style={{ width: 'min(440px, 92%)', height: 16 }} />
         </section>
-        <section data-region="trainer">{fill}</section>
         <HubBooths>
           {GAMES.map((g) => (
             <article key={g.id} data-region="booth">

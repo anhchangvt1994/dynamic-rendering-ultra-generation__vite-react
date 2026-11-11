@@ -3,11 +3,10 @@ import { BREAKPOINTS, REGIONS } from './regions.mjs'
 import { cardsCss } from './styles.cards'
 
 const { md, lg } = BREAKPOINTS
-const { title, trainer, booth, quests } = REGIONS
+const { title, booth, quests } = REGIONS
 
 const heights = (k: 'base' | 'md' | 'lg') => `
   --h-title: ${title[k]}px;
-  --h-trainer: ${trainer[k]}px;
   --h-booth: ${booth[k]}px;
   --h-quests: ${quests[k]}px;
 `
@@ -29,7 +28,7 @@ export const HubShellStyle = styled.div`
   ${heights('base')}
   --gap: 16px;
   --pad: 16px;
-  --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-trainer) + var(--gap) / 2);
+  --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
 
   position: relative;
   isolation: isolate;
@@ -71,7 +70,7 @@ export const HubShellStyle = styled.div`
     max-width: 1120px;
     margin-inline: auto;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'title' 'trainer' 'booths' 'quests';
+    grid-template-areas: 'title' 'booths' 'quests';
     align-items: start;
   }
   [data-region] {
@@ -82,11 +81,6 @@ export const HubShellStyle = styled.div`
   [data-region='title'] {
     grid-area: title;
     height: var(--h-title);
-  }
-  [data-region='trainer'] {
-    grid-area: trainer;
-    height: var(--h-trainer);
-    border-radius: 20px;
   }
   [data-region='quests'] {
     grid-area: quests;
@@ -114,6 +108,37 @@ export const HubShellStyle = styled.div`
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+  }
+  /* the title as a lit sign */
+  .mq-word {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .mq-ch {
+    display: inline-block;
+    color: #fff4d6;
+    text-shadow: 0 0 14px rgba(255, 207, 90, 0.55);
+    animation: mq-chase 3.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -140ms);
+  }
+  @keyframes mq-chase {
+    50% {
+      opacity: 0.8;
+    }
+  }
+  @keyframes mq-on {
+    from {
+      opacity: 0.18;
+    }
+  }
+  &[data-reveal] .mq-ch {
+    animation:
+      mq-on 0.3s var(--ease) backwards,
+      mq-chase 3.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 55ms + 350ms), calc(var(--i) * -140ms);
+  }
+  &[data-paused] .mq-ch {
+    animation-play-state: paused;
   }
   [data-region='title'] .hub-sub {
     margin: 0;
@@ -235,31 +260,22 @@ export const HubShellStyle = styled.div`
     ${heights('md')}
     --gap: 20px;
     --pad: 28px;
-    --felt-top: calc(var(--pad) + 56px + var(--h-trainer) + var(--gap) / 2);
-    .hub-grid {
+    --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
+    .hub-booths {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-areas: 'title trainer' 'booths quests';
     }
   }
   @media (min-width: ${lg}px) {
     ${heights('lg')}
     --gap: 24px;
     --pad: 40px;
-    --felt-top: calc(var(--pad) + 56px + var(--h-trainer) + var(--gap) / 2);
-    .hub-grid {
-      grid-template-columns: minmax(0, 1fr) 380px;
-    }
-    .hub-booths {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      padding-bottom: 24px;
-    }
-    .hub-booths > :nth-child(even) {
-      transform: translateY(24px);
-    }
+    --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .hub-bulbs li,
+    .mq-ch,
+    &[data-reveal] .mq-ch,
     &[data-reveal] .hub-bulbs li,
     &[data-reveal] [data-region] {
       animation: none;
