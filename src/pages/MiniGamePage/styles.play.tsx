@@ -34,7 +34,10 @@ export const playCss = css`
   }
   .mg-combo {
     position: absolute;
-    left: 14px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: fit-content;
     top: -34px;
     z-index: 3;
     display: flex;
