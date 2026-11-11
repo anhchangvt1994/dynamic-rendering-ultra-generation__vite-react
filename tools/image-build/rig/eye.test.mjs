@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
 require('sucrase/register')
-const { eyeMask } = require('./eye.ts')
+const { eyeMask, shrinkMask } = require('./eye.ts')
 const sharp = require('sharp')
 
 const image = () => {
@@ -141,4 +141,14 @@ test('eye mask generated from a sprite frame remains full resolution', async () 
   const mask = eyeMask(data, info.width, info.height)
   assert.equal(mask.length, w * h)
   assert.ok(mask[8 * w + 8] > 0)
+})
+
+test('shrinkMask keeps a lone pixel as one pixel, and nothing as nothing', () => {
+  const m = new Uint8Array(64)
+  m[2 * 8 + 5] = 255
+  const out = shrinkMask(m, 8, 8, 4, 4)
+  assert.equal(out.length, 16)
+  assert.equal(out.filter(Boolean).length, 1)
+  assert.equal(out[1 * 4 + 2], 255)
+  assert.equal(shrinkMask(new Uint8Array(64), 8, 8, 4, 4).some(Boolean), false)
 })

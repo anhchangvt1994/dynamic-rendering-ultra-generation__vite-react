@@ -1,19 +1,24 @@
 /**
- * The room's sprite sheet: every displayed frame on one WebP page of at most
- * 4096², at the largest cell side that fits; past 256 frames some are dropped
- * evenly, each kept frame lasting until the next kept one.
+ * The room's sprite sheet: every displayed frame as a 512px cell, 64 cells to
+ * a WebP page of 4096² at most, at most 4 pages; past 256 frames some are
+ * dropped evenly, each kept frame lasting until the next kept one.
  */
 import sharp from 'sharp'
 
 export const PAGE = 4096
-const SIDES = [512, 384, 320, 256]
-const MAX_FRAMES = (PAGE / SIDES.at(-1)!) ** 2
+export const CELL = 512
+export const PER_PAGE = (PAGE / CELL) ** 2
+export const MAX_PAGES = 4
 
 export type SheetPlan = {
   /** longest side of a cell, px */
-  size: number
+  size: 512
+  /** per page */
   cols: number
   rows: number
+  /** frames per page (the last page may hold fewer) */
+  per: number
+  pages: number
   /** indices of the frames kept, ascending */
   keep: number[]
   /** one per kept frame, ms */
@@ -21,9 +26,7 @@ export type SheetPlan = {
 }
 
 export function sheetPlan(m: number, delays: number[] = []): SheetPlan {
-  const size =
-    SIDES.find((s) => Math.floor(PAGE / s) ** 2 >= m) ?? SIDES.at(-1)!
-  const count = Math.min(m, MAX_FRAMES)
+  const count = Math.min(m, PER_PAGE * MAX_PAGES)
   const keep = Array.from({ length: count }, (_, i) =>
     Math.floor((i * m) / count)
   )
@@ -32,11 +35,14 @@ export function sheetPlan(m: number, delays: number[] = []): SheetPlan {
     for (let f = k; f < (keep[i + 1] ?? m); f++) sum += delays[f] ?? 100
     return sum
   })
-  const cols = Math.max(1, Math.ceil(Math.sqrt(count)))
+  const per = Math.min(count, PER_PAGE)
+  const cols = count <= PER_PAGE ? Math.max(1, Math.ceil(Math.sqrt(count))) : PAGE / CELL
   return {
-    size,
+    size: CELL,
     cols,
-    rows: Math.max(1, Math.ceil(count / cols)),
+    rows: Math.max(1, Math.ceil(per / cols)),
+    per,
+    pages: Math.ceil(count / per),
     keep,
     delays: merged,
   }
@@ -51,27 +57,32 @@ export const cellOf = (w: number, h: number, size: number) => {
   }
 }
 
-/** The cells, left to right then top to bottom, on one WebP page. */
-export async function encodeSheet(
+/** The cells, left to right then top to bottom, one WebP per page. */
+export function encodeSheet(
   frames: Uint8Array[],
   w: number,
   h: number,
-  cols: number,
-  rows: number,
-  quality = 90
+  plan: Pick<SheetPlan, 'cols' | 'rows' | 'per' | 'pages'>,
+  quality = 98
 ) {
-  const width = cols * w
-  const sheet = Buffer.alloc(width * rows * h * 4)
-  frames.forEach((frame, K) => {
-    const ox = (K % cols) * w
-    const oy = Math.floor(K / cols) * h
-    for (let y = 0; y < h; y++)
-      sheet.set(
-        frame.subarray(y * w * 4, (y + 1) * w * 4),
-        ((oy + y) * width + ox) * 4
-      )
-  })
-  return sharp(sheet, { raw: { width, height: rows * h, channels: 4 } })
-    .webp({ quality, alphaQuality: 100, effort: 6 })
-    .toBuffer()
+  const width = plan.cols * w
+  return Promise.all(
+    Array.from({ length: plan.pages }, (_, page) => {
+      const sheet = Buffer.alloc(width * plan.rows * h * 4)
+      frames.slice(page * plan.per, (page + 1) * plan.per).forEach((frame, k) => {
+        const ox = (k % plan.cols) * w
+        const oy = Math.floor(k / plan.cols) * h
+        for (let y = 0; y < h; y++)
+          sheet.set(
+            frame.subarray(y * w * 4, (y + 1) * w * 4),
+            ((oy + y) * width + ox) * 4
+          )
+      })
+      return sharp(sheet, {
+        raw: { width, height: plan.rows * h, channels: 4 },
+      })
+        .webp({ quality, alphaQuality: 100, effort: 6 })
+        .toBuffer()
+    })
+  )
 }

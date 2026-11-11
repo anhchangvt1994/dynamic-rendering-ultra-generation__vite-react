@@ -94,3 +94,23 @@ export function eyeMask(rgba: Uint8Array, width: number, height: number) {
     }
   return mask
 }
+
+/** The eye atlas's cell side, px (the mask is read at a coarser grain than the sprite). */
+export const EYE_SIDE = 256
+
+/** `mask` (w×h, 0/255) max-pooled down to ew×eh: any covered pixel set → 255. */
+export function shrinkMask(
+  mask: Uint8Array,
+  w: number,
+  h: number,
+  ew: number,
+  eh: number
+) {
+  const out = new Uint8Array(ew * eh)
+  for (let y = 0; y < h; y++) {
+    const ey = Math.min(eh - 1, Math.floor((y * eh) / h))
+    for (let x = 0; x < w; x++)
+      if (mask[y * w + x]) out[ey * ew + Math.min(ew - 1, Math.floor((x * ew) / w))] = 255
+  }
+  return out
+}

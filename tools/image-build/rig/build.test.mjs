@@ -6,7 +6,8 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 require('sucrase/register')
 const sharp = require('sharp')
-const { buildRig, sheetPlan, RIG_VERSION } = require('./build.ts')
+const { buildRig, RIG_VERSION } = require('./build.ts')
+const { sheetPlan, encodeSheet } = require('./sheet.ts')
 
 const tiny = readFileSync(new URL('./fixtures/tiny.gif', import.meta.url))
 
@@ -30,23 +31,45 @@ const animated = async () => {
     .toBuffer()
 }
 
-test('the frame size is the largest that fits one 4096 page, else frames drop to 256', () => {
+test('the sheet is 512px cells, 64 to a page, at most 4 pages (frames drop past 256)', () => {
   const plan = (m) => {
     const p = sheetPlan(m)
-    return [p.size, p.keep.length]
+    return [p.size, p.pages, p.per, p.cols, p.rows, p.keep.length]
   }
-  assert.deepEqual(plan(1), [512, 1])
-  assert.deepEqual(plan(64), [512, 64])
-  assert.deepEqual(plan(65), [384, 65])
-  assert.deepEqual(plan(100), [384, 100])
-  assert.deepEqual(plan(101), [320, 101])
-  assert.deepEqual(plan(144), [320, 144])
-  assert.deepEqual(plan(145), [256, 145])
-  assert.deepEqual(plan(300), [256, 256])
+  assert.deepEqual(plan(1), [512, 1, 1, 1, 1, 1])
+  assert.deepEqual(plan(8), [512, 1, 8, 3, 3, 8])
+  assert.deepEqual(plan(64), [512, 1, 64, 8, 8, 64])
+  assert.deepEqual(plan(65), [512, 2, 64, 8, 8, 65])
+  assert.deepEqual(plan(130), [512, 3, 64, 8, 8, 130])
+  assert.deepEqual(plan(300), [512, 4, 64, 8, 8, 256])
   const kept = sheetPlan(300).keep
   assert.equal(kept[0], 0)
   assert.ok(kept.every((k, i) => i === 0 || k > kept[i - 1]))
   assert.ok(kept.at(-1) < 300)
+})
+
+test('encodeSheet writes one webp per page, frame K in page K/64 cell K%64', async () => {
+  const frames = Array.from({ length: 130 }, (_, K) => {
+    const f = new Uint8Array(4 * 4 * 4)
+    for (let i = 0; i < 16; i++) f.set([K, 0, 0, 255], i * 4)
+    return f
+  })
+  const pages = await encodeSheet(
+    frames,
+    4,
+    4,
+    { cols: 8, rows: 8, per: 64, pages: 3 },
+    100
+  )
+  assert.equal(pages.length, 3)
+  for (const page of pages) {
+    const m = await sharp(page).metadata()
+    assert.deepEqual([m.format, m.width, m.height], ['webp', 32, 32])
+  }
+  const red = async (page, x, y) =>
+    (await sharp(pages[page]).ensureAlpha().raw().toBuffer())[(y * 32 + x) * 4]
+  assert.ok(Math.abs((await red(1, 1, 1)) - 64) <= 6)
+  assert.ok(Math.abs((await red(2, 5, 1)) - 129) <= 6)
 })
 
 test('dropped frames hand their delay to the frame kept before them', () => {
