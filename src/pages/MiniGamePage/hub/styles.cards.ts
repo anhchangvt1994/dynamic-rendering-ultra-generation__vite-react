@@ -119,6 +119,10 @@ export const cardsCss = css`
     color: var(--ink);
     text-decoration: underline;
     text-underline-offset: 3px;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
   }
   .sc-lv:focus-visible,
   .sc-go:focus-visible,

@@ -52,6 +52,16 @@ export default function TeamPicker({ individuals, trainer, cares, loadBuild, onS
   const toggle = (id: string) =>
     setTeam((t) => (t.includes(id) ? t.filter((x) => x !== id) : t.length < slots ? [...t, id] : t))
 
+  if (individuals.length === 0)
+    return (
+      <>
+        <p className="mg-sub">Bạn chưa có Pokémon nào. Hãy đổi thẻ trong Túi đồ để có Pokémon của riêng mình.</p>
+        <a className="mg-cta" data-quiet href="/tui-do" style={{ textAlign: "center", textDecoration: "none" }}>
+          Mở Túi đồ
+        </a>
+      </>
+    )
+
   return (
     <>
       <p className="mg-sub">

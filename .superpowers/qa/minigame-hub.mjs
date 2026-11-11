@@ -60,13 +60,15 @@ const pageChecks = () => {
 async function contrastOf(p, texts) {
   const bad = []
   for (const t of texts.slice(0, 60)) {
+    await p.evaluate((id) => { const e = document.querySelector(`[data-qc="${id}"]`), row = e.closest('.hub-booths'), it = e.closest('[data-region="booth"]'); if (row && it) row.scrollTo({ left: it.offsetLeft - row.firstElementChild.offsetLeft, behavior: 'instant' }) }, t.id)
+    await wait(120)
     await p.evaluate((id) => document.querySelector(`[data-qc="${id}"]`).scrollIntoView({ block: 'center', behavior: 'instant' }), t.id)
     await wait(150)
     const box = await p.evaluate((id) => { const e = document.querySelector(`[data-qc="${id}"]`); const r = e.getBoundingClientRect(); const s = e.style; e.dataset.qcColor = s.color; s.color = 'transparent'; s.textShadow = 'none'; s.webkitTextFillColor = 'transparent'; return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height } }, t.id)
     await wait(60)
     const inset = /^[^<]*<(BUTTON|A)\b/.test(t.text) ? 0.3 : 0 // tilted boxes: sample the centre, not the rotated bbox corners
     const clip = { x: Math.max(0, box.x + box.width * inset), y: Math.max(0, box.y + box.height * inset), width: Math.max(1, Math.min(box.width * (1 - 2 * inset), 400)), height: Math.max(1, box.height * (1 - 2 * inset)) }
-    const b64 = await p.screenshot({ clip, encoding: 'base64' })
+    const b64 = await p.screenshot({ clip, encoding: 'base64', captureBeyondViewport: false })
     const ratio = await p.evaluate(async (b64, fg) => {
       const img = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
       const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0)
@@ -133,6 +135,11 @@ async function run(state, w) {
   if (state === 'zero-turns') {
     const t = await p.evaluate(() => document.querySelector('[data-region="booth"]')?.innerText ?? '')
     if (!/Hết lượt/.test(t)) probs.push('zero-turns: booth lacks "Hết lượt"')
+    await p.evaluate(() => document.querySelector('[data-region="booth"] .mgp-play')?.click())
+    await wait(150)
+    if (!(await p.evaluate(() => document.querySelector('[data-region="booth"]')?.getAttribute('data-phase') === 'blink'))) probs.push('zero-turns: slot does not blink on press')
+    await wait(900)
+    if (await p.evaluate(() => !!document.querySelector('.mg-panel'))) probs.push('zero-turns: sheet opened with 0 turns')
   }
   if (state === 'error') {
     const t = await p.evaluate(() => document.body.innerText)
@@ -163,6 +170,36 @@ async function run(state, w) {
     walk = await focusWalk(p)
     if (walk.reached < walk.total) probs.push(`tab reaches ${walk.reached}/${walk.total} controls`)
     if (walk.noRing.length) probs.push(`no visible focus ring: ${walk.noRing.slice(0, 4).join('; ')}`)
+  }
+  if (state === 'signed-in' && w < 640) {
+    const dots = () => p.evaluate(() => [...document.querySelectorAll('.hub-dot')].map((d) => d.hasAttribute('data-on')))
+    const row = () => p.evaluate(() => document.querySelector('.hub-booths').scrollLeft)
+    await p.evaluate(() => document.querySelector('.hub-booths').scrollTo({ left: 0, behavior: 'instant' })); await wait(400)
+    const d0 = await dots()
+    if (d0.length !== 2 || !d0[0]) probs.push(`carousel: dots at rest ${JSON.stringify(d0)}`)
+    const cdp = await p.createCDPSession()
+    const box = await p.evaluate(() => { const r = document.querySelector('.hub-booths').getBoundingClientRect(); return { x: r.left + r.width * 0.7, y: r.top + 200 } })
+    await cdp.send('Input.synthesizeScrollGesture', { x: box.x, y: box.y, xDistance: -Math.round(w * 0.5), yDistance: 0, gestureSourceType: 'touch', speed: 800 })
+    await wait(700)
+    const d1 = await dots()
+    if (!d1[1] || (await row()) < 20) probs.push(`carousel: swipe does not reach cabinet 2 ${JSON.stringify(d1)}`)
+    await p.evaluate(() => document.querySelectorAll('.hub-dot')[0].focus())
+    await p.keyboard.press('ArrowLeft'); await wait(700)
+    if (!(await dots())[0]) probs.push('carousel: ArrowLeft does not return to cabinet 1')
+    await p.keyboard.press('ArrowRight'); await wait(700)
+    if (!(await dots())[1]) probs.push('carousel: ArrowRight does not reach cabinet 2')
+    await p.evaluate(() => document.querySelectorAll('.hub-dot')[0].click()); await wait(700)
+    if (!(await dots())[0]) probs.push('carousel: dot 1 does not scroll back')
+    if (await p.evaluate(() => document.documentElement.scrollWidth - innerWidth) > 0) probs.push('carousel: page overflows after scroll')
+    await p.evaluate(() => scrollTo(0, 0))
+  }
+  if (state === 'signed-in' && w >= 640) {
+    const c = await p.evaluate(() => { const r = document.querySelector('[data-region="booth"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 3 } })
+    await p.mouse.move(c.x - 30, c.y - 30); await p.mouse.move(c.x, c.y, { steps: 6 }); await wait(250)
+    const lit = await p.evaluate(() => ({ lit: document.querySelector('[data-region="booth"]').hasAttribute('data-lit'), over: document.documentElement.scrollWidth - innerWidth }))
+    if (!lit.lit) probs.push('spotlight: pointer does not light the cabinet')
+    if (lit.over > 0) probs.push(`spotlight: overflow ${lit.over}`)
+    await p.mouse.move(0, 0)
   }
   if (state === 'signed-in') {
     const hidden = await p.evaluate(async () => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); await new Promise((r) => setTimeout(r, 200)); return !!document.querySelector('[data-hub-shell][data-paused]') })

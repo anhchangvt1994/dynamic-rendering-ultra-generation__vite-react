@@ -30,19 +30,25 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
   const days = guest ? 0 : streak
   const dots = streakDots(days, items.some((i) => i.claimed))
   const level = mg.status?.trainer?.level
+  const statusError = !guest && !!mg.error && !mg.loading
 
   return (
     <section data-region="quests" aria-label="Nhiệm vụ hằng ngày">
       <div className="sc">
         <header className="sc-head">
-          {error ? (
+          {error || statusError ? (
             <p className="sc-err" role="alert">
-              {error}
+              {error ?? 'Chưa tải được lượt chơi và nhiệm vụ.'}
             </p>
           ) : (
             <h2>Nhiệm vụ hằng ngày</h2>
           )}
-          {!guest && level != null && (
+          {!error && statusError && (
+            <button type="button" className="sc-lv" onClick={() => mg.refresh()}>
+              Thử lại
+            </button>
+          )}
+          {!guest && level != null && !statusError && (
             <a className="sc-lv" href="/dang-nhap">
               Trainer Lv {level}
             </a>

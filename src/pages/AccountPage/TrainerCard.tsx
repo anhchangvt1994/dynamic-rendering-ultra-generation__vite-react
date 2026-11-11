@@ -129,9 +129,10 @@ export default function TrainerCard() {
         />
       </GameSheet>
       <GameSheet open={sheet === 'team'} onClose={close} title="Đội hình">
-        {sheet === 'team' && (
+        {sheet === 'team' && !items && <p className="mg-sub">Đang tải Pokémon…</p>}
+        {sheet === 'team' && items && (
           <TeamPicker
-            individuals={items ?? []}
+            individuals={items}
             trainer={trainer}
             cares={cares}
             loadBuild={loadBuild}
