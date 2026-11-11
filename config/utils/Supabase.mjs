@@ -63,11 +63,31 @@ export const supabaseClientEnv = () => {
     process.env.NODE_ENV === 'development' ? 'development' : 'production'
   const env = loadEnv(mode)
   if (!isEnabled(env.ENABLE_SUPABASE))
-    return { enabled: false, url: '', publishable_key: '' }
+    return { enabled: false, url: '', publishable_key: '', dev_account: false }
   // NOTE - Self-hosted (yarn build on the VPS): the anon key of the stack,
   // whose secrets are made now if this build comes before the first start
   if (mode === 'production' && !env.SUPABASE_PUBLISHABLE_KEY)
     env.SUPABASE_PUBLISHABLE_KEY = ensureSupabaseSecrets().ANON_KEY
+
+  // NOTE - SUPABASE_DEV_ACCOUNT=true (server/.env.local only, gitignored: the
+  // VPS never has it): a local yarn build / yarn start:redis-api talks to the
+  // CLI stack of yarn dev, where abc@gmail.com exists (supabase/dev-seed)
+  if (mode === 'production' && isEnabled(env.SUPABASE_DEV_ACCOUNT)) {
+    const status = localStatus()
+    if (!status?.API_URL)
+      throw new Error(
+        'SUPABASE_DEV_ACCOUNT=true: the local Supabase stack is not running (start it once with yarn dev, or: yarn supabase start)'
+      )
+    return {
+      enabled: true,
+      url: status.API_URL.replace(/\/+$/, ''),
+      publishable_key: assertPublishableKey(
+        status.PUBLISHABLE_KEY || status.ANON_KEY,
+        'supabase status'
+      ),
+      dev_account: true,
+    }
+  }
 
   const source = 'ENABLE_SUPABASE=true'
   const url = String(env.SUPABASE_PUBLIC_URL || '').replace(/\/+$/, '')
@@ -80,6 +100,7 @@ export const supabaseClientEnv = () => {
     enabled: true,
     url,
     publishable_key: assertPublishableKey(env.SUPABASE_PUBLISHABLE_KEY, source),
+    dev_account: false,
   }
 } // supabaseClientEnv
 

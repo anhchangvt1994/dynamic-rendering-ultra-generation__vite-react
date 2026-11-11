@@ -76,6 +76,17 @@ const ChestStyle = styled.dialog`
       0 30px 90px -20px var(--glow);
     isolation: isolate;
     text-align: center;
+    /* the title's size follows this card's width (cqw), not the screen's */
+    container-type: inline-size;
+  }
+  /* the sun is clipped here, so its turning corners never add scroll height */
+  .sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: clip;
+    border-radius: inherit;
+    pointer-events: none;
   }
   &[data-kind='combo'] {
     --glow: rgba(255, 207, 58, 0.32);
@@ -90,7 +101,6 @@ const ChestStyle = styled.dialog`
   .rays {
     position: absolute;
     inset: -40%;
-    z-index: -1;
     background: repeating-conic-gradient(
       from 0deg at 50% 38%,
       color-mix(in srgb, var(--accent) 22%, transparent) 0 6deg,
@@ -99,6 +109,10 @@ const ChestStyle = styled.dialog`
     -webkit-mask: radial-gradient(circle at 50% 38%, #000 8%, transparent 52%);
     mask: radial-gradient(circle at 50% 38%, #000 8%, transparent 52%);
     animation: chest-spin 30s linear infinite;
+  }
+  /* once the cards are out the sun holds still: it only decorates */
+  &[data-phase='open'] .rays {
+    animation-play-state: paused;
   }
   .kicker {
     margin: 0;
@@ -115,7 +129,9 @@ const ChestStyle = styled.dialog`
   h2 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(26px, 7vw, 38px);
+    max-width: 100%;
+    font-size: clamp(14px, 5.8cqw, 40px);
+    white-space: nowrap;
     line-height: 1.05 !important;
     text-transform: uppercase;
     color: #fff;
@@ -159,7 +175,7 @@ const ChestStyle = styled.dialog`
   }
   .orb-light {
     position: absolute;
-    inset: -30%;
+    inset: 0;
     border-radius: 50%;
     background: radial-gradient(
       circle,
@@ -169,6 +185,10 @@ const ChestStyle = styled.dialog`
     );
     opacity: 0;
     pointer-events: none;
+  }
+  /* the flash grows past the card: nothing may scroll while it does */
+  &[data-phase='opening'] .scene {
+    overflow: hidden;
   }
   &[data-phase='opening'] .orb {
     animation: chest-shake ${OPEN_MS}ms ease-in-out both;
@@ -292,10 +312,10 @@ const ChestStyle = styled.dialog`
       color-mix(in srgb, var(--tier) 40%, transparent) 55%,
       transparent
     );
-    mix-blend-mode: screen;
     transform: translateX(-130%) skewX(-16deg);
+    /* a few passes, then it rests: no sheen running forever on every card */
     animation: chest-foil 3.2s cubic-bezier(0.45, 0.05, 0.35, 1)
-      calc(1s + var(--i) * 150ms) infinite;
+      calc(1s + var(--i) * 150ms) 3;
   }
   .gift-front .stars {
     color: var(--tier);
@@ -439,7 +459,10 @@ const ChestStyle = styled.dialog`
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    .chest-shards {
+    .chest-shards,
+    .rays,
+    .orb,
+    .gift[data-valuable] .gift-front::after {
       animation: none;
     }
   }
@@ -500,14 +523,14 @@ const ChestStyle = styled.dialog`
   @keyframes chest-light {
     0% {
       opacity: 0;
-      scale: 0.3;
+      scale: 0.5;
     }
     40% {
       opacity: 1;
     }
     100% {
       opacity: 0;
-      scale: 2.6;
+      scale: 4.2;
     }
   }
   @keyframes chest-ring {
@@ -652,8 +675,10 @@ export default function ChestDialog({
     >
       {chest && (
         <div className="scene" key={index}>
-          <span className="rays" aria-hidden="true" />
-          <span className="ring" aria-hidden="true" />
+          <span className="sky" aria-hidden="true">
+            <span className="rays" />
+            <span className="ring" />
+          </span>
           <button
             type="button"
             className="dialog-close"

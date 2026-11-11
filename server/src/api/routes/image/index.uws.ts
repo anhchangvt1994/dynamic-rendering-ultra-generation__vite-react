@@ -1,10 +1,8 @@
 import { TemplatedApp } from 'uWebSockets.js'
-import { serveRig } from './rig/serve'
-import { serveImage } from './serve'
+import { serveImage, serveRig } from './serve'
 
 const STATUS = {
   200: '200 OK',
-  202: '202 Accepted',
   404: '404 Not Found',
   503: '503 Service Unavailable',
 }
@@ -26,8 +24,6 @@ const ImageRouter = {
         res.writeStatus(STATUS[out.status] ?? '500 Internal Server Error')
         res.writeHeader('Content-Type', out.type)
         res.writeHeader('Cache-Control', out.cache)
-        if ('kind' in out && out.kind)
-          res.writeHeader('X-Image-Kind', String(out.kind))
         res.end(out.body)
       })
     })

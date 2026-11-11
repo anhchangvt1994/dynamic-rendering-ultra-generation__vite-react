@@ -62,8 +62,8 @@ test('dropped frames hand their delay to the frame kept before them', () => {
 
 test('an animation: one sheet cell and one flow tile per displayed frame', async () => {
   const { json, sheet, flow, eye } = await buildRig(tiny, await animated(), null)
-  assert.equal(RIG_VERSION, 7)
-  assert.equal(json.v, 7)
+  assert.equal(RIG_VERSION, 9)
+  assert.equal(json.v, 9)
   assert.equal(json.frames, 8)
   assert.deepEqual(json.src, { n: 4, k: 2 })
   assert.deepEqual(json.delays, Array(8).fill(50))
@@ -75,7 +75,7 @@ test('an animation: one sheet cell and one flow tile per displayed frame', async
   assert.equal(s.width, 3 * 512)
   assert.equal(s.height, 3 * 512)
   const f = await sharp(flow).metadata()
-  assert.equal(f.format, 'png')
+  assert.equal(f.format, 'webp')
   assert.equal(f.width, 3 * 128)
   assert.equal(f.height, 3 * 128)
   const e = await sharp(eye).metadata()
@@ -90,7 +90,7 @@ test('an animation: one sheet cell and one flow tile per displayed frame', async
   assert.equal(Buffer.from(json.primary.bits, 'base64').length, 512)
   assert.ok(Array.isArray(json.branches))
   // frame 6 shows source frame 3 (one px left): its px 4.5 sits at 5.5
-  const raw = await sharp(flow).raw().toBuffer()
+  const raw = await sharp(flow).ensureAlpha().raw().toBuffer()
   const X = (6 % 3) * 128 + Math.round((4.5 / 12) * 128)
   const Y = Math.floor(6 / 3) * 128 + Math.round((5.5 / 12) * 128)
   const r = raw[(Y * 384 + X) * 4]
@@ -109,7 +109,7 @@ test('a still alone: one frame, a second long, the identity flow', async () => {
   assert.deepEqual(json.src, { n: 1, k: 1 })
   assert.deepEqual(json.sheet, { cols: 1, size: 512 })
   assert.equal((await sharp(sheet).metadata()).width, 512)
-  const f = await sharp(flow).raw().toBuffer({ resolveWithObject: true })
+  const f = await sharp(flow).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
   assert.equal(f.info.width, 128)
   const at = (x, y) => f.data[(y * 128 + x) * 4]
   assert.ok(Math.abs(at(64, 64) - (64.5 / 128) * 255) <= 1)
@@ -121,4 +121,23 @@ test('a species with noMarks says so in its rig', async () => {
   assert.equal(json.noMarks, true)
   const plain = await buildRig(null, null, still, 6)
   assert.equal(plain.json.noMarks, undefined)
+})
+
+test('the flow is stored losslessly: written tiles come back byte for byte', async () => {
+  const { flow, json } = await buildRig(tiny, await animated(), null)
+  assert.equal((await sharp(flow).metadata()).format, 'webp')
+  const { data, info } = await sharp(flow)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  assert.equal(info.channels, 4)
+  const { cols, tile } = json.flow
+  // every written tile has alpha 255 (only the spare tile of the grid is empty)
+  for (let K = 0; K < json.frames; K++) {
+    const o = (Math.floor(K / cols) * tile * info.width + (K % cols) * tile) * 4
+    assert.equal(data[o + 3], 255)
+  }
+  // frame 0 is the identity: u, v are the cell centres, byte for byte
+  assert.equal(data[0], Math.round((0.5 / tile) * 255))
+  assert.equal(data[(tile - 1) * 4], Math.round(((tile - 0.5) / tile) * 255))
 })

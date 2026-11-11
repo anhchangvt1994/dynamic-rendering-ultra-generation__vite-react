@@ -57,6 +57,7 @@ interface Env {
     SUPABASE_CLIENT_ENABLED:                       boolean;
     SUPABASE_CLIENT_URL:                           string;
     SUPABASE_CLIENT_PUBLISHABLE_KEY:               string;
+    SUPABASE_CLIENT_DEV_ACCOUNT:                   boolean;
 }
 
 interface InfoPokemonStatsColor {

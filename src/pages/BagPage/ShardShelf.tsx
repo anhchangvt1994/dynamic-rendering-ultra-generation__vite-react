@@ -98,7 +98,7 @@ const Shelf = styled.div`
     text-align: left;
     /* its own compositor layer: rasterised once, ahead of the scroll, so a
        fast flick moves finished layers instead of painting tiles late */
-    will-change: transform;
+    contain: layout style;
   }
   .shard::before {
     content: '';
@@ -235,6 +235,9 @@ const Shelf = styled.div`
     margin-left: -16px;
     z-index: calc(3 - var(--i));
   }
+  .shard-vault-fan {
+    margin-left: 0;
+  }
   .shard-vault-stone:first-child {
     margin-left: 0;
   }
@@ -267,22 +270,21 @@ const Shelf = styled.div`
      under a pointer. Everything else holds still while the shelf scrolls. */
   .shard:not(:hover):not(:focus-within) .amber-spark,
   .shard:not(:hover):not(:focus-within) .amber-piece,
-  .shard:not(:hover):not(:focus-within) .amber-ghost {
+  .shard:not(:hover):not(:focus-within) .amber-ghost,
+  .shard:not(:hover):not(:focus-within) .amber-aura,
+  .shard:not(:hover):not(:focus-within) .amber-orbit,
+  .shard:not(:hover):not(:focus-within) .amber-whole,
+  .shard:not(:hover):not(:focus-within) .amber-glint {
     animation: none;
   }
   .shard:not(:hover):not(:focus-within) .amber-sweep {
     display: none;
   }
-  /* a row mounted mid-scroll paints without its SVG filters (turbulence and
-     lighting are the slow part); they return once the shelf settles */
-  .shard-grid[data-scrolling] .shard svg [filter],
-  .shard-grid[data-scrolling] .shard svg use[filter] {
-    filter: none !important;
-  }
-  .shard-grid[data-scrolling] .shard,
-  .shard-grid[data-scrolling] .shard *,
-  .shard-grid[data-scrolling] .shard::after {
-    animation-play-state: paused !important;
+  /* the stone's drop-shadows are two full-card blurs per stone: only under a pointer */
+  .shard:not(:hover):not(:focus-within)
+    :is(.shard-cell, .shard-vault-stone)
+    > span {
+    filter: none;
   }
   .shard-craft {
     font: inherit;
@@ -754,25 +756,43 @@ const Row = memo(function Row({
         {row.cardCount > 0 && (
           <span className="shard-vault" aria-hidden="true">
             <span className="shard-vault-stones">
-              {Array.from({ length: Math.min(3, row.cardCount) }, (_, i) => {
-                const last = i === Math.min(3, row.cardCount) - 1
-                return (
-                  <span
-                    key={last ? `new-${row.cardCount}` : i}
-                    className="shard-vault-stone"
-                    style={{ '--i': i } as CSSProperties}
-                  >
-                    <AmberCard
-                      speciesId={row.speciesId}
-                      name={row.name}
-                      count={row.required}
-                      required={row.required}
-                      complete
-                      arrive={last && gained}
-                    />
-                  </span>
-                )
-              })}
+              {gained ? (
+                Array.from({ length: Math.min(3, row.cardCount) }, (_, i) => {
+                  const last = i === Math.min(3, row.cardCount) - 1
+                  return (
+                    <span
+                      key={last ? `new-${row.cardCount}` : i}
+                      className="shard-vault-stone"
+                      style={{ '--i': i } as CSSProperties}
+                    >
+                      <AmberCard
+                        speciesId={row.speciesId}
+                        name={row.name}
+                        count={row.required}
+                        required={row.required}
+                        complete
+                        arrive={last}
+                      />
+                    </span>
+                  )
+                })
+              ) : (
+                <span
+                  className="shard-vault-stone shard-vault-fan"
+                  style={{
+                    width: 52 + 36 * (Math.min(3, row.cardCount) - 1),
+                  }}
+                >
+                  <AmberCard
+                    speciesId={row.speciesId}
+                    name={row.name}
+                    count={row.required}
+                    required={row.required}
+                    complete
+                    copies={Math.min(3, row.cardCount)}
+                  />
+                </span>
+              )}
             </span>
             <span>
               Đã ghép <b>{row.cardCount}</b> viên
@@ -969,12 +989,7 @@ export default function ShardShelf({
       frame = requestAnimationFrame(measure)
     })
     resizeObserver.observe(node)
-    let idle = 0
     const update = () => {
-      // set once per gesture: rewriting it on every scroll event restyles the grid
-      if (node.dataset.scrolling === undefined) node.dataset.scrolling = ''
-      window.clearTimeout(idle)
-      idle = window.setTimeout(() => delete node.dataset.scrolling, 160)
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(measure)
     }
@@ -983,9 +998,7 @@ export default function ShardShelf({
     window.addEventListener('resize', update)
     return () => {
       cancelAnimationFrame(frame)
-      window.clearTimeout(idle)
       resizeObserver.disconnect()
-      delete node.dataset.scrolling
       scroller.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
@@ -997,9 +1010,9 @@ export default function ShardShelf({
     rowHeight: band.pitch,
     scrollTop: band.first * band.pitch,
     viewportHeight: (band.last - band.first) * band.pitch,
-    overscan: 1,
+    overscan: 0,
     direction: band.direction,
-    directionalOverscan: 3,
+    directionalOverscan: 0,
   })
   const more = () => {
     if (paging || view.done) return

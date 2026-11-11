@@ -54,7 +54,7 @@ async function fetchRig(speciesId: number): Promise<Rig | null> {
       const json = (await res.json()) as RigJson
       const [sheet, flow, eye] = await Promise.all([
         bitmap(`${base}/sheet.webp`),
-        bitmap(`${base}/flow.png`),
+        bitmap(`${base}/flow.webp`),
         bitmap(`${base}/eye.png`),
       ])
       const rig = { json, sheet, flow, eye }

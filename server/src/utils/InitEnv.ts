@@ -40,7 +40,9 @@ interface IProcessENV {
   SHARE_CARD_FETCH_TIMEOUT_MS?: string
   /** share cards rendered at the same time (default 2) */
   SHARE_CARD_MAX_RENDERS?: string
-  // NOTE - Upscaled animations (server/src/animated)
+  /** where the server reads the built pictures (yarn build:pokemon-art), default <cwd>/pokemon-art */
+  POKEMON_ART_DIR?: string
+  // NOTE - Read by tools/image-build (yarn build:pokemon-art), not by the server
   /** where the small animation comes from, "{key}" replaced: https://x/{key}.gif. Unset: off */
   ANIMATED_SOURCE_URL?: string
   /** still served until the animation is built, "{key}" replaced */

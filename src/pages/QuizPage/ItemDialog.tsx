@@ -45,6 +45,7 @@ export const ItemCardStyle = styled.div`
     overflow: hidden;
     max-height: calc(100svh - 24px);
     border-radius: 28px;
+    container-type: inline-size;
     background:
       radial-gradient(
         120% 70% at 50% 0,
@@ -91,9 +92,8 @@ export const ItemCardStyle = styled.div`
       transparent
     );
     pointer-events: none;
-    mix-blend-mode: screen;
     transform: translateX(-130%) skewX(-16deg);
-    animation: item-foil 4.2s cubic-bezier(0.45, 0.05, 0.35, 1) infinite;
+    animation: item-foil 4.2s cubic-bezier(0.45, 0.05, 0.35, 1) 3;
   }
   .hero {
     position: relative;
@@ -198,7 +198,9 @@ export const ItemCardStyle = styled.div`
   h2 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 30px;
+    max-width: 100%;
+    font-size: clamp(18px, 8cqw, 30px);
+    text-wrap: balance;
     line-height: 1.05 !important;
     text-transform: uppercase;
     color: #fff;

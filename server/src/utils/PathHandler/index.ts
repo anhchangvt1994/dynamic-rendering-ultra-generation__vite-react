@@ -187,3 +187,37 @@ export const getResourcePath = () => {
       })()
     : path.resolve(__dirname, '../../../resources')
 } // getResourcePath
+
+/**
+ * Where api/image reads the Pokémon art built by `yarn build:pokemon-art`
+ * (<dir>/<key>/{anim.webp,rig.json,sheet.webp,flow.webp,eye.png}).
+ *   1. POKEMON_ART_DIR, when set (explicit, survives a /tmp clean)
+ *   2. on the server: <rootCache | /tmp>/pokemon-art, like the other caches
+ *   3. otherwise <project root>/pokemon-art (where the CLI writes by default)
+ */
+export const getPokemonArtPath = () => {
+  if (PROCESS_ENV.POKEMON_ART_DIR)
+    return path.resolve(PROCESS_ENV.POKEMON_ART_DIR)
+
+  return PROCESS_ENV.IS_SERVER
+    ? (() => {
+        let root = '/tmp'
+        if (ServerConfig.rootCache) {
+          if (fs.existsSync(ServerConfig.rootCache)) {
+            root = ServerConfig.rootCache
+          } else {
+            try {
+              fs.mkdirSync(ServerConfig.rootCache, { recursive: true })
+              root = ServerConfig.rootCache
+            } catch (err) {
+              Console.error(err.message)
+            }
+          }
+        }
+
+        if (fs.existsSync(root)) return root + '/pokemon-art'
+
+        return path.resolve(__dirname, '../../../../pokemon-art')
+      })()
+    : path.resolve(__dirname, '../../../../pokemon-art')
+} // getPokemonArtPath

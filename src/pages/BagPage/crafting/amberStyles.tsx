@@ -12,7 +12,25 @@ export const AmberStyle = styled.span`
   filter: drop-shadow(0 7px 5px #0a0f1d55) drop-shadow(0 0 10px #ffb43a30);
   transition: filter 350ms ease;
 
-  > svg {
+  .amber-fan {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .amber-still {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+  }
+  .amber-fan .amber-still {
+    position: absolute;
+    top: 0;
+    height: 100%;
+  }
+  > .amber-body {
     display: block;
     width: 100%;
     height: 100%;
@@ -143,7 +161,7 @@ export const AmberStyle = styled.span`
     &:hover {
       filter: drop-shadow(0 12px 9px #090e1890) drop-shadow(0 0 12px #e5a12630);
     }
-    &:hover > svg {
+    &:hover > .amber-body {
       transform: perspective(500px) rotateX(-5deg) rotateY(9deg) rotateZ(2deg);
     }
   }
@@ -154,6 +172,12 @@ export const AmberStyle = styled.span`
     position: absolute;
     pointer-events: none;
   }
+  .amber-slot {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+  }
   .amber-aura {
     inset: -24%;
     z-index: -1;
@@ -161,7 +185,7 @@ export const AmberStyle = styled.span`
     opacity: 0;
   }
   /* partial: dim, waiting for its pieces */
-  &[data-state='partial'] > svg {
+  &[data-state='partial'] > .amber-body {
     filter: saturate(0.74) brightness(0.93);
   }
   &[data-state='partial'] .amber-ghost {
@@ -387,7 +411,7 @@ export const AmberStyle = styled.span`
   }
   @media (prefers-reduced-motion: reduce) {
     &,
-    > svg,
+    > .amber-body,
     .amber-piece,
     .amber-facets,
     .amber-edge,
@@ -417,7 +441,7 @@ export const AmberStyle = styled.span`
       animation: none;
       opacity: 0.65;
     }
-    &:hover > svg {
+    &:hover > .amber-body {
       transform: perspective(500px) rotateX(6deg) rotateY(-8deg) rotateZ(-5deg);
     }
   }

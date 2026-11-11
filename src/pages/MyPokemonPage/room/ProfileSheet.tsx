@@ -21,7 +21,6 @@ import {
 } from '../care/care.mjs'
 import { LIKES } from '../care/likes.mjs'
 import type { CareState } from '../care/useCare'
-import { myPokemonPath } from '../paths.mjs'
 import BuildPanel from '../build/BuildPanel'
 import { starsFor } from '../build/format.mjs'
 import { useBuild } from '../build/useBuild'
@@ -112,28 +111,20 @@ function Nickname({ item }: { item: Individual }) {
 
 type Props = {
   item: Individual
-  species: string
   care: CareState | null
   /** the care is still loading: the stats hold their place */
   pending?: boolean
-  siblings: Individual[]
-  returnTo: string
-  returnIndex: unknown
   open: boolean
 }
 
 /**
- * Growth, level, the profile (looks included), nickname and the others of its species.
+ * Growth, level, the profile (looks included), nickname.
  * A sheet pulled up on mobile, the right column on desktop (styles).
  */
 export default function ProfileSheet({
   item,
-  species,
   care,
   pending = false,
-  siblings,
-  returnTo,
-  returnIndex,
   open,
 }: Props) {
   const personality = personalityLine(item.personality)
@@ -274,27 +265,6 @@ export default function ProfileSheet({
             <Nickname item={item} />
           </section>
         </div>
-
-        {siblings.length > 1 && (
-          <nav aria-label="Chọn bạn đồng hành" className="rm-card rm-siblings">
-            <h2>Cùng loài</h2>
-            <ul>
-              {siblings.map((candidate) => (
-                <li key={candidate.id}>
-                  <LinkCustom
-                    className="rm-btn"
-                    to={myPokemonPath(candidate.id)}
-                    state={{ returnTo, returnIndex }}
-                    aria-current={candidate.id === item.id ? 'page' : undefined}
-                  >
-                    {candidate.nickname ?? species} ·{' '}
-                    {starLabel(candidate.potential.stars)}
-                  </LinkCustom>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
       </div>
     </div>
   )

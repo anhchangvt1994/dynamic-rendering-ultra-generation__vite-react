@@ -57,7 +57,8 @@ export async function encodeSheet(
   w: number,
   h: number,
   cols: number,
-  rows: number
+  rows: number,
+  quality = 90
 ) {
   const width = cols * w
   const sheet = Buffer.alloc(width * rows * h * 4)
@@ -71,6 +72,6 @@ export async function encodeSheet(
       )
   })
   return sharp(sheet, { raw: { width, height: rows * h, channels: 4 } })
-    .webp({ quality: 90, alphaQuality: 100 })
+    .webp({ quality, alphaQuality: 100, effort: 6 })
     .toBuffer()
 }

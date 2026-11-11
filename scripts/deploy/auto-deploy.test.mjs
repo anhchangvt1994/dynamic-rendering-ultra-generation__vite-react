@@ -6,6 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import {
+  adoptPokemonArt,
   dependenciesChanged,
   deploymentDiagnostics,
   deploy,
@@ -652,4 +653,29 @@ test('a real fast-forward git pull invokes the shipped post-merge hook', (t) => 
     fs.readFileSync(path.join(f.root, 'hook-ran.txt'), 'utf8'),
     '--hook'
   )
+})
+
+test('adoptPokemonArt moves only the species the target lacks', (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'art-'))
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }))
+  const root = path.join(base, 'app')
+  const put = (dir, key, text) => {
+    fs.mkdirSync(path.join(dir, key), { recursive: true })
+    fs.writeFileSync(path.join(dir, key, 'rig.json'), text)
+  }
+  put(path.join(base, 'pokemon-art'), '1', 'new')
+  put(path.join(base, 'pokemon-art'), '2', 'new')
+  put(path.join(root, 'pokemon-art'), '2', 'kept')
+  const log = () => {}
+  assert.equal(adoptPokemonArt(root, log, {}), 1)
+  assert.equal(
+    fs.readFileSync(path.join(root, 'pokemon-art/1/rig.json'), 'utf8'),
+    'new'
+  )
+  assert.equal(
+    fs.readFileSync(path.join(root, 'pokemon-art/2/rig.json'), 'utf8'),
+    'kept'
+  )
+  assert.ok(!fs.existsSync(path.join(base, 'pokemon-art/1')))
+  assert.equal(adoptPokemonArt(root, log, {}), 0)
 })

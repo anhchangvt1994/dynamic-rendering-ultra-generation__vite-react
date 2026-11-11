@@ -1,6 +1,5 @@
 import type { Express } from 'express'
-import { serveRig } from './rig/serve'
-import { serveImage } from './serve'
+import { serveImage, serveRig } from './serve'
 
 /** GET /api/image/<key>.webp and /api/image/rig/<key>/<file> (express: yarn dev) */
 const ImageRouter = {
@@ -15,7 +14,6 @@ const ImageRouter = {
       const out = await serveImage(req.path)
       res.status(out.status).type(out.type)
       res.setHeader('Cache-Control', out.cache)
-      if (out.kind) res.setHeader('X-Image-Kind', out.kind)
       res.end(out.body)
     })
   },

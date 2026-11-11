@@ -150,7 +150,6 @@ async function smoothMask(
 
 const name = (f: number) => `${String(f).padStart(3, '0')}.png`
 
-
 export async function upscaleAnimation(
   source: Buffer,
   {
@@ -266,7 +265,10 @@ export async function upscaleAnimation(
               killSignal: 'SIGKILL',
             }
           )
-          if (r.status !== 0) throw new Error('rife failed')
+          if (r.status !== 0)
+            throw new Error(
+              `rife failed (${r.error?.message || r.signal || `exit ${r.status}`})`
+            )
           for (let f = 0; f < m; f++)
             fs.renameSync(
               path.join(output, `${String(f + 1).padStart(8, '0')}.png`),
@@ -310,7 +312,14 @@ export async function upscaleAnimation(
             killSignal: 'SIGKILL',
           }
         )
-        if (run.status !== 0) throw new Error('realesrgan failed')
+        if (run.status !== 0)
+          throw new Error(
+            `realesrgan failed (${run.error?.message || run.signal || `exit ${run.status}`})${
+              run.stderr
+                ? `: ${String(run.stderr).trim().split('\n').slice(-2).join(' | ')}`
+                : ''
+            }`
+          )
         if (p > 1) fs.rmSync(from, { recursive: true, force: true })
         from = to
         // a big source is already near the size after one pass: the next
@@ -397,8 +406,11 @@ export async function upscaleAnimation(
       ),
     })
 
+  // limitInputPixels off: a long animation (92: 3072 frames at 512px) is
+  // ~800 MP in one raw strip, over sharp's default 268 MP guard
   return sharp(out, {
     raw: { width: tw, height: th * m, channels: 4, pageHeight: th },
+    limitInputPixels: false,
   })
     .webp({
       quality,

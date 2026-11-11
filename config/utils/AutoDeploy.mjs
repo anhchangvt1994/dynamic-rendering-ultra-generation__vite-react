@@ -266,6 +266,47 @@ export function publishArtifacts(root, stage) {
   }
 }
 
+// Pokémon art is built on a dev machine (`yarn build:pokemon-art`) and is not
+// in git. Whatever sits in the inbox (POKEMON_ART_INBOX, default a
+// `pokemon-art` folder beside the checkout) is MOVED into the folder the
+// server reads (getPokemonArtPath, asked of the server code), one species at a
+// time, only where the target has no such species yet. Never overwrites.
+export function adoptPokemonArt(
+  root,
+  log = logDefault,
+  env = process.env,
+  folder
+) {
+  const target = path.resolve(
+    root,
+    folder || env.POKEMON_ART_DIR || 'pokemon-art'
+  )
+  const inbox = path.resolve(
+    root,
+    env.POKEMON_ART_INBOX || path.join('..', 'pokemon-art')
+  )
+  if (inbox === target || !fs.existsSync(inbox)) return 0
+  fs.mkdirSync(target, { recursive: true })
+  let moved = 0
+  for (const entry of fs.readdirSync(inbox, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const to = path.join(target, entry.name)
+    if (fs.existsSync(to)) continue
+    const from = path.join(inbox, entry.name)
+    try {
+      fs.renameSync(from, to)
+    } catch (error) {
+      if (error.code !== 'EXDEV') throw error
+      fs.cpSync(from, to, { recursive: true })
+      fs.rmSync(from, { recursive: true, force: true })
+    }
+    moved++
+  }
+  if (moved)
+    log(`Moved ${moved} Pokémon art folders from ${inbox} to ${target}`)
+  return moved
+}
+
 // Expand ordinary workspace directory globs without following directory links.
 function workspaceDirectories(root) {
   const workspaces = readJSON(path.join(root, 'package.json'))?.workspaces
@@ -484,6 +525,24 @@ export async function deploy({
     if ((!previous || supabaseChanged(changes)) && (await supabaseEnabled())) {
       log('Applying Supabase migrations and seed...')
       await run('yarn', ['migrate'], { cwd: root, env: process.env })
+    }
+    try {
+      // the server's own answer: POKEMON_ART_DIR, <rootCache|/tmp>/pokemon-art...
+      const asked = spawnSync(
+        process.execPath,
+        [
+          '-r',
+          'sucrase/register',
+          '-p',
+          "require('./server/src/utils/PathHandler').getPokemonArtPath()",
+        ],
+        { cwd: root, env: process.env, encoding: 'utf8' }
+      )
+      const folder =
+        asked.status === 0 ? asked.stdout.trim().split('\n').pop() : ''
+      adoptPokemonArt(root, log, process.env, folder || undefined)
+    } catch (error) {
+      log(`Pokémon art not moved: ${error.message}`)
     }
     log('Publishing successful builds...')
     publicationStarted = true

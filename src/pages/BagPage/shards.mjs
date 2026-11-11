@@ -32,11 +32,17 @@ const checkedCount = (speciesId, value) => {
   return value
 }
 
-/** Amber first, then shard count descending, with species id as stable tie-break. */
+/**
+ * Craftable species first (every shard present), then owned amber, then the
+ * closest to craftable (count / required, not the raw count: 5 of 20 is
+ * further than 3 of 3), with species id as stable tie-break.
+ */
 export const shardRows = (rows) =>
   [...rows].sort(
     (a, b) =>
+      Number(b.count >= b.required) - Number(a.count >= a.required) ||
       Number(b.cardCount > 0) - Number(a.cardCount > 0) ||
+      b.count / b.required - a.count / a.required ||
       b.count - a.count ||
       a.speciesId - b.speciesId
   )

@@ -64,11 +64,10 @@ const LootStyle = styled.button`
       color-mix(in srgb, var(--tier) 40%, transparent) 55%,
       transparent
     );
-    mix-blend-mode: screen;
     pointer-events: none;
     transform: translateX(-130%) skewX(-16deg);
     animation: loot-foil 3.6s cubic-bezier(0.45, 0.05, 0.35, 1)
-      calc(${LAND} + 0.5s) infinite;
+      calc(${LAND} + 0.5s) 3;
   }
   &:hover {
     box-shadow:

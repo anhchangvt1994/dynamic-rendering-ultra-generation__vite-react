@@ -35,6 +35,9 @@ config/env/env.json
 server/dist
 config/utils/PortHandler/.env
 server/resources/*
+
+# built on a dev machine (yarn build:pokemon-art), uploaded to the server
+pokemon-art/
 server/**/server-info.json
 server/**/user_data*
 server/**/browsers/wsEndpoint.lightpanda.txt

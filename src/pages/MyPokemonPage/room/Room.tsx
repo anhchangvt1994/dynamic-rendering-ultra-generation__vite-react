@@ -600,12 +600,8 @@ export default function Room({
         </button>
         <ProfileSheet
           item={individual}
-          species={species}
           care={state}
           pending={!state && !care.error}
-          siblings={siblings}
-          returnTo={returnTo}
-          returnIndex={returnIndex}
           open={sheetOpen}
         />
         <CareBar

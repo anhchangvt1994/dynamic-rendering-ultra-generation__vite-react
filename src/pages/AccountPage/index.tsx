@@ -16,6 +16,10 @@ type Step =
   | { name: 'new-password' }
 
 const RESEND_SECONDS = 60
+// yarn dev, or a local build with SUPABASE_DEV_ACCOUNT=true (server/.env.local):
+// abc@gmail.com signs in with no code. False on the VPS, the code is dropped.
+const DEV_ACCOUNT =
+  import.meta.env.DEV || import.meta.env.SUPABASE_CLIENT_DEV_ACCOUNT === true
 const CODE = /^\d{6}$/
 // the rule of supabase/config.toml: 8+ characters, letters and digits
 const strongEnough = (password: string) =>
@@ -135,7 +139,7 @@ export default function AccountPage() {
     event.preventDefault()
     const address = email.trim()
     // yarn dev only: the test account (supabase/dev-seed) needs no code
-    const devAccount = import.meta.env.DEV && devTestAccount(address, true)
+    const devAccount = DEV_ACCOUNT && devTestAccount(address, true)
     if (devAccount)
       return run(async (supabase) => {
         check(await supabase.auth.signInWithPassword(devAccount))
@@ -237,7 +241,7 @@ export default function AccountPage() {
         <input
           type={showPassword ? 'text' : 'password'}
           autoComplete={autoComplete}
-          required={!(import.meta.env.DEV && devTestAccount(email, true))}
+          required={!(DEV_ACCOUNT && devTestAccount(email, true))}
           minLength={autoComplete === 'new-password' ? 8 : undefined}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -498,7 +502,7 @@ export default function AccountPage() {
             </p>
           )}
           {body}
-          {import.meta.env.DEV && (
+          {DEV_ACCOUNT && (
             <p className="hint dev">
               Local: email nằm trong Mailpit, cổng 54324 của máy chạy yarn dev.
               Tài khoản test: abc@gmail.com, không cần mật khẩu hay mã.

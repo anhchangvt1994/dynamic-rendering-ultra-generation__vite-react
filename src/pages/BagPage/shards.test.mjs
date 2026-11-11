@@ -270,7 +270,7 @@ test('server: card-only species become rows; shards and cards join per species',
   )
 })
 
-test('rows prioritize amber count, then shard count descending, stable by species id', () => {
+test('craftable first, then owned amber, then closest to craftable, stable by species id', () => {
   const r = (speciesId, count, cardCount) => ({
     ...row(speciesId, count, 10),
     cardCount,
@@ -288,7 +288,10 @@ test('rows prioritize amber count, then shard count descending, stable by specie
     shardRows(input).map((x) => x.speciesId),
     [8, 6, 3, 9, 7, 2]
   )
-  assert.deepEqual(input.map((x) => x.speciesId), before)
+  assert.deepEqual(
+    input.map((x) => x.speciesId),
+    before
+  )
 })
 
 test('a failed card read is an error, never an empty or shards-only pocket', async () => {
@@ -418,4 +421,17 @@ test('server: pending chest entitlements count as pending', async () => {
   const out = await loadShardRows({ mode: 'server', supabase, catalog })
   assert.ok(supabase.calls.includes('from:quiz_chest_shard_events'))
   assert.equal(out.pending, 2)
+})
+
+test('a craftable species outranks owned amber and a larger raw count of a costlier species', () => {
+  const r = (speciesId, count, required, cardCount = 0) => ({
+    ...row(speciesId, count, required),
+    cardCount,
+  })
+  assert.deepEqual(
+    shardRows([r(1, 9, 20), r(2, 3, 3), r(3, 0, 5, 2), r(4, 2, 3)]).map(
+      (x) => x.speciesId
+    ),
+    [2, 3, 4, 1]
+  )
 })

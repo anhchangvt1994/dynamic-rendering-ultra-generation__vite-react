@@ -20,9 +20,12 @@ export { sheetPlan } from './sheet'
 // 5: eye rim accepts mid-dark outlines, so every animation frame keeps its mask
 // 6: lower-resolution optical flow (128px)
 // 7: eye protection is limited to compact upper-face components
-export const RIG_VERSION = 7
+// 8: rollback to the original 256px optical flow (128px made colours flicker
+//    and marks lose the skin); the eye mask stays
+// 9: flow.webp, lossless (flow.png was 4x larger); sheet encoded at effort 6
+export const RIG_VERSION = 9
 /** longest side the flow is computed at */
-const FLOW_SIDE = 128
+const FLOW_SIDE = 256
 const PRIMARY = 64
 const BATCH = 16
 const CLUSTER_FRAMES = 16
@@ -66,7 +69,9 @@ async function decode(
 ) {
   const { data } = await sharp(
     image,
-    animated ? { animated: true, page: start, pages: count } : { page: 0 }
+    animated
+      ? { animated: true, page: start, pages: count, limitInputPixels: false }
+      : { page: 0 }
   )
     .ensureAlpha()
     .resize({
@@ -91,18 +96,27 @@ export async function buildRig(
   source: Buffer | null,
   animatedWebp: Buffer | null,
   still: Buffer | null,
-  key?: string | number
+  key?: string | number,
+  { sheetQuality = 90 }: { sheetQuality?: number } = {}
 ): Promise<{ json: RigJson; sheet: Buffer; flow: Buffer; eye: Buffer }> {
   const image = animatedWebp ?? still ?? source
   if (!image) throw new Error('a rig needs an image')
   const animated = !!animatedWebp
-  const meta = await sharp(image, animated ? { animated: true } : {}).metadata()
+  const meta = await sharp(
+    image,
+    animated ? { animated: true, limitInputPixels: false } : {}
+  ).metadata()
   const W = meta.width!
   const H = animated ? (meta.pageHeight ?? meta.height!) : meta.height!
   const m = animated ? (meta.pages ?? 1) : 1
   const n =
     animated && source
-      ? ((await sharp(source, { animated: true }).metadata()).pages ?? 1)
+      ? ((
+          await sharp(source, {
+            animated: true,
+            limitInputPixels: false,
+          }).metadata()
+        ).pages ?? 1)
       : m
   const plan = sheetPlan(m, animated ? (meta.delay ?? []) : [1000])
   const cell = cellOf(W, H, plan.size)
@@ -168,16 +182,20 @@ export async function buildRig(
     ...(override?.noMarks ? { noMarks: true as const } : {}),
   }
   const [sheet, flowPng, eyePng] = await Promise.all([
-    encodeSheet(cells, cell.w, cell.h, plan.cols, plan.rows),
+    encodeSheet(cells, cell.w, cell.h, plan.cols, plan.rows, sheetQuality),
     sharp(flow.data, {
       raw: { width: flow.width, height: flow.height, channels: 4 },
     })
-      .png({ compressionLevel: 9 })
+      // coordinates, not colours: lossless, and the RGB kept as written
+      .webp({ lossless: true, effort: 6 })
       .toBuffer(),
-    sharp(
-      Buffer.from(eyeSheet),
-      { raw: { width: plan.cols * cell.w, height: plan.rows * cell.h, channels: 1 } }
-    )
+    sharp(Buffer.from(eyeSheet), {
+      raw: {
+        width: plan.cols * cell.w,
+        height: plan.rows * cell.h,
+        channels: 1,
+      },
+    })
       .png({ palette: false, compressionLevel: 9 })
       .toBuffer(),
   ])

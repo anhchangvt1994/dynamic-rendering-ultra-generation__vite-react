@@ -6,7 +6,7 @@
  */
 export type Field = { u: Float32Array; v: Float32Array; conf: Float32Array }
 
-/** Flow tile side in flow.png: one tile per frame. */
+/** Flow tile side in flow.webp: one tile per frame. */
 export const TILE = 128
 
 const FARNEBACK = {
@@ -343,7 +343,7 @@ export type FlowSheet = {
   cols: number
 }
 
-/** An empty flow.png for m frames: `cols = ceil(sqrt(m))` tiles across. */
+/** An empty flow sheet for m frames: `cols = ceil(sqrt(m))` tiles across. */
 export function flowSheet(m: number): FlowSheet {
   const cols = Math.max(1, Math.ceil(Math.sqrt(m)))
   const width = cols * TILE

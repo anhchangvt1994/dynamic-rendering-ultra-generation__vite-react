@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { serveRig } from './rig/serve'
-import { serveImage } from './serve'
+import { serveImage, serveRig } from './serve'
 
 /** GET /api/image/<key>.webp and /api/image/rig/<key>/<file> (fastify) */
 const ImageRouter = {
@@ -19,7 +18,6 @@ const ImageRouter = {
         .code(out.status)
         .header('Content-Type', out.type)
         .header('Cache-Control', out.cache)
-      if (out.kind) reply.header('X-Image-Kind', out.kind)
       return reply.send(out.body)
     })
   },

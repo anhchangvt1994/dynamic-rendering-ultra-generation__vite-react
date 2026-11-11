@@ -35,6 +35,10 @@
     "supabase:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
+    "upload:pokemon-art": "node tools/image-build/upload.mjs",
+    "build:pokemon-art": "node tools/image-build/cli.cjs",
+    "build:amber-art": "node tools/image-build/amber.cjs",
+    "test:pokemon-art": "node --test tools/image-build/*.test.mjs tools/image-build/rig/*.test.mjs",
     "vibe:seed": "node scripts/vibe-seed.mjs",
     "supabase:check": "node config/scripts/supabase-check.mjs"
   },

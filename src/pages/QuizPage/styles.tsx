@@ -338,6 +338,8 @@ export const QuizStyle = styled.section`
   }
   /* two notches from the reward: it glows and rocks */
   .meter[data-near] .meter-ball {
+    /* a fixed glow: animating a filter repaints the ball every frame */
+    filter: drop-shadow(0 0 6px #fff);
     animation: quiz-reward 1.1s ease-in-out infinite;
   }
   /* full: the ring turns to a rainbow */
@@ -2134,11 +2136,9 @@ export const QuizStyle = styled.section`
     0%,
     100% {
       rotate: -10deg;
-      filter: drop-shadow(0 0 2px #fff);
     }
     50% {
       rotate: 10deg;
-      filter: drop-shadow(0 0 9px #fff);
     }
   }
   @keyframes quiz-static {

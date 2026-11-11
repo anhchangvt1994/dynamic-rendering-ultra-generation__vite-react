@@ -19,7 +19,7 @@ import {
   LIGHTPANDA_VERSION,
 } from './LightpandaInstaller.mjs'
 import { isEnabled, loadEnv } from './ServerEnv.mjs'
-import { ensureSelfHostedSupabase } from './Supabase.mjs'
+import { ensureLocalSupabase, ensureSelfHostedSupabase } from './Supabase.mjs'
 
 const LOCAL_HOSTS = ['', '127.0.0.1', 'localhost', '::1', '0.0.0.0']
 const REDIS_READY_TIMEOUT = 15000
@@ -330,6 +330,14 @@ export default async function preflight({
 
   if (redis || isEnabled(resolvedEnv.REDIS)) await ensureRedis(resolvedEnv)
 
-  if (isEnabled(resolvedEnv.ENABLE_SUPABASE))
-    await ensureSelfHostedSupabase(resolvedEnv)
+  if (isEnabled(resolvedEnv.ENABLE_SUPABASE)) {
+    // NOTE - SUPABASE_DEV_ACCOUNT=true (server/.env.local, this machine only):
+    // the CLI stack of yarn dev with the abc@gmail.com seed, not the
+    // self-hosted one. The server reaches it through SUPABASE_INTERNAL_URL.
+    if (isEnabled(resolvedEnv.SUPABASE_DEV_ACCOUNT)) {
+      const supabase = await ensureLocalSupabase()
+      process.env.SUPABASE_INTERNAL_URL = supabase.url
+      process.env.SUPABASE_SERVICE_ROLE_KEY = supabase.serviceRoleKey
+    } else await ensureSelfHostedSupabase(resolvedEnv)
+  }
 }

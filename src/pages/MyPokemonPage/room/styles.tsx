@@ -1519,7 +1519,7 @@ export const RoomStyle = styled.div`
     display: grid;
     align-content: start;
   }
-  /* paper and siblings share one box: it is the single row that collapses */
+  /* the paper is the single row that collapses */
   .rm-profile-body {
     display: grid;
     align-content: start;
@@ -2022,14 +2022,6 @@ export const RoomStyle = styled.div`
   }
   .rm-btn[aria-disabled='true'] {
     opacity: 0.6;
-  }
-  .rm-siblings ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
 
   /* ---------- feed sheet ---------- */

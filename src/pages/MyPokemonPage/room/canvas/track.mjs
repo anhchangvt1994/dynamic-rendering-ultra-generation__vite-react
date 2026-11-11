@@ -27,7 +27,7 @@ const MIN_HIDE_MS = 90
 
 /**
  * `shapes` from planMarks (frame-0 0–1 coordinates, size a share of the long
- * side); `flow` the decoded flow.png ({ data, width, height }, RGBA bytes);
+ * side); `flow` the decoded flow.webp ({ data, width, height }, RGBA bytes);
  * `json` the rig's ({ frames, frame: { w, h }, flow: { cols, tile } });
  * `body` (optional) each frame's alpha laid out like the flow, one tile per
  * frame (RGBA bytes, alpha read): where frame K no longer shows what sat
