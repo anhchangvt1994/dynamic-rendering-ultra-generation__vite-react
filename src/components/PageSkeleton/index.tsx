@@ -9,6 +9,7 @@ import KitchenSkeleton from './KitchenSkeleton'
 import BlogSkeleton from './BlogSkeleton'
 import BlogDetailSkeleton from './BlogDetailSkeleton'
 import MyPokemonSkeleton from './MyPokemonSkeleton'
+import MiniGameSkeleton from './MiniGameSkeleton'
 
 export { default as HeaderSkeleton } from './HeaderSkeleton'
 
@@ -37,6 +38,8 @@ export default function PageSkeleton({ routeId }: { routeId?: string }) {
       return <CompareSkeleton />
     case 'AccountPage':
       return <AccountSkeleton />
+    case 'MiniGamePage':
+      return <MiniGameSkeleton />
     case 'MyPokemonPage':
       return <MyPokemonSkeleton />
     default:

@@ -45,6 +45,12 @@ const ServerConfig = defineServerConfig({
             name: 'che-bien-page',
           },
         }
+      else if (pathSlitted[1] === 'mini-game')
+        return {
+          loader: {
+            name: 'mini-game-page',
+          },
+        }
       else if (pathSlitted[1] === 'pokemon-cua-toi')
         return {
           loader: {

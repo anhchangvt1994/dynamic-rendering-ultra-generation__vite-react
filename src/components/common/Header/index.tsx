@@ -68,6 +68,16 @@ const Header = ({
               Chế biến
             </LinkCustom>
           )}
+          {(account.status !== 'off' || import.meta.env.DEV) && (
+            <LinkCustom
+              to="/mini-game"
+              aria-current={
+                location.pathname === '/mini-game' ? 'page' : undefined
+              }
+            >
+              Mini game
+            </LinkCustom>
+          )}
           <LinkCustom
             to="/blogs"
             aria-current={

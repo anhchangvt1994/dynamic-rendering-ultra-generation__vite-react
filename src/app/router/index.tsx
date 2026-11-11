@@ -95,6 +95,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'KitchenPage',
       }, // Kitchen Page
       {
+        // the games a trainer plays with a Pokémon of their own
+        path: 'mini-game',
+        element: <ROUTE_MODULES.miniGame.Route />,
+        id: 'MiniGamePage',
+      }, // Mini Game Page
+      {
         // the individuals a player got from amber: /pokemon-cua-toi, /pokemon-cua-toi/:id
         path: 'pokemon-cua-toi/:id?',
         element: <ROUTE_MODULES.myPokemon.Route />,

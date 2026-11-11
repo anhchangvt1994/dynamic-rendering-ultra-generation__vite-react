@@ -55,6 +55,12 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
             icon: 'kitchen',
             path: '/che-bien',
           },
+          {
+            title: 'Mini game',
+            id: 'MiniGamePage',
+            icon: 'game',
+            path: '/mini-game',
+          },
         ]),
     {
       title: 'So sánh Pokémon',
