@@ -5,6 +5,7 @@ import { modeFor, type QuizMode } from 'pages/QuizPage/engine/mode'
 import { createEpoch } from 'pages/BagPage/shards.mjs'
 import {
   MINIGAME_ERRORS,
+  claimQuest,
   finishRound,
   flipCard,
   readCares,
@@ -41,9 +42,28 @@ export type Receipt = {
   xp: number
   level: number
   levelUp: boolean
-  badges: string[]
+  comboLen: number
+  combo: number
   needs: { hunger: number; clean: number; fun: number } | null
   flips: number
+}
+export type QuestItem = {
+  slot: number
+  kind: string
+  goal: number
+  progress: number
+  xp: number
+  claimed: boolean
+  gift: { items: string[]; streakGift: string[] | null } | null
+}
+export type ClaimReceipt = {
+  slot: number
+  xp: number
+  gift: string[]
+  streak: number
+  streakGift: string[] | null
+  level: number
+  levelUp: boolean
 }
 export type MiniGameStatus = {
   trainer: {
@@ -53,7 +73,12 @@ export type MiniGameStatus = {
     team: string[]
     slots: number
     owned: number
-    badges: { id: string; at: string }[]
+  }
+  quests: {
+    day: string
+    streak: number
+    streakDay: string | null
+    items: QuestItem[]
   }
   games: Record<string, { left: number; resetAt: string | null; wins: number }>
   open: {
@@ -143,6 +168,14 @@ export function useMiniGame() {
     },
     [run, refresh]
   )
+  const claim = useCallback(
+    async (slot: number): Promise<ClaimReceipt> => {
+      const receipt = await run((deps) => claimQuest(deps, { slot }))
+      await refresh()
+      return receipt
+    },
+    [run, refresh]
+  )
   const chooseAvatar = useCallback(
     async (avatar: string) => {
       await run((deps) => setAvatar(deps, avatar))
@@ -174,6 +207,7 @@ export function useMiniGame() {
     start,
     flip,
     finish,
+    claim,
     setAvatar: chooseAvatar,
     setTeam: chooseTeam,
     practice,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   MINIGAME_ERRORS,
+  claimQuest,
   finishRound,
   flipCard,
   readCares,
@@ -33,6 +34,7 @@ test('each call maps to its RPC and returns the data', async () => {
   await finishRound(deps, { round: 'r1' })
   await setAvatar(deps, 'scout')
   await setTeam(deps, ['a', 'b'])
+  await claimQuest(deps, { slot: 2 })
   assert.deepEqual(supabase.calls, [
     { name: 'minigame_status', args: undefined },
     {
@@ -43,6 +45,7 @@ test('each call maps to its RPC and returns the data', async () => {
     { name: 'minigame_finish', args: { p_round: 'r1' } },
     { name: 'trainer_set_avatar', args: { p_avatar: 'scout' } },
     { name: 'trainer_set_team', args: { p_team: ['a', 'b'] } },
+    { name: 'minigame_quest_claim', args: { p_slot: 2 } },
   ])
   assert.deepEqual(await readStatus(deps), { ok: 1 })
 })
@@ -77,7 +80,7 @@ test('any mode but server is unavailable and calls nothing', async () => {
 })
 
 test('the error copy covers every code the database raises', () => {
-  for (const code of ['hungry', 'no_turns', 'round_open', 'not_found', 'round_closed', 'not_finished', 'bad_index', 'team_full', 'not_eligible', 'locked', 'network'])
+  for (const code of ['hungry', 'no_turns', 'round_open', 'not_found', 'round_closed', 'not_finished', 'bad_index', 'team_full', 'not_eligible', 'locked', 'not_done', 'bad_slot', 'network'])
     assert.ok(MINIGAME_ERRORS[code], code)
 })
 

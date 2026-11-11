@@ -11,6 +11,8 @@ export const MINIGAME_ERRORS = {
   team_full: 'Đội đã đủ chỗ',
   not_eligible: 'Pokémon này chưa đủ điều kiện vào đội',
   locked: 'Nhân vật này chưa mở khóa',
+  not_done: 'Nhiệm vụ chưa xong',
+  bad_slot: 'Nhiệm vụ không hợp lệ',
   unavailable: 'Đăng nhập để chơi tính điểm',
   network: 'Mất kết nối, thử lại nhé',
 }
@@ -49,6 +51,9 @@ export const flipCard = (deps, { round, index }) =>
 
 export const finishRound = (deps, { round }) =>
   call(deps, 'minigame_finish', { p_round: round })
+
+export const claimQuest = (deps, { slot }) =>
+  call(deps, 'minigame_quest_claim', { p_slot: slot })
 
 export const setAvatar = (deps, avatar) =>
   call(deps, 'trainer_set_avatar', { p_avatar: avatar })

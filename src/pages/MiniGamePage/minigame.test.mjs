@@ -56,6 +56,7 @@ test('exp rewards', () => {
   assert.equal(winExp({ d: 2, bond: 4, remainingS: 150 }), 13)
   assert.equal(winExp({ d: 1, bond: 1, remainingS: 0 }), 6)
   assert.equal(loseExp({ d: 2, bond: 4 }), 3)
+  assert.equal(winExp({ d: 1, bond: 1, remainingS: 0, combo: 0.1 }), 7)
 })
 
 test('care cost and trainer xp', () => {
