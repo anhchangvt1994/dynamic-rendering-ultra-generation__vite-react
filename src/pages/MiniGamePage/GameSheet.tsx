@@ -1,4 +1,5 @@
 import { type CSSProperties, type ReactNode, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { sheetDragClose } from 'pages/MyPokemonPage/room/dockGesture.mjs'
 import { SheetStyle } from './styles'
 
@@ -42,7 +43,8 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
         '--glow': tone.glow,
       } as CSSProperties)
     : undefined
-  return (
+  // Portal to <body>: the sheet must sit above the site header, outside the hub's stacking context.
+  return createPortal(
     <SheetStyle style={vars}>
       <div className="mg-backdrop" onClick={onClose} aria-hidden="true" />
       <div
@@ -79,6 +81,7 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
           {children}
         </div>
       </div>
-    </SheetStyle>
+    </SheetStyle>,
+    document.body,
   )
 }

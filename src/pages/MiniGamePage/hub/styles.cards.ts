@@ -282,6 +282,9 @@ export const cardsCss = css`
     inset: 3px auto 3px 9px;
     border-left: 2px dashed rgba(43, 26, 61, 0.35);
   }
+  .hub-stub[data-state='wait'] {
+    opacity: 0.5;
+  }
   .hub-stub[data-state='torn'] {
     opacity: 0.22;
     box-shadow: none;
@@ -443,7 +446,7 @@ export const cardsCss = css`
     }
   }
   .sc-lock {
-    grid-row: 1 / -1;
+    grid-row: 2;
     display: grid;
     align-content: center;
     justify-items: center;

@@ -1,6 +1,7 @@
 import { itemSprite } from 'pages/QuizPage/items.mjs'
 import { MINIGAME } from '../minigame.mjs'
 import TicketRow from './TicketRow'
+import { boothLabel } from './tickets.mjs'
 
 const BERRIES = ['cheri-berry', 'oran-berry', 'pecha-berry']
 const CARDS = [
@@ -23,12 +24,7 @@ type Props = {
 /** One game box on the felt: art, name, rule, tickets and the play button. */
 export default function Booth({ game, index, server, left, resetText, open, onPlay }: Props) {
   const total = MINIGAME.TURNS
-  const n = left ?? total
-  const label = !server
-    ? 'Chơi thử, không mất lượt'
-    : n > 0
-      ? `Còn ${n}/${total} lượt`
-      : `Hết lượt${resetText ? `, thêm sau ${resetText}` : ''}`
+  const label = boothLabel({ server, left, total, resetText })
   return (
     <article data-region="booth" style={{ ['--n' as string]: 2 + index }}>
       <div className="bx" data-open={open || undefined}>
@@ -42,7 +38,7 @@ export default function Booth({ game, index, server, left, resetText, open, onPl
         </div>
         <h2>{game.title}</h2>
         <p className="bx-rule">{game.blurb}</p>
-        <TicketRow left={server ? n : total} total={total} label={label} />
+        <TicketRow left={server ? left : total} total={total} label={label} />
         <button type="button" className="mgp-play hub-booth-btn" onClick={onPlay}>
           Chơi
         </button>

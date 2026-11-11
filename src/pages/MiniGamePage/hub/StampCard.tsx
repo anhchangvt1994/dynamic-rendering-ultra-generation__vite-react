@@ -13,10 +13,12 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
   const [pending, setPending] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [got, setGot] = useState<ClaimReceipt | null>(null)
+  const [slam, setSlam] = useState<number | null>(null)
 
   const onClaim = async (slot: number) => {
     setPending(slot)
     setError(null)
+    setSlam(null)
     try {
       setGot(await claim(slot))
     } catch (e: any) {
@@ -53,7 +55,7 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
                       Nhận quà
                     </button>
                   ) : q.state === 'claimed' ? (
-                    <span className="sc-stamp" data-slam={got?.slot === q.slot || undefined} aria-label="Đã nhận">
+                    <span className="sc-stamp" data-slam={slam === q.slot || undefined} aria-label="Đã nhận">
                       ✓
                     </span>
                   ) : null}
@@ -93,7 +95,10 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
         {got && (
           <div className="sc-gift">
             <GiftChest key={`${got.slot}-${got.streak}`} items={[...got.gift, ...(got.streakGift ?? [])]} />
-            <button type="button" className="sc-done" onClick={() => setGot(null)}>
+            <button type="button" className="sc-done" onClick={() => {
+                setSlam(got.slot)
+                setGot(null)
+              }}>
               Xong
             </button>
           </div>

@@ -482,7 +482,7 @@ export default function MiniGameHost({
 
       {phase === 'count' && (
         <div className="mg-count" role="status" aria-live="assertive">
-          {count > 0 ? count : '…'}
+          <span>{count > 0 ? count : '…'}</span>
         </div>
       )}
 
