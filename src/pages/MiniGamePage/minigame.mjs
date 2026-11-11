@@ -13,6 +13,10 @@ export const MINIGAME = {
   BASE_EXP: [6, 10, 16],
   BOND_STEP: 0.05,
   SPEED_MAX: 0.2,
+  COMBO_STEP: 0.02,
+  COMBO_MAX: 0.1,
+  QUEST_SLOTS: 3,
+  STREAK_DAYS: 7,
   LOSE_EXP_RATIO: 0.25,
   COST_WIN: { hunger: 8, clean: 4, fun: 5 },
   COST_LOSE: { hunger: 12, clean: 6, fun: 8 },
@@ -73,10 +77,10 @@ export const bondOf = (affection) => levelOf(affection)
 const baseExp = (d, bond) =>
   MINIGAME.BASE_EXP[d - 1] * (1 + MINIGAME.BOND_STEP * (bond - 1))
 
-export function winExp({ d, bond, remainingS }) {
+export function winExp({ d, bond, remainingS, combo = 0 }) {
   const left = clamp(remainingS, 0, MINIGAME.DURATION_S)
   const speed = (MINIGAME.SPEED_MAX * left) / MINIGAME.DURATION_S
-  return Math.round(baseExp(d, bond) * (1 + speed))
+  return Math.round(baseExp(d, bond) * (1 + speed + combo))
 }
 
 export const loseExp = ({ d, bond }) =>

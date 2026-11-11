@@ -16,7 +16,7 @@ const between = (sql, tag) => {
 }
 
 test('minigame_rules() equals MINIGAME', () => {
-  const body = between(migration('20261121000000_trainer.sql'), '$rules$')
+  const body = between(migration('20261122000000_minigame_v2_rules.sql'), '$rules$')
   assert.deepEqual(JSON.parse(body), MINIGAME)
 })
 
