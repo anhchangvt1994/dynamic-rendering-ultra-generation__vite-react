@@ -61,6 +61,8 @@ export function trackMarks(shapes, flow, json, body) {
   const { cols, tile } = json.flow
   const cell = long / tile
   const out = [shapes]
+  // frames whose mark found nothing sure and kept its last place
+  const held = new Set()
   let last = shapes
   const seen = body ? shapes.map((s) => shown(s, 0, flow, body, json)) : null
   for (let K = 1; K < json.frames; K++) {
@@ -83,13 +85,15 @@ export function trackMarks(shapes, flow, json, body) {
         ])
       }
     const now = shapes.map(
-      (s, i) => fit(s, last[i], P, w, h, long, cell) ?? last[i]
+      (s, i) =>
+        fit(s, last[i], P, w, h, long, cell) ?? (held.add(last[i]), last[i])
     )
     out.push(now)
     last = now
   }
-  const steady = (json.smooth === false ? out : smooth(out)).map((frame, K) =>
-    K === 0 ? frame : frame.map((m) => (m.lin ? m : { ...m, lin: I2 }))
+  const steady = (json.smooth === false ? out : smooth(out, held)).map(
+    (frame, K) =>
+      K === 0 ? frame : frame.map((m) => (m.lin ? m : { ...m, lin: I2 }))
   )
   // how much of each mark shows, frame by frame, then faded over the loop
   const fades = shapes.map((s, i) =>
@@ -121,7 +125,7 @@ const rot2 = (t) => [Math.cos(t), Math.sin(t), -Math.sin(t), Math.cos(t)]
 
 // `m` with its singular values held within [1/GROW, GROW]; identity when it
 // flips (a mirrored fit is noise, not skin)
-function limit(m) {
+function limit(m, k = 1) {
   const E = (m[0] + m[3]) / 2
   const F = (m[0] - m[3]) / 2
   const G = (m[1] + m[2]) / 2
@@ -133,7 +137,8 @@ function limit(m) {
   if (!(s2 > 0)) return I2
   const a1 = Math.atan2(G, F)
   const a2 = Math.atan2(H, E)
-  const clamp = (v) => Math.min(GROW, Math.max(1 / GROW, v))
+  // k·L (size and residual together) stays within [1/GROW, GROW]
+  const clamp = (v) => Math.min(GROW / k, Math.max(1 / (GROW * k), v))
   return mul2(
     mul2(rot2((a2 + a1) / 2), [clamp(s1), 0, 0, clamp(s2)]),
     rot2((a2 - a1) / 2)
@@ -142,7 +147,24 @@ function limit(m) {
 
 // frames 1.. averaged [1,2,1]/4 with their neighbours round the loop (frame 0
 // is a neighbour of the last frame, and never changes itself)
-function smooth(out) {
+// the mark's centre: [1,2,1]/4 over neighbours only while the path is smooth
+// (second difference ≤ STEADY px-share); a turnaround, a cut loop or a held
+// frame keeps its fitted place rather than be dragged off the skin
+const STEADY = 0.004
+function place(lo, m, hi, held) {
+  const dx = lo.x - 2 * m.x + hi.x
+  const dy = lo.y - 2 * m.y + hi.y
+  if (
+    Math.hypot(dx, dy) > STEADY ||
+    held.has(lo) ||
+    held.has(hi) ||
+    held.has(m)
+  )
+    return { x: m.x, y: m.y }
+  return { x: (lo.x + 2 * m.x + hi.x) / 4, y: (lo.y + 2 * m.y + hi.y) / 4 }
+}
+
+function smooth(out, held) {
   const n = out.length
   if (n < 2) return out
   const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a))
@@ -157,8 +179,7 @@ function smooth(out) {
       const [l0, l1, l2] = [lo.lin ?? I2, m.lin ?? I2, hi.lin ?? I2]
       return {
         ...m,
-        x: avg(lo.x, m.x, hi.x),
-        y: avg(lo.y, m.y, hi.y),
+        ...place(lo, m, hi, held),
         size: avg(lo.size, m.size, hi.size),
         angle:
           m.angle + (wrap(lo.angle - m.angle) + wrap(hi.angle - m.angle)) / 4,
@@ -290,7 +311,8 @@ function fit(s, prev, P, w, h, long, cell) {
       mul2(
         [c, -sn, sn, c].map((v) => v / (k * k)),
         A
-      )
+      ),
+      k
     )
     const full = mul2(M, L)
     ax = full[0] * dx + full[2] * dy

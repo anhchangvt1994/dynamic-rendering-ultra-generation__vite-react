@@ -21,3 +21,22 @@ test('a frame sits in page K/per, at cell K%per of that page', () => {
   const small = { sheet: { cols: 3, rows: 3, per: 8, pages: 1 } }
   assert.deepEqual(cellAt(small, 7), { page: 0, col: 1, row: 2 })
 })
+
+test('every rig file is asked for with the rig version, so a stale cached v9 file is never paired with a v10 rig.json', async () => {
+  const urls = []
+  const json = { v: 10, sheet: { cols: 8, rows: 8, per: 64, pages: 2 } }
+  globalThis.fetch = async (url) => {
+    urls.push(String(url))
+    return {
+      ok: true,
+      status: 200,
+      json: async () => json,
+      blob: async () => ({}),
+    }
+  }
+  globalThis.createImageBitmap = async () => ({ width: 1, height: 1 })
+  const { preloadRig } = require('./rig.ts')
+  await preloadRig(777)
+  assert.ok(urls.length >= 6, urls.join())
+  for (const u of urls) assert.match(u, /[?&]v=10(&|$)/, u)
+})

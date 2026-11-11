@@ -422,3 +422,50 @@ test('smoothing: frame 0 stays the plan, a noisy straight motion gets steadier',
     `smoothed ${wobble(smooth).toFixed(3)} vs raw ${wobble(raw).toFixed(3)}`
   )
 })
+
+test('smoothing does not drag a mark off a fast zig-zag or toward a cut loop', () => {
+  const N = 8
+  const Ms = Array.from({ length: N }, () => [1, 0, 0, 1])
+  const swing = [0, 20, 0, -20, 0, 20, 0, -20]
+  const moves = swing.map((x) => [x, 0])
+  const frames = trackMarks([heart], affineFlow(Ms, moves), affJson(N))
+  for (let K = 1; K < N; K++)
+    near(
+      frames[K][0].x * FRAME.w,
+      heart.x * FRAME.w + swing[K],
+      1.5,
+      `K=${K} x`
+    )
+})
+
+test('a held mark (nothing sure around it) is not blended into its neighbours', () => {
+  const N = 6
+  const Ms = Array.from({ length: N }, () => [1, 0, 0, 1])
+  const moves = [0, 10, 20, 30, 40, 50].map((x) => [x, 0])
+  const hidden = (K, p) => !(K === 3 && apart(p, [heart.x, heart.y]) < 60)
+  const flow = affineFlow(Ms, moves, { sure: hidden })
+  const raw = trackMarks([heart], flow, affJson(N, { smooth: false }))
+  const smooth = trackMarks([heart], flow, affJson(N))
+  for (const K of [2, 4])
+    near(smooth[K][0].x, raw[K][0].x, 1e-9, `K=${K} beside the held frame`)
+})
+
+test('size and lin together never stretch a mark past a third', () => {
+  const wild = [
+    [1, 0, 0, 1],
+    [3, 0, 0, 0.3],
+    [0.3, 0, 0, 3],
+  ]
+  const zero = [0, 0]
+  const frames = trackMarks(
+    [heart],
+    affineFlow(wild, [zero, zero, zero]),
+    affJson(3)
+  )
+  for (const f of frames.slice(1)) {
+    const [hi, lo] = singular(f[0].lin)
+    const k = f[0].size / heart.size
+    assert.ok(k * hi <= 4 / 3 + 1e-9, `max ${k * hi}`)
+    assert.ok(k * lo >= 3 / 4 - 1e-9, `min ${k * lo}`)
+  }
+})

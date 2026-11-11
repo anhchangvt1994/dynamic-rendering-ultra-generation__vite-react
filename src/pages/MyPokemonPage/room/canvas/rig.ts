@@ -11,7 +11,13 @@ export type Lab = [number, number, number]
 export type RigJson = {
   v: number
   frame: { w: number; h: number }
-  sheet: { cols: number; rows: number; size: number; pages: number; per: number }
+  sheet: {
+    cols: number
+    rows: number
+    size: number
+    pages: number
+    per: number
+  }
   frames: number
   delays: number[]
   src: { n: number; k: number }
@@ -62,9 +68,11 @@ const bitmap = async (url: string) => {
 
 async function fetchRig(speciesId: number): Promise<Rig | null> {
   const base = `/api/image/rig/${speciesId}`
+  // the version in every URL: a cached file of an older rig is never paired with this rig.json
+  const v = `?v=${RIG_VERSION}`
   try {
     for (let poll = 0; poll <= POLLS; poll++) {
-      const res = await fetch(`${base}/rig.json`)
+      const res = await fetch(`${base}/rig.json${v}`)
       if (res.status === 202) {
         if (poll === POLLS) return null
         await wait(POLL_MS)
@@ -76,12 +84,12 @@ async function fetchRig(speciesId: number): Promise<Rig | null> {
       const [sheets, flow, flowLow, eye] = await Promise.all([
         Promise.all(
           Array.from({ length: json.sheet.pages }, (_, i) =>
-            bitmap(`${base}/sheet-${i}.webp`)
+            bitmap(`${base}/sheet-${i}.webp${v}`)
           )
         ),
-        bitmap(`${base}/flow.webp`),
-        bitmap(`${base}/flow-lo.webp`),
-        bitmap(`${base}/eye.png`),
+        bitmap(`${base}/flow.webp${v}`),
+        bitmap(`${base}/flow-lo.webp${v}`),
+        bitmap(`${base}/eye.png${v}`),
       ])
       const rig = { json, sheets, flow, flowLow, eye }
       loaded.set(speciesId, rig)
