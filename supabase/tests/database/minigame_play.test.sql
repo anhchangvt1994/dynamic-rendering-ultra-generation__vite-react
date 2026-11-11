@@ -40,17 +40,20 @@ select public.minigame_flip('e3000000-0000-4000-8000-000000000001',i::smallint) 
 select is((public.minigame_flip('e3000000-0000-4000-8000-000000000001',15::smallint))->>'done','true','the last pair finishes the board');
 insert into rc values ('r1',public.minigame_finish('e3000000-0000-4000-8000-000000000001'));
 select is((select v->>'status' from rc where k='r1'),'won','won');
-select is((select (v->>'exp')::int from rc where k='r1'),13,'exp = round(10 x 1.15 x 1.1)');
+select is((select (v->>'exp')::int from rc where k='r1'),14,'exp = round(11.5 x (1 + 0.1 speed + 0.1 combo))');
+select is((select (v->>'comboLen')::int from rc where k='r1'),8,'longest run was 8 pairs');
+select is((select (v->>'combo')::numeric from rc where k='r1'),0.1,'combo is capped at 10%');
 select is((select (v->>'flips')::int from rc where k='r1'),16,'flips');
 select is((select v->'cost' from rc where k='r1'),'{"hunger":16,"clean":8,"fun":10}'::jsonb,'win cost at difficulty 2');
 select is((select v->'needs' from rc where k='r1'),'{"hunger":74,"clean":52,"fun":50}'::jsonb,'needs after the cost');
 select is((select (v->>'xp')::int from rc where k='r1'),20,'trainer xp 10 x 2');
 select is((select v->>'levelUp' from rc where k='r1'),'false','no level up');
 select is((select jsonb_array_length(v->'gifts') from rc where k='r1'),2,'a size-2 chest');
-select ok((select v->'badges' @> '["first_win","flawless"]' from rc where k='r1'),'first win and flawless badges');
+select ok(not (select v ? 'badges' from rc where k='r1'),'the receipt has no badges');
 reset role;
-select is((select bonus_exp from public.pokemon_growth where individual_id='e2000000-0000-4000-8000-000000000001'),13,'exp is in the growth row');
+select is((select bonus_exp from public.pokemon_growth where individual_id='e2000000-0000-4000-8000-000000000001'),14,'exp is in the growth row');
 select is((select coalesce(sum(count),0)::int from public.bag where user_id='e1000000-0000-4000-8000-000000000001'),2,'gifts are in the bag');
+select is((select count(*)::int from public.trainer_badges where user_id='e1000000-0000-4000-8000-000000000001'),0,'a flawless first win earns no badge');
 select is((select xp from public.trainer_profiles where user_id='e1000000-0000-4000-8000-000000000001'),20,'profile xp');
 select is((select wins from public.minigame_players where user_id='e1000000-0000-4000-8000-000000000001' and game='memory'),1,'a win is counted');
 -- replay: the same receipt, nothing paid twice
@@ -58,7 +61,7 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select is(public.minigame_finish('e3000000-0000-4000-8000-000000000001'),(select v from rc where k='r1'),'finish twice, same receipt');
 reset role;
-select is((select bonus_exp from public.pokemon_growth where individual_id='e2000000-0000-4000-8000-000000000001'),13,'no second exp');
+select is((select bonus_exp from public.pokemon_growth where individual_id='e2000000-0000-4000-8000-000000000001'),14,'no second exp');
 select is((select coalesce(sum(count),0)::int from public.bag where user_id='e1000000-0000-4000-8000-000000000001'),2,'no second gifts');
 select is((select xp from public.trainer_profiles where user_id='e1000000-0000-4000-8000-000000000001'),20,'no second xp');
 select is((select hunger from public.pokemon_care where individual_id='e2000000-0000-4000-8000-000000000001'),74::numeric,'no second cost');
@@ -136,5 +139,68 @@ select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-00000000
 insert into rc values ('r7',public.minigame_finish('e3000000-0000-4000-8000-000000000007'));
 select is((select v->>'status' from rc where k='r7'),'lost','lost without a Pokémon');
 select is((select v->'cost' from rc where k='r7'),'{"hunger":0,"clean":0,"fun":0}'::jsonb,'and no cost');
+
+-- the chain: a miss resets the run, best keeps the longest
+reset role;
+insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values
+('e3000000-0000-4000-8000-000000000008','e1000000-0000-4000-8000-000000000001','memory','e2000000-0000-4000-8000-000000000003',1,1,
+ '{"cards":[1,1,2,2,3,3,4,4,5,5,6,6]}','{"open":null,"matched":[],"flips":0,"doneAt":null}',now()-interval '10 seconds',now()+interval '290 seconds');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.minigame_flip('e3000000-0000-4000-8000-000000000008',i::smallint) from unnest(array[0,2,0,1,2,3,4,5]) i;
+reset role;
+select is((select progress->>'run' from public.minigame_rounds where id='e3000000-0000-4000-8000-000000000008'),'3','a miss then 3 matches: run 3');
+select is((select progress->>'best' from public.minigame_rounds where id='e3000000-0000-4000-8000-000000000008'),'3','best 3');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.minigame_flip('e3000000-0000-4000-8000-000000000008',i::smallint) from unnest(array[6,8]) i;
+reset role;
+select is((select progress->>'run' from public.minigame_rounds where id='e3000000-0000-4000-8000-000000000008'),'0','a miss resets the run');
+select is((select progress->>'best' from public.minigame_rounds where id='e3000000-0000-4000-8000-000000000008'),'3','but keeps the best');
+update public.minigame_rounds set status='lost' where id='e3000000-0000-4000-8000-000000000008';
+
+-- combo at settle: d3 bond 1 (base 16), 150s left = speed 0.1
+insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values
+('e3000000-0000-4000-8000-000000000009','e1000000-0000-4000-8000-000000000001','memory','e2000000-0000-4000-8000-000000000003',3,1,
+ '{"cards":[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]}',
+ '{"open":null,"matched":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"flips":20,"doneAt":null,"run":6,"best":6}',now()-interval '150 seconds',now()+interval '150 seconds');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into rc values ('r9',public.minigame_finish('e3000000-0000-4000-8000-000000000009'));
+select is((select (v->>'exp')::int from rc where k='r9'),19,'best 6: round(16 x 1.2)');
+select is((select (v->>'comboLen')::int from rc where k='r9'),6,'comboLen 6');
+reset role;
+insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values
+('e3000000-0000-4000-8000-000000000010','e1000000-0000-4000-8000-000000000001','memory','e2000000-0000-4000-8000-000000000003',3,1,
+ '{"cards":[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]}',
+ '{"open":null,"matched":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"flips":30,"doneAt":null,"run":1,"best":1}',now()-interval '150 seconds',now()+interval '150 seconds');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into rc values ('r10',public.minigame_finish('e3000000-0000-4000-8000-000000000010'));
+select is((select (v->>'exp')::int from rc where k='r10'),18,'best 1: no combo, round(16 x 1.1)');
+select is((select (v->>'combo')::numeric from rc where k='r10'),0::numeric,'combo 0');
+reset role;
+insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values
+('e3000000-0000-4000-8000-000000000011','e1000000-0000-4000-8000-000000000001','memory','e2000000-0000-4000-8000-000000000003',3,1,
+ '{"cards":[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]}',
+ '{"open":null,"matched":[0,1],"flips":2,"doneAt":null,"run":1,"best":6}',now()-interval '400 seconds',now()-interval '100 seconds');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into rc values ('r11',public.minigame_finish('e3000000-0000-4000-8000-000000000011'));
+select is((select v->>'status' from rc where k='r11'),'lost','lost round');
+select is((select (v->>'combo')::numeric from rc where k='r11'),0::numeric,'a lost round gets no combo, whatever the run');
+select is((select (v->>'exp')::int from rc where k='r11'),4,'lose exp unchanged');
+reset role;
+insert into public.minigame_rounds(id,user_id,game,individual_id,difficulty,seed,layout,progress,started_at,deadline) values
+('e3000000-0000-4000-8000-000000000012','e1000000-0000-4000-8000-000000000001','memory','e2000000-0000-4000-8000-000000000003',3,1,
+ '{"cards":[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10]}',
+ '{"open":null,"matched":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],"flips":20,"doneAt":null}',now()-interval '150 seconds',now()+interval '150 seconds');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into rc values ('r12',public.minigame_finish('e3000000-0000-4000-8000-000000000012'));
+select is((select (v->>'comboLen')::int from rc where k='r12'),0,'a round from before the upgrade settles with no combo');
+select is((select (v->>'exp')::int from rc where k='r12'),18,'and its plain exp');
+select is(((public.minigame_status())->'trainer') ? 'badges',false,'status no longer returns badges');
+select is((select count(*)::int from public.trainer_badges where user_id='e1000000-0000-4000-8000-000000000001'),0,'no badges from the mini game');
 select * from finish();
 rollback;
