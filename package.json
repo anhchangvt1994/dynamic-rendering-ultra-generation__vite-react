@@ -35,6 +35,7 @@
     "supabase:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
+    "watch:pokemon-art": "node config/scripts/watch-pokemon-art.mjs",
     "upload:pokemon-art": "node tools/image-build/upload.mjs",
     "build:pokemon-art": "node tools/image-build/cli.cjs",
     "build:amber-art": "node tools/image-build/amber.cjs",

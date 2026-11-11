@@ -679,3 +679,23 @@ test('adoptPokemonArt moves only the species the target lacks', (t) => {
   assert.ok(!fs.existsSync(path.join(base, 'pokemon-art/1')))
   assert.equal(adoptPokemonArt(root, log, {}), 0)
 })
+
+test('adoptPokemonArt waits for a finished upload when quietMs is set', (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'art-'))
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }))
+  const root = path.join(base, 'app')
+  const inbox = path.join(base, 'pokemon-art')
+  fs.mkdirSync(path.join(inbox, '1'), { recursive: true })
+  fs.writeFileSync(path.join(inbox, '1/rig.json'), 'x')
+  fs.mkdirSync(path.join(inbox, '2'), { recursive: true })
+  fs.writeFileSync(path.join(inbox, '2/.sheet.webp.AbC123'), 'x')
+  fs.mkdirSync(path.join(inbox, '3'), { recursive: true })
+  fs.writeFileSync(path.join(inbox, '3/rig.json'), 'x')
+  const old = new Date(Date.now() - 60000)
+  fs.utimesSync(path.join(inbox, '3/rig.json'), old, old)
+  const log = () => {}
+  assert.equal(adoptPokemonArt(root, log, {}, undefined, { quietMs: 20000 }), 1)
+  assert.ok(fs.existsSync(path.join(root, 'pokemon-art/3/rig.json')))
+  assert.ok(fs.existsSync(path.join(inbox, '1')))
+  assert.ok(fs.existsSync(path.join(inbox, '2')))
+})

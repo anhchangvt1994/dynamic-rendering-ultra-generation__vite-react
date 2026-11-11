@@ -271,11 +271,29 @@ export function publishArtifacts(root, stage) {
 // `pokemon-art` folder beside the checkout) is MOVED into the folder the
 // server reads (getPokemonArtPath, asked of the server code), one species at a
 // time, only where the target has no such species yet. Never overwrites.
+// The server's own answer (POKEMON_ART_DIR, <rootCache|/tmp>/pokemon-art...)
+export function pokemonArtFolder(root) {
+  const asked = spawnSync(
+    process.execPath,
+    [
+      '-r',
+      'sucrase/register',
+      '-p',
+      "require('./server/src/utils/PathHandler').getPokemonArtPath()",
+    ],
+    { cwd: root, env: process.env, encoding: 'utf8' }
+  )
+  return asked.status === 0 ? asked.stdout.trim().split('\n').pop() : undefined
+}
+
+// quietMs: leave a species alone while a file in it changed that recently or
+// an rsync temp file (.name.XXXX) is still there: the upload is not done.
 export function adoptPokemonArt(
   root,
   log = logDefault,
   env = process.env,
-  folder
+  folder,
+  { quietMs = 0 } = {}
 ) {
   const target = path.resolve(
     root,
@@ -293,6 +311,18 @@ export function adoptPokemonArt(
     const to = path.join(target, entry.name)
     if (fs.existsSync(to)) continue
     const from = path.join(inbox, entry.name)
+    if (quietMs) {
+      const files = fs.readdirSync(from, { withFileTypes: true })
+      if (
+        !files.length ||
+        files.some(
+          (f) =>
+            f.name.startsWith('.') ||
+            Date.now() - fs.statSync(path.join(from, f.name)).mtimeMs < quietMs
+        )
+      )
+        continue
+    }
     try {
       fs.renameSync(from, to)
     } catch (error) {
@@ -527,20 +557,9 @@ export async function deploy({
       await run('yarn', ['migrate'], { cwd: root, env: process.env })
     }
     try {
-      // the server's own answer: POKEMON_ART_DIR, <rootCache|/tmp>/pokemon-art...
-      const asked = spawnSync(
-        process.execPath,
-        [
-          '-r',
-          'sucrase/register',
-          '-p',
-          "require('./server/src/utils/PathHandler').getPokemonArtPath()",
-        ],
-        { cwd: root, env: process.env, encoding: 'utf8' }
-      )
-      const folder =
-        asked.status === 0 ? asked.stdout.trim().split('\n').pop() : ''
-      adoptPokemonArt(root, log, process.env, folder || undefined)
+      adoptPokemonArt(root, log, process.env, pokemonArtFolder(root), {
+        quietMs: 30000,
+      })
     } catch (error) {
       log(`Pokémon art not moved: ${error.message}`)
     }
