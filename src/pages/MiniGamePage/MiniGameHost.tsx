@@ -8,6 +8,8 @@ import { initialCare, needsNow } from 'pages/MyPokemonPage/care/care.mjs'
 import { MY_POKEMON_PATH } from 'pages/MyPokemonPage/paths.mjs'
 import GameSheet from './GameSheet'
 import { GAMES } from './games/index.mjs'
+import CandyBoard from './games/candy/Board'
+import MemoryBoard from './games/memory/Board'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import Burst from './Burst'
 import ComboMeter from './ComboMeter'
@@ -23,8 +25,11 @@ import {
   xpFor,
 } from './minigame.mjs'
 import { toneOf } from './tone.mjs'
+import type { MoveEvent } from './games/candy/Board'
 import {
+  type CandyView,
   type FlipResult,
+  type MemoryView,
   type Receipt,
   type RoundView,
   useMiniGame,
@@ -40,7 +45,9 @@ type Round = {
   difficulty: 1 | 2 | 3
   practice: { flip: (i: number) => Promise<FlipResult> } | null
 }
-type Outcome = Receipt | { practice: true; status: 'won' | 'lost'; flips: number }
+type Outcome =
+  | Receipt
+  | { practice: true; status: 'won' | 'lost'; flips: number; score: number; moves: number }
 
 const LOW_MS = 60_000
 const LABELS = ['Dễ', 'Thường', 'Khó']
@@ -97,6 +104,8 @@ export default function MiniGameHost({
   const [retry, setRetry] = useState(false)
   const settling = useRef(false)
   const flips = useRef(0)
+  const movesRef = useRef<number[][]>([])
+  const scoreRef = useRef(0)
   const resumed = useRef(false)
 
   const individual: Individual | null =
@@ -178,7 +187,7 @@ export default function MiniGameHost({
         })
         mg.refresh()
       } else {
-        const practice = mg.practice(difficulty)
+        const practice = mg.practice(game, difficulty)
         setRound({
           id: null,
           deadline: practice.deadline,
@@ -189,6 +198,8 @@ export default function MiniGameHost({
       }
       settling.current = false
       flips.current = 0
+      movesRef.current = []
+      scoreRef.current = 0
       setRun(0)
       setChip(0)
       setFade(false)
@@ -214,13 +225,21 @@ export default function MiniGameHost({
       settling.current = true
       setRetry(false)
       if (!round.id) {
-        setOutcome({ practice: true, status: won ? 'won' : 'lost', flips: flips.current })
+        setOutcome({
+          practice: true,
+          status: won ? 'won' : 'lost',
+          flips: flips.current,
+          score: scoreRef.current,
+          moves: movesRef.current.length,
+        })
         setPhase('result')
         return
       }
       for (let attempt = 0; attempt < 10; attempt += 1) {
         try {
-          const receipt = await mg.finish({ round: round.id })
+          const receipt = await mg.finish(
+            game === 'candy' ? { round: round.id, moves: movesRef.current } : { round: round.id }
+          )
           setOutcome(receipt)
           setBarPct(before ? pct(before.xp, before.level) : 0)
           setPhase('result')
@@ -240,7 +259,7 @@ export default function MiniGameHost({
       settling.current = false
       setRetry(true)
     },
-    [round, mg, before]
+    [round, mg, before, game]
   )
 
   const remaining = round
@@ -255,7 +274,7 @@ export default function MiniGameHost({
   }, [phase, round, remaining, settle])
   // a board resumed with every card matched (the last reply was lost): claim it
   useEffect(() => {
-    if (phase === 'play' && round?.id && remaining > 0 && boardComplete(round.view)) settle(true)
+    if (phase === 'play' && round?.id && remaining > 0 && game === 'memory' && boardComplete(round.view as MemoryView)) settle(true)
   }, [phase, round, remaining, settle])
   useEffect(() => {
     if (phase === 'play' && remaining > 0 && remaining < LOW_MS) setMood('doze')
@@ -283,8 +302,44 @@ export default function MiniGameHost({
     resumed.current = true
   }
 
+  const react = (match: boolean | null, after: number, index: number) => {
+    const before = run
+    if (match === true) {
+      setMood('cheer')
+      setFade(false)
+      setChip(after)
+      const box = stage.current?.getBoundingClientRect()
+      const card = stage.current
+        ?.querySelector<HTMLElement>(`[data-i="${index}"]`)
+        ?.getBoundingClientRect()
+      const tier = tierOf(after)
+      if (box && card)
+        setBurst((b) => ({
+          seq: b.seq + 1,
+          x: card.left - box.left + card.width / 2,
+          y: card.top - box.top + card.height / 2,
+          count: tier >= 3 ? 16 : 10,
+        }))
+      navigator.vibrate?.(tier >= 2 && tierOf(before) < 2 ? [10, 40, 10] : 10)
+    } else if (match === false) {
+      setMood('miss')
+      if (before >= 2) {
+        setFade(true)
+        window.setTimeout(() => {
+          setChip(0)
+          setFade(false)
+        }, 450)
+      }
+      navigator.vibrate?.(30)
+    }
+    setRun(after)
+  }
+  const onBoardError = (e: Error & { code?: string }) => {
+    if (e.code === 'round_closed' || e.code === 'bad_move') settle(false)
+    else setError(e.message)
+  }
+
   if (!def) return null
-  const Board = def.Board
   const picks = items ?? []
   const trainer = mg.status?.trainer
   const bond = individual ? bondOf(careOf(individual).affection) : 1
@@ -377,7 +432,6 @@ export default function MiniGameHost({
             {([1, 2, 3] as const).map((d) => {
               const low = winExp({ d, bond, remainingS: 0 })
               const high = winExp({ d, bond, remainingS: MINIGAME.DURATION_S })
-              const grid = MINIGAME.GRID[d - 1]
               const cost = careCost(false, d)
               return (
                 <li key={d}>
@@ -395,7 +449,7 @@ export default function MiniGameHost({
                   >
                     <span>
                       <b>
-                        {LABELS[d - 1]} · {grid.pairs} cặp
+                        {LABELS[d - 1]} · {def.levelInfo(d)}
                       </b>
                       <span className="mg-meta">
                         <span>Exp {low}–{high}</span>
@@ -452,57 +506,42 @@ export default function MiniGameHost({
                 style={{ width: 'calc(100% - 4px)', height: 'calc(100% - 4px)' }}
               />
             </svg>
-            <Board
-              key={round.id ?? 'practice'}
-              difficulty={round.difficulty}
-              view={round.view}
-              tone={tone}
-              disabled={remaining <= 0 || settling.current}
-              flip={(index: number) =>
-                round.practice
-                  ? round.practice.flip(index)
-                  : mg.flip({ round: round.id as string, index })
-              }
-              onResult={(result: FlipResult, index: number) => {
-                flips.current = result.flips
-                const before = run
-                const after = nextRun(before, result.match)
-                if (result.match === true) {
-                  setMood('cheer')
-                  setFade(false)
-                  setChip(after)
-                  const box = stage.current?.getBoundingClientRect()
-                  const card = stage.current
-                    ?.querySelector<HTMLElement>(`[data-i="${index}"]`)
-                    ?.getBoundingClientRect()
-                  const tier = tierOf(after)
-                  if (box && card)
-                    setBurst((b) => ({
-                      seq: b.seq + 1,
-                      x: card.left - box.left + card.width / 2,
-                      y: card.top - box.top + card.height / 2,
-                      count: tier >= 3 ? 16 : 10,
-                    }))
-                  navigator.vibrate?.(tier >= 2 && tierOf(before) < 2 ? [10, 40, 10] : 10)
-                } else if (result.match === false) {
-                  setMood('miss')
-                  if (before >= 2) {
-                    setFade(true)
-                    window.setTimeout(() => {
-                      setChip(0)
-                      setFade(false)
-                    }, 450)
-                  }
-                  navigator.vibrate?.(30)
+            {round.view.kind === 'candy' ? (
+              <CandyBoard
+                key={round.id ?? 'practice'}
+                difficulty={round.difficulty}
+                view={round.view as CandyView}
+                roundId={round.id}
+                tone={tone}
+                disabled={remaining <= 0 || settling.current}
+                onMove={(ev: MoveEvent) => {
+                  movesRef.current = ev.moves
+                  scoreRef.current = ev.score
+                  if (ev.at >= 0) react(ev.match, ev.depth, ev.at)
+                  if (ev.done) settle(ev.won)
+                }}
+                onError={onBoardError}
+              />
+            ) : (
+              <MemoryBoard
+                key={round.id ?? 'practice'}
+                difficulty={round.difficulty}
+                view={round.view as MemoryView}
+                tone={tone}
+                disabled={remaining <= 0 || settling.current}
+                flip={(index: number) =>
+                  round.practice
+                    ? round.practice.flip(index)
+                    : mg.flip({ round: round.id as string, index })
                 }
-                setRun(after)
-                if (result.done) settle(true)
-              }}
-              onError={(e: Error & { code?: string }) => {
-                if (e.code === 'round_closed') settle(false)
-                else setError(e.message)
-              }}
-            />
+                onResult={(result: FlipResult, index: number) => {
+                  flips.current = result.flips
+                  react(result.match, nextRun(run, result.match), index)
+                  if (result.done) settle(true)
+                }}
+                onError={onBoardError}
+              />
+            )}
             {individual && (
               <span className="mg-mate" data-mood={mood ?? undefined} aria-hidden="true">
                 <RoomSprite
@@ -534,7 +573,7 @@ export default function MiniGameHost({
             <>
               <p className="mg-sub">
                 {outcome.status === 'won'
-                  ? `Bạn ghép đủ cặp sau ${outcome.flips} lần lật. Đăng nhập để nhận thưởng thật.`
+                  ? `${def.winText(outcome)} Đăng nhập để nhận thưởng thật.`
                   : 'Chơi thử không mất gì. Thử lại nhé!'}
               </p>
             </>

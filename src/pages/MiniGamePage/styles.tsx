@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { playCss } from './styles.play'
+import { candyCss } from './styles.candy'
 
 // colours come from the chosen Pokémon: --hue, --accent, --deep, --glow
 export const SheetStyle = styled.div`
@@ -483,4 +484,5 @@ export const SheetStyle = styled.div`
     text-align: center;
   }
   ${playCss}
+  ${candyCss}
 `
