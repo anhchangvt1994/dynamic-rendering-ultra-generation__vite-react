@@ -1532,7 +1532,7 @@ export const RoomStyle = styled.div`
   }
   .rm-actions {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
     padding-bottom: 4px;
   }
@@ -1580,6 +1580,9 @@ export const RoomStyle = styled.div`
   }
   .rm-act[data-action='pet'] {
     --c: var(--pet);
+  }
+  .rm-act[data-action='play'] {
+    --c: #ff8fa9;
   }
   .rm-act[data-action='cook'] {
     --c: var(--cook);

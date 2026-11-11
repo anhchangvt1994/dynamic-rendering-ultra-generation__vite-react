@@ -1,7 +1,7 @@
 import { myPokemonPath } from '../paths.mjs'
 
 type Blocked = { feed: string | null; bathe: string | null }
-type Action = 'feed' | 'bathe' | 'pet'
+type Action = 'feed' | 'bathe' | 'pet' | 'play'
 
 type Props = {
   individualId: string
@@ -11,6 +11,7 @@ type Props = {
   urgent: Partial<Record<Action, boolean>>
   busy: boolean
   onFeed: () => void
+  onPlay: () => void
   onBathe: () => void
   onPet: () => void
 }
@@ -24,6 +25,7 @@ export default function CareBar({
   urgent,
   busy,
   onFeed,
+  onPlay,
   onBathe,
   onPet,
 }: Props) {
@@ -60,6 +62,7 @@ export default function CareBar({
         {act('feed', '🍲', 'Cho ăn', blocked?.feed, onFeed)}
         {act('bathe', '🫧', 'Tắm', blocked?.bathe, onBathe)}
         {act('pet', '🤚', 'Vuốt ve', null, onPet)}
+        {act('play', '🎮', 'Chơi', null, onPlay)}
         <LinkCustom
           className="rm-act"
           data-action="cook"

@@ -32,6 +32,8 @@ import { individualNavigationState, myPokemonPath } from '../paths.mjs'
 import CareBar from './CareBar'
 import CareFx, { NEED_OF, type Fx } from './CareFx'
 import FeedSheet from './FeedSheet'
+import MiniGameHost from 'pages/MiniGamePage/MiniGameHost'
+import { playDisabledReason } from './playSheet.mjs'
 import NeedRings, { LOW_NEED } from './NeedRings'
 import ProfileSheet from './ProfileSheet'
 import RoomSprite from './RoomSprite'
@@ -180,6 +182,8 @@ export default function Room({
   const { dishes, menu } = useDishes(true)
   const [spent, setSpent] = useState<Record<string, number>>({})
   const [feeding, setFeeding] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [playHint, setPlayHint] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const dockTouch = useRef<{
     x: number
@@ -610,14 +614,29 @@ export default function Room({
           urgent={urgent}
           busy={care.busy}
           onFeed={() => setFeeding(true)}
+          onPlay={() => {
+            const why = needs ? playDisabledReason(needs) : null
+            setPlayHint(why)
+            if (!why) setPlaying(true)
+          }}
           onBathe={() => run('bathe')}
           onPet={() => run('pet')}
         />
         <p className="rm-alert" role="alert">
-          {feeding ? '' : care.actionError}
+          {feeding ? '' : care.actionError || playHint}
         </p>
       </div>
 
+      {playing && (
+        <MiniGameHost
+          game="memory"
+          individualId={individual.id}
+          onClose={() => {
+            setPlaying(false)
+            care.retry()
+          }}
+        />
+      )}
       <FeedSheet
         open={feeding}
         onClose={() => setFeeding(false)}

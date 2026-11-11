@@ -255,6 +255,7 @@ export default function RoomSkeleton({
           urgent={{}}
           busy
           onFeed={none}
+          onPlay={none}
           onBathe={none}
           onPet={none}
         />
