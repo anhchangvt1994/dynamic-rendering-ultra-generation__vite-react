@@ -30,8 +30,8 @@ export const cardsCss = css`
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(circle at calc(var(--sx) * 1%) calc(var(--sy) * 1%), rgba(255, 255, 255, 0.32), transparent 48%),
-      linear-gradient(115deg, rgba(95, 227, 180, 0.2), rgba(255, 207, 90, 0.18) 40%, rgba(255, 107, 138, 0.2) 70%, rgba(122, 168, 255, 0.2));
+      radial-gradient(circle at calc(var(--sx) * 1%) calc(var(--sy) * 1%), rgba(255, 255, 255, 0.2), transparent 48%),
+      linear-gradient(115deg, rgba(95, 227, 180, 0.16), rgba(255, 207, 90, 0.14) 40%, rgba(255, 107, 138, 0.16) 70%, rgba(122, 168, 255, 0.16));
     mix-blend-mode: screen;
   }
   .hc::after {
@@ -106,7 +106,7 @@ export const cardsCss = css`
   .hc-line {
     font-size: 13px;
     line-height: 18px;
-    opacity: 0.88;
+    color: #fff;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
