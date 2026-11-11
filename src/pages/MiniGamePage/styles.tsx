@@ -445,4 +445,62 @@ export const SheetStyle = styled.div`
       animation: none;
     }
   }
+
+  .tr-avatars {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tr-avatar {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 6px;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    font: inherit;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+  }
+  .tr-avatar[aria-pressed='true'] {
+    border-color: var(--accent, #ff8fa9);
+  }
+  .tr-avatar[aria-disabled] {
+    opacity: 0.75;
+  }
+  .tr-avatar small {
+    font-size: 11px;
+    opacity: 0.8;
+    text-align: center;
+  }
+  .tr-badges {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tr-badge {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    opacity: 0.55;
+  }
+  .tr-badge[data-on] {
+    opacity: 1;
+    background: rgba(255, 208, 220, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 208, 220, 0.4);
+  }
+  .tr-badge span {
+    font-size: 13px;
+    opacity: 0.8;
+  }
 `

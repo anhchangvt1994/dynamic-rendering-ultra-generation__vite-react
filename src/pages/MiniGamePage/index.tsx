@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAccount } from 'app/supabase/account'
 import MiniGameHost from './MiniGameHost'
+import TrainerCard from './trainer/TrainerCard'
 import { GAMES } from './games/index.mjs'
 import { MINIGAME } from './minigame.mjs'
 import { MiniGamePageStyle } from './pageStyles'
@@ -40,6 +41,7 @@ export default function MiniGamePage() {
           <LinkCustom to="/dang-nhap">Đăng nhập</LinkCustom> để tính điểm.
         </p>
       )}
+      {server && <TrainerCard mg={mg} />}
       <ul className="mgp-list">
         {GAMES.map((g) => {
           const row = mg.status?.games?.[g.id]

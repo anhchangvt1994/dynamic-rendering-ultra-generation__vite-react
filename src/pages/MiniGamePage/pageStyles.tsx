@@ -46,6 +46,68 @@ export const MiniGamePageStyle = styled.div`
     color: #ffe7a0;
     font-weight: 700;
   }
+  .tr-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    align-items: center;
+    margin: 0 auto 20px;
+    padding: 16px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .tr-face {
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    line-height: 0;
+  }
+  .tr-face:focus-visible,
+  .tr-actions button:focus-visible,
+  .tr-avatar:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+  }
+  .tr-info {
+    display: grid;
+    gap: 6px;
+  }
+  .tr-xp {
+    display: block;
+    height: 8px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.16);
+    overflow: hidden;
+  }
+  .tr-xp i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ffd0dc, #ff8fa9);
+  }
+  .tr-line {
+    font-size: 13px;
+    opacity: 0.8;
+  }
+  .tr-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tr-actions button {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+  }
   .mgp-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
