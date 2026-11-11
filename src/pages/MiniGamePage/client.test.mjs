@@ -4,6 +4,7 @@ import {
   MINIGAME_ERRORS,
   finishRound,
   flipCard,
+  readCares,
   readStatus,
   setAvatar,
   setTeam,
@@ -78,4 +79,21 @@ test('any mode but server is unavailable and calls nothing', async () => {
 test('the error copy covers every code the database raises', () => {
   for (const code of ['hungry', 'no_turns', 'round_open', 'not_found', 'round_closed', 'not_finished', 'bad_index', 'team_full', 'not_eligible', 'locked', 'network'])
     assert.ok(MINIGAME_ERRORS[code], code)
+})
+
+test('readCares turns the care rows into a map by individual', async () => {
+  const supabase = {
+    from: () => ({
+      select: async () => ({
+        data: [
+          { individual_id: 'a', hunger: '55.50', needs_at: '2026-11-11T00:00:00Z', affection: 12 },
+        ],
+        error: null,
+      }),
+    }),
+  }
+  assert.deepEqual(await readCares({ mode: 'server', supabase }), {
+    a: { hunger: 55.5, needsAt: '2026-11-11T00:00:00Z', affection: 12 },
+  })
+  await assert.rejects(readCares({ mode: 'guest', supabase }), { code: 'unavailable' })
 })

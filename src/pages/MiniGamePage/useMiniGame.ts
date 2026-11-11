@@ -7,6 +7,7 @@ import {
   MINIGAME_ERRORS,
   finishRound,
   flipCard,
+  readCares,
   readStatus,
   setAvatar,
   setTeam,
@@ -156,6 +157,7 @@ export function useMiniGame() {
     },
     [run, refresh]
   )
+  const cares = useCallback(() => run((deps) => readCares(deps)), [run])
   const practice = useCallback(
     (difficulty: number) => createPractice({ difficulty }),
     []
@@ -175,6 +177,7 @@ export function useMiniGame() {
     setAvatar: chooseAvatar,
     setTeam: chooseTeam,
     practice,
+    cares,
     errors: MINIGAME_ERRORS,
   }
 }

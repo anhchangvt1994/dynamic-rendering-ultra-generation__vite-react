@@ -55,3 +55,27 @@ export const setAvatar = (deps, avatar) =>
 
 export const setTeam = (deps, ids) =>
   call(deps, 'trainer_set_team', { p_team: ids })
+
+/** Hunger, clock and affection of every Pokémon with a care row, by id. */
+export async function readCares({ mode, supabase }) {
+  if (mode !== 'server') throw fail('unavailable')
+  let reply
+  try {
+    reply = await supabase
+      .from('pokemon_care')
+      .select('individual_id,hunger,needs_at,affection')
+  } catch {
+    throw fail('network')
+  }
+  if (reply.error) throw fail('network')
+  return Object.fromEntries(
+    reply.data.map((row) => [
+      row.individual_id,
+      {
+        hunger: Number(row.hunger),
+        needsAt: row.needs_at,
+        affection: row.affection,
+      },
+    ])
+  )
+}
