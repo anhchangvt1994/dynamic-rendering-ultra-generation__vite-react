@@ -11,7 +11,7 @@ import { fieldFor, flowSheet, premultiplied, TILE, writeTile } from './flow'
 import { cellOf, encodeSheet, sheetPlan } from './sheet'
 import { skeleton } from './skeleton'
 import type { Branch } from './skeleton'
-import { eyeMask } from './eye'
+import { EYE_SIDE, eyeMask, shrinkMask } from './eye'
 
 export { sheetPlan } from './sheet'
 
@@ -23,7 +23,9 @@ export { sheetPlan } from './sheet'
 // 8: rollback to the original 256px optical flow (128px made colours flicker
 //    and marks lose the skin); the eye mask stays
 // 9: flow.webp, lossless (flow.png was 4x larger); sheet encoded at effort 6
-export const RIG_VERSION = 9
+// 10: 512px cells on paged sheets (sheet-N.webp) at q98, 16-bit flow (flow.webp
+//     high bytes + flow-lo.webp), eye mask atlas of 256px cells
+export const RIG_VERSION = 10
 /** longest side the flow is computed at */
 const FLOW_SIDE = 256
 const PRIMARY = 64
@@ -34,13 +36,16 @@ export type RigJson = {
   v: typeof RIG_VERSION
   /** one sheet cell, px */
   frame: { w: number; h: number }
-  sheet: { cols: number; size: number }
+  /** per page: cols × rows cells of `size` px, `per` frames a page */
+  sheet: { cols: number; rows: number; size: number; pages: number; per: number }
   frames: number
   /** ms, one per frame */
   delays: number[]
   /** source frames, displayed frames per source frame */
   src: { n: number; k: number }
-  flow: { cols: number; tile: number; bits: 8 }
+  flow: { cols: number; tile: number; bits: 16 }
+  /** the eye mask atlas: one cell of w×h per frame, `cols` across */
+  eye: { cols: number; w: number; h: number }
   clusters: Cluster[]
   lock: Lock
   /** size² cells, row by row, 1 bit each (MSB first), base64 */
@@ -97,8 +102,14 @@ export async function buildRig(
   animatedWebp: Buffer | null,
   still: Buffer | null,
   key?: string | number,
-  { sheetQuality = 90 }: { sheetQuality?: number } = {}
-): Promise<{ json: RigJson; sheet: Buffer; flow: Buffer; eye: Buffer }> {
+  { sheetQuality = 98 }: { sheetQuality?: number } = {}
+): Promise<{
+  json: RigJson
+  sheets: Buffer[]
+  flow: Buffer
+  flowLow: Buffer
+  eye: Buffer
+}> {
   const image = animatedWebp ?? still ?? source
   if (!image) throw new Error('a rig needs an image')
   const animated = !!animatedWebp
@@ -122,10 +133,13 @@ export async function buildRig(
   const cell = cellOf(W, H, plan.size)
   const fl = cellOf(W, H, FLOW_SIDE)
   const flow = flowSheet(plan.keep.length)
+  const ecell = cellOf(W, H, EYE_SIDE)
+  const ecols = Math.max(1, Math.ceil(Math.sqrt(plan.keep.length)))
+  const erows = Math.max(1, Math.ceil(plan.keep.length / ecols))
   const kept = new Map(plan.keep.map((f, K) => [f, K]))
   const every = Math.max(1, Math.ceil(plan.keep.length / CLUSTER_FRAMES))
   const cells: Uint8Array[] = []
-  const eyeSheet = Buffer.alloc(plan.cols * cell.w * plan.rows * cell.h)
+  const eyeSheet = Buffer.alloc(ecols * ecell.w * erows * ecell.h)
   const sampled: Uint8Array[] = []
   let first: Float32Array | null = null
   let straightFirst: Uint8Array | null = null
@@ -146,13 +160,19 @@ export async function buildRig(
         straightFirst = straight
       }
       cells.push(big[f - start])
-      const eye = eyeMask(big[f - start], cell.w, cell.h)
-      const ex = (K % plan.cols) * cell.w
-      const ey = Math.floor(K / plan.cols) * cell.h
-      for (let y = 0; y < cell.h; y++)
+      const eye = shrinkMask(
+        eyeMask(big[f - start], cell.w, cell.h),
+        cell.w,
+        cell.h,
+        ecell.w,
+        ecell.h
+      )
+      const ex = (K % ecols) * ecell.w
+      const ey = Math.floor(K / ecols) * ecell.h
+      for (let y = 0; y < ecell.h; y++)
         eyeSheet.set(
-          eye.subarray(y * cell.w, (y + 1) * cell.w),
-          (ey + y) * plan.cols * cell.w + ex
+          eye.subarray(y * ecell.w, (y + 1) * ecell.w),
+          (ey + y) * ecols * ecell.w + ex
         )
       if (K % every === 0) sampled.push(straight)
       writeTile(
@@ -170,34 +190,44 @@ export async function buildRig(
   const json: RigJson = {
     v: RIG_VERSION,
     frame: { w: cell.w, h: cell.h },
-    sheet: { cols: plan.cols, size: plan.size },
+    sheet: {
+      cols: plan.cols,
+      rows: plan.rows,
+      size: plan.size,
+      pages: plan.pages,
+      per: plan.per,
+    },
     frames: plan.keep.length,
     delays: plan.delays,
     src: { n, k: m / n },
-    flow: { cols: flow.cols, tile: TILE, bits: 8 },
+    flow: { cols: flow.cols, tile: TILE, bits: 16 },
+    eye: { cols: ecols, w: ecell.w, h: ecell.h },
     clusters,
     lock,
     primary: { size: PRIMARY, bits: pack(mask) },
     branches: skeleton(mask, PRIMARY).branches,
     ...(override?.noMarks ? { noMarks: true as const } : {}),
   }
-  const [sheet, flowPng, eyePng] = await Promise.all([
-    encodeSheet(cells, cell.w, cell.h, plan.cols, plan.rows, sheetQuality),
-    sharp(flow.data, {
+  const lossless = (data: Buffer) =>
+    sharp(data, {
       raw: { width: flow.width, height: flow.height, channels: 4 },
     })
       // coordinates, not colours: lossless, and the RGB kept as written
       .webp({ lossless: true, effort: 6 })
-      .toBuffer(),
+      .toBuffer()
+  const [sheets, flowPng, flowLow, eyePng] = await Promise.all([
+    encodeSheet(cells, cell.w, cell.h, plan, sheetQuality),
+    lossless(flow.data),
+    lossless(flow.low),
     sharp(Buffer.from(eyeSheet), {
       raw: {
-        width: plan.cols * cell.w,
-        height: plan.rows * cell.h,
+        width: ecols * ecell.w,
+        height: erows * ecell.h,
         channels: 1,
       },
     })
       .png({ palette: false, compressionLevel: 9 })
       .toBuffer(),
   ])
-  return { json, sheet, flow: flowPng, eye: eyePng }
+  return { json, sheets, flow: flowPng, flowLow, eye: eyePng }
 }

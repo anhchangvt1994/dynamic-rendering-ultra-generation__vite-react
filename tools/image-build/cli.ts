@@ -2,7 +2,7 @@
  * yarn build:pokemon-art: builds, on this machine, everything the server
  * serves for the Pokémon pictures, into pokemon-art/<key>/ (POKEMON_ART_DIR):
  *   anim.webp   the upscaled animation (/api/image/<key>.webp)
- *   rig.json, sheet.webp, flow.webp, eye.png   the room's rig (/api/image/rig/<key>/…)
+ *   rig.json, sheet-N.webp, flow.webp, flow-lo.webp, eye.png   the room's rig (/api/image/rig/<key>/…)
  *   build.json  the versions it was built with (what makes a key up to date)
  * Upload that folder to the server; the server only reads it.
  *
@@ -12,7 +12,7 @@
  *   --failed           only incomplete species: any rig file missing (built again)
  *   --jobs N           rig builds at the same time, one process each (default: cores/3: the GPU upscale is the limit, more only heats the CPU)
  *   --gpu-jobs N       upscales at the same time (default 2 with ESRGAN: more only shares the GPU; else CPU cores)
- *   --sheet-quality N  WebP quality of the rig sheet (default 80)
+ *   --sheet-quality N  WebP quality of the rig sheet (default 98)
  *   --out DIR          default pokemon-art/ (or POKEMON_ART_DIR)
  *   --max N            species count when PokéAPI is unreachable
  * Sources and the upscaler come from server/.env (ANIMATED_*).
@@ -67,7 +67,7 @@ const OUT = path.resolve(
   ROOT,
   arg('out') || env('POKEMON_ART_DIR') || 'pokemon-art'
 )
-const SHEET_QUALITY = Number(arg('sheet-quality')) || 80
+const SHEET_QUALITY = Number(arg('sheet-quality')) || 98
 const CORES = os.availableParallelism?.() ?? os.cpus().length
 const JOBS = Math.max(
   1,
@@ -168,8 +168,9 @@ const withTimeout = <T>(work: Promise<T>, label: string) => {
 const RIG_OUTPUT = [
   'build.json',
   'rig.json',
-  'sheet.webp',
+  'sheet-0.webp',
   'flow.webp',
+  'flow-lo.webp',
   'eye.png',
 ]
 
@@ -262,8 +263,12 @@ async function rigTask(
   await fs.promises.rm(path.join(dir, 'build.json'), { force: true })
   if (anim) await put(dir, 'anim.webp', anim)
   else await fs.promises.rm(path.join(dir, 'anim.webp'), { force: true })
-  await put(dir, 'sheet.webp', built.sheet)
+  await fs.promises.rm(path.join(dir, 'sheet.webp'), { force: true })
+  for (let i = 0; i < 4; i++)
+    if (i < built.sheets.length) await put(dir, `sheet-${i}.webp`, built.sheets[i])
+    else await fs.promises.rm(path.join(dir, `sheet-${i}.webp`), { force: true })
   await put(dir, 'flow.webp', built.flow)
+  await put(dir, 'flow-lo.webp', built.flowLow)
   await put(dir, 'eye.png', built.eye)
   await put(dir, 'rig.json', JSON.stringify(built.json))
   await put(dir, 'build.json', JSON.stringify({ ...stamp(), kind }))

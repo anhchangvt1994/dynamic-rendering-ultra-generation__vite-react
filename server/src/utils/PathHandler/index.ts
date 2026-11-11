@@ -190,7 +190,7 @@ export const getResourcePath = () => {
 
 /**
  * Where api/image reads the Pokémon art built by `yarn build:pokemon-art`
- * (<dir>/<key>/{anim.webp,rig.json,sheet.webp,flow.webp,eye.png}).
+ * (<dir>/<key>/{anim.webp,rig.json,sheet-N.webp,flow.webp,flow-lo.webp,eye.png}).
  *   1. POKEMON_ART_DIR, when set (explicit, survives a /tmp clean)
  *   2. on the server: <rootCache | /tmp>/pokemon-art, like the other caches
  *   3. otherwise <project root>/pokemon-art (where the CLI writes by default)

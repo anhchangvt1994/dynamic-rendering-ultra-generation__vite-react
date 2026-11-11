@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { getPokemonArtPath } from '../../../utils/PathHandler'
+import { rigFileType } from './rigFiles'
 
 /**
  * GET /api/image/<key>.webp and /api/image/rig/<key>/<file> (express, fastify
@@ -8,21 +9,13 @@ import { getPokemonArtPath } from '../../../utils/PathHandler'
  * files come from getPokemonArtPath() (utils/PathHandler), made on a dev
  * machine by `yarn build:pokemon-art` (tools/image-build) and uploaded.
  *   <dir>/<key>/anim.webp                           the upscaled animation
- *   <dir>/<key>/{rig.json,sheet.webp,flow.webp,eye.png}   the room's rig
+ *   <dir>/<key>/{rig.json,sheet-N.webp,flow.webp,flow-lo.webp,eye.png}   the room's rig
  * A file that is not there is a 404 (the client falls back to the original).
  */
 export const KEY = /^[a-z0-9-]{1,40}$/
 export const CACHED = 'public, max-age=86400, stale-while-revalidate=604800'
 
 const ART_DIR = getPokemonArtPath()
-
-const RIG_FILES: Record<string, string> = {
-  'rig.json': 'application/json',
-  'sheet.webp': 'image/webp',
-  'flow.webp': 'image/webp',
-  'eye.png': 'image/png',
-  'amber.webp': 'image/webp',
-}
 
 /** "/api/image/25.webp" → "25"; null if malformed */
 export const readKey = (url: string) => {
@@ -33,7 +26,7 @@ export const readKey = (url: string) => {
 /** "/api/image/rig/25/flow.webp" → { key: "25", file: "flow.webp" }; null if malformed */
 export const readRigUrl = (url: string) => {
   const m = url.match(/^\/api\/image\/rig\/([^/]+)\/([^/?]+)$/)
-  return m && KEY.test(m[1]) && RIG_FILES[m[2]]
+  return m && KEY.test(m[1]) && rigFileType(m[2])
     ? { key: m[1], file: m[2] }
     : null
 }
@@ -58,5 +51,5 @@ export const serveImage = async (url: string) => {
 export const serveRig = async (url: string) => {
   const parsed = readRigUrl(url)
   const body = parsed && (await read(parsed.key, parsed.file))
-  return body && parsed ? reply(200, RIG_FILES[parsed.file], body) : none()
+  return body && parsed ? reply(200, rigFileType(parsed.file)!, body) : none()
 }

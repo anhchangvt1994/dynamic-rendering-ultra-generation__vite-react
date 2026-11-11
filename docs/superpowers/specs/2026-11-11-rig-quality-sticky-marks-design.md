@@ -30,8 +30,10 @@ User picked: near-lossless, 512px cells, multi-page (not lossless, not same-size
   = 256 frames, same cap as today).
 - `encodeSheet` writes one WebP per page, `quality 98`, `alphaQuality 100`,
   `effort 6`. `SHEET_QUALITY` default 98; `buildRig` default 98.
-- Server/API: `sheet.webp` → `sheet-{page}.webp` (page 0 keeps working for
-  one-page rigs); `rig.json` lists `sheet.pages`.
+- Server/API: always `sheet-{page}.webp` (no plain `sheet.webp`); `rig.json.sheet`
+  is `{cols, rows, size, pages, per}`. The eye mask is one atlas (`eye.png`) of
+  256px cells, `rig.json.eye = {cols, w, h}` (keeps the fragment shader at 6
+  samplers; WebGL guarantees 8).
 - Client: `rig.ts` loads all pages; `gl.ts` creates up to 4 textures
   (`uSheet0..3`), `shader.ts` picks the page by frame index. Textures get
   LINEAR (no mipmaps needed at ≤ cell size). The eye mask follows the same paging.
