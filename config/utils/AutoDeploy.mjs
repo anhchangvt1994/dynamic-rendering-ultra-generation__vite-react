@@ -309,7 +309,6 @@ export function adoptPokemonArt(
   for (const entry of fs.readdirSync(inbox, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     const to = path.join(target, entry.name)
-    if (fs.existsSync(to)) continue
     const from = path.join(inbox, entry.name)
     if (quietMs) {
       const files = fs.readdirSync(from, { withFileTypes: true })
@@ -323,13 +322,28 @@ export function adoptPokemonArt(
       )
         continue
     }
-    try {
-      fs.renameSync(from, to)
-    } catch (error) {
-      if (error.code !== 'EXDEV') throw error
-      fs.cpSync(from, to, { recursive: true })
-      fs.rmSync(from, { recursive: true, force: true })
+    // A re-upload replaces the species: set the old folder aside, swap, drop it.
+    const old = fs.existsSync(to) ? `${to}.old-${process.pid}` : null
+    if (old) {
+      fs.rmSync(old, { recursive: true, force: true })
+      fs.renameSync(to, old)
     }
+    try {
+      try {
+        fs.renameSync(from, to)
+      } catch (error) {
+        if (error.code !== 'EXDEV') throw error
+        fs.cpSync(from, to, { recursive: true })
+        fs.rmSync(from, { recursive: true, force: true })
+      }
+    } catch (error) {
+      if (old) {
+        fs.rmSync(to, { recursive: true, force: true })
+        fs.renameSync(old, to)
+      }
+      throw error
+    }
+    if (old) fs.rmSync(old, { recursive: true, force: true })
     moved++
   }
   if (moved)
