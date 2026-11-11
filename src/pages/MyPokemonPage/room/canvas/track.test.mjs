@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { trackMarks } from './track.mjs'
+import { flowUv, trackMarks } from './track.mjs'
 
 const TILE = 32
 const COLS = 2
@@ -42,11 +42,12 @@ const backward = (K, q) => {
 }
 const inBody = ([u, v]) => u > 0.1 && u < 0.9 && v > 0.1 && v < 0.9
 
-const flowOf = ({ noise = 0, sure = () => true } = {}) => {
+const flowOf = ({ noise = 0, sure = () => true, bits = 8 } = {}) => {
   const frames = ANGLE.length
   const width = COLS * TILE
   const height = Math.ceil(frames / COLS) * TILE
   const data = new Uint8ClampedArray(width * height * 4)
+  const low = new Uint8ClampedArray(width * height * 4)
   let n = 1
   const rand = () => ((n = (n * 16807) % 2147483647) / 2147483647 - 0.5) * 2
   for (let K = 0; K < frames; K++)
@@ -57,12 +58,20 @@ const flowOf = ({ noise = 0, sure = () => true } = {}) => {
         const o =
           ((Math.floor(K / COLS) * TILE + y) * width + (K % COLS) * TILE + x) *
           4
-        data[o] = Math.round(p[0] * 255 + (K ? noise * rand() : 0))
-        data[o + 1] = Math.round(p[1] * 255 + (K ? noise * rand() : 0))
+        if (bits === 16) {
+          for (const [i, v] of [p[0], p[1]].entries()) {
+            const q16 = Math.round(Math.min(1, Math.max(0, v)) * 65535)
+            data[o + i] = q16 >> 8
+            low[o + i] = q16 & 255
+          }
+        } else {
+          data[o] = Math.round(p[0] * 255 + (K ? noise * rand() : 0))
+          data[o + 1] = Math.round(p[1] * 255 + (K ? noise * rand() : 0))
+        }
         data[o + 2] = inBody(p) && sure(K, p) ? 255 : 0
         data[o + 3] = 255
       }
-  return { data, width, height }
+  return bits === 16 ? { data, width, height, low } : { data, width, height }
 }
 // frame K's body alpha laid out like the flow (one tile per frame); `gone`
 // takes cells out (whatever sits there in frame 0 went behind something)
@@ -131,6 +140,37 @@ test('each mark moves, turns and scales with the body around it, whole', () => {
       assert.equal(m.kind, s.kind)
       assert.equal(m.tone, s.tone)
     }
+})
+
+test('a 16-bit flow places a mark more exactly than the 8-bit one', () => {
+  const fine = trackMarks([heart], flowOf({ bits: 16 }), json)
+  const hiOnly = trackMarks(
+    [heart],
+    (({ low, ...f }) => f)(flowOf({ bits: 16 })),
+    json
+  )
+  const coarse = trackMarks([heart], flowOf(), json)
+  for (let K = 1; K < 4; K++) {
+    const want = forward(K, [heart.x, heart.y])
+    const f = apart([fine[K][0].x, fine[K][0].y], want)
+    const c = apart([coarse[K][0].x, coarse[K][0].y], want)
+    const h = apart([hiOnly[K][0].x, hiOnly[K][0].y], want)
+    assert.ok(
+      h > f,
+      `K=${K} low bytes sharpen ${h.toFixed(3)} > ${f.toFixed(3)}`
+    )
+    assert.ok(f < 0.15, `K=${K} 16-bit at ${f.toFixed(3)}px`)
+    assert.ok(c <= 2, `K=${K} 8-bit at ${c.toFixed(3)}px`)
+  }
+})
+
+test('flowUv decodes 8-bit bytes, or 16-bit when the low bytes come along', () => {
+  const data = Uint8ClampedArray.of(255, 128, 0, 255)
+  assert.deepEqual(flowUv({ data }, 0), [1, 128 / 255])
+  const low = Uint8ClampedArray.of(255, 1, 0, 255)
+  const [u, v] = flowUv({ data, low }, 0)
+  assert.equal(u, 65535 / 65535)
+  assert.equal(v, (128 * 256 + 1) / 65535)
 })
 
 test('coarse, noisy flow still places a mark within a pixel or two', () => {

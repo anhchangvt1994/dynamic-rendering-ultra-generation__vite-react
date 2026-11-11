@@ -27,7 +27,8 @@ const MIN_HIDE_MS = 90
 
 /**
  * `shapes` from planMarks (frame-0 0–1 coordinates, size a share of the long
- * side); `flow` the decoded flow.webp ({ data, width, height }, RGBA bytes);
+ * side); `flow` the decoded flow.webp ({ data, width, height, low? }, RGBA bytes;
+ * `low` the decoded flow-lo.webp, the low bytes of u and v);
  * `json` the rig's ({ frames, frame: { w, h }, flow: { cols, tile } });
  * `body` (optional) each frame's alpha laid out like the flow, one tile per
  * frame (RGBA bytes, alpha read): where frame K no longer shows what sat
@@ -35,6 +36,18 @@ const MIN_HIDE_MS = 90
  * out (`opacity` 0) rather than stay on whatever moved over its place.
  * Returns one shapes array per frame; frame 0 is `shapes` itself.
  */
+/**
+ * A flow cell's frame-0 place [u, v] at byte offset `o`: 16-bit when the low
+ * bytes (`flow.low`, flow-lo.webp) come along, else the 8-bit data alone.
+ */
+export const flowUv = (flow, o) =>
+  flow.low
+    ? [
+        (flow.data[o] * 256 + flow.low[o]) / 65535,
+        (flow.data[o + 1] * 256 + flow.low[o + 1]) / 65535,
+      ]
+    : [flow.data[o] / 255, flow.data[o + 1] / 255]
+
 export function trackMarks(shapes, flow, json, body) {
   const { w, h } = json.frame
   const long = Math.max(w, h)
@@ -53,9 +66,10 @@ export function trackMarks(shapes, flow, json, body) {
         const o = ((oy + y) * flow.width + ox + x) * 4
         const c = flow.data[o + 2] / 255
         if (c <= 0) continue
+        const [u, v] = flowUv(flow, o)
         P.push([
-          (flow.data[o] / 255) * w,
-          (flow.data[o + 1] / 255) * h,
+          u * w,
+          v * h,
           ((x + 0.5) / tile) * w,
           ((y + 0.5) / tile) * h,
           c,
@@ -141,9 +155,8 @@ function shown(s, K, flow, body, json) {
     for (let x = 0; x < tile; x++) {
       const o = ((oy + y) * flow.width + ox + x) * 4
       if (body.data[((oy + y) * body.width + ox + x) * 4 + 3] < 128) continue
-      const d =
-        ((flow.data[o] / 255) * w - cx) ** 2 +
-        ((flow.data[o + 1] / 255) * h - cy) ** 2
+      const [u, v] = flowUv(flow, o)
+      const d = (u * w - cx) ** 2 + (v * h - cy) ** 2
       sum += Math.exp(-d / (2 * sigma * sigma))
     }
   return sum

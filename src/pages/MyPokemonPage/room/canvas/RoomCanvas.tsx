@@ -58,10 +58,16 @@ function bodyOf(rig: Rig): Body {
 }
 
 // the flow's bytes (u, v, confidence per cell), read once per rig
-const flows = new WeakMap<Rig, ImageData | null>()
-function flowOf(rig: Rig) {
+type Flow = {
+  width: number
+  height: number
+  data: Uint8ClampedArray
+  low: Uint8ClampedArray
+}
+const flows = new WeakMap<Rig, Flow | null>()
+function flowOf(rig: Rig): Flow | null {
   if (flows.has(rig)) return flows.get(rig) ?? null
-  let data: ImageData | null = null
+  let flow: Flow | null = null
   try {
     const { width, height } = rig.flow
     const canvas = document.createElement('canvas')
@@ -70,13 +76,17 @@ function flowOf(rig: Rig) {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (ctx) {
       ctx.drawImage(rig.flow, 0, 0)
-      data = ctx.getImageData(0, 0, width, height)
+      const { data } = ctx.getImageData(0, 0, width, height)
+      ctx.clearRect(0, 0, width, height)
+      ctx.drawImage(rig.flowLow, 0, 0)
+      const low = ctx.getImageData(0, 0, width, height).data
+      flow = { width, height, data, low }
     }
   } catch {
     // unreadable: the marks stay where frame 0 has them
   }
-  flows.set(rig, data)
-  return data
+  flows.set(rig, flow)
+  return flow
 }
 
 // each frame's alpha laid out like the flow (one tile per frame), read once
