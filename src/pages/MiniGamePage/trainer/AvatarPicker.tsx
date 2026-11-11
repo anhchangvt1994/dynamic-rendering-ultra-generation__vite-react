@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { AVATARS, avatarUnlocked } from '../avatars.mjs'
-import { BADGES } from '../badges.mjs'
 import AvatarArt from './AvatarArt'
 
-type Trainer = { level: number; avatar: string; badges: { id: string }[] }
+type Trainer = { level: number; avatar: string }
 
 const need = (unlock: any) =>
   unlock.type === 'level'
     ? `Cần trainer level ${unlock.level}`
     : unlock.type === 'badge'
-      ? `Cần huy hiệu “${BADGES.find((b) => b.id === unlock.badge)?.label ?? unlock.badge}”`
+      ? 'Chưa mở'
       : ''
 
 /** The twelve avatars; a locked one says what opens it. */
@@ -24,7 +23,7 @@ export default function AvatarPicker({
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const state = { level: trainer.level, badges: trainer.badges.map((b) => b.id) }
+  const state = { level: trainer.level, badges: [] as string[] }
   return (
     <>
       <ul className="tr-avatars">

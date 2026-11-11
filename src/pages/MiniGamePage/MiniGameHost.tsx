@@ -8,7 +8,10 @@ import { initialCare, needsNow } from 'pages/MyPokemonPage/care/care.mjs'
 import { MY_POKEMON_PATH } from 'pages/MyPokemonPage/paths.mjs'
 import GameSheet from './GameSheet'
 import { GAMES } from './games/index.mjs'
-import { BADGES } from './badges.mjs'
+import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
+import Burst from './Burst'
+import ComboMeter from './ComboMeter'
+import { nextRun, tierOf } from './combo.mjs'
 import { boardComplete, remainingMs, ringProgress } from './countdown.mjs'
 import {
   MINIGAME,
@@ -85,6 +88,11 @@ export default function MiniGameHost({
   const [error, setError] = useState<string | null>(null)
   const [mood, setMood] = useState<'cheer' | 'miss' | 'doze' | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [run, setRun] = useState(0)
+  const [burst, setBurst] = useState({ seq: 0, x: 0, y: 0, count: 10 as 10 | 16 })
+  const [fade, setFade] = useState(false)
+  const [chip, setChip] = useState(0)
+  const stage = useRef<HTMLDivElement>(null)
   const [retry, setRetry] = useState(false)
   const settling = useRef(false)
   const flips = useRef(0)
@@ -180,6 +188,9 @@ export default function MiniGameHost({
       }
       settling.current = false
       flips.current = 0
+      setRun(0)
+      setChip(0)
+      setFade(false)
       setMood(null)
       setRetry(false)
       setNow(Date.now())
@@ -419,7 +430,16 @@ export default function MiniGameHost({
             <span>{LABELS[round.difficulty - 1]}</span>
             <strong aria-label="Thời gian còn lại">{clock(remaining)}</strong>
           </div>
-          <div className="mg-stage">
+          <div className="mg-stage" ref={stage} data-tier={tierOf(run) || undefined}>
+            {individual && (
+              <span
+                className="mg-backdrop-art"
+                style={{ backgroundImage: `url(${getPokemonImage(individual.speciesId)})` }}
+                aria-hidden="true"
+              />
+            )}
+            <ComboMeter run={chip} fade={fade} />
+            <Burst at={{ x: burst.x, y: burst.y }} count={burst.count} seq={burst.seq} />
             <svg className="mg-ring" data-low={remaining < LOW_MS || undefined} aria-hidden="true">
               <rect x="2" y="2" rx="22" data-track style={{ width: 'calc(100% - 4px)', height: 'calc(100% - 4px)' }} />
               <rect
@@ -442,15 +462,39 @@ export default function MiniGameHost({
                   ? round.practice.flip(index)
                   : mg.flip({ round: round.id as string, index })
               }
-              onResult={(result: FlipResult) => {
+              onResult={(result: FlipResult, index: number) => {
                 flips.current = result.flips
+                const before = run
+                const after = nextRun(before, result.match)
                 if (result.match === true) {
                   setMood('cheer')
-                  navigator.vibrate?.(12)
+                  setFade(false)
+                  setChip(after)
+                  const box = stage.current?.getBoundingClientRect()
+                  const card = stage.current
+                    ?.querySelector<HTMLElement>(`[data-i="${index}"]`)
+                    ?.getBoundingClientRect()
+                  const tier = tierOf(after)
+                  if (box && card)
+                    setBurst((b) => ({
+                      seq: b.seq + 1,
+                      x: card.left - box.left + card.width / 2,
+                      y: card.top - box.top + card.height / 2,
+                      count: tier >= 3 ? 16 : 10,
+                    }))
+                  navigator.vibrate?.(tier >= 2 && tierOf(before) < 2 ? [10, 40, 10] : 10)
                 } else if (result.match === false) {
                   setMood('miss')
-                  navigator.vibrate?.(24)
+                  if (before >= 2) {
+                    setFade(true)
+                    window.setTimeout(() => {
+                      setChip(0)
+                      setFade(false)
+                    }, 450)
+                  }
+                  navigator.vibrate?.(30)
                 }
+                setRun(after)
                 if (result.done) settle(true)
               }}
               onError={(e: Error & { code?: string }) => {
@@ -512,15 +556,6 @@ export default function MiniGameHost({
                     <li key={id} className="mg-chip mg-fly">
                       <img src={itemSprite(id)} alt="" />
                       {itemById(id)?.name ?? id}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {outcome.badges.length > 0 && (
-                <ul className="mg-chips">
-                  {outcome.badges.map((id) => (
-                    <li key={id} className="mg-chip mg-levelup">
-                      Huy hiệu mới: {BADGES.find((b) => b.id === id)?.label ?? id}
                     </li>
                   ))}
                 </ul>

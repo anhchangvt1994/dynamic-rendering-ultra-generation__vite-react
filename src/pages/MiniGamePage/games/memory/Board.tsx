@@ -8,7 +8,7 @@ type Props = {
   flip: (index: number) => Promise<FlipResult>
   disabled: boolean
   tone?: unknown
-  onResult?: (result: FlipResult) => void
+  onResult?: (result: FlipResult, index: number) => void
   onError?: (error: Error) => void
 }
 
@@ -49,7 +49,7 @@ export default function Board({ view, flip, disabled, onResult, onError }: Props
           setOpen(null)
         }, MISS_MS)
       }
-      onResult?.(result)
+      onResult?.(result, index)
     } catch (error) {
       setPending(null)
       onError?.(error as Error)
@@ -71,6 +71,7 @@ export default function Board({ view, flip, disabled, onResult, onError }: Props
             <button
               type="button"
               className="mg-card"
+              data-i={i}
               data-up={up || undefined}
               data-spin={pending === i || undefined}
               data-matched={isMatched || undefined}

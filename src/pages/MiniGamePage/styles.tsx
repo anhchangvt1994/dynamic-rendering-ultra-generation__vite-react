@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { playCss } from './styles.play'
 
 // colours come from the chosen Pokémon: --hue, --accent, --deep, --glow
 export const SheetStyle = styled.div`
@@ -481,28 +482,5 @@ export const SheetStyle = styled.div`
     opacity: 0.8;
     text-align: center;
   }
-  .tr-badges {
-    display: grid;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .tr-badge {
-    display: grid;
-    gap: 2px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    opacity: 0.55;
-  }
-  .tr-badge[data-on] {
-    opacity: 1;
-    background: rgba(255, 208, 220, 0.16);
-    box-shadow: inset 0 0 0 1px rgba(255, 208, 220, 0.4);
-  }
-  .tr-badge span {
-    font-size: 13px;
-    opacity: 0.8;
-  }
+  ${playCss}
 `

@@ -7,3 +7,6 @@ export const comboBonus = (len) =>
 /** The run after a flip; `match` is null on the first card of a pair. */
 export const nextRun = (run, match) =>
   match === null ? run : match ? run + 1 : 0
+
+/** Visual tier of a run: 1 from ×2, 2 from ×4, 3 from ×6. */
+export const tierOf = (run) => (run >= 6 ? 3 : run >= 4 ? 2 : run >= 2 ? 1 : 0)

@@ -7,12 +7,11 @@ import { MINIGAME, slotsFor, xpFor } from '../minigame.mjs'
 import type { useMiniGame } from '../useMiniGame'
 import AvatarArt from './AvatarArt'
 import AvatarPicker from './AvatarPicker'
-import BadgeShelf from './BadgeShelf'
 import TeamPicker from './TeamPicker'
 
-type Sheet = 'avatar' | 'team' | 'badges' | null
+type Sheet = 'avatar' | 'team' | null
 
-/** The trainer at the top of the page: avatar, level, xp, team and badges. */
+/** The trainer at the top of the page: avatar, level, xp and team. */
 export default function TrainerCard({ mg }: { mg: ReturnType<typeof useMiniGame> }) {
   const trainer = mg.status?.trainer
   const [sheet, setSheet] = useState<Sheet>(null)
@@ -53,9 +52,6 @@ export default function TrainerCard({ mg }: { mg: ReturnType<typeof useMiniGame>
         <button type="button" onClick={() => setSheet('team')}>
           Đội hình {trainer.team.length}/{slotsFor(trainer.level)}
         </button>
-        <button type="button" onClick={() => setSheet('badges')}>
-          Huy hiệu {trainer.badges.length}
-        </button>
       </div>
       <GameSheet open={sheet === 'avatar'} onClose={close} title="Chọn avatar">
         <AvatarPicker trainer={trainer} onPick={mg.setAvatar} onDone={close} />
@@ -71,9 +67,6 @@ export default function TrainerCard({ mg }: { mg: ReturnType<typeof useMiniGame>
             onDone={close}
           />
         )}
-      </GameSheet>
-      <GameSheet open={sheet === 'badges'} onClose={close} title="Huy hiệu">
-        <BadgeShelf earned={trainer.badges} />
       </GameSheet>
     </section>
   )

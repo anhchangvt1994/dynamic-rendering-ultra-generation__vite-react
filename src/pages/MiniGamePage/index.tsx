@@ -20,7 +20,7 @@ const wait = (iso: string | null | undefined, now: number) => {
 export default function MiniGamePage() {
   setSeoTag({
     title: 'Mini game cùng Pokémon | Pokédex',
-    description: 'Chơi mini game cùng Pokémon của bạn để nhận exp, quà và huy hiệu.',
+    description: 'Chơi mini game cùng Pokémon của bạn để nhận exp và quà.',
     robots: 'noindex, nofollow',
   })
   const account = useAccount()
