@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAccount } from 'app/supabase/account'
 import MiniGameHost from './MiniGameHost'
+import QuestCard from './QuestCard'
 import TrainerCard from './trainer/TrainerCard'
 import { GAMES } from './games/index.mjs'
 import { MINIGAME } from './minigame.mjs'
@@ -42,6 +43,7 @@ export default function MiniGamePage() {
         </p>
       )}
       {server && <TrainerCard mg={mg} />}
+      <QuestCard mg={mg} />
       <ul className="mgp-list">
         {GAMES.map((g) => {
           const row = mg.status?.games?.[g.id]
