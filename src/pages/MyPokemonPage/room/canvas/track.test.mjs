@@ -88,7 +88,10 @@ const alphaOf = (gone = () => false) => {
       }
   return { data, width, height }
 }
+// smoothing off: these tests pin the fit itself, with jumps of a dozen px a
+// frame that no smoothing could keep
 const json = {
+  smooth: false,
   frames: ANGLE.length,
   frame: FRAME,
   flow: { cols: COLS, tile: TILE },
@@ -252,4 +255,170 @@ test('a mark never grows or shrinks past a third', () => {
     }
   const m = trackMarks([heart], flow, big)[1][0]
   assert.ok(m.size <= heart.size * 1.34, `size ${m.size}`)
+})
+
+// ---- a non-similar motion: frame K maps frame-0 px by p' = pivot + M·(p - pivot) + move
+const inv2 = ([a, b, c, d]) => {
+  const det = a * d - b * c
+  return [d / det, -b / det, -c / det, a / det]
+}
+// matrices are [a, b, c, d] = [[a, c], [b, d]] (canvas order)
+const apply = ([a, b, c, d], [x, y]) => [a * x + c * y, b * x + d * y]
+const affineFlow = (Ms, moves, { noise = 0, sure = () => true } = {}) => {
+  const frames = Ms.length
+  const width = COLS * TILE
+  const height = Math.ceil(frames / COLS) * TILE
+  const data = new Uint8ClampedArray(width * height * 4)
+  let n = 1
+  const rand = () => ((n = (n * 16807) % 2147483647) / 2147483647 - 0.5) * 2
+  for (let K = 0; K < frames; K++) {
+    const back = inv2(Ms[K])
+    for (let y = 0; y < TILE; y++)
+      for (let x = 0; x < TILE; x++) {
+        const q = [((x + 0.5) / TILE) * FRAME.w, ((y + 0.5) / TILE) * FRAME.h]
+        const d = apply(back, [
+          q[0] - PIVOT[0] - moves[K][0],
+          q[1] - PIVOT[1] - moves[K][1],
+        ])
+        const p = [(PIVOT[0] + d[0]) / FRAME.w, (PIVOT[1] + d[1]) / FRAME.h]
+        const o =
+          ((Math.floor(K / COLS) * TILE + y) * width + (K % COLS) * TILE + x) *
+          4
+        data[o] = Math.round(p[0] * 255 + (K ? noise * rand() : 0))
+        data[o + 1] = Math.round(p[1] * 255 + (K ? noise * rand() : 0))
+        data[o + 2] = sure(K, p) ? 255 : 0
+        data[o + 3] = 255
+      }
+  }
+  return { data, width, height }
+}
+const affJson = (frames, extra = {}) => ({
+  frames,
+  frame: FRAME,
+  flow: { cols: COLS, tile: TILE },
+  ...extra,
+})
+const SHEAR = [
+  [1, 0, 0, 1],
+  [1.25, 0, 0.3, 0.85],
+  [0.9, 0.25, -0.2, 1.1],
+]
+const SHEAR_MOVE = [
+  [0, 0],
+  [6, -3],
+  [-4, 5],
+]
+const trueMap = (K, [x, y]) => {
+  const d = apply(SHEAR[K], [x - PIVOT[0], y - PIVOT[1]])
+  return [
+    PIVOT[0] + d[0] + SHEAR_MOVE[K][0],
+    PIVOT[1] + d[1] + SHEAR_MOVE[K][1],
+  ]
+}
+// where a point `u` (size units, mark-local) of a tracked mark lands, in px
+const placed = (m, u) => {
+  const c = Math.cos(m.angle)
+  const s = Math.sin(m.angle)
+  const [lx, ly] = apply(m.lin ?? [1, 0, 0, 1], u)
+  const k = m.size * LONG
+  return [
+    m.x * FRAME.w + k * (c * lx - s * ly),
+    m.y * FRAME.h + k * (s * lx + c * ly),
+  ]
+}
+const asLocal = (s, u) => placed({ ...s, lin: undefined }, u)
+const singular = ([a, b, c, d]) => {
+  const q = Math.hypot(a + d, b - c) / 2
+  const r = Math.hypot(a - d, b + c) / 2
+  return [q + r, Math.abs(q - r)]
+}
+
+test('a mark follows a shear and a stretch, not just a similarity', () => {
+  const frames = trackMarks(
+    [heart],
+    affineFlow(SHEAR, SHEAR_MOVE),
+    affJson(3, { smooth: false })
+  )
+  for (const K of [1, 2])
+    for (const u of [
+      [0.5, 0],
+      [-0.5, 0],
+      [0, 0.5],
+      [0, -0.5],
+    ]) {
+      const want = trueMap(K, asLocal(heart, u))
+      const got = placed(frames[K][0], u)
+      assert.ok(
+        Math.hypot(got[0] - want[0], got[1] - want[1]) < 1.5,
+        `K=${K} u=${u} off by ${Math.hypot(got[0] - want[0], got[1] - want[1]).toFixed(2)}px`
+      )
+    }
+})
+
+test('a pure similarity flow leaves lin at identity within 0.02', () => {
+  const frames = trackMarks([heart, star], flowOf(), json)
+  for (let K = 1; K < 4; K++)
+    for (const m of frames[K])
+      m.lin.forEach((v, i) =>
+        near(v, [1, 0, 0, 1][i], 0.02, `K=${K} lin[${i}]`)
+      )
+})
+
+test('a degenerate neighbourhood falls back without NaN', () => {
+  const row = (K, p) => Math.abs(p[1] - heart.y) < 0.004
+  for (const sure of [row, () => false]) {
+    const frames = trackMarks(
+      [heart],
+      affineFlow(SHEAR, SHEAR_MOVE, { sure }),
+      affJson(3, { smooth: false })
+    )
+    for (const f of frames.slice(1)) {
+      const m = f[0]
+      for (const v of [m.x, m.y, m.angle, m.size]) assert.ok(Number.isFinite(v))
+      assert.deepEqual(m.lin, [1, 0, 0, 1])
+    }
+  }
+})
+
+test('lin never stretches past a third', () => {
+  const wild = [
+    [1, 0, 0, 1],
+    [3, 0, 0, 0.3],
+    [0.3, 0, 0, 3],
+  ]
+  const frames = trackMarks(
+    [heart],
+    affineFlow(wild, [
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]),
+    affJson(3)
+  )
+  for (const f of frames.slice(1)) {
+    const [hi, lo] = singular(f[0].lin)
+    assert.ok(hi <= 4 / 3 + 1e-9 && lo >= 3 / 4 - 1e-9, `${hi} ${lo}`)
+  }
+})
+
+test('smoothing: frame 0 stays the plan, a noisy straight motion gets steadier', () => {
+  const N = 8
+  const Ms = Array.from({ length: N }, () => [1, 0, 0, 1])
+  const moves = Array.from({ length: N }, (_, K) => [K * 2, 0])
+  const flow = affineFlow(Ms, moves, { noise: 3 })
+  const smooth = trackMarks([heart], flow, affJson(N))
+  const raw = trackMarks([heart], flow, affJson(N, { smooth: false }))
+  assert.deepEqual(smooth[0], [heart])
+  const wobble = (frames) => {
+    let sum = 0
+    for (let K = 1; K <= N - 3; K++)
+      sum += Math.abs(
+        (frames[K - 1][0].x - 2 * frames[K][0].x + frames[K + 1][0].x) * FRAME.w
+      )
+    return sum
+  }
+  assert.ok(
+    wobble(smooth) < wobble(raw),
+    `smoothed ${wobble(smooth).toFixed(3)} vs raw ${wobble(raw).toFixed(3)}`
+  )
 })

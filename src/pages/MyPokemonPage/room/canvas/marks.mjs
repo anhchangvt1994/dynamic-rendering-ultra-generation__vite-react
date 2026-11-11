@@ -817,6 +817,8 @@ export function drawMarks(
     ctx.translate(s.x * px, s.y * px)
     ctx.scale(px / sx, px / sy)
     ctx.rotate(s.angle)
+    // the skin's shear and stretch on top of the turn (trackMarks' `lin`)
+    if (s.lin) ctx.transform(s.lin[0], s.lin[1], s.lin[2], s.lin[3], 0, 0)
     path(ctx, s)
     if (glow && GLOWING.has(s.kind)) {
       ctx.shadowColor = GLOW_COLOUR

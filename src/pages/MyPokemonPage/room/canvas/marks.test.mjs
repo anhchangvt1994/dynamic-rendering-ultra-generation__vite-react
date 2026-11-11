@@ -749,3 +749,31 @@ test('drawMarks paints each tone in its own channel', () => {
   assert.ok(fills.includes('rgb(0,255,0)'))
   assert.ok(fills.includes('rgb(0,0,255)'))
 })
+
+test('a residual lin is applied right after the rotation, as one transform', () => {
+  const mark = {
+    kind: 'hearts',
+    x: 0.5,
+    y: 0.5,
+    size: 0.08,
+    angle: 0.3,
+    tone: 'accent',
+  }
+  const calls = (m) => {
+    const { log, ctx } = recorder()
+    drawMarks(ctx, [m])
+    return log.map(([k, , , , , , , a]) => [k, a])
+  }
+  const plain = calls(mark)
+  const ident = calls({ ...mark, lin: [1, 0, 0, 1] })
+  const at = plain.findIndex(([k]) => k === 'rotate')
+  assert.deepEqual(ident, [
+    ...plain.slice(0, at + 1),
+    ['transform', [1, 0, 0, 1, 0, 0]],
+    ...plain.slice(at + 1),
+  ])
+  const shear = calls({ ...mark, lin: [1.2, 0.3, 0, 0.8] })
+  const t = shear.findIndex(([k]) => k === 'transform')
+  assert.equal(shear[t - 1][0], 'rotate')
+  assert.deepEqual(shear[t][1], [1.2, 0.3, 0, 0.8, 0, 0])
+})
