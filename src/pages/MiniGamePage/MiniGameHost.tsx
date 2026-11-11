@@ -11,6 +11,7 @@ import { GAMES } from './games/index.mjs'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 import Burst from './Burst'
 import ComboMeter from './ComboMeter'
+import GiftChest from './GiftChest'
 import { nextRun, tierOf } from './combo.mjs'
 import { boardComplete, remainingMs, ringProgress } from './countdown.mjs'
 import {
@@ -549,17 +550,13 @@ export default function MiniGameHost({
                   <i style={{ width: `${barPct}%` }} />
                 </span>
               </div>
-              {outcome.levelUp && <span className="mg-levelup">Lên cấp {outcome.level}!</span>}
-              {outcome.gifts.length > 0 && (
-                <ul className="mg-chips">
-                  {outcome.gifts.map((id) => (
-                    <li key={id} className="mg-chip mg-fly">
-                      <img src={itemSprite(id)} alt="" />
-                      {itemById(id)?.name ?? id}
-                    </li>
-                  ))}
-                </ul>
+              {outcome.status === 'won' && outcome.comboLen >= 2 && (
+                <p className="mg-sub">
+                  Chuỗi dài nhất ×{outcome.comboLen} · +{Math.round(outcome.combo * 100)}% exp
+                </p>
               )}
+              {outcome.gifts.length > 0 && <GiftChest items={outcome.gifts} />}
+              {outcome.levelUp && <span className="mg-levelup">Lên cấp {outcome.level}!</span>}
               {outcome.needs && (
                 <p className="mg-sub">
                   Pokémon mệt hơn:{' '}

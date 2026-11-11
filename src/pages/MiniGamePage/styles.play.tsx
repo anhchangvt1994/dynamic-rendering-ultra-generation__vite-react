@@ -100,7 +100,28 @@ export const playCss = css`
       transform: translateX(4px);
     }
   }
+  .mg-chest {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+  }
+  .mg-chest-box {
+    display: inline-block;
+    animation: mg-wobble 900ms ease-in-out infinite;
+  }
+  @keyframes mg-wobble {
+    25% {
+      transform: rotate(-12deg);
+    }
+    75% {
+      transform: rotate(12deg);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
+    .mg-chest-box,
+    .mg-chip.mg-fly {
+      animation: none;
+    }
     .mg-stage[data-tier='3'],
     .mg-combo,
     .mg-card[data-miss],
