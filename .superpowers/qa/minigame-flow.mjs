@@ -220,7 +220,7 @@ async function signedIn(label, width, height) {
   // win it
   await solve(p)
   await until(p, () => !!document.querySelector('.mg-result'), null, 20000)
-  await wait(900)
+  await wait(1600)
   const result = await text(p, '.mg-result')
   check(`${tag}: a won round says so`, /Chiến thắng/.test(result), result.split('\n')[0])
   check(`${tag}: the result shows exp`, /\+\d+ exp/.test(result), result.replace(/\n/g, ' | ').slice(0, 120))
@@ -294,11 +294,108 @@ async function guest(width, height) {
   await p.close()
 }
 
+// v2: combo meter, burst, gift chest, quest card, reduced motion
+async function v2(width, height, reduced) {
+  const acc = await account()
+  const p = await open(width, height, acc.session)
+  const tag = `v2 ${reduced ? 'reduced ' : ''}${width}x${height}`
+  if (reduced) await p.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])
+  const day = `(now() at time zone 'utc')::date`
+  const rows = () => p.evaluate(() => [...document.querySelectorAll('.qc-row')].map((r) => r.dataset.state))
+  await until(p, () => document.querySelectorAll('.qc-row').length === 3, null, 15000)
+  check(`${tag}: quest card shows 3 quests, all in progress`, (await rows()).every((x) => x === 'doing'), JSON.stringify(await rows()))
+  check(`${tag}: no badge entry on the trainer card`, !/Huy hiệu/.test(await text(p, '.tr-card')))
+  if (!reduced) await p.screenshot({ path: `${D}/minigame-quests-doing-${width}.png` })
+  sql(`update public.minigame_quests set progress = goal where user_id='${acc.user}' and day=${day} and slot=1`)
+  await goPage(p)
+  await until(p, () => document.querySelectorAll('.qc-row').length === 3, null, 15000)
+  check(`${tag}: a finished quest offers the gift`, (await rows())[0] === 'done', JSON.stringify(await rows()))
+  if (!reduced) await p.screenshot({ path: `${D}/minigame-quests-done-${width}.png` })
+  await p.evaluate(() => document.querySelector('.qc-go').click())
+  await until(p, () => !!document.querySelector('.qc-row[data-state="claimed"]'), null, 15000)
+  await until(p, () => !!document.querySelector('.mg-chest'), null, 8000)
+  await until(p, () => document.querySelectorAll('.mg-chest .mg-chip').length >= 1, null, 5000)
+  check(`${tag}: claiming shows the gift and marks the quest done`, (await rows())[0] === 'claimed')
+  check(`${tag}: the quest is claimed in the database`, sql(`select count(*) from public.minigame_quests where user_id='${acc.user}' and day=${day} and slot=1 and claimed_at is not null`) === '1')
+  check(`${tag}: the streak lights one dot`, (await p.$$('.qc-dot[data-on]')).length === 1)
+  if (!reduced) await p.screenshot({ path: `${D}/minigame-quests-claimed-${width}.png` })
+
+  // a round: learn the faces by flipping pairs, then match them in a row
+  await openSheet(p)
+  await startRound(p)
+  const total = (await cardState(p)).length
+  let run = 0
+  const matchedNow = () => cardState(p).then((x) => x.filter((c) => c.matched).length)
+  for (let i = 0; i < total; i += 2) {
+    const before = await matchedNow()
+    await tapCard(p, i)
+    await tapCard(p, i + 1)
+    await until(p, () => ![...document.querySelectorAll('.mg-card')].some((c) => c.hasAttribute('data-miss') || c.hasAttribute('data-spin')), null, 8000)
+    run = (await matchedNow()) > before ? run + 1 : 0
+  }
+  const faces = []
+  for (let i = 0; i < total; i += 1) faces.push(await faceOf(p, i))
+  let state = await cardState(p)
+  let bursts = 0
+  const seen = new Set()
+  const byFace = {}
+  faces.forEach((f, i) => { if (f) (byFace[f] ||= []).push(i) })
+  for (const pair of Object.values(byFace)) {
+    if (pair.length < 2 || !state[pair[0]] || state[pair[0]].matched) continue
+    if (await p.evaluate(() => !!document.querySelector('.mg-result'))) break
+    const before = await matchedNow()
+    await tapCard(p, pair[0])
+    await tapCard(p, pair[1])
+    await wait(150)
+    const after = await matchedNow()
+    run = after > before ? run + 1 : 0
+    if (!reduced) bursts += await p.evaluate(() => document.querySelectorAll('.mg-burst').length)
+    if (run >= 2 && !(await p.evaluate(() => !!document.querySelector('.mg-result')))) {
+      const chip = await text(p, '.mg-combo b')
+      check(`${tag}: combo chip shows ×${run}`, chip === `×${run}`, chip)
+      if ([2, 4, 6].includes(run) && !seen.has(run) && !reduced) {
+        seen.add(run)
+        await p.screenshot({ path: `${D}/minigame-combo-x${run}-${width}.png` })
+      }
+    }
+    await until(p, () => !!document.querySelector('.mg-result') || ![...document.querySelectorAll('.mg-card')].some((c) => c.hasAttribute('data-miss') || c.hasAttribute('data-spin')), null, 8000)
+    state = await cardState(p)
+  }
+  if (reduced) check(`${tag}: no burst particles under reduced motion`, (await p.$$('.mg-burst')).length === 0)
+  else check(`${tag}: matches play a burst`, bursts >= 1, String(bursts))
+  await until(p, () => !!document.querySelector('.mg-result'), null, 20000)
+  await wait(300)
+  if (reduced) check(`${tag}: reduced motion opens the chest at once`, (await p.$$('.mg-result .mg-chest .mg-chip')).length >= 1)
+  else {
+    check(`${tag}: the chest starts closed with an open button`, !!(await p.$('.mg-result .mg-chest button')))
+    await p.screenshot({ path: `${D}/minigame-chest-closed-${width}.png` })
+    await clickText(p, '.mg-chest button', 'Mở quà')
+    await until(p, () => document.querySelectorAll('.mg-result .mg-chest .mg-chip').length >= 1, null, 5000)
+    await wait(600)
+    check(`${tag}: opening the chest lists the gifts`, true)
+    await p.screenshot({ path: `${D}/minigame-chest-open-${width}.png` })
+  }
+  const result = await text(p, '.mg-result')
+  check(`${tag}: the result names the longest chain when it is 2 or more`, run >= 2 ? /Chuỗi dài nhất ×\d+ · \+\d+% exp/.test(result) : true, result.replace(/\n/g, ' | ').slice(0, 150))
+  check(`${tag}: no badge line in the result`, !/Huy hiệu/.test(result))
+  await p.close()
+}
+async function guestQuests(width, height) {
+  const p = await open(width, height, null)
+  await until(p, () => /Đăng nhập để nhận nhiệm vụ/.test(document.body.innerText), null, 15000)
+  check(`guest ${width}x${height}: quest card invites to sign in`, true)
+  await p.screenshot({ path: `${D}/minigame-quests-guest-${width}.png` })
+  await p.close()
+}
+
 try {
   for (const [w, h] of [[390, 844], [1280, 800]]) {
     await signedIn('player', w, h)
     await guest(w, h)
+    await v2(w, h, false)
+    await guestQuests(w, h)
   }
+  await v2(390, 844, true)
   const real = errors.filter((e) => !/favicon|manifest|google|gtag|analytics/i.test(e))
   check('no page or console errors', real.length === 0, real.slice(0, 3).join(' || '))
 } catch (e) {
