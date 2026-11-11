@@ -17,17 +17,20 @@ export const FRAGMENT = /* glsl */ `
 precision highp float;
 varying vec2 vUv;
 
-uniform sampler2D uSheet;
+uniform sampler2D uSheet0;  // the sheet's pages, 64 frames each
+uniform sampler2D uSheet1;
+uniform sampler2D uSheet2;
+uniform sampler2D uSheet3;
+uniform float uPer;        // frames per page
 uniform vec2 uSheetSize;   // px
 uniform vec2 uCell;        // px
 uniform float uCols;
 uniform float uFrame;
 
-uniform sampler2D uFlow;
 uniform sampler2D uEye;     // white pixels protect eyes from recolouring
-uniform vec2 uFlowSize;    // px
-uniform float uFlowCols;
-uniform float uTile;
+uniform vec2 uEyeSize;     // px, the atlas
+uniform vec2 uEyeCell;     // px
+uniform float uEyeCols;
 
 uniform sampler2D uMarks;
 uniform float uHasMarks;
@@ -95,6 +98,16 @@ vec2 cellUv(vec2 uv, float index, float cols, vec2 cell, vec2 size) {
   return (at + px) / size;
 }
 
+// the current frame's texel: its page, then its cell in that page
+vec4 sheetAt(vec2 uv) {
+  float page = floor((uFrame + 0.5) / uPer);
+  vec2 at = cellUv(uv, uFrame - page * uPer, uCols, uCell, uSheetSize);
+  if (page < 0.5) return texture2D(uSheet0, at);
+  if (page < 1.5) return texture2D(uSheet1, at);
+  if (page < 2.5) return texture2D(uSheet2, at);
+  return texture2D(uSheet3, at);
+}
+
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -108,13 +121,13 @@ float vnoise(vec2 p) {
 
 // the lightness of the sprite at uv; outside the body, the fallback
 float reliefAt(vec2 uv, float fallback) {
-  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec4 t = sheetAt(uv);
   return t.a > 0.5 ? dot(t.rgb / t.a, vec3(0.299, 0.587, 0.114)) : fallback;
 }
 
 // a dark outline/iris pixel of the sprite at uv
 float darkAt(vec2 uv) {
-  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec4 t = sheetAt(uv);
   vec3 c = t.rgb / max(t.a, 1e-3);
   float spread = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
   // neutral dark only: the shade under a claw still has the body's colour
@@ -123,7 +136,7 @@ float darkAt(vec2 uv) {
 // a white catch-light dot ringed by dark on three or four sides: only an eye has
 // one (a claw or a tooth touches the body's own colour)
 float glintAt(vec2 uv) {
-  vec4 t = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec4 t = sheetAt(uv);
   vec3 c = t.rgb / max(t.a, 1e-3);
   float lo = min(c.r, min(c.g, c.b));
   if (t.a < 0.5 || lo < 0.86 || max(c.r, max(c.g, c.b)) - lo > 0.1) return 0.0;
@@ -180,7 +193,7 @@ void main() {
   uv.y = 1.0 - uv.y;
   if (uFlip > 0.5) uv.x = 1.0 - uv.x;
 
-  vec4 texel = texture2D(uSheet, cellUv(uv, uFrame, uCols, uCell, uSheetSize));
+  vec4 texel = sheetAt(uv);
   float alpha = texel.a;
   if (alpha < 0.002) {
     gl_FragColor = vec4(0.0);
@@ -198,7 +211,7 @@ void main() {
   // the new hue, or they stay the old colour in speckles on the recoloured body
   float tint = (1.0 - smoothstep(uLock.x - 0.03, uLock.x + 0.03, lab.x)) *
     smoothstep(0.02, 0.06, chroma);
-  float eyeProtected = texture2D(uEye, cellUv(uv, uFrame, uCols, uCell, uSheetSize)).r;
+  float eyeProtected = texture2D(uEye, cellUv(uv, uFrame, uEyeCols, uEyeCell, uEyeSize)).r;
   if (eyeProtected > 0.5) {
     free = 0.0;
     tint = 0.0;

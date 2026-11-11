@@ -87,8 +87,7 @@ export function startScene(
   })
   renderer.setClearColor(0x000000, 0)
   const { json } = rig
-  const sheet = texture(rig.sheet)
-  const flow = texture(rig.flow)
+  const sheets = rig.sheets.map((b) => texture(b))
   const eye = texture(rig.eye)
   layer?.frame(0)
   const marks = layer ? texture(layer.canvas) : null
@@ -105,17 +104,22 @@ export function startScene(
     depthWrite: false,
     transparent: true,
     uniforms: {
-      uSheet: { value: sheet },
-      uSheetSize: { value: new Vector2(rig.sheet.width, rig.sheet.height) },
+      uSheet0: { value: sheets[0] },
+      uSheet1: { value: sheets[1] ?? sheets[0] },
+      uSheet2: { value: sheets[2] ?? sheets[0] },
+      uSheet3: { value: sheets[3] ?? sheets[0] },
+      uPer: { value: json.sheet.per },
+      uSheetSize: {
+        value: new Vector2(rig.sheets[0].width, rig.sheets[0].height),
+      },
       uCell: { value: new Vector2(json.frame.w, json.frame.h) },
       uCols: { value: json.sheet.cols },
       uFrame: { value: 0 },
-      uFlow: { value: flow },
       uEye: { value: eye },
-      uFlowSize: { value: new Vector2(rig.flow.width, rig.flow.height) },
-      uFlowCols: { value: json.flow.cols },
-      uTile: { value: json.flow.tile },
-      uMarks: { value: marks ?? flow },
+      uEyeSize: { value: new Vector2(rig.eye.width, rig.eye.height) },
+      uEyeCell: { value: new Vector2(json.eye.w, json.eye.h) },
+      uEyeCols: { value: json.eye.cols },
+      uMarks: { value: marks ?? eye },
       uHasMarks: { value: marks ? 1 : 0 },
       uCount: { value: uniforms.count },
       uSource: { value: vec3s(uniforms.source) },
@@ -161,8 +165,7 @@ export function startScene(
     dispose: (keepContext = false) => {
       geometry.dispose()
       material.dispose()
-      sheet.dispose()
-      flow.dispose()
+      sheets.forEach((t) => t.dispose())
       eye.dispose()
       marks?.dispose()
       renderer.dispose()

@@ -3,7 +3,7 @@ import type { Appearance } from 'pages/BagPage/individuals/client'
 import { paletteUniforms } from './colour.mjs'
 import type { MarkLayer, Scene3 } from './gl'
 import { bodyMask, drawMarks, planMarks } from './marks.mjs'
-import { loadRig } from './rig'
+import { cellAt, loadRig } from './rig'
 import type { Rig } from './rig'
 import { trackMarks } from './track.mjs'
 
@@ -23,7 +23,7 @@ type Props = {
   onReady: (state: CanvasState) => void
 }
 
-const MARKS_PX = 512
+const MARKS_PX = 1024
 
 type Body = ReturnType<typeof bodyMask> | null
 const bodies = new WeakMap<Rig, Body>()
@@ -40,7 +40,7 @@ function bodyOf(rig: Rig): Body {
     canvas.height = h
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (ctx) {
-      ctx.drawImage(rig.sheet, 0, 0, w, h, 0, 0, w, h)
+      ctx.drawImage(rig.sheets[0], 0, 0, w, h, 0, 0, w, h)
       body = bodyMask(
         ctx.getImageData(0, 0, w, h).data,
         w,
@@ -86,19 +86,19 @@ function sheetAlphaOf(rig: Rig) {
   if (sheetAlphas.has(rig)) return sheetAlphas.get(rig) ?? null
   let data: ImageData | null = null
   try {
-    const { frames, frame, sheet, flow } = rig.json
-    const cols = sheet.cols
+    const { frames, frame, flow } = rig.json
     const { width, height } = rig.flow
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (ctx) {
-      for (let K = 0; K < frames; K++)
+      for (let K = 0; K < frames; K++) {
+        const { page, col, row } = cellAt(rig.json, K)
         ctx.drawImage(
-          rig.sheet,
-          (K % cols) * frame.w,
-          Math.floor(K / cols) * frame.h,
+          rig.sheets[page],
+          col * frame.w,
+          row * frame.h,
           frame.w,
           frame.h,
           (K % flow.cols) * flow.tile,
@@ -106,6 +106,7 @@ function sheetAlphaOf(rig: Rig) {
           flow.tile,
           flow.tile
         )
+      }
       data = ctx.getImageData(0, 0, width, height)
     }
   } catch {

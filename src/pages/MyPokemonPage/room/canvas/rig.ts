@@ -3,16 +3,20 @@
  * sprite sheet and its flow, decoded once per session. While the server
  * builds it rig.json answers 202, and we ask again.
  */
+/** keep equal to RIG_VERSION in tools/image-build/rig/build.ts */
+export const RIG_VERSION = 10
+
 export type Lab = [number, number, number]
 
 export type RigJson = {
   v: number
   frame: { w: number; h: number }
-  sheet: { cols: number; size: number }
+  sheet: { cols: number; rows: number; size: number; pages: number; per: number }
   frames: number
   delays: number[]
   src: { n: number; k: number }
   flow: { cols: number; tile: number; bits: number }
+  eye: { cols: number; w: number; h: number }
   clusters: { lab: Lab; share: number }[]
   lock: { ink: number; light: number }
   primary: { size: number; bits: string }
@@ -20,7 +24,23 @@ export type RigJson = {
   noMarks?: true
 }
 
-export type Rig = { json: RigJson; sheet: ImageBitmap; flow: ImageBitmap; eye: ImageBitmap }
+export type Rig = {
+  json: RigJson
+  sheets: ImageBitmap[]
+  flow: ImageBitmap
+  flowLow: ImageBitmap
+  eye: ImageBitmap
+}
+
+/** a rig built by an older tool (other files, other layout) is not ours to read */
+export const isCurrentRig = (json: { v?: number }) => json.v === RIG_VERSION
+
+/** where frame K sits: its sheet page and its cell in that page */
+export const cellAt = (json: Pick<RigJson, 'sheet'>, K: number) => {
+  const { per, cols } = json.sheet
+  const k = K % per
+  return { page: Math.floor(K / per), col: k % cols, row: Math.floor(k / cols) }
+}
 
 const POLL_MS = 1500
 const POLLS = 80
@@ -52,12 +72,18 @@ async function fetchRig(speciesId: number): Promise<Rig | null> {
       }
       if (!res.ok) return null
       const json = (await res.json()) as RigJson
-      const [sheet, flow, eye] = await Promise.all([
-        bitmap(`${base}/sheet.webp`),
+      if (!isCurrentRig(json)) return null
+      const [sheets, flow, flowLow, eye] = await Promise.all([
+        Promise.all(
+          Array.from({ length: json.sheet.pages }, (_, i) =>
+            bitmap(`${base}/sheet-${i}.webp`)
+          )
+        ),
         bitmap(`${base}/flow.webp`),
+        bitmap(`${base}/flow-lo.webp`),
         bitmap(`${base}/eye.png`),
       ])
-      const rig = { json, sheet, flow, eye }
+      const rig = { json, sheets, flow, flowLow, eye }
       loaded.set(speciesId, rig)
       return rig
     }
