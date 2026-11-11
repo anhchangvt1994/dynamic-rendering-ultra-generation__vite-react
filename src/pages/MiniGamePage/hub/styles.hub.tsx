@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { BREAKPOINTS, REGIONS } from './regions.mjs'
+import { cardsCss } from './styles.cards'
 
 const { md, lg } = BREAKPOINTS
 const { title, trainer, booth, quests } = REGIONS
@@ -148,6 +149,8 @@ export const HubShellStyle = styled.div`
     height: 100%;
     border-radius: inherit;
   }
+
+  ${cardsCss}
 
   /* bulbs */
   .hub-bulbs {
