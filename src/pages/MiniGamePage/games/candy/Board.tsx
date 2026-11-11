@@ -231,6 +231,7 @@ export default function Board({ view, roundId, disabled, onMove, onError }: Prop
           </li>
         ))}
       </ul>
+      {made === 0 && !busy && <p className="mg-candy-hint">Chạm hai ô kề nhau hoặc vuốt để đổi chỗ.</p>}
     </div>
   )
 }

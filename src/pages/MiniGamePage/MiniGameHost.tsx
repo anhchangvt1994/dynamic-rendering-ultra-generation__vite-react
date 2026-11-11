@@ -341,6 +341,11 @@ export default function MiniGameHost({
 
   if (!def) return null
   const picks = items ?? []
+  const outOfMoves =
+    game === 'candy' &&
+    !!outcome &&
+    outcome.status !== 'won' &&
+    (outcome.moves ?? 0) >= MINIGAME.CANDY.MOVES[(round?.difficulty ?? difficulty) - 1]
   const trainer = mg.status?.trainer
   const bond = individual ? bondOf(careOf(individual).affection) : 1
 
@@ -568,7 +573,7 @@ export default function MiniGameHost({
 
       {phase === 'result' && outcome && (
         <div className="mg-result" role="status">
-          <h3>{outcome.status === 'won' ? 'Chiến thắng!' : 'Hết giờ rồi'}</h3>
+          <h3>{outcome.status === 'won' ? 'Chiến thắng!' : outOfMoves ? 'Hết nước đi rồi' : 'Hết giờ rồi'}</h3>
           {'practice' in outcome ? (
             <>
               <p className="mg-sub">
@@ -583,6 +588,11 @@ export default function MiniGameHost({
                 +{outcome.exp} exp cho {individual?.nickname ?? (individual ? nameOf(individual.speciesId) : 'Pokémon')}
                 {' · '}+{outcome.xp} điểm huấn luyện viên
               </p>
+              {game === 'candy' && outcome.score != null && (
+                <p className="mg-sub">
+                  {outcome.score}/{MINIGAME.CANDY.TARGET[outcome.difficulty - 1]} điểm · {outcome.moves} nước
+                </p>
+              )}
               <div className="mg-level" style={{ width: '100%' }}>
                 <b>Cấp huấn luyện viên {outcome.level}</b>
                 <span className="mg-bar" aria-hidden="true">

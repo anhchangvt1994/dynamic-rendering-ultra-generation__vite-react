@@ -29,6 +29,12 @@ export const candyCss = css`
     background: var(--accent);
     transition: width 300ms ease;
   }
+  .mg-candy-hint {
+    margin: 8px 4px 0;
+    font-size: 13px;
+    opacity: 0.8;
+    text-align: center;
+  }
   .mg-candy-grid {
     display: grid;
     gap: 4px;
