@@ -5,7 +5,7 @@
 import { levelOf } from '../MyPokemonPage/care/care.mjs'
 
 export const MINIGAME = {
-  TURNS: 3,
+  TURNS: 5,
   REFILL_HOURS: 2,
   DURATION_S: 300,
   TOLERANCE_S: 5,

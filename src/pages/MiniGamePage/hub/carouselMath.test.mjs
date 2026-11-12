@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { activeIndex } from './carouselMath.mjs'
+import { activeIndex, offsets } from './carouselMath.mjs'
 
 test('start is item 0', () => assert.equal(activeIndex(0, 250, 2), 0))
 test('half an item rounds to the nearest', () => {
@@ -16,3 +16,6 @@ test('a zero, negative or NaN item width is item 0', () => {
   assert.equal(activeIndex(NaN, 250, 2), 0)
 })
 test('no items is index 0', () => assert.equal(activeIndex(100, 250, 0), 0))
+test('offsets track signed positions from the first cabinet', () => {
+  assert.deepEqual(offsets(0, 1, 2), [0, 1])
+})

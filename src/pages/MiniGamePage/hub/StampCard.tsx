@@ -56,7 +56,15 @@ export default function StampCard({ mg, guest }: { mg: Mg; guest: boolean }) {
         </header>
         {guest ? (
           <div className="sc-lock">
-            <span>Đăng nhập để nhận 3 nhiệm vụ và tem mỗi ngày.</span>
+            <span className="sc-sr">Đăng nhập để nhận 3 nhiệm vụ và tem mỗi ngày.</span>
+            <ul className="sc-locked" aria-hidden="true">
+              {['🎯', '🍳', '🐾'].map((icon, i) => (
+                <li key={icon} className="sc-ticket" style={{ ['--i' as string]: i }}>
+                  <span className="sc-ico">{icon}</span>
+                  <i className="sc-pad">🔒</i>
+                </li>
+              ))}
+            </ul>
             <a className="sc-go" href="/dang-nhap">
               Đăng nhập
             </a>

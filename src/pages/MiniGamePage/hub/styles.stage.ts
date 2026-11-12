@@ -200,6 +200,27 @@ export const stageCss = css`
     scale: 0.97;
   }
 
+  /* phones: the swipe drives the stage. Cabinets swing on a hinge, shrink and dim as they leave
+     the centre; the portal ring turns with the scroll (--p) instead of on a timer. */
+  @media (max-width: 639px) {
+    .hub-booths > [data-region='booth'] {
+      transform-origin: 50% 62%;
+      transform: perspective(760px) rotateY(calc(var(--o, 0) * -26deg));
+      scale: calc(1 - var(--a, 0) * 0.1);
+      translate: 0 calc(var(--a, 0) * 18px);
+      opacity: calc(1 - var(--a, 0) * 0.35);
+      will-change: transform, opacity;
+    }
+    .hub-carousel::before {
+      display: block;
+      width: min(640px, 190vw);
+      top: 44%;
+      opacity: 0.55;
+      animation: none;
+      rotate: calc(var(--p, 0) * 150deg);
+    }
+  }
+
   @media (min-width: 640px) {
     .hub-carousel::before,
     .hub-carousel::after {
@@ -293,6 +314,18 @@ export const stageCss = css`
     }
     .hub-booths > [data-region='booth'] {
       transition: none;
+    }
+    @media (max-width: 639px) {
+      .hub-booths > [data-region='booth'] {
+        transform: none;
+        scale: 1;
+        translate: none;
+        opacity: 1;
+        will-change: auto;
+      }
+      .hub-carousel::before {
+        rotate: none;
+      }
     }
     .hub-booths > [data-region='booth']:hover,
     .hub-booths > [data-region='booth']:focus-within {

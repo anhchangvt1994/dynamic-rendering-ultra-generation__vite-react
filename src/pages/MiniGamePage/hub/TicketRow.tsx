@@ -12,7 +12,7 @@ export default function TicketRow({ left, total, label }: { left: number | null;
   }, [left])
   return (
     <div className="hub-tickets" role="status">
-      <span className="hub-stubs" aria-hidden="true">
+      <span className="hub-stubs" data-many={total > 6 ? '' : undefined} aria-hidden="true">
         {states.map((s, i) => (
           <i key={i} className="hub-stub" data-state={s} data-tear={i === tear && s === 'torn' ? '' : undefined} />
         ))}

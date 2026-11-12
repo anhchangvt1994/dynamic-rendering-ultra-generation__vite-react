@@ -1,9 +1,10 @@
 import { Children, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { activeIndex } from './carouselMath.mjs'
+import { activeIndex, offsets } from './carouselMath.mjs'
 
 /**
  * The cabinets: a plain grid from md up, a scroll-snap row below it (next one peeks) with dots.
- * No layout measurement; the dots only read the scroll position.
+ * No layout measurement: the scroll position is written to CSS variables (--p on the carousel,
+ * --o / --a on each cabinet) so the stage can lean, fade and spin with the finger. No re-render per frame.
  */
 export default function Carousel({ children, skeleton }: { children: ReactNode; skeleton?: boolean }) {
   const count = Children.count(children)
@@ -16,13 +17,29 @@ export default function Carousel({ children, skeleton }: { children: ReactNode; 
     if (!el || el.children.length < 2) return
     const a = el.children[0] as HTMLElement
     const b = el.children[1] as HTMLElement
-    setAt(activeIndex(el.scrollLeft, b.offsetLeft - a.offsetLeft, count))
+    const pitch = b.offsetLeft - a.offsetLeft
+    // the last cabinet can't reach its snap point: spread the reachable scroll over 0..count-1
+    const reach = el.scrollWidth - el.clientWidth // scroll-padding makes 0 the rest of cabinet 0
+    const t = reach > 0 ? Math.min(1, Math.max(0, el.scrollLeft / reach)) : 0
+    const virtual = t * (count - 1) * pitch
+    setAt(activeIndex(virtual, pitch, count))
+    const o = offsets(virtual, pitch, count)
+    el.parentElement?.style.setProperty('--p', String(Math.round(-o[0] * 1000) / 1000 || 0))
+    o.forEach((v, i) => {
+      const item = el.children[i] as HTMLElement | undefined
+      if (!item) return
+      item.style.setProperty('--o', String(v))
+      item.style.setProperty('--a', String(Math.min(1, Math.abs(v))))
+    })
   }, [count])
   const onScroll = () => {
     cancelAnimationFrame(raf.current)
     raf.current = requestAnimationFrame(read)
   }
-  useEffect(() => () => cancelAnimationFrame(raf.current), [])
+  useEffect(() => {
+    if (!skeleton) read()
+    return () => cancelAnimationFrame(raf.current)
+  }, [read, skeleton])
 
   const go = (i: number) => {
     const el = row.current

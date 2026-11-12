@@ -33,6 +33,20 @@ export const cardsCss = css`
     inset: 3px auto 3px 9px;
     border-left: 2px dashed rgba(43, 26, 61, 0.35);
   }
+  /* many turns: small stubs in two rows of ten */
+  .hub-stubs[data-many] {
+    display: grid;
+    grid-template-columns: repeat(10, 9px);
+    gap: 3px 2px;
+  }
+  .hub-stubs[data-many] .hub-stub {
+    width: 9px;
+    height: 11px;
+    border-radius: 2px;
+  }
+  .hub-stubs[data-many] .hub-stub::before {
+    display: none;
+  }
   .hub-stub[data-state='wait'] {
     opacity: 0.5;
   }
@@ -68,7 +82,7 @@ export const cardsCss = css`
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 28px 64px 36px;
+    grid-template-rows: auto minmax(64px, auto) 36px;
     align-content: space-between;
     gap: 8px;
     height: 100%;
@@ -90,18 +104,17 @@ export const cardsCss = css`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    height: 28px;
+    min-height: 28px;
   }
   .sc h2,
   .sc-err {
     margin: 0;
     min-width: 0;
     font-size: 17px;
-    line-height: 28px;
+    line-height: 22px;
     font-weight: 800;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .sc-err {
     font-size: 13.5px;
@@ -148,7 +161,7 @@ export const cardsCss = css`
     flex: 0 0 180px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: 22px 22px;
+    grid-template-rows: auto auto;
     align-content: center;
     gap: 4px 8px;
     padding: 6px 8px 6px 12px;
@@ -159,18 +172,20 @@ export const cardsCss = css`
   }
   .sc-row b {
     grid-column: 1;
+    min-width: 0;
     font-size: 14px;
-    line-height: 22px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 18px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .sc-row small {
     grid-column: 1;
+    min-width: 0;
     font-size: 12.5px;
-    line-height: 22px;
+    line-height: 18px;
     opacity: 0.85;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .sc-row[data-empty] {
     background: transparent;
@@ -256,13 +271,82 @@ export const cardsCss = css`
     border-radius: 14px;
     box-shadow: inset 0 0 0 2px rgba(43, 26, 61, 0.14);
   }
-  .sc-lock span {
-    font-size: 13.5px;
-    line-height: 18px;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+  .sc-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* three locked quest tickets say "3 nhiệm vụ" without a sentence */
+  .sc-locked {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sc-ticket {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 88px;
+    height: 44px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 0 50%, var(--paper) 4px, transparent 5px),
+      radial-gradient(circle at 100% 50%, var(--paper) 4px, transparent 5px),
+      rgba(43, 26, 61, 0.08);
+    box-shadow: inset 0 0 0 2px rgba(43, 26, 61, 0.16);
+  }
+  .sc-ico {
+    font-size: 20px;
+    line-height: 1;
+    filter: grayscale(1);
+    opacity: 0.55;
+  }
+  .sc-pad {
+    position: absolute;
+    right: -3px;
+    top: -6px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-style: normal;
+    background: var(--gold);
+    box-shadow: 0 0 0 2px var(--paper);
+    transform-origin: 50% 20%;
+    animation: sc-jiggle 4.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 280ms);
+  }
+  @keyframes sc-jiggle {
+    0%,
+    86%,
+    100% {
+      rotate: 0deg;
+    }
+    90% {
+      rotate: -16deg;
+    }
+    94% {
+      rotate: 14deg;
+    }
+    97% {
+      rotate: -8deg;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sc-pad {
+      animation: none;
+    }
   }
   .sc-lock .sc-go {
     grid-row: auto;
@@ -297,6 +381,41 @@ export const cardsCss = css`
     width: 36px;
     height: 36px;
     font-size: 17px;
+  }
+  @media (max-width: 639px) {
+    .sc {
+      grid-template-rows: auto minmax(64px, auto) 36px;
+      align-content: start;
+      gap: 8px;
+      height: auto;
+      min-height: 168px;
+    }
+    .sc-head {
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .sc h2,
+    .sc-err {
+      flex: 1 1 100%;
+    }
+    .sc-lv {
+      min-height: 28px;
+      margin: -4px 0 0;
+      padding-inline: 0;
+    }
+    .sc-row {
+      flex-basis: 100%;
+      grid-template-rows: auto auto;
+      align-content: center;
+      row-gap: 3px;
+      padding: 8px 10px;
+    }
+    .sc-meter {
+      min-width: 0;
+    }
+    .sc-meter small {
+      flex: none;
+    }
   }
   @media (min-width: 640px) {
     .sc {
