@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { randomId } from 'utils/secure.mjs'
 import { useReducedMotion } from '../room/useMedia'
 import EvoArt from './EvoArt'
@@ -27,9 +27,21 @@ export default function EvolveSatellite({ individualId, api }: Props) {
     to: number
     more?: number
     have?: number | null
+    forms?: number[]
     need?: number | null
   } | null
   const ready = view?.state === 'ready'
+  const forms = ready && view?.forms?.length ? view.forms : null
+  const formsKey = forms?.join(',') ?? ''
+  // several forms on offer: the bubble shows them in turn
+  const [turn, setTurn] = useState(0)
+  useEffect(() => {
+    setTurn(0)
+    if (!formsKey.includes(',') || reduced) return
+    const id = setInterval(() => setTurn((t) => t + 1), 2000)
+    return () => clearInterval(id)
+  }, [formsKey, reduced])
+  const shownForm = forms ? forms[turn % forms.length] : view?.to ?? 0
   const calm = ready && isSnoozed(snoozeKey(individualId, api.options))
   useEffect(() => {
     if (!ready) return
@@ -52,7 +64,9 @@ export default function EvolveSatellite({ individualId, api }: Props) {
     ? view.need
       ? `Tiến hoá thành ${nameOf(view.to)}: Lv ${view.have}/${view.need}`
       : `Xem điều kiện tiến hoá thành ${nameOf(view.to)}`
-    : `Có thể tiến hoá thành ${nameOf(view.to)}`
+    : forms && forms.length > 1
+      ? `Có thể tiến hoá thành ${forms.map(nameOf).join(' hoặc ')}`
+      : `Có thể tiến hoá thành ${nameOf(view.to)}`
   return (
     <>
       {ready && (
@@ -79,7 +93,7 @@ export default function EvolveSatellite({ individualId, api }: Props) {
         }
       >
         <span className="es-aura" aria-hidden="true" />
-        <EvoArt id={view.to} className="es-art" />
+        <EvoArt key={shownForm} id={shownForm} className="es-art" />
         {soon && view.need ? (
           <small>
             {view.have}/{view.need}

@@ -147,12 +147,26 @@ test('satelliteView: ready by level, ready by stone, closest unmet branch, nothi
     { to: 5, alts: [A('level', true)] },
     { to: 6, alts: [A('level', true)] },
   ] }
-  assert.deepEqual(satelliteView(ready, []), { state: 'ready', to: 5, more: 1, stone: null })
+  assert.deepEqual(satelliteView(ready, []), { state: 'ready', to: 5, more: 1, stone: null, forms: [5, 6] })
   const stoneOnly = { branches: [{ to: 134, alts: [A('item', true, { item: 'water-stone', owned: 1 })] }] }
   assert.deepEqual(
     satelliteView(stoneOnly, [{ to: 134, item: 'water-stone', owned: 1 }]),
-    { state: 'ready', to: 134, more: 0, stone: 'water-stone' }
+    { state: 'ready', to: 134, more: 0, stone: 'water-stone', forms: [134] }
   )
+  // every form on offer, level branches first then stones, none twice
+  const armor = { branches: [
+    { to: 936, alts: [A('item', true, { item: 'auspicious-armor', owned: 1 })] },
+    { to: 937, alts: [A('item', true, { item: 'malicious-armor', owned: 1 })] },
+  ] }
+  const both = satelliteView(armor, [
+    { to: 936, item: 'auspicious-armor', owned: 1 },
+    { to: 937, item: 'malicious-armor', owned: 1 },
+  ])
+  assert.deepEqual(both.forms, [936, 937])
+  assert.equal(both.more, 1)
+  const mixed = satelliteView(ready, [{ to: 6, item: 'x', owned: 1 }, { to: 7, item: 'y', owned: 1 }])
+  assert.deepEqual(mixed.forms, [5, 6, 7])
+  assert.equal(mixed.more, 2)
   assert.equal(satelliteView(stoneOnly, [{ to: 134, item: 'water-stone', owned: 0 }]), null)
   const soon = { branches: [
     { to: 7, alts: [{ kind: 'level', ok: false, reasons: [L(3, 16)] }] },

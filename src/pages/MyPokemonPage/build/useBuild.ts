@@ -7,6 +7,10 @@ import { createEpoch } from 'pages/BagPage/shards.mjs'
 import type { Build } from 'pages/BagPage/individuals/client'
 import { refreshBag } from 'pages/BagPage/bagStore'
 import {
+  bumpEvolution,
+  useEvolutionRev,
+} from '../evolution/evolutionStore'
+import {
   awaken as sendAwaken,
   BUILD_ERRORS,
   fetchBuild,
@@ -24,6 +28,7 @@ export type BuildStatus = 'loading' | 'ready' | 'error' | 'unavailable'
 export function useBuild(individualId: string | null, version = 0) {
   const account = useAccount()
   const mode = modeFor(account.status)
+  const rev = useEvolutionRev()
   const key = `${mode}:${account.user?.id ?? ''}:${individualId ?? ''}`
   const [loaded, setLoaded] = useState<{
     key: string
@@ -76,7 +81,7 @@ export function useBuild(individualId: string | null, version = 0) {
   // keeping the old build on screen meanwhile
   useEffect(() => {
     load()
-  }, [load, version])
+  }, [load, version, rev])
 
   const run = useCallback(
     async (
@@ -123,7 +128,11 @@ export function useBuild(individualId: string | null, version = 0) {
       const build = await run(`item:${item}:${stat ?? ''}`, (d, id) =>
         sendItem(d, id, individualId, item, stat ?? null)
       )
-      if (build) refreshBag()
+      if (build) {
+        refreshBag()
+        // the level moved: evolution conditions are read again
+        bumpEvolution()
+      }
       return build
     },
     [run, individualId]

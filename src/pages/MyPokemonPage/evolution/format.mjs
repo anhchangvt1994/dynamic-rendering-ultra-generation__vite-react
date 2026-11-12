@@ -132,12 +132,22 @@ export function stoneGroups(items = []) {
 export function satelliteView(options, items = []) {
   const branches = options?.branches ?? []
   if (!branches.length) return null
-  const ready = readyBranches(options)
-  if (ready.length)
-    return { state: 'ready', to: ready[0].to, more: ready.length - 1, stone: null }
+  // every form on offer: level/friendship branches first, then stones' targets
   const stones = stoneGroups(items)
-  if (stones.length)
-    return { state: 'ready', to: stones[0].targets[0], more: stones.length - 1 + stones[0].targets.length - 1, stone: stones[0].item }
+  const forms = [
+    ...new Set([
+      ...readyBranches(options).map((b) => b.to),
+      ...stones.flatMap((g) => g.targets),
+    ]),
+  ]
+  if (forms.length)
+    return {
+      state: 'ready',
+      to: forms[0],
+      more: forms.length - 1,
+      stone: readyBranches(options).length ? null : stones[0].item,
+      forms,
+    }
   const open = promptBranches(options).filter((b) => !b.ready)
   if (!open.length) return null
   let best = null

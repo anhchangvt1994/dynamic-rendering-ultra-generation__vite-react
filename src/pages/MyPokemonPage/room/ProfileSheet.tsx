@@ -23,7 +23,7 @@ import { LIKES } from '../care/likes.mjs'
 import type { CareState } from '../care/useCare'
 import BuildPanel from '../build/BuildPanel'
 import { starsFor } from '../build/format.mjs'
-import { useBuild } from '../build/useBuild'
+import type { useBuild } from '../build/useBuild'
 import StatRadar from './StatRadar'
 
 const date = (iso: string) => {
@@ -115,6 +115,7 @@ type Props = {
   /** the care is still loading: the stats hold their place */
   pending?: boolean
   open: boolean
+  buildApi: ReturnType<typeof useBuild>
 }
 
 /**
@@ -126,13 +127,13 @@ export default function ProfileSheet({
   care,
   pending = false,
   open,
+  buildApi,
 }: Props) {
   const personality = personalityLine(item.personality)
   const likes = LIKES[item.personality]
   const marks = marksLabel(item.appearance)
   const size = sizeOf(item.id)
   const affection = care?.affection ?? 0
-  const buildApi = useBuild(item.id, affection)
   const stars = starsFor(buildApi.build, item.potential.stars)
   const level = levelOf(affection)
   const next = nextLevelAt(affection)

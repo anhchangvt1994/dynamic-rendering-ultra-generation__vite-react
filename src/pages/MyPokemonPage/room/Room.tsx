@@ -41,6 +41,7 @@ import { contrast, themeFor } from './roomTheme.mjs'
 import { spriteFor } from './sprite.mjs'
 import EvolveSatellite from '../evolution/EvolveSatellite'
 import { useEvolution } from '../evolution/useEvolution'
+import { useBuild } from '../build/useBuild'
 import { dockGesture, sheetDragClose } from './dockGesture.mjs'
 import { RoomStyle } from './styles'
 import { useReducedMotion } from './useMedia'
@@ -222,7 +223,9 @@ export default function Room({
   const feeling = state ? moodOf(state, individual.createdAt, now) : null
   const affection = state?.affection ?? 0
   const evolutionApi = useEvolution(individual.id, affection)
+  const buildApi = useBuild(individual.id, affection)
   const level = levelOf(affection)
+  const pokeLevel = buildApi.build?.level ?? level
   const unlocks = unlocksAt(level)
   const nextAt = nextLevelAt(affection)
   const fromAt = CARE.LEVELS[level - 1] ?? 0
@@ -390,7 +393,7 @@ export default function Room({
             <header className="rm-name">
               <h1 ref={title}>{name}</h1>
               <p>
-                <span className="rm-lv">Lv {level}</span>
+                <span className="rm-lv">Lv {pokeLevel}</span>
                 {individual.nickname && <span>{species}</span>}
                 <span
                   className="rm-stars"
@@ -520,7 +523,7 @@ export default function Room({
               style={{ '--lv': `${toNext}%` } as CSSProperties}
               aria-hidden="true"
             >
-              <b>{level}</b>
+              <b>{pokeLevel}</b>
               <small>
                 {nextAt === null
                   ? '♥ Tối đa'
@@ -607,6 +610,7 @@ export default function Room({
           care={state}
           pending={!state && !care.error}
           open={sheetOpen}
+          buildApi={buildApi}
         />
         <CareBar
           individualId={individual.id}

@@ -1,6 +1,6 @@
 import styled from 'styled-components'
-import { playCss } from './styles.play'
 import { candyCss } from './styles.candy'
+import { playCss } from './styles.play'
 
 // colours come from the chosen Pokémon: --hue, --accent, --deep, --glow
 export const SheetStyle = styled.div`
@@ -26,9 +26,21 @@ export const SheetStyle = styled.div`
     flex-direction: column;
     border-radius: 28px 28px 0 0;
     background:
-      radial-gradient(90% 40% at 50% 0, var(--glow, rgba(255, 207, 90, 0.4)), transparent 70%),
-      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 5px),
-      linear-gradient(180deg, color-mix(in srgb, var(--deep, #0a403d) 70%, #0f5d57), var(--deep, #0a403d));
+      radial-gradient(
+        90% 40% at 50% 0,
+        var(--glow, rgba(255, 207, 90, 0.4)),
+        transparent 70%
+      ),
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.035) 0 2px,
+        transparent 2px 5px
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--deep, #0a403d) 70%, #0f5d57),
+        var(--deep, #0a403d)
+      );
     box-shadow:
       0 -12px 48px rgba(0, 0, 0, 0.5),
       0 0 36px var(--glow, rgba(255, 207, 90, 0.25)),
@@ -53,7 +65,8 @@ export const SheetStyle = styled.div`
     flex: none;
     height: 14px;
     margin: 6px 18px 0;
-    background: radial-gradient(circle, #ffe9a8 0 3px, transparent 4px) 0 50% / 22px 14px repeat-x;
+    background: radial-gradient(circle, #ffe9a8 0 3px, transparent 4px) 0 50% /
+      22px 14px repeat-x;
     opacity: 0.85;
     filter: drop-shadow(0 0 4px rgba(255, 207, 90, 0.8));
   }
@@ -99,6 +112,7 @@ export const SheetStyle = styled.div`
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 4px 16px calc(20px + env(safe-area-inset-bottom));
+    scrollbar-width: none;
   }
   .mg-sub {
     margin: 0 0 14px;
@@ -125,10 +139,16 @@ export const SheetStyle = styled.div`
     text-align: left;
     color: inherit;
     font: inherit;
-    background: linear-gradient(160deg, rgba(255, 244, 214, 0.14), rgba(255, 244, 214, 0.05));
+    background: linear-gradient(
+      160deg,
+      rgba(255, 244, 214, 0.14),
+      rgba(255, 244, 214, 0.05)
+    );
     box-shadow: inset 0 0 0 1.5px rgba(255, 244, 214, 0.28);
     cursor: pointer;
-    transition: transform 140ms ease, box-shadow 140ms ease;
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease;
   }
   .mg-pick:hover:not(:disabled),
   .mg-pick:focus-visible {
@@ -140,7 +160,11 @@ export const SheetStyle = styled.div`
     opacity: 0.62;
     cursor: not-allowed;
     background:
-      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0 6px, transparent 6px 12px),
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.07) 0 6px,
+        transparent 6px 12px
+      ),
       rgba(0, 0, 0, 0.25);
   }
   .mg-pick:disabled .ind-art {
@@ -208,14 +232,22 @@ export const SheetStyle = styled.div`
     color: #2b1a3d;
     background: #fff4d6;
     box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
-    -webkit-mask: radial-gradient(circle 8px at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat,
-      radial-gradient(circle 8px at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
-    mask: radial-gradient(circle 8px at 0 50%, transparent 97%, #000) left / 51% 100% no-repeat,
-      radial-gradient(circle 8px at 100% 50%, transparent 97%, #000) right / 51% 100% no-repeat;
+    -webkit-mask:
+      radial-gradient(circle 8px at 0 50%, transparent 97%, #000) left / 51%
+        100% no-repeat,
+      radial-gradient(circle 8px at 100% 50%, transparent 97%, #000) right / 51%
+        100% no-repeat;
+    mask:
+      radial-gradient(circle 8px at 0 50%, transparent 97%, #000) left / 51%
+        100% no-repeat,
+      radial-gradient(circle 8px at 100% 50%, transparent 97%, #000) right / 51%
+        100% no-repeat;
   }
   .mg-tiers .mg-pick:hover:not(:disabled),
   .mg-tiers .mg-pick:focus-visible {
-    box-shadow: 0 3px 0 var(--accent), inset 0 0 0 2px var(--accent);
+    box-shadow:
+      0 3px 0 var(--accent),
+      inset 0 0 0 2px var(--accent);
   }
   .mg-pick .ind-art {
     justify-self: center;
@@ -453,7 +485,11 @@ export const SheetStyle = styled.div`
   .mg-back {
     background:
       radial-gradient(circle at 50% 50%, var(--accent) 0 14%, transparent 15%),
-      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0 6px, transparent 6px 12px),
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.1) 0 6px,
+        transparent 6px 12px
+      ),
       hsl(var(--hue, 38) 45% 24%);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
   }
