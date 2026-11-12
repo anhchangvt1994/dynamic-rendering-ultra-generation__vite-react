@@ -2,6 +2,7 @@ import styled from 'styled-components'
 import { BREAKPOINTS, REGIONS } from './regions.mjs'
 import { cabinetCss } from './styles.cabinet'
 import { cardsCss } from './styles.cards'
+import { stageCss } from './styles.stage'
 
 const { md, lg } = BREAKPOINTS
 const { title, booth, quests } = REGIONS
@@ -29,6 +30,7 @@ export const HubShellStyle = styled.div`
   ${heights('base')}
   --gap: 16px;
   --pad: 16px;
+  --booth-width: min(100%, 540px);
   --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
 
   position: relative;
@@ -39,24 +41,37 @@ export const HubShellStyle = styled.div`
   color: #fff;
   font-variant-numeric: tabular-nums;
   background:
+    radial-gradient(ellipse 38% 30% at 12% 58%, rgba(25, 192, 164, 0.22), transparent 75%),
+    radial-gradient(ellipse 34% 32% at 88% 50%, rgba(79, 116, 255, 0.24), transparent 75%),
+    radial-gradient(ellipse 54% 22% at 50% 88%, rgba(14, 113, 100, 0.2), transparent 80%),
     radial-gradient(1.5px 1.5px at 12% 22%, #fff9 50%, transparent 51%),
     radial-gradient(1px 1px at 38% 12%, #fff8 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 63% 28%, #fff9 50%, transparent 51%),
     radial-gradient(1px 1px at 84% 14%, #fff8 50%, transparent 51%),
     radial-gradient(1px 1px at 92% 38%, #fff7 50%, transparent 51%),
     radial-gradient(1px 1px at 24% 46%, #fff6 50%, transparent 51%),
-    linear-gradient(180deg, var(--night), var(--indigo) 58%, #2a2570);
+    linear-gradient(180deg, var(--night), #171b50 54%, #202665);
 
   .hub-felt {
     position: absolute;
     inset: var(--felt-top) 0 0;
     z-index: -1;
     background:
+      radial-gradient(ellipse 44% 90% at 25% 0, rgba(95, 227, 180, 0.2), transparent 85%),
+      radial-gradient(ellipse 42% 85% at 76% 0, rgba(73, 183, 226, 0.18), transparent 82%),
       repeating-linear-gradient(45deg, #ffffff08 0 2px, transparent 2px 4px),
       repeating-linear-gradient(-45deg, #00000012 0 2px, transparent 2px 4px),
-      radial-gradient(90% 70% at 50% 0, var(--felt), var(--felt-dark));
-    border-top: 3px solid #ffffff22;
+      radial-gradient(90% 70% at 50% 0, #11736a, var(--felt-dark));
+    border-top: 3px solid #ffffff30;
     box-shadow: 0 -18px 40px #0a123099;
+  }
+  .hub-felt::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 160px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(95, 227, 180, 0.09), transparent);
   }
   .hub-felt::before {
     content: '';
@@ -77,7 +92,6 @@ export const HubShellStyle = styled.div`
   [data-region] {
     position: relative;
     min-width: 0;
-    overflow: hidden;
   }
   [data-region='title'] {
     grid-area: title;
@@ -96,8 +110,8 @@ export const HubShellStyle = styled.div`
   .hub-booths {
     display: flex;
     gap: var(--gap);
-    margin-block: -14px;
-    padding-block: 14px;
+    margin: -48px -14px -50px;
+    padding: 48px 14px 64px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
@@ -149,6 +163,10 @@ export const HubShellStyle = styled.div`
   [data-region='booth'] {
     height: var(--h-booth);
     border-radius: 28px;
+  }
+  .cab {
+    width: var(--booth-width);
+    margin-inline: auto;
   }
 
   [data-region='title'] h1 {
@@ -230,6 +248,7 @@ export const HubShellStyle = styled.div`
 
   ${cardsCss}
   ${cabinetCss}
+  ${stageCss}
 
   /* bulbs */
   .hub-bulbs {
@@ -314,12 +333,13 @@ export const HubShellStyle = styled.div`
     ${heights('md')}
     --gap: 20px;
     --pad: 28px;
+    --booth-width: min(100%, 500px);
     --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
     .hub-booths {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-block: 0;
-      padding-block: 0;
+      margin: -14px;
+      padding: 14px;
       overflow: visible;
     }
     .hub-booths > [data-region='booth'] {
@@ -331,8 +351,9 @@ export const HubShellStyle = styled.div`
   }
   @media (min-width: ${lg}px) {
     ${heights('lg')}
-    --gap: 24px;
+    --gap: 32px;
     --pad: 40px;
+    --booth-width: min(100%, 520px);
     --felt-top: calc(var(--pad) + 56px + var(--h-title) + var(--gap) + var(--h-booth) - 96px);
   }
 

@@ -146,6 +146,59 @@ export const SheetStyle = styled.div`
   .mg-pick:disabled .ind-art {
     filter: grayscale(1) brightness(0.8);
   }
+  .mg-pick-skeletons {
+    min-height: 258px;
+  }
+  .mg-pick-skeleton {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 94px;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background:
+      linear-gradient(160deg, rgba(255, 244, 214, 0.1), rgba(255, 244, 214, 0.035));
+    box-shadow: inset 0 0 0 1.5px rgba(255, 244, 214, 0.16);
+  }
+  .mg-skeleton-art,
+  .mg-skeleton-copy i {
+    display: block;
+    border-radius: 12px;
+    background:
+      linear-gradient(100deg, #ffffff0d 20%, #ffffff24 40%, #ffffff0d 60%);
+    background-size: 200% 100%;
+    animation: mg-skeleton-shimmer 1.3s ease-in-out infinite;
+  }
+  .mg-skeleton-art {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+  }
+  .mg-skeleton-copy {
+    display: grid;
+    gap: 8px;
+  }
+  .mg-skeleton-copy i {
+    height: 10px;
+  }
+  .mg-skeleton-copy i:first-child {
+    width: 58%;
+    height: 14px;
+  }
+  .mg-skeleton-copy i:last-child {
+    width: 76%;
+    height: 6px;
+  }
+  @keyframes mg-skeleton-shimmer {
+    to { background-position-x: -200%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mg-skeleton-art,
+    .mg-skeleton-copy i {
+      animation: none;
+    }
+  }
   .mg-tiers .mg-pick {
     position: relative;
     grid-template-columns: 1fr;

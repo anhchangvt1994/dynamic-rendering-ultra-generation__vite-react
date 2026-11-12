@@ -699,3 +699,17 @@ test('adoptPokemonArt waits for a finished upload when quietMs is set', (t) => {
   assert.ok(fs.existsSync(path.join(inbox, '1')))
   assert.ok(fs.existsSync(path.join(inbox, '2')))
 })
+
+test('adoptPokemonArt keeps a fresh empty species folder an upload is filling', (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'art-'))
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }))
+  const root = path.join(base, 'app')
+  const inbox = path.join(base, 'pokemon-art')
+  fs.mkdirSync(path.join(inbox, '1'), { recursive: true }) // rsync just made it
+  fs.mkdirSync(path.join(inbox, '2'), { recursive: true }) // abandoned long ago
+  const old = new Date(Date.now() - 60000)
+  fs.utimesSync(path.join(inbox, '2'), old, old)
+  adoptPokemonArt(root, () => {}, {}, undefined, { quietMs: 20000 })
+  assert.ok(fs.existsSync(path.join(inbox, '1')), 'fresh folder must stay')
+  assert.ok(!fs.existsSync(path.join(inbox, '2')), 'stale empty folder goes')
+})

@@ -310,15 +310,22 @@ export function adoptPokemonArt(
   fs.mkdirSync(target, { recursive: true })
   let moved = 0
   const species = new Set()
+  // An emptied folder is removed, but not while quietMs says an upload may
+  // still be filling it: rsync makes a folder first and writes its files after,
+  // and a folder removed in between fails the upload (mkstemp ENOENT).
+  const dropEmpty = (dir) => {
+    try {
+      if (quietMs && Date.now() - fs.statSync(dir).mtimeMs < quietMs) return
+      fs.rmdirSync(dir) // only succeeds once emptied
+    } catch {}
+  }
   const sync = (from, to, name) => {
     for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
       const src = path.join(from, entry.name)
       const dest = path.join(to, entry.name)
       if (entry.isDirectory()) {
         sync(src, dest, name || entry.name)
-        try {
-          fs.rmdirSync(src) // only succeeds once emptied
-        } catch {}
+        dropEmpty(src)
         continue
       }
       if (!entry.isFile() || entry.name === '.DS_Store') continue
@@ -351,9 +358,7 @@ export function adoptPokemonArt(
     if (!entry.isDirectory()) continue
     const from = path.join(inbox, entry.name)
     sync(from, path.join(target, entry.name), entry.name)
-    try {
-      fs.rmdirSync(from)
-    } catch {}
+    dropEmpty(from)
   }
   if (moved)
     log(

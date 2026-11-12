@@ -141,7 +141,8 @@ export default function AccountPage() {
     event.preventDefault()
     const address = email.trim()
     // yarn dev only: the test account (supabase/dev-seed) needs no code
-    const devAccount = DEV_ACCOUNT && devTestAccount(address, true)
+    const devAccount =
+      mode === 'password' && DEV_ACCOUNT && devTestAccount(address, true)
     if (devAccount)
       return run(async (supabase) => {
         check(await supabase.auth.signInWithPassword(devAccount))

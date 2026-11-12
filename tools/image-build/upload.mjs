@@ -42,6 +42,17 @@ fs.writeFileSync(
   JSON.stringify({ local, target, remote, port, dry: 'n' }, null, 2)
 )
 
+const ssh = (remoteCommand) =>
+  spawnSync('ssh', ['-p', port, target, remoteCommand], {
+    stdio: 'inherit',
+  })
+
+const quoteShell = (value) => `'${value.replaceAll("'", "'\\''")}'`
+if (!dry) {
+  const mkdir = ssh(`mkdir -p -- ${quoteShell(remote)}`)
+  if (mkdir.status !== 0) process.exit(mkdir.status ?? 1)
+}
+
 const args = [
   '-a',
   '--stats',

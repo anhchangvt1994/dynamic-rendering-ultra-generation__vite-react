@@ -83,7 +83,12 @@ export default function MiniGameHost({
   const mg = useMiniGame()
   const nameOf = useSpeciesNames()
   const listed = mg.mode === 'server' || mg.mode === 'local'
-  const { items } = useIndividualList(listed, null)
+  const {
+    items,
+    loading: listLoading,
+    error: listError,
+    retry: reloadList,
+  } = useIndividualList(listed, null)
   const [cares, setCares] = useState<Record<string, Care>>({})
   const [picked, setPicked] = useState<string | null>(individualId ?? null)
   const [phase, setPhase] = useState<Phase>(individualId ? 'level' : 'pick')
@@ -358,9 +363,27 @@ export default function MiniGameHost({
           Chơi thử: không mất lượt, không nhận thưởng. Đăng nhập để tính điểm và nhận quà.
         </p>
       )}
-      {mg.loading && <p className="mg-sub">Đang tải…</p>}
+      {phase === 'pick' && server && !listError && (mg.loading || listLoading) && (
+        <ul
+          className="mg-list mg-pick-skeletons"
+          aria-label="Đang tải Pokémon"
+          aria-busy="true"
+        >
+          {Array.from({ length: 3 }, (_, index) => (
+            <li className="mg-pick-skeleton" key={index} aria-hidden="true">
+              <span className="mg-skeleton-art" />
+              <span className="mg-skeleton-copy">
+                <i />
+                <i />
+                <i />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {mg.loading && !server && <p className="mg-sub">Đang tải…</p>}
 
-      {phase === 'pick' && !mg.loading && (
+      {phase === 'pick' && !mg.loading && !(server && listLoading && !listError) && (
         <>
           <p className="mg-sub">
             {server ? 'Chọn Pokémon cùng chơi.' : 'Chơi thử không cần Pokémon.'}
@@ -371,7 +394,14 @@ export default function MiniGameHost({
               Hết lượt. Lượt mới sau {until(gameStatus?.resetAt ?? null, now)}.
             </p>
           )}
-          {picks.length === 0 && server ? (
+          {server && listError ? (
+            <p className="mg-error" role="alert">
+              Không tải được danh sách Pokémon.{' '}
+              <button type="button" className="mg-cta" onClick={reloadList}>
+                Thử lại
+              </button>
+            </p>
+          ) : picks.length === 0 && server ? (
             <p className="mg-sub">
               Bạn chưa có Pokémon nào. Hãy đổi thẻ trong Túi đồ để có Pokémon của riêng mình.
             </p>

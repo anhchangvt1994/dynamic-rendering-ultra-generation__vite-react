@@ -17,12 +17,14 @@ export const cabinetCss = css`
     height: 100%;
     padding: 12px 14px 14px;
     border-radius: 28px 28px 20px 20px;
-    background: linear-gradient(170deg, #2a1f5c, #150f38 70%);
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.045), transparent 12% 88%, rgba(0, 0, 0, 0.22)),
+      linear-gradient(170deg, #302568, #17123d 70%);
     box-shadow:
-      inset 0 0 0 2px color-mix(in srgb, var(--hue) 80%, transparent),
-      inset 0 0 18px color-mix(in srgb, var(--hue) 35%, transparent),
-      0 0 26px color-mix(in srgb, var(--hue) 30%, transparent),
-      0 18px 28px rgba(2, 20, 20, 0.5);
+      inset 0 0 0 2px color-mix(in srgb, var(--hue) 82%, transparent),
+      inset 0 0 24px color-mix(in srgb, var(--hue) 28%, transparent),
+      0 0 34px color-mix(in srgb, var(--hue) 36%, transparent),
+      0 22px 34px rgba(2, 20, 20, 0.56);
     transition: box-shadow 260ms var(--ease), translate 260ms var(--ease);
   }
   .cab::after {
@@ -48,13 +50,32 @@ export const cabinetCss = css`
     min-height: 0;
   }
   .cab-cap {
+    position: relative;
     display: grid;
     place-items: center;
     border-radius: 14px 14px 6px 6px;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--hue) 85%, #fff), var(--hue));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 38%),
+      linear-gradient(180deg, color-mix(in srgb, var(--hue) 80%, #fff), var(--hue));
     color: var(--ink);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--hue) 55%, transparent);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--hue) 58%, transparent),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.18);
   }
+  .cab-cap::before,
+  .cab-cap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff8cf;
+    box-shadow: 0 0 10px #fff4a6;
+    transform: translateY(-50%);
+  }
+  .cab-cap::before { left: 10px; }
+  .cab-cap::after { right: 10px; }
   .cab-cap h2 {
     margin: 0;
     padding: 0 10px;
@@ -105,7 +126,8 @@ export const cabinetCss = css`
     gap: 12px;
     padding: 0 10px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, #ffffff15, #06081b66);
+    box-shadow: inset 0 1px 0 #ffffff24, inset 0 -2px 0 #0005;
   }
   .cab-stick {
     position: relative;
@@ -328,8 +350,17 @@ export const cabinetCss = css`
 
   @media (min-width: 640px) {
     .cab {
-      padding: 14px 18px 18px;
-      grid-template-rows: 40px minmax(0, 1fr) 48px 40px 28px 48px;
+      padding: 18px 24px 22px;
+      grid-template-rows: 48px minmax(0, 1fr) 54px 40px 28px 48px;
+      border-radius: 34px 34px 24px 24px;
+      box-shadow:
+        inset 0 0 0 2px color-mix(in srgb, var(--hue) 82%, transparent),
+        inset 0 0 28px color-mix(in srgb, var(--hue) 30%, transparent),
+        0 0 44px color-mix(in srgb, var(--hue) 42%, transparent),
+        0 28px 42px rgba(2, 20, 20, 0.58);
+    }
+    .cab-cap {
+      border-radius: 18px 18px 8px 8px;
     }
     .cab-cap h2 {
       font-size: 21px;

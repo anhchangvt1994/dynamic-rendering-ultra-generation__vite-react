@@ -14,3 +14,10 @@ test('no bypass outside dev, nor for any other email', () => {
   assert.equal(devTestAccount('abcd@gmail.com', true), null)
   assert.equal(devTestAccount('', true), null)
 })
+
+test('the local account bypass only applies to password mode', () => {
+  const address = 'abc@gmail.com'
+  const mode = 'code'
+  const account = mode === 'password' && devTestAccount(address, true)
+  assert.equal(account, false)
+})
