@@ -170,7 +170,7 @@ select is((select wins from public.minigame_players where user_id='e1000000-0000
 -- start: a candy round, its view, one open round, turns per game
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"e1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select is((public.minigame_status())->'games'->'memory'->>'left','3','memory turns untouched');
+select is((public.minigame_status())->'games'->'memory'->>'left','5','memory turns untouched');
 select throws_ok($$select public.minigame_start('candy','e2000000-0000-4000-8000-000000000002',1::smallint)$$,'P0001','hungry','a hungry Pokémon');
 insert into rc values ('st',public.minigame_start('candy','e2000000-0000-4000-8000-000000000007',2::smallint));
 select is((select v->'view'->>'kind' from rc where k='st'),'candy','start: candy view');
@@ -180,8 +180,8 @@ select is((select v->'view'->>'target' from rc where k='st'),'3000','target of d
 select is((select v->'view'->>'movesMax' from rc where k='st'),'18','moves of difficulty 2');
 select is((select v->'view'->>'kinds' from rc where k='st'),'5','kinds of difficulty 2');
 select throws_ok($$select public.minigame_start('candy','e2000000-0000-4000-8000-000000000007',1::smallint)$$,'P0001','round_open','a second open candy round');
-select is((public.minigame_status())->'games'->'candy'->>'left','2','candy turns are counted per game: one start, two left');
-select is((public.minigame_status())->'games'->'memory'->>'left','3','memory turns still untouched');
+select is((public.minigame_status())->'games'->'candy'->>'left','4','candy turns are counted per game: one start, four left');
+select is((public.minigame_status())->'games'->'memory'->>'left','5','memory turns still untouched');
 select throws_ok($$select public.minigame_start('chess','e2000000-0000-4000-8000-000000000007',1::smallint)$$,'P0001','bad_game','unknown game');
 select is((public.minigame_status())->'open'->'view'->>'kind','candy','status resumes the open candy round');
 select is((select progress->>'movesLeft' from public.minigame_rounds where id=(select (v->>'round')::uuid from rc where k='st')),'18','progress starts with all moves left');

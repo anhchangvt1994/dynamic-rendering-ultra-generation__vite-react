@@ -2,7 +2,7 @@
 -- The bag is filled here as postgres (security definer helpers); every cook
 -- goes through the functions as a user.
 begin;
-select plan(49);
+select plan(50);
 
 insert into auth.users (id, email, aud, role)
 values ('11111111-1111-1111-1111-111111111111', 'ash@example.com', 'authenticated', 'authenticated');
@@ -46,7 +46,7 @@ select ok(
 );
 select is(
   (select d.e - 'id' from r, jsonb_array_elements(r.v->'dishes') d(e) where k = 'menu' and d.e->>'id' = 'bi-an-3'),
-  '{"kind": "cake", "secret": true, "known": false, "rarity": 3, "count": 3, "groups": {"berry": 1, "sweet": 2}, "top": ["happiness", "agility"]}'::jsonb,
+  '{"kind": "cake", "secret": true, "known": false, "rarity": 3, "count": 3, "groups": {"berry": 1, "sweet": 2}, "shape": {"spicy": 0, "dry": 0, "sweet": 2, "bitter": 0, "sour": 1}, "kept": [], "top": ["happiness", "agility"]}'::jsonb,
   'a secret dish shows its kind, its count, its groups and its 2 strongest stats'
 );
 select is((select v->'found' from r where k = 'menu'), '0'::jsonb, 'nothing found yet');
@@ -148,7 +148,7 @@ select is(
 
 -- nobody writes the kitchen's tables
 select throws_ok($$ insert into public.kitchen_dishes (user_id, dish_id, count) values ('11111111-1111-1111-1111-111111111111', 'ca-ri-lua', 9) $$, '42501', null, 'nobody fills their own shelf');
-select throws_ok($ select * from public.kitchen_recipes $, '42501', null, 'nobody reads the recipes');
+select throws_ok($$ select * from public.kitchen_recipes $$, '42501', null, 'nobody reads the recipes');
 
 -- a batch of a menu dish (2026-11-02-kitchen-batch-cook-design.md)
 select pg_temp.give('chesto-berry', 6);
@@ -159,11 +159,11 @@ select is(pg_temp.has('chesto-berry') || '/' || pg_temp.has('fresh-water'), '0/0
 select is(pg_temp.dish_count('tra-da-chesto'), 3, 'and shelves 3 dishes');
 select pg_temp.give('chesto-berry', 7);
 select pg_temp.give('fresh-water', 3);
-select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 4) $, 'P0001', 'missing', 'one portion short: the batch does not cook');
+select throws_ok($$ select public.kitchen_cook('tra-da-chesto', null, 4) $$, 'P0001', 'missing', 'one portion short: the batch does not cook');
 select is(pg_temp.has('chesto-berry') || '/' || pg_temp.has('fresh-water'), '7/3', 'and nothing is spent');
-select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 0) $, 'P0001', 'bad_times', 'no batch of 0');
-select throws_ok($ select public.kitchen_cook('tra-da-chesto', null, 100) $, 'P0001', 'bad_times', 'at most 99');
-select throws_ok($ select public.kitchen_cook(null, array['chesto-berry', 'fresh-water'], 2) $, 'P0001', 'bad_times', 'the free pot cooks one pot at a time');
+select throws_ok($$ select public.kitchen_cook('tra-da-chesto', null, 0) $$, 'P0001', 'bad_times', 'no batch of 0');
+select throws_ok($$ select public.kitchen_cook('tra-da-chesto', null, 100) $$, 'P0001', 'bad_times', 'at most 99');
+select throws_ok($$ select public.kitchen_cook(null, array['chesto-berry', 'fresh-water'], 2) $$, 'P0001', 'bad_times', 'the free pot cooks one pot at a time');
 insert into r values ('one', public.kitchen_cook('tra-da-chesto', null));
 select is((select v->'count' from r where k = 'one'), '1'::jsonb, 'without a count: one, as before');
 
