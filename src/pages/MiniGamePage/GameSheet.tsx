@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useEffect, useRef } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetDragClose } from 'pages/MyPokemonPage/room/dockGesture.mjs'
 import { SheetStyle } from './styles'
@@ -9,6 +9,8 @@ type Props = {
   title?: string
   tone?: { hue: number; accent: string; deep: string; glow: string }
   children: ReactNode
+  /** rendered over the whole panel (header included), not just the scrolling body */
+  overlay?: ReactNode
 }
 
 /**
@@ -16,7 +18,7 @@ type Props = {
  * down-drag from the top of its content all ask to close. The caller decides
  * what closing means (the host asks first in the middle of a round).
  */
-export default function GameSheet({ open, onClose, title, tone, children }: Props) {
+export default function GameSheet({ open, onClose, title, tone, children, overlay }: Props) {
   const body = useRef<HTMLDivElement>(null)
   const start = useRef<{ x: number; y: number; top: number } | null>(null)
 
@@ -28,7 +30,19 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
     window.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // The page behind the sheet is covered: skip its style/layout/paint (its ~60 looping animations
+    // otherwise cost CPU on every frame) but keep its height so the scroll position survives.
+    const root = document.getElementById('root')
+    const saved = root ? [root.style.contentVisibility, root.style.containIntrinsicSize] : null
+    if (root) {
+      root.style.containIntrinsicSize = `auto ${root.offsetHeight}px`
+      root.style.contentVisibility = 'hidden'
+    }
     return () => {
+      if (root && saved) {
+        root.style.contentVisibility = saved[0]
+        root.style.containIntrinsicSize = saved[1]
+      }
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
     }
@@ -46,7 +60,11 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
   // Portal to <body>: the sheet must sit above the site header, outside the hub's stacking context.
   return createPortal(
     <SheetStyle style={vars}>
-      <div className="mg-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="mg-backdrop" onClick={onClose} aria-hidden="true">
+        <i className="mg-bd-stars" />
+        <i className="mg-bd-stars" />
+        <i className="mg-bd-shoot" />
+      </div>
       <div
         className="mg-panel"
         role="dialog"
@@ -80,6 +98,7 @@ export default function GameSheet({ open, onClose, title, tone, children }: Prop
         <div className="mg-body" ref={body}>
           {children}
         </div>
+        {overlay}
       </div>
     </SheetStyle>,
     document.body,

@@ -3,8 +3,8 @@ import { connectAccount, signOut, useAccount } from 'app/supabase/account'
 import { devTestAccount } from 'app/supabase/devAccount.mjs'
 import { authMessage } from 'app/supabase/messages'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { getCaught } from 'utils/caught.mjs'
 import { AccountPageStyle } from './styles'
 
@@ -295,7 +295,7 @@ export default function AccountPage() {
             <strong>{account.user?.email}</strong>
           </span>
         </p>
-        <Suspense fallback={<div style={{ height: 208 }} />}>
+        <Suspense fallback={<div style={{ height: 238 }} />}>
           <TrainerCard />
         </Suspense>
         <p className="count">
@@ -483,7 +483,7 @@ export default function AccountPage() {
     <AccountPageStyle>
       <section className="card" aria-labelledby="account-title">
         <div className="cap">
-          <span className="eyebrow">POKÉDEX · FIELD NOTES</span>
+          <span className="eyebrow">POKÉDEX · JOURNEY</span>
           <h1 id="account-title">{title}</h1>
           <p>{lead}</p>
         </div>

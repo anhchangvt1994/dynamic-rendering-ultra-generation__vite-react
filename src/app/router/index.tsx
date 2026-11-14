@@ -101,6 +101,12 @@ const routes: RouteObjectCustomize[] = defineRoute([
         id: 'MiniGamePage',
       }, // Mini Game Page
       {
+        // the floating archipelago: every region, its gyms, trainers and wild Pokémon
+        path: 'ban-do',
+        element: <ROUTE_MODULES.map.Route />,
+        id: 'MapPage',
+      }, // Map Page
+      {
         // the individuals a player got from amber: /pokemon-cua-toi, /pokemon-cua-toi/:id
         path: 'pokemon-cua-toi/:id?',
         element: <ROUTE_MODULES.myPokemon.Route />,

@@ -8,9 +8,16 @@ import { initialCare, needsNow } from 'pages/MyPokemonPage/care/care.mjs'
 import { MY_POKEMON_PATH } from 'pages/MyPokemonPage/paths.mjs'
 import GameSheet from './GameSheet'
 import { GAMES } from './games/index.mjs'
+import { useSpeciesNames } from './useSpeciesNames'
 import CandyBoard from './games/candy/Board'
 import MemoryBoard from './games/memory/Board'
+import { memoryArtworkCandidates, preloadMemoryArtwork } from './games/memory/preload.mjs'
+import TileSafariBoard from './games/tile-safari/Board'
+import BlockLabBoard from './games/block-lab/Board'
+import SilhouetteBoard from './games/silhouette-atelier/Board'
+import LuckySpinBoard from './games/lucky-spin/Board'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
+import { createBoard as createTileBoard, removePair as removePracticePair, isComplete as isTileDone } from './games/tile-safari/rules.mjs'
 import Burst from './Burst'
 import ComboMeter from './ComboMeter'
 import GiftChest from './GiftChest'
@@ -33,9 +40,9 @@ import {
   type MemoryView,
   type Receipt,
   type RoundView,
+  type TileSafariView,
   useMiniGame,
 } from './useMiniGame'
-import { useSpeciesNames } from './useSpeciesNames'
 
 type Phase = 'pick' | 'level' | 'count' | 'play' | 'result'
 type Care = { hunger: number; needsAt: string; affection: number }
@@ -44,13 +51,14 @@ type Round = {
   deadline: string | number
   view: RoundView
   difficulty: 1 | 2 | 3
-  practice: { flip: (i: number) => Promise<FlipResult> } | null
+  practice: { flip?: (i: number) => Promise<FlipResult>; outcome?: string } | null
 }
 type Outcome =
   | Receipt
-  | { practice: true; status: 'won' | 'lost'; flips: number; score: number; moves: number }
+  | { practice: true; status: 'won' | 'lost'; flips: number; score: number; moves: number; guesses: number; reward: string }
 
 const LOW_MS = 60_000
+const NIGHT_TONE = { hue: 255, accent: 'hsl(46 100% 66%)', deep: 'hsl(252 48% 12%)', glow: 'hsl(278 100% 68% / .42)' }
 const LABELS = ['Dễ', 'Thường', 'Khó']
 const NEEDS_NAME: Record<string, string> = { hunger: 'No', clean: 'Sạch', fun: 'Vui' }
 
@@ -69,6 +77,8 @@ const pct = (xp: number, level: number) => {
   const to = level >= MINIGAME.LEVEL_MAX ? from + 1 : xpFor(level + 1)
   return level >= MINIGAME.LEVEL_MAX ? 100 : Math.round(((xp - from) / (to - from)) * 100)
 }
+
+const SPIN_TEXT: Record<string, string> = { common: 'một phần quà nhỏ', uncommon: 'một phần quà bất ngờ', rare: 'phần quà quý hiếm' }
 
 export default function MiniGameHost({
   game,
@@ -93,6 +103,7 @@ export default function MiniGameHost({
   const [picked, setPicked] = useState<string | null>(individualId ?? null)
   const [phase, setPhase] = useState<Phase>(individualId ? 'level' : 'pick')
   const [difficulty, setDifficulty] = useState<1 | 2 | 3>(2)
+  const [preloadingMemoryArt, setPreloadingMemoryArt] = useState(false)
   const [count, setCount] = useState(3)
   const [round, setRound] = useState<Round | null>(null)
   const [now, setNow] = useState(() => Date.now())
@@ -113,12 +124,20 @@ export default function MiniGameHost({
   const flips = useRef(0)
   const movesRef = useRef<number[][]>([])
   const scoreRef = useRef(0)
+  const guessesRef = useRef(0)
   const resumed = useRef(false)
 
   const individual: Individual | null =
     items?.find((item: Individual) => item.id === picked) ?? null
-  const tone = useMemo(() => toneOf(individual), [individual])
+  const [preview, setPreview] = useState<string | null>(null)
+  const previewed: Individual | null = items?.find((item: Individual) => item.id === preview) ?? null
+  // choosing a partner: a night stage that takes on the colours of the Pokémon you point at
+  const tone = useMemo(
+    () => (individual ? toneOf(individual) : phase === 'pick' ? (previewed ? toneOf(previewed) : NIGHT_TONE) : toneOf(null)),
+    [individual, previewed, phase],
+  )
   const server = mg.mode === 'server'
+  const listPending = server && !listError && (listLoading || items === null)
   const gameStatus = mg.status?.games?.[game]
 
   useEffect(() => {
@@ -238,6 +257,8 @@ export default function MiniGameHost({
           flips: flips.current,
           score: scoreRef.current,
           moves: movesRef.current.length,
+          guesses: guessesRef.current,
+          reward: SPIN_TEXT[round.practice?.outcome ?? ''] ?? round.practice?.outcome ?? 'quà luyện tập',
         })
         setPhase('result')
         return
@@ -245,7 +266,7 @@ export default function MiniGameHost({
       for (let attempt = 0; attempt < 10; attempt += 1) {
         try {
           const receipt = await mg.finish(
-            game === 'candy' ? { round: round.id, moves: movesRef.current } : { round: round.id }
+            game === 'candy' || game === 'block-lab' || game === 'silhouette-atelier' ? { round: round.id, moves: movesRef.current } : { round: round.id }
           )
           setOutcome(receipt)
           setBarPct(before ? pct(before.xp, before.level) : 0)
@@ -357,13 +378,32 @@ export default function MiniGameHost({
   const bond = individual ? bondOf(careOf(individual).affection) : 1
 
   return (
-    <GameSheet open onClose={requestClose} title={def.title} tone={tone}>
+    <GameSheet open onClose={requestClose} title={def.title} tone={tone} overlay={confirming && (
+        <div className="mg-confirm" role="alertdialog" aria-label="Thoát ván">
+          <b>Thoát giữa ván?</b>
+          <span className="mg-sub">Ván vẫn tính giờ. Hết giờ chưa xong thì thua và không hoàn lượt.</span>
+          <button type="button" className="mg-cta" onClick={() => setConfirming(false)}>
+            Chơi tiếp
+          </button>
+          <button
+            type="button"
+            className="mg-cta"
+            data-quiet
+            onClick={() => {
+              setConfirming(false)
+              onClose()
+            }}
+          >
+            Thoát
+          </button>
+        </div>
+      )}>
       {!server && mg.mode !== 'checking' && (
         <p className="mg-sub">
           Chơi thử: không mất lượt, không nhận thưởng. Đăng nhập để tính điểm và nhận quà.
         </p>
       )}
-      {phase === 'pick' && server && !listError && (mg.loading || listLoading) && (
+      {phase === 'pick' && server && !listError && (mg.loading || listPending) && (
         <ul
           className="mg-list mg-pick-skeletons"
           aria-label="Đang tải Pokémon"
@@ -383,7 +423,7 @@ export default function MiniGameHost({
       )}
       {mg.loading && !server && <p className="mg-sub">Đang tải…</p>}
 
-      {phase === 'pick' && !mg.loading && !(server && listLoading && !listError) && (
+      {phase === 'pick' && !mg.loading && !listPending && (
         <>
           <p className="mg-sub">
             {server ? 'Chọn Pokémon cùng chơi.' : 'Chơi thử không cần Pokémon.'}
@@ -410,41 +450,51 @@ export default function MiniGameHost({
               {picks.map((item: Individual) => {
                 const hunger = hungerOf(item)
                 const ok = canPlay(hunger)
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className="mg-pick"
-                      disabled={!ok || noTurns}
-                      onClick={() => {
-                        setPicked(item.id)
-                        setPhase('level')
-                      }}
-                    >
-                      <IndividualArt
-                        speciesId={item.speciesId}
-                        name={nameOf(item.speciesId)}
-                        size={64}
-                      />
-                      <span>
-                        <b>{item.nickname ?? nameOf(item.speciesId)}</b>
-                        <span className="mg-meta">
-                          <span>Thân thiết Lv {bondOf(careOf(item).affection)}</span>
-                          <span>No {Math.round(hunger)}%</span>
-                        </span>
-                        <span className="mg-hunger" aria-hidden="true">
-                          <i style={{ width: `${Math.round(hunger)}%` }} />
-                        </span>
-                        {!ok && (
-                          <span className="mg-why" style={{ display: 'block' }}>
-                            Đang đói (cần từ {MINIGAME.MIN_HUNGER}%).{' '}
-                            <a href={`${MY_POKEMON_PATH}/${encodeURIComponent(item.id)}`}>
-                              Cho ăn trong phòng
-                            </a>
-                          </span>
-                        )}
+                const hue = toneOf(item).hue
+                const body = (
+                  <>
+                    <span className="mg-pick-stage">
+                      <IndividualArt speciesId={item.speciesId} name={nameOf(item.speciesId)} size={72} />
+                    </span>
+                    <span className="mg-pick-info">
+                      <b>{item.nickname ?? nameOf(item.speciesId)}</b>
+                      <span className="mg-meta">
+                        <span>Thân thiết Lv {bondOf(careOf(item).affection)}</span>
+                        <span>No {Math.round(hunger)}%</span>
                       </span>
-                    </button>
+                      <span className="mg-hunger" aria-hidden="true" data-low={!ok || undefined}>
+                        <i style={{ width: `${Math.round(hunger)}%` }} />
+                      </span>
+                      {!ok && (
+                        <span className="mg-why" style={{ display: 'block' }}>
+                          Đang đói, cần từ {MINIGAME.MIN_HUNGER}% mới chơi được.
+                        </span>
+                      )}
+                    </span>
+                  </>
+                )
+                return (
+                  <li key={item.id} style={{ ['--h' as string]: hue }} onMouseEnter={() => setPreview(item.id)} onMouseLeave={() => setPreview(null)} onFocus={() => setPreview(item.id)} onBlur={() => setPreview(null)}>
+                    {ok ? (
+                      <button
+                        type="button"
+                        className="mg-pick mg-roster"
+                        disabled={noTurns}
+                        onClick={() => {
+                          setPicked(item.id)
+                          setPhase('level')
+                        }}
+                      >
+                        {body}
+                      </button>
+                    ) : (
+                      <div className="mg-pick mg-roster" data-blocked>
+                        {body}
+                        <LinkCustom className="mg-care" to={`${MY_POKEMON_PATH}/${encodeURIComponent(item.id)}`}>
+                          Chăm sóc trong phòng
+                        </LinkCustom>
+                      </div>
+                    )}
                   </li>
                 )
               })}
@@ -465,6 +515,7 @@ export default function MiniGameHost({
               ? `${individual.nickname ?? nameOf(individual.speciesId)} · Thân thiết Lv ${bond}`
               : 'Chọn độ khó'}
           </p>
+          {preloadingMemoryArt && <p className="mg-sub" role="status">Đang chuẩn bị hình Pokémon…</p>}
           <ul className="mg-list mg-tiers">
             {([1, 2, 3] as const).map((d) => {
               const low = winExp({ d, bond, remainingS: 0 })
@@ -476,10 +527,20 @@ export default function MiniGameHost({
                     type="button"
                     className="mg-pick"
                     style={{ gridTemplateColumns: '1fr' }}
-                    disabled={noTurns}
-                    onClick={() => {
+                    disabled={noTurns || preloadingMemoryArt}
+                    onClick={async () => {
                       setDifficulty(d)
                       setError(null)
+                      if (game === 'memory') {
+                        setPreloadingMemoryArt(true)
+                        try {
+                          await preloadMemoryArtwork({ getSrc: getPokemonImage, candidates: memoryArtworkCandidates() })
+                        } catch {
+                          // Preloading is best-effort; never block the game on image hosts.
+                        } finally {
+                          setPreloadingMemoryArt(false)
+                        }
+                      }
                       setCount(3)
                       setPhase('count')
                     }}
@@ -543,7 +604,49 @@ export default function MiniGameHost({
                 style={{ width: 'calc(100% - 4px)', height: 'calc(100% - 4px)' }}
               />
             </svg>
-            {round.view.kind === 'candy' ? (
+            {round.view.kind === 'tile-safari' ? (
+              <TileSafariBoard key={round.id ?? 'practice'} view={round.view} disabled={remaining <= 0 || settling.current}
+                remove={async (a,b) => {
+                  const view = round.view as TileSafariView
+                  if (!round.id) {
+                    const next = removePracticePair(createTileBoard({ rows: view.rows, cols: view.cols, tiles: view.tiles, removed: view.removed }),a,b)
+                    movesRef.current=[...movesRef.current,[a,b]]
+                    setRound({...round,view:{...view,removed:next.removed}})
+                    return { removed: next.removed, moves: movesRef.current.length, done: isTileDone(next) }
+                  }
+                  const result=await mg.removePair({round:round.id,a,b}); movesRef.current=[...movesRef.current,[a,b]]; return result
+                }}
+                shuffle={async (tiles,removed) => {
+                  const view = round.view as TileSafariView
+                  if (!round.id) { const result=(round.practice as any).shuffle({ rows: view.rows, cols: view.cols, tiles, removed }); setRound({...round,view:{...view,tiles:result.tiles,shuffles:result.shuffles}}); return result }
+                  return mg.shuffle({round:round.id})
+                }}
+                onDone={(moves)=>{movesRef.current=Array.from({length:moves},()=>[0,0]);settle(true)}} onError={onBoardError}/>
+            ) : round.view.kind === 'block-lab' ? (
+              <BlockLabBoard key={round.id ?? 'practice'} view={round.view} roundId={round.id} disabled={remaining <= 0 || settling.current}
+                onLog={(log)=>{movesRef.current=log}}
+                onEnd={({won,score,log})=>{movesRef.current=log;scoreRef.current=score;settle(won)}} onError={onBoardError}/>
+            ) : round.view.kind === 'silhouette-atelier' ? (
+              <SilhouetteBoard key={round.id ?? 'practice'} view={round.view} roundId={round.id} name={nameOf(round.view.artSpeciesId)} disabled={remaining <= 0 || settling.current}
+                onLog={(log)=>{movesRef.current=log}}
+                onEnd={(moves,log)=>{movesRef.current=log;guessesRef.current=moves;settle(true)}} onError={onBoardError}/>
+            ) : round.view.kind === 'lucky-spin' ? (
+              <LuckySpinBoard key={round.id ?? 'practice'} view={round.view} disabled={remaining <= 0 || settling.current}
+                spin={() => (round.id ? mg.spin({ round: round.id }) : (round.practice as any).spin())}
+                practice={!round.id}
+                onDone={(result) => {
+                  if (!round.id) {
+                    if (round.practice) round.practice.outcome = result.outcome ?? undefined
+                    void settle(true)
+                    return
+                  }
+                  settling.current = true
+                  setOutcome({ ...result.receipt, status: 'won', spinOutcome: result.outcome, spinRewards: result.rewards } as Receipt)
+                  void mg.refresh()
+                  setPhase('result')
+                }}
+                onError={onBoardError}/>
+            ) : round.view.kind === 'candy' ? (
               <CandyBoard
                 key={round.id ?? 'practice'}
                 difficulty={round.difficulty}
@@ -669,26 +772,7 @@ export default function MiniGameHost({
         </div>
       )}
 
-      {confirming && (
-        <div className="mg-confirm" role="alertdialog" aria-label="Thoát ván">
-          <b>Thoát giữa ván?</b>
-          <span className="mg-sub">Ván vẫn tính giờ. Hết giờ chưa xong thì thua và không hoàn lượt.</span>
-          <button type="button" className="mg-cta" onClick={() => setConfirming(false)}>
-            Chơi tiếp
-          </button>
-          <button
-            type="button"
-            className="mg-cta"
-            data-quiet
-            onClick={() => {
-              setConfirming(false)
-              onClose()
-            }}
-          >
-            Thoát
-          </button>
-        </div>
-      )}
+
     </GameSheet>
   )
 }

@@ -1,38 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
 import { getPokemonImage } from 'pages/PokemonPage/navigation.mjs'
 
-// Decorative paper lanterns under an awning; sway, candle flicker and glow live in styles.hub.
-// Per lantern: --hue (paper tone), --cord (string px), --d/--a (sway), --fd (flicker period, uneven).
-const LANTERNS = [
-  { id: 25, hue: 40, cord: 6, d: 6.2, a: 3.2, fd: 1.45 },
-  { id: 133, hue: 28, cord: 6, d: 7.4, a: 2.6, fd: 2.05 },
-  { id: 39, hue: 46, cord: 5, d: 5.8, a: 3.6, fd: 1.7 },
-  { id: 54, hue: 34, cord: 4, d: 6.8, a: 2.8, fd: 1.25 },
-  { id: 143, hue: 22, cord: 5, d: 7.8, a: 3.0, fd: 2.3 },
-  { id: 175, hue: 44, cord: 8, d: 6.0, a: 2.4, fd: 1.9 },
-  { id: 151, hue: 36, cord: 6, d: 7.0, a: 3.4, fd: 1.55 },
-]
+// Festival light string: three swags of glass orbs, each holding a Pokémon.
+// Per orb: --x (% along the rail), --t (0..1 depth on the swag), --hue, --d/--a (sway), --cord.
+// A rainbow chase runs along the string; every few chase cycles an orb swaps its Pokémon.
+const SWAGS = 3
+const PER = 5
+const START = [25, 133, 39, 54, 143, 175, 151, 94, 6, 150, 197, 249, 448, 282, 59]
 const POOL = [
   1, 4, 7, 25, 35, 39, 52, 54, 58, 63, 79, 92, 94, 113, 131, 133, 143, 147, 151, 152, 175, 183, 196, 197, 245, 252,
   258, 261, 300, 359, 393, 417, 447, 448, 470, 471, 490, 658, 700, 778,
 ]
-const SWAP_MS = 440
+const ORBS = Array.from({ length: SWAGS * PER }, (_, i) => {
+  const s = Math.floor(i / PER)
+  const j = i % PER
+  const u = (j + 1) / (PER + 1)
+  return {
+    id: START[i],
+    x: ((s + u) / SWAGS) * 100,
+    t: 4 * u * (1 - u),
+    hue: (338 + i * 24) % 360,
+    cord: 5 + ((i * 7) % 5),
+    d: 4.6 + ((i * 13) % 17) / 6,
+    a: 3 + ((i * 5) % 7) / 2,
+    extra: j % 2 === 1,
+  }
+})
+const SWAP_MS = 420
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-function Lantern({ l, i, shown }: { l: (typeof LANTERNS)[number]; i: number; shown: number[] }) {
-  const [id, setId] = useState(l.id)
+function Orb({ o, i, shown }: { o: (typeof ORBS)[number]; i: number; shown: number[] }) {
+  const [id, setId] = useState(o.id)
   const [hide, setHide] = useState(false)
   const count = useRef(0)
-  const goal = useRef(4 + Math.floor(Math.random() * 2))
+  const goal = useRef(3 + (i % 2))
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  // each flicker cycle of the halo counts; every 4-5th one swaps the Pokémon
-  const onFlicker = () => {
+  const onCycle = () => {
     if (reduced() || ++count.current < goal.current) return
     count.current = 0
-    goal.current = 4 + Math.floor(Math.random() * 2)
+    goal.current = 3 + Math.floor(Math.random() * 2)
     setHide(true)
     timer.current = setTimeout(() => {
       const free = POOL.filter(p => p !== id && !shown.includes(p))
@@ -44,38 +52,56 @@ function Lantern({ l, i, shown }: { l: (typeof LANTERNS)[number]; i: number; sho
 
   return (
     <li
+      data-extra={o.extra || undefined}
       style={{
         ['--i' as string]: i,
-        ['--hue' as string]: l.hue,
-        ['--cord' as string]: `${l.cord}px`,
-        ['--d' as string]: `${l.d}s`,
-        ['--a' as string]: `${l.a}deg`,
-        ['--fd' as string]: `${l.fd}s`,
+        ['--x' as string]: `${o.x.toFixed(3)}%`,
+        ['--t' as string]: o.t.toFixed(3),
+        ['--hue' as string]: o.hue,
+        ['--cord' as string]: `${o.cord}px`,
+        ['--d' as string]: `${o.d.toFixed(2)}s`,
+        ['--a' as string]: `${o.a}deg`,
       }}
     >
-      <i className="hub-lamp-halo" onAnimationIteration={onFlicker} />
-      <span className="hub-lamp">
-        <img
-          src={getPokemonImage(id)}
-          alt=""
-          draggable={false}
-          loading="lazy"
-          data-hide={hide || undefined}
-          onLoad={() => setHide(false)}
-        />
+      <span className="hub-swing">
+        <i className="hub-orb-glow" onAnimationIteration={onCycle} />
+        <b className="hub-orb-cord" />
+        <span className="hub-orb">
+          <img
+            src={getPokemonImage(id)}
+            alt=""
+            draggable={false}
+            loading="lazy"
+            data-hide={hide || undefined}
+            onLoad={() => setHide(false)}
+          />
+        </span>
+        <em className="hub-orb-spark" />
       </span>
     </li>
   )
 }
 
+const SAG = 34
+const PATH = Array.from({ length: SWAGS }, (_, s) => {
+  const a = (s / SWAGS) * 100
+  const b = ((s + 1) / SWAGS) * 100
+  return `${s ? '' : `M${a} 0 `}Q${((a + b) / 2).toFixed(3)} ${SAG * 2} ${b.toFixed(3)} 0`
+}).join(' ')
+
 export default function Bulbs() {
-  const shown = useRef<number[]>(LANTERNS.map(l => l.id)).current
+  const shown = useRef<number[]>(START.slice()).current
   return (
     <div className="hub-bulbs" aria-hidden="true">
-      <span className="hub-bulbs-eave" />
+      <span className="hub-aurora" />
+      <span className="hub-rail" />
+      <svg className="hub-wire" viewBox={`0 0 100 ${SAG + 2}`} preserveAspectRatio="none">
+        <path className="hub-wire-base" d={PATH} vectorEffect="non-scaling-stroke" />
+        <path className="hub-wire-run" d={PATH} vectorEffect="non-scaling-stroke" />
+      </svg>
       <ol>
-        {LANTERNS.map((l, i) => (
-          <Lantern key={i} l={l} i={i} shown={shown} />
+        {ORBS.map((o, i) => (
+          <Orb key={i} o={o} i={i} shown={shown} />
         ))}
       </ol>
     </div>

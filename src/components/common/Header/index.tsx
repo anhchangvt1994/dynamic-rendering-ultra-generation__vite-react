@@ -1,4 +1,6 @@
 import { useAccount } from 'app/supabase/account'
+import { useTrainerAvatar } from 'app/supabase/trainerAvatar'
+import AvatarArt from 'pages/MiniGamePage/trainer/AvatarArt'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
 import { useLocation } from 'react-router'
 import { HeaderStyle } from './styles'
@@ -11,6 +13,9 @@ const Header = ({
 }) => {
   const location = useLocation()
   const account = useAccount()
+  const { avatar: trainerAvatar, image: trainerImage } = useTrainerAvatar(
+    account.user?.id
+  )
   const collection =
     location.pathname === '/' &&
     new URLSearchParams(location.search).get('view') === 'caught'
@@ -21,7 +26,7 @@ const Header = ({
           <Pokeball />
           <span>
             poké<span className="brand-light">dex</span>
-            <i>FIELD NOTES</i>
+            <i>JOURNEY</i>
           </span>
         </LinkCustom>
         <nav aria-label="Điều hướng chính">
@@ -79,6 +84,14 @@ const Header = ({
             </LinkCustom>
           )}
           <LinkCustom
+            to="/ban-do"
+            aria-current={
+              location.pathname === '/ban-do' ? 'page' : undefined
+            }
+          >
+            Bản đồ
+          </LinkCustom>
+          <LinkCustom
             to="/blogs"
             aria-current={
               location.pathname.startsWith('/blogs') ? 'page' : undefined
@@ -112,8 +125,20 @@ const Header = ({
               }
             >
               {account.user ? (
-                <span className="avatar" aria-hidden="true">
-                  {(account.user.email || '?').charAt(0).toUpperCase()}
+                <span
+                  className="avatar"
+                  data-trainer={
+                    trainerAvatar && (trainerAvatar !== 'custom' || trainerImage)
+                      ? trainerAvatar
+                      : undefined
+                  }
+                  aria-hidden="true"
+                >
+                  {trainerAvatar && (trainerAvatar !== 'custom' || trainerImage) ? (
+                    <AvatarArt id={trainerAvatar} image={trainerImage} size={32} />
+                  ) : (
+                    (account.user.email || '?').charAt(0).toUpperCase()
+                  )}
                 </span>
               ) : (
                 <>

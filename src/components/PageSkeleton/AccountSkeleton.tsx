@@ -96,7 +96,7 @@ export default function AccountSkeleton() {
       <span className="sr-only">Đang mở sổ tay…</span>
       <div className="card" aria-hidden="true">
         <div className="cap">
-          <span className="eyebrow">POKÉDEX · FIELD NOTES</span>
+          <span className="eyebrow">POKÉDEX · JOURNEY</span>
           <div className="line title">
             <span className="bone" />
           </div>

@@ -356,8 +356,10 @@ export function adoptPokemonArt(
   }
   for (const entry of fs.readdirSync(inbox, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
+    const to = path.join(target, entry.name)
+    if (fs.existsSync(to)) continue
     const from = path.join(inbox, entry.name)
-    sync(from, path.join(target, entry.name), entry.name)
+    sync(from, to, entry.name)
     dropEmpty(from)
   }
   if (moved)

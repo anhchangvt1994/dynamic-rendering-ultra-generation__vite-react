@@ -42,6 +42,11 @@ for (const browserEnabled of [true, false])
       // crawler/Redis/browser services so this test uses no external infrastructure.
       write(
         root,
+        'server/dist/og/index.uws.js',
+        'exports.default = Promise.resolve({init() {}})'
+      )
+      write(
+        root,
         'server/dist/puppeteer-ssr/utils/BrowserManager.js',
         `exports.__esModule = true; exports.default = () => ${browserEnabled ? '({ get: async () => undefined })' : 'undefined'}`
       )

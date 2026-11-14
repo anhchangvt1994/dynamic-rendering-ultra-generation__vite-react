@@ -30,6 +30,7 @@ export default function IndividualArt({ speciesId, name, size = 140 }: Props) {
         <img
           src={href}
           alt=""
+          draggable={false}
           width={size}
           height={size}
           style={{

@@ -12,6 +12,7 @@ export const ROUTE_MODULES = {
   kitchen: lazyRoute(() => import('pages/KitchenPage')),
   miniGame: lazyRoute(() => import('pages/MiniGamePage')),
   myPokemon: lazyRoute(() => import('pages/MyPokemonPage')),
+  map: lazyRoute(() => import('pages/MapPage')),
   compare: lazyRoute(() => import('pages/ComparePage')),
   // ENABLE_SUPABASE off: no page, nothing in the bundle
   account: ACCOUNTS_ENABLED
@@ -40,6 +41,8 @@ export function routeModuleFor(pathname: string) {
       return ROUTE_MODULES.miniGame
     case 'pokemon-cua-toi':
       return ROUTE_MODULES.myPokemon
+    case 'ban-do':
+      return ROUTE_MODULES.map
     case 'so-sanh':
       return ROUTE_MODULES.compare
     case 'dang-nhap':

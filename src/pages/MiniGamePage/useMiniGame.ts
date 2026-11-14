@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAccount } from 'app/supabase/account'
 import { getSupabase } from 'app/supabase/client'
+import { setTrainerAvatar } from 'app/supabase/trainerAvatar'
 import { modeFor, type QuizMode } from 'pages/QuizPage/engine/mode'
 import { createEpoch } from 'pages/BagPage/shards.mjs'
 import {
@@ -8,10 +9,18 @@ import {
   claimQuest,
   finishRound,
   flipCard,
+  removeTilePair,
+  shuffleTiles,
+  spinLucky,
   readCares,
   readStatus,
+  readAvatarImage,
+  readTeams,
+  saveTeams,
+  switchTeam,
   setAvatar,
   setTeam,
+  uploadAvatar,
   startRound,
 } from './client.mjs'
 import { createPractice } from './practice.mjs'
@@ -26,7 +35,7 @@ export type FlipResult = {
   done: boolean
 }
 export type MemoryView = {
-  kind?: undefined
+  kind: 'memory'
   cols: number
   cards: number
   matched: number[]
@@ -44,7 +53,30 @@ export type CandyView = {
   tape: number[]
   pos: number
 }
-export type RoundView = MemoryView | CandyView
+export type TileSafariView = { kind: 'tile-safari'; rows: number; cols: number; tiles: number[]; removed: number[]; shuffles: number }
+export type BlockLabView = { kind: 'block-lab'; difficulty: number; width: number; height: number; queue: number[]; speciesId: number; goal: number; elapsedMs: number; durationMs: number }
+export type SilhouetteView = { kind: 'silhouette-atelier'; difficulty: number; cols: number; rows: number; rot: number[]; artSpeciesId: number; elapsedMs: number; durationMs: number }
+export type SpinStep = {
+  grid: number[]
+  lines: { row: number; start: number; len: number; sym: number; pts: number }[]
+  swept: boolean
+  pts: number
+  streak: number
+  mult10: number
+  score: number
+  total: number
+}
+export type SpinResult = {
+  spin: SpinStep
+  spins: number
+  total: number
+  done: boolean
+  outcome?: string | null
+  rewards?: { xp: number; items: string[] } | null
+  receipt?: Receipt
+}
+export type LuckySpinView = { kind: 'lucky-spin'; difficulty: number; spun: boolean; spins?: SpinStep[]; total?: number; streak?: number }
+export type RoundView = MemoryView | CandyView | TileSafariView | BlockLabView | SilhouetteView | LuckySpinView
 export type Receipt = {
   round: string
   status: 'won' | 'lost' | 'expired'
@@ -61,6 +93,9 @@ export type Receipt = {
   flips?: number | null
   score?: number | null
   moves?: number | null
+  spinOutcome?: string | null
+  spinRewards?: { xp: number; items: string[] } | null
+  reward?: string
 }
 export type QuestItem = {
   slot: number
@@ -151,6 +186,12 @@ export function useMiniGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
+  const trainerAvatar = loaded.status?.trainer?.avatar
+  const userId = account.user?.id
+  useEffect(() => {
+    if (userId && trainerAvatar) setTrainerAvatar(userId, trainerAvatar)
+  }, [userId, trainerAvatar])
+
   useEffect(() => {
     refresh()
     const current = epoch.current
@@ -177,6 +218,9 @@ export function useMiniGame() {
       run((deps) => flipCard(deps, args)),
     [run]
   )
+  const removePair = useCallback((args: { round: string; a: number; b: number }) => run((deps) => removeTilePair(deps,args)), [run])
+  const shuffle = useCallback((args: { round: string }) => run((deps) => shuffleTiles(deps, args)), [run])
+  const spin = useCallback((args: { round: string }) => run((deps) => spinLucky(deps,args)), [run])
   const finish = useCallback(
     async (args: { round: string; moves?: number[][] }): Promise<Receipt> => {
       const receipt = await run((deps) => finishRound(deps, args))
@@ -196,6 +240,30 @@ export function useMiniGame() {
   const chooseAvatar = useCallback(
     async (avatar: string) => {
       await run((deps) => setAvatar(deps, avatar))
+      await refresh()
+    },
+    [run, refresh]
+  )
+  const sendAvatar = useCallback(
+    async (image: string) => {
+      await run((deps) => uploadAvatar(deps, image))
+      if (account.user?.id) setTrainerAvatar(account.user.id, 'custom', image)
+      await refresh()
+    },
+    [run, refresh, account.user?.id]
+  )
+  const avatarImage = useCallback(() => run((deps) => readAvatarImage(deps)), [run])
+  const teamsRead = useCallback(() => run((deps) => readTeams(deps)), [run])
+  const teamsSave = useCallback(
+    async (teams: { slot: number; name: string; members: string[] }[], active: number) => {
+      await run((deps) => saveTeams(deps, teams, active))
+      await refresh()
+    },
+    [run, refresh]
+  )
+  const teamSwitch = useCallback(
+    async (slot: number) => {
+      await run((deps) => switchTeam(deps, slot))
       await refresh()
     },
     [run, refresh]
@@ -223,10 +291,18 @@ export function useMiniGame() {
     refresh,
     start,
     flip,
+    removePair,
+    shuffle,
+    spin,
     finish,
     claim,
     setAvatar: chooseAvatar,
+    uploadAvatar: sendAvatar,
+    avatarImage,
     setTeam: chooseTeam,
+    readTeams: teamsRead,
+    saveTeams: teamsSave,
+    switchTeam: teamSwitch,
     practice,
     cares,
     errors: MINIGAME_ERRORS,

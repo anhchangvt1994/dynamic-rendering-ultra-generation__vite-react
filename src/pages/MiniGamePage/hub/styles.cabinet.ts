@@ -239,6 +239,7 @@ export const cabinetCss = css`
     animation: cs-pop 320ms var(--spring);
   }
   .cs-grid {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(7, 1fr);
@@ -249,6 +250,7 @@ export const cabinetCss = css`
     min-height: 0;
   }
   .cs-cell {
+    position: relative;
     display: grid;
     place-items: center;
     min-width: 0;
@@ -264,6 +266,74 @@ export const cabinetCss = css`
   }
   .cs-cell[data-swap] img {
     animation: cs-pop 420ms var(--spring) both;
+  }
+  .cs-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .cs-fx u {
+    position: absolute;
+    inset: 15%;
+    border: 2px solid #fff6b0;
+    border-radius: 50%;
+    animation: cs-ring 420ms ease-out both;
+  }
+  .cs-fx b {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin: -2px;
+    border-radius: 50%;
+    background: #ffe477;
+    animation: cs-shard 460ms ease-out both;
+  }
+  .cs-gain {
+    position: absolute;
+    translate: -50% -50%;
+    color: #fff6b0;
+    font-size: 12px;
+    font-weight: 800;
+    text-shadow: 0 1px 3px #0009;
+    pointer-events: none;
+    animation: cs-gain 900ms ease-out both;
+  }
+  .cs-call {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    translate: -50% -50%;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 900;
+    color: #d8fff9;
+    text-shadow: 0 0 8px #7dffea, 0 2px 3px #000a;
+    pointer-events: none;
+    animation: cs-call 1000ms var(--spring) both;
+  }
+  .cs-call[data-tier='4'] {
+    color: #ffe477;
+    text-shadow: 0 0 10px #ff9be0, 0 2px 3px #000a;
+  }
+  @keyframes cs-ring {
+    from { transform: scale(0.3); opacity: 1; }
+    to { transform: scale(1.7); opacity: 0; }
+  }
+  @keyframes cs-shard {
+    from { transform: rotate(var(--a)) translateX(0); opacity: 1; }
+    to { transform: rotate(var(--a)) translateX(16px); opacity: 0; }
+  }
+  @keyframes cs-gain {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-14px); opacity: 0; }
+  }
+  @keyframes cs-call {
+    from { transform: scale(0.4); opacity: 0; }
+    25% { transform: scale(1.15); opacity: 1; }
+    80% { opacity: 1; }
+    to { transform: scale(1); opacity: 0; }
   }
   @keyframes cs-drop {
     from {
@@ -331,6 +401,76 @@ export const cabinetCss = css`
     object-fit: contain;
   }
 
+  /* chọn cặp screen */
+  .ts { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; width: 100%; height: 100%; padding: 6px; box-sizing: border-box; overflow: hidden; }
+  .ts-grid { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 2px; height: 100%; max-height: 100%; aspect-ratio: 1; max-width: 100%; }
+  .ts-tile { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; border-radius: 5px; border: 1px solid #95e7ff; background: linear-gradient(145deg, #2a6188, #10243d); }
+  .ts-tile img { width: 86%; height: 86%; object-fit: contain; }
+  .ts-tile[data-gone] { visibility: hidden; }
+  .ts-tile[data-pop] { background: none; border-color: transparent; }
+  .ts-tile[data-echo] { border-color: #7dffea; box-shadow: 0 0 8px #7dffea; animation: ts-echo 420ms ease-in-out infinite alternate; }
+  .ts-tile[data-sel] { z-index: 2; border-color: #fff08a; background: linear-gradient(145deg, #7a6a1c, #2b2508); box-shadow: 0 0 0 2px #ffe477, 0 0 14px #ffe477; animation: ts-lift 420ms ease-out forwards; }
+  .ts-fx { position: absolute; inset: 0; pointer-events: none; }
+  .ts-fx u { position: absolute; inset: -30%; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 12px #ffe477, inset 0 0 8px #7dffea; animation: ts-ring 420ms ease-out forwards; }
+  .ts-fx b { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 2px; background: hsl(var(--h) 100% 68%); box-shadow: 0 0 6px hsl(var(--h) 100% 68%); animation: ts-shard 420ms ease-out forwards; }
+  .ts-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+  .ts-line path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: ts-beam 300ms ease-out forwards; }
+  .ts-line .b { stroke: url(#ts-beam); stroke-width: 9; }
+  .ts-line .g { stroke: #fff8; stroke-width: 22; filter: blur(5px); }
+  .ts-line .o { fill: #fff; filter: drop-shadow(0 0 6px #ffe477) drop-shadow(0 0 12px #7dffea); }
+  .ts-line[data-out] path { stroke-dashoffset: 0; animation: ts-fade 300ms ease-in forwards; }
+  .ts-combo { position: absolute; z-index: 4; transform: translate(-50%, -50%); padding: 1px 7px; border-radius: 999px; color: #3b1d00; font: 900 11px/1.4 inherit; white-space: nowrap; background: linear-gradient(90deg, #ffe477, #ff9be0); box-shadow: 0 0 12px #ffe477; animation: ts-combo 420ms ease-out forwards; }
+  @keyframes ts-echo { to { transform: scale(1.05); } }
+  @keyframes ts-lift { from { transform: scale(1); } 50% { transform: scale(1.14); } to { transform: scale(1.08); } }
+  @keyframes ts-ring { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+  @keyframes ts-shard { from { transform: rotate(var(--a)) translateX(0) scale(1); opacity: 1; } 60% { opacity: 1; } to { transform: rotate(var(--a)) translateX(26px) scale(.3); opacity: 0; } }
+  @keyframes ts-beam { to { stroke-dashoffset: 0; } }
+  @keyframes ts-fade { to { opacity: 0; } }
+  @keyframes ts-combo { from { transform: translate(-50%, -30%) scale(.3); opacity: 0; } 30% { transform: translate(-50%, -90%) scale(1.1); opacity: 1; } to { transform: translate(-50%, -160%) scale(1); opacity: 0; } }
+
+  /* xếp khối screen */
+  .bs { position: relative; display: grid; place-items: stretch; width: 100%; height: 100%; padding: 0; background: radial-gradient(ellipse at 50% 0, #653e57, #10152f 70%); }
+  .bs-field { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  .bs-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(11, 1fr); }
+  .bs-cell { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; margin: 1px; border-radius: 3px; }
+  .bs-cell[data-on] { background: linear-gradient(150deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c)); box-shadow: inset 0 0 0 1px #fff6; }
+  .bs-cell[data-ghost] { outline: 1px dashed color-mix(in srgb, var(--c) 85%, #fff); outline-offset: -1px; }
+  .bs-cell[data-new] { animation: bs-land 240ms var(--spring) both; }
+  .bs-cell img { width: 90%; height: 90%; object-fit: contain; }
+  .bs-fx { position: absolute; inset: 0; pointer-events: none; }
+  .bs-fx b { position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; background: #ffe477; animation: bs-shard 380ms ease-out both; }
+  .bs-sweep { position: absolute; left: 0; width: 100%; height: 5%; background: linear-gradient(90deg, transparent, #fff, #ffe477, #fff, transparent); transform-origin: 0 50%; animation: bs-sweep 260ms ease-out both; }
+  .bs-spark { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: hsl(var(--h) 95% 62%); animation: bs-spark 520ms ease-out both; }
+  .bs-call { position: absolute; left: 50%; top: 36%; translate: -50% -50%; white-space: nowrap; color: #fff; font: 900 16px/1 inherit; -webkit-text-stroke: 1.5px #b84a00; paint-order: stroke fill; animation: bs-call 700ms var(--spring) both; }
+  @keyframes bs-land { from { transform: translateY(-70%); opacity: .5; } }
+  @keyframes bs-shard { from { transform: rotate(var(--a)) translateX(0); opacity: 1; } to { transform: rotate(var(--a)) translateX(14px); opacity: 0; } }
+  @keyframes bs-sweep { from { transform: scaleX(0); opacity: 1; } to { transform: scaleX(1); opacity: .2; } }
+  @keyframes bs-spark { from { transform: translate(0, 0) scale(1); opacity: 1; } to { transform: translate(var(--dx, 14px), -18px) scale(0); opacity: 0; } }
+  @keyframes bs-call { from { transform: scale(.3); opacity: 0; } 30% { transform: scale(1.15); opacity: 1; } to { opacity: 0; } }
+
+
+  /* ghép mảnh screen: pieces fly from the tray, spin upright and lock */
+  .ss { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; container-type: size; justify-items: center; gap: 4px; width: 100%; height: 100%; padding: 6px; box-sizing: border-box; background: radial-gradient(ellipse at center, #1d3b5c, #0a1626 80%); }
+  .ss-frame { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 2px; align-self: center; width: min(100cqw - 4px, (100cqh - 34px) * 1.5); aspect-ratio: 3 / 2; padding: 3px; border: 1px solid #6ce9ff66; border-radius: 8px; background: #0a1a2e; box-sizing: border-box; }
+  .ss-slot { position: relative; border: 1px dashed #6ce9ff40; border-radius: 4px; }
+  .ss-piece { position: absolute; inset: 0; border-radius: 4px; background-repeat: no-repeat; box-shadow: inset 0 0 0 1px #d9f7ff55; transition: transform 380ms var(--spring); }
+  .ss-piece[data-locked] { box-shadow: inset 0 0 0 2px #72f0d0; }
+  .ss-tray { display: flex; justify-content: center; gap: 3px; min-height: 20px; max-width: 100%; overflow: hidden; }
+  .ss-tray i { flex: none; width: 20px; height: 20px; border-radius: 4px; background-repeat: no-repeat; box-shadow: inset 0 0 0 1px #d9f7ff55; transition: transform 380ms var(--spring); }
+  .ss[data-solved] .ss-frame { border-color: #ffe477; box-shadow: 0 0 16px #ffd844; gap: 0; }
+  .ss[data-solved] .ss-slot { border-color: transparent; }
+
+  /* vòng quay screen: 5 x 3 reels, full width */
+  .ls { width: 100%; height: 100%; padding: 6px; box-sizing: border-box; background: radial-gradient(ellipse at 50% 0, #763b70, #121638 70%); }
+  .ls-reels { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 3px; width: 100%; height: 100%; padding: 4px; border: 2px solid #f8d274; border-radius: 8px; background: #171433; box-sizing: border-box; }
+  .ls-reels i { display: grid; place-items: center; min-height: 0; border-radius: 5px; background: linear-gradient(145deg, #fff2d1, #d9b8ff); overflow: hidden; }
+  .ls-reels i[data-spin] img { filter: blur(1.2px); animation: ls-roll 180ms linear infinite; }
+  .ls-reels i[data-lit] { background: linear-gradient(145deg, #fffbe0, #ffcf5a); animation: cs-pop 420ms calc(var(--c) * 60ms) var(--spring) both; }
+  .ls-reels img { width: auto; height: 86%; max-width: 90%; object-fit: contain; }
+  .ls[data-win] .ls-reels { box-shadow: 0 0 14px #ffd844; }
+  .ls[data-swept] .ls-reels { box-shadow: 0 0 22px #ff9bd0, 0 0 0 1px #fff6a8; }
+  @keyframes ls-roll { from { transform: translateY(-30%); } to { transform: translateY(30%); } }
+
   /* power-on: once per session */
   &[data-reveal] .cab-screen {
     animation: cab-on 300ms steps(4) backwards;
@@ -380,6 +520,22 @@ export const cabinetCss = css`
     }
     .cs-hud b,
     .cs-cell img,
+    .cs-fx u,
+    .cs-fx b,
+    .cs-gain,
+    .cs-call,
+    .bs-cell,
+    .bs-fx b,
+    .bs-sweep,
+    .bs-spark,
+    .bs-call,
+    .ls-reels img,
+    .ls-reels i,
+    .ts-tile,
+    .ts-fx u,
+    .ts-fx b,
+    .ts-line path,
+    .ts-combo,
     &[data-reveal] .cab-screen,
     [data-phase] .cab-stub,
     [data-phase] .cab-slot {

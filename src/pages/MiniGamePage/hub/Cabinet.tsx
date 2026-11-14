@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { MINIGAME } from '../minigame.mjs'
 import CandyScreen from './demo/CandyScreen'
 import MemoryScreen from './demo/MemoryScreen'
+import TileScreen from './demo/TileScreen'
+import BlockScreen from './demo/BlockScreen'
+import SilhouetteScreen from './demo/SilhouetteScreen'
+import SpinScreen from './demo/SpinScreen'
 import TicketRow from './TicketRow'
 import { boothLabel, outOfTurns } from './tickets.mjs'
 import { tiltFromPointer } from './tilt.mjs'
@@ -18,7 +22,7 @@ type Props = {
   onPlay: () => void
 }
 
-const HUE: Record<string, string> = { candy: '#ff6b8a', memory: '#5fe3b4' }
+const HUE: Record<string, string> = { candy: '#ff6b8a', memory: '#5fe3b4', 'tile-safari': '#5fc8ff', 'block-lab': '#ffa24d', 'silhouette-atelier': '#c58bff', 'lucky-spin': '#ffd84d' }
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** One arcade cabinet: a screen that plays itself, a deck, a coin slot and the Chơi button. */
@@ -88,12 +92,12 @@ export default function Cabinet({ game, index, server, left, resetText, open, ha
       timer.current = setTimeout(() => setPhase('idle'), 700)
       return
     }
-    if (reduced()) return onPlay()
-    setPhase('insert')
-    timer.current = setTimeout(() => {
-      setPhase('idle')
-      onPlay()
-    }, 460)
+    // open the sheet (and its loading state) on the click itself; the ticket animation must not delay it
+    if (!reduced()) {
+      setPhase('insert')
+      timer.current = setTimeout(() => setPhase('idle'), 460)
+    }
+    onPlay()
   }
 
   const active = seen && visible && !open && phase === 'idle'
@@ -112,7 +116,7 @@ export default function Cabinet({ game, index, server, left, resetText, open, ha
           <h2>{game.title}</h2>
         </div>
         <div className="cab-screen" aria-hidden="true">
-          {game.id === 'candy' ? <CandyScreen active={active} /> : <MemoryScreen active={active} />}
+          {game.id === 'candy' ? <CandyScreen active={active} /> : game.id === 'memory' ? <MemoryScreen active={active} /> : game.id === 'tile-safari' ? <TileScreen active={active} /> : game.id === 'block-lab' ? <BlockScreen active={active} /> : game.id === 'silhouette-atelier' ? <SilhouetteScreen active={active} /> : <SpinScreen active={active} />}
           <div className="cab-ready">Sẵn sàng</div>
           <span className="cab-glare" />
         </div>

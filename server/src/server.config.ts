@@ -57,6 +57,12 @@ const ServerConfig = defineServerConfig({
             name: 'pokemon-cua-toi-page',
           },
         }
+      else if (pathSlitted[1] === 'ban-do')
+        return {
+          loader: {
+            name: 'ban-do-page',
+          },
+        }
       else if (pathSlitted[1] === 'so-sanh')
         return {
           loader: {

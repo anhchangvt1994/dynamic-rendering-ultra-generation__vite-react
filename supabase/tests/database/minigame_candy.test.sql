@@ -188,5 +188,13 @@ select is((select progress->>'movesLeft' from public.minigame_rounds where id=(s
 insert into rc values ('mem',public.minigame_start('memory','e2000000-0000-4000-8000-000000000006',1::smallint));
 select is((public.minigame_status())->'opens'->'memory'->>'round',(select v->>'round' from rc where k='mem'),'status keeps each game''s open round (memory)');
 select is((public.minigame_status())->'opens'->'candy'->'view'->>'kind','candy','status keeps each game''s open round (candy)');
+
+-- Tile Safari: server-owned board, pair validation, resume and idempotent settle.
+insert into rc values ('ts', public.minigame_start('tile-safari','e2000000-0000-4000-8000-000000000001',1::smallint));
+select is((select v->'view'->>'kind' from rc where k='ts'),'tile-safari','tile safari start view');
+select is((public.minigame_status())->'games'->'tile-safari'->>'left','4','tile safari spends its own turn');
+select is((public.minigame_status())->'opens'->'tile-safari'->>'round',(select v->>'round' from rc where k='ts'),'tile safari round resumes');
+select throws_ok($$select public.minigame_tile_remove(((select v->>'round' from rc where k='ts'))::uuid,0,1)$$,'P0001','bad_pair','different tile species cannot match');
+select throws_ok($$select public.minigame_finish(((select v->>'round' from rc where k='ts'))::uuid)$$,'P0001','not_finished','an uncleared board cannot settle');
 select * from finish();
 rollback;

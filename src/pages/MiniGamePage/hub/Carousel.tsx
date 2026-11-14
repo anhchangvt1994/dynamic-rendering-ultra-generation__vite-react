@@ -17,19 +17,28 @@ export default function Carousel({ children, skeleton }: { children: ReactNode; 
     if (!el || el.children.length < 2) return
     const a = el.children[0] as HTMLElement
     const b = el.children[1] as HTMLElement
-    const pitch = b.offsetLeft - a.offsetLeft
-    // the last cabinet can't reach its snap point: spread the reachable scroll over 0..count-1
-    const reach = el.scrollWidth - el.clientWidth // scroll-padding makes 0 the rest of cabinet 0
-    const t = reach > 0 ? Math.min(1, Math.max(0, el.scrollLeft / reach)) : 0
-    const virtual = t * (count - 1) * pitch
-    setAt(activeIndex(virtual, pitch, count))
-    const o = offsets(virtual, pitch, count)
+    // Derive scroll position from the first slide's centered snap point. This
+    // stays symmetric even when the last slide has extra trailing scroll space.
+    const center = el.scrollLeft + el.clientWidth / 2
+    const centers = Array.from(el.children, child => {
+      const item = child as HTMLElement
+      return item.offsetLeft + item.offsetWidth / 2
+    })
+    const right = centers.findIndex(value => value >= center)
+    const lower = Math.max(0, right - 1)
+    const upper = Math.min(count - 1, right < 0 ? count - 1 : right)
+    const span = centers[upper] - centers[lower]
+    const progress = span > 0 ? (center - centers[lower]) / span : 0
+    const virtual = right < 0 ? count - 1 : lower + Math.min(1, Math.max(0, progress))
+    const active = activeIndex(virtual, 1, count)
+    setAt(active)
+    const o = offsets(virtual, 1, count)
     el.parentElement?.style.setProperty('--p', String(Math.round(-o[0] * 1000) / 1000 || 0))
     o.forEach((v, i) => {
       const item = el.children[i] as HTMLElement | undefined
       if (!item) return
       item.style.setProperty('--o', String(v))
-      item.style.setProperty('--a', String(Math.min(1, Math.abs(v))))
+      item.style.setProperty('--a', String(i === active ? 0 : 1))
     })
   }, [count])
   const onScroll = () => {
@@ -46,7 +55,7 @@ export default function Carousel({ children, skeleton }: { children: ReactNode; 
     const item = el?.children[Math.max(0, Math.min(count - 1, i))] as HTMLElement | undefined
     if (!el || !item) return
     const instant = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    el.scrollTo({ left: item.offsetLeft - (el.children[0] as HTMLElement).offsetLeft, behavior: instant ? 'auto' : 'smooth' })
+    el.scrollTo({ left: item.offsetLeft + item.offsetWidth / 2 - el.clientWidth / 2, behavior: instant ? 'auto' : 'smooth' })
   }
   const key = (e: KeyboardEvent) => {
     if (e.key === 'ArrowRight') go(at + 1)

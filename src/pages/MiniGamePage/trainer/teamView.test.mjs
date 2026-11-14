@@ -9,13 +9,13 @@ const view = (builds, trainerLevel, ids = ['a']) =>
 test('a Pokémon above the trainer asks for a trainer level', () => {
   const [row] = view({ a: { level: 17, bond: 3 } }, 10)
   assert.equal(row.ok, false)
-  assert.equal(row.reason, 'Cần trainer level 11')
+  assert.equal(row.reason, 'Cần Lv 11')
 })
 
 test('a need beyond the level cap asks for a closer bond', () => {
   const [row] = view({ a: { level: 90, bond: 1 } }, 30)
   assert.equal(row.ok, false)
-  assert.equal(row.reason, 'Cần thân thiết hơn')
+  assert.equal(row.reason, 'Cần thân thiết')
 })
 
 test('an eligible Pokémon has no reason', () => {

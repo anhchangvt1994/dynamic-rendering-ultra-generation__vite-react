@@ -1,18 +1,18 @@
-import Icon from 'components/common/Icon'
-import FieldIcon from 'components/common/FieldIcon'
-import SearchNoData from './components/SearchNoData'
-import useDismissKeyboardOnDrag from 'hooks/useDismissKeyboardOnDrag'
-import useDialog from 'hooks/useDialog'
+import type { ArticleHit } from 'app/apis/blog'
 import {
   BLOG_ENABLED,
   useGetArticlesQuery,
   useSearchArticlesQuery,
 } from 'app/apis/blog'
-import type { ArticleHit } from 'app/apis/blog'
 import { cleanTerm } from 'app/apis/blogPaths.mjs'
+import FieldIcon from 'components/common/FieldIcon'
+import Icon from 'components/common/Icon'
+import useDialog from 'hooks/useDialog'
+import useDismissKeyboardOnDrag from 'hooks/useDismissKeyboardOnDrag'
 import { articleHref } from 'pages/BlogPage/href'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
+import SearchNoData from './components/SearchNoData'
 import SearchResults, { optionId } from './components/SearchResults'
 import SearchLoading from './components/SearchResults/loading'
 import {
@@ -138,7 +138,7 @@ const SearchBlogBar = ({ isOpen, onClose }: SearchBarProps) => {
       >
         <div className="dialog-heading">
           <div>
-            <span>FIELD NOTES SEARCH</span>
+            <span>JOURNEY SEARCH</span>
             <h2>Lục lại sổ tay</h2>
           </div>
           <button type="button" aria-label="Đóng tìm kiếm" onClick={onClose}>

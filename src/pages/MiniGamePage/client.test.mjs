@@ -5,9 +5,15 @@ import {
   claimQuest,
   finishRound,
   flipCard,
+  removeTilePair,
+  shuffleTiles,
+  spinLucky,
   readCares,
   readStatus,
   setAvatar,
+  uploadAvatar,
+  saveTeams,
+  switchTeam,
   setTeam,
   startRound,
 } from './client.mjs'
@@ -31,9 +37,17 @@ test('each call maps to its RPC and returns the data', async () => {
   await readStatus(deps)
   await startRound(deps, { game: 'memory', individualId: 'i1', difficulty: 2 })
   await flipCard(deps, { round: 'r1', index: 4 })
+  await removeTilePair(deps, { round: 'r1', a: 2, b: 5 })
+  await shuffleTiles(deps, { round: 'r1' })
+  await spinLucky(deps, { round: 'r1' })
   await finishRound(deps, { round: 'r1' })
+  await finishRound(deps, { round: 'r2', moves: [[120, 0], [800, 5]] })
+  await finishRound(deps, { round: 'r3', moves: [[10, 8], [20, 7]] })
   await setAvatar(deps, 'scout')
+  await uploadAvatar(deps, 'data:image/webp;base64,AAAA')
   await setTeam(deps, ['a', 'b'])
+  await saveTeams(deps, [{ slot: 1, name: 'x', members: ['a'] }], 1)
+  await switchTeam(deps, 3)
   await claimQuest(deps, { slot: 2 })
   assert.deepEqual(supabase.calls, [
     { name: 'minigame_status', args: undefined },
@@ -42,9 +56,17 @@ test('each call maps to its RPC and returns the data', async () => {
       args: { p_game: 'memory', p_individual: 'i1', p_difficulty: 2 },
     },
     { name: 'minigame_flip', args: { p_round: 'r1', p_index: 4 } },
+    { name: 'minigame_tile_remove', args: { p_round: 'r1', p_a: 2, p_b: 5 } },
+    { name: 'minigame_tile_shuffle', args: { p_round: 'r1' } },
+    { name: 'minigame_spin', args: { p_round: 'r1' } },
     { name: 'minigame_finish', args: { p_round: 'r1' } },
+    { name: 'minigame_finish', args: { p_round: 'r2', p_moves: [[120, 0], [800, 5]] } },
+    { name: 'minigame_finish', args: { p_round: 'r3', p_moves: [[10, 8], [20, 7]] } },
     { name: 'trainer_set_avatar', args: { p_avatar: 'scout' } },
+    { name: 'trainer_upload_avatar', args: { p_image: 'data:image/webp;base64,AAAA' } },
     { name: 'trainer_set_team', args: { p_team: ['a', 'b'] } },
+    { name: 'trainer_save_teams', args: { p_teams: [{ slot: 1, name: 'x', members: ['a'] }], p_active: 1 } },
+    { name: 'trainer_switch_team', args: { p_slot: 3 } },
     { name: 'minigame_quest_claim', args: { p_slot: 2 } },
   ])
   assert.deepEqual(await readStatus(deps), { ok: 1 })

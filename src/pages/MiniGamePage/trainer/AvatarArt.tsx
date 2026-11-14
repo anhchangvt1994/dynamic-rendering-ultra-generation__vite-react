@@ -102,11 +102,26 @@ export default function AvatarArt({
   id,
   size = 64,
   locked = false,
+  image,
 }: {
   id: string
   size?: number
   locked?: boolean
+  /** the trainer's own picture (a data URL) for id 'custom' */
+  image?: string | null
 }) {
+  if (id === 'custom' && image)
+    return (
+      <img
+        src={image}
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        style={{ display: 'block', borderRadius: '50%', objectFit: 'cover', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,.55)' }}
+      />
+    )
   const look = LOOKS[id] ?? FALLBACK
   const gid = `av-${id}`
   return (

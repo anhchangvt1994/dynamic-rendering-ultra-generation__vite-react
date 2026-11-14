@@ -1,6 +1,6 @@
 import { useAccount } from 'app/supabase/account'
-import Icon from 'components/common/Icon'
 import FieldIcon, { Pokeball } from 'components/common/FieldIcon'
+import Icon from 'components/common/Icon'
 import useDialog from 'hooks/useDialog'
 import {
   BodyStyle,
@@ -63,6 +63,12 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
           },
         ]),
     {
+      title: 'Bản đồ',
+      id: 'MapPage',
+      icon: 'map',
+      path: '/ban-do',
+    },
+    {
       title: 'So sánh Pokémon',
       id: 'ComparePage',
       icon: 'compare',
@@ -119,7 +125,7 @@ const MenuBar = ({ isOpen, onClose }: MenuBarProps) => {
         <HeaderStyle>
           <Pokeball className="menu-ball" />
           <div>
-            <span>FIELD NOTES</span>
+            <span>JOURNEY</span>
             <h2>Hành trình của bạn</h2>
           </div>
           <button type="button" aria-label="Đóng menu" onClick={onClose}>

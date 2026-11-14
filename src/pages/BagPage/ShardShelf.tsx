@@ -908,10 +908,15 @@ export default function ShardShelf({
     confirming !== null ||
     offerTrade !== null ||
     Boolean(individuals?.welcome || individuals?.batchSummary)
-  const displayRows = useMemo(
-    () => (orderHeld ? (heldOrder ?? rows ?? []) : (rows ?? [])),
-    [orderHeld, heldOrder, rows]
-  )
+  // while a dialog is open the shelf keeps its order, never its numbers:
+  // each held row shows the latest balances (a traded amber must leave the count)
+  const displayRows = useMemo(() => {
+    if (!orderHeld || !heldOrder) return rows ?? []
+    const fresh = new Map((rows ?? []).map((r) => [r.speciesId, r]))
+    return heldOrder.map(
+      (r) => fresh.get(r.speciesId) ?? { ...r, count: 0, cardCount: 0 }
+    )
+  }, [orderHeld, heldOrder, rows])
   useEffect(() => {
     if (orderHeld && heldOrder === null) setHeldOrder(rows ?? [])
     if (!orderHeld && heldOrder !== null) setHeldOrder(null)

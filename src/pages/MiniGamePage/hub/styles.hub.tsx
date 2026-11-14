@@ -128,28 +128,44 @@ export const HubShellStyle = styled.div`
     grid-area: booths;
     min-width: 0;
   }
-  /* phones: center a single booth; keep the snap row for multiple booths */
+  /* Phones: centered layered slides. Neighbor cards remain visible behind the active card. */
   .hub-booths {
     display: flex;
-    gap: var(--gap);
+    gap: 0;
     margin: -48px -14px -50px;
-    padding: 48px 14px 64px;
+    padding: 48px max(0px, calc((100% - 540px) / 2)) 64px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
-    scroll-padding-inline: 14px;
+    scroll-padding-inline: 0;
     scrollbar-width: none;
   }
   .hub-booths::-webkit-scrollbar {
     display: none;
   }
-  .hub-booths > [data-region='booth'] {
-    flex: 0 0 calc(100% - 40px);
-    scroll-snap-align: center;
+  @media (max-width: ${md - 1}px) {
+    .hub-booths::after {
+      content: '';
+      flex: 0 0 clamp(167px, calc((100vw - 375px) + 167px), 250px);
+    }
   }
-  .hub-booths:has(> [data-region='booth']:only-child) > [data-region='booth'] {
-    flex-basis: min(100%, 540px);
-    scroll-snap-align: center;
+  @media (max-width: ${md - 1}px) {
+    .hub-booths > [data-region='booth'] {
+      flex: 0 0 calc(100% - 72px);
+      margin-left: 36px;
+      margin-right: -126px;
+      scroll-snap-align: center;
+      transform: translateY(calc(min(var(--a, 1), 1) * 14px)) scale(calc(1 - min(var(--a, 1), 1) * 0.12));
+      opacity: calc(1 - min(var(--a, 1), 1) * 0.72);
+      filter: brightness(calc(1 - min(var(--a, 1), 1) * 0.24));
+      z-index: calc(10 - round(abs(var(--o, 0))));
+      transition: transform 220ms ease-out, opacity 220ms ease-out;
+      transform-style: preserve-3d;
+    }
+    .hub-booths > [data-region='booth']:only-child {
+      flex-basis: min(100%, 540px);
+      margin-inline: auto;
+    }
   }
   .hub-dots {
     display: flex;
@@ -157,6 +173,7 @@ export const HubShellStyle = styled.div`
     gap: 4px;
     height: 44px;
   }
+  @media (prefers-reduced-motion: reduce) { .cab-pokemon-preview img,.cab-pokemon-preview i { animation:none; } }
   .hub-dot {
     position: relative;
     width: 44px;
@@ -293,134 +310,191 @@ export const HubShellStyle = styled.div`
   ${cabinetCss}
   ${stageCss}
 
-  /* Paper lanterns hanging from a scalloped awning; slow wind sway, warm light. */
+  /* Festival light string: glass orbs with Pokémon on three glowing swags,
+     a colour chase running along the wire and an aurora ribbon above. */
   .hub-bulbs {
+    --sag: 34px;
+    --orb: 44px;
     position: absolute;
     inset: 0 0 auto;
-    height: 64px;
+    height: calc(var(--sag) + var(--orb) + 34px);
     z-index: 0;
-    overflow: hidden;
+    overflow: visible;
     pointer-events: none;
   }
-  .hub-bulbs-eave {
+  .hub-aurora {
     position: absolute;
-    inset: 0 -2% auto;
-    height: 12px;
+    inset: -30px -10% auto;
+    height: 130px;
     background:
-      radial-gradient(circle at 50% 0, #16275a 0 8px, transparent 9px) 0 0 /
-        24px 12px repeat-x,
-      linear-gradient(#0d1a45, #16275a) 0 0 / 100% 3px no-repeat;
-    filter: drop-shadow(0 2px 3px #02061c88);
+      radial-gradient(40% 60% at 15% 30%, hsl(330 100% 62% / 0.55), transparent),
+      radial-gradient(38% 55% at 50% 20%, hsl(170 100% 55% / 0.5), transparent),
+      radial-gradient(40% 60% at 85% 30%, hsl(265 100% 66% / 0.55), transparent);
+    filter: blur(18px);
+    mix-blend-mode: screen;
+    animation: hub-aurora 14s ease-in-out infinite alternate;
+  }
+  .hub-rail {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: linear-gradient(90deg, #5a3a1e, #ffd36a 20%, #fff2b8 50%, #ffd36a 80%, #5a3a1e);
+    box-shadow: 0 2px 10px #ffcf5a99, 0 6px 22px #ffcf5a44;
     opacity: 0.9;
   }
+  .hub-wire {
+    position: absolute;
+    left: 0;
+    top: 3px;
+    width: 100%;
+    height: calc(var(--sag) + 2px);
+    overflow: visible;
+  }
+  .hub-wire path {
+    fill: none;
+    stroke-linecap: round;
+  }
+  .hub-wire-base {
+    stroke: #ffe9b8;
+    stroke-opacity: 0.55;
+    stroke-width: 1.4;
+    filter: drop-shadow(0 0 3px #ffd36a);
+  }
+  .hub-wire-run {
+    stroke: #fff;
+    stroke-width: 3.2;
+    stroke-dasharray: 2 18;
+    filter: drop-shadow(0 0 4px #ff9de2) drop-shadow(0 0 8px #7ff5ff);
+    animation:
+      hub-wire-run 1.6s linear infinite,
+      hub-wire-hue 6s linear infinite;
+  }
   .hub-bulbs ol {
-    position: relative;
-    display: flex;
-    justify-content: space-around;
+    position: absolute;
+    inset: 3px 0 0;
     margin: 0;
-    padding: 0 10px;
+    padding: 0;
     list-style: none;
   }
   .hub-bulbs li {
-    position: relative;
-    flex: 0 0 44px;
-    height: 64px;
-    transform-origin: 50% 0;
-    animation: hub-lamp-sway var(--d, 6s) ease-in-out infinite alternate;
-    animation-delay: calc(var(--i) * -1.1s);
-  }
-  .hub-bulbs li::before {
-    content: '';
     position: absolute;
-    left: 50%;
-    top: 2px;
+    left: var(--x);
+    top: calc(var(--t) * var(--sag));
+    width: 0;
+    height: 0;
+  }
+  .hub-swing {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    transform-origin: 0 0;
+    animation: hub-orb-sway var(--d, 6s) ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -1.3s);
+  }
+  .hub-orb-cord {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 1px;
-    height: var(--cord);
-    background: hsl(var(--hue) 40% 72% / 0.55);
+    height: calc(var(--cord) + 2px);
+    background: hsl(var(--hue) 70% 85% / 0.8);
   }
-  .hub-lamp {
+  .hub-orb {
     position: absolute;
-    left: 1px;
-    top: calc(var(--cord) + 2px);
+    left: calc(var(--orb) / -2);
+    top: var(--cord);
     display: grid;
     place-items: center;
-    width: 42px;
-    height: 50px;
-    border-radius: 48% 48% 46% 46% / 42% 42% 58% 58%;
+    width: var(--orb);
+    height: var(--orb);
+    border-radius: 50%;
     background:
-      repeating-linear-gradient(
-        90deg,
-        transparent 0 3px,
-        hsl(var(--hue) 70% 38% / 0.1) 3px 4px
-      ),
-      radial-gradient(
-        ellipse at 50% 58%,
-        hsl(var(--hue) 100% 90%) 0 22%,
-        hsl(var(--hue) 96% 68%) 62%,
-        hsl(var(--hue) 78% 46%) 100%
-      );
+      radial-gradient(circle at 50% 55%, hsl(var(--hue) 100% 96%) 0 24%, hsl(var(--hue) 100% 72%) 66%, hsl(var(--hue) 90% 48%));
     box-shadow:
-      inset 0 -5px 7px hsl(var(--hue) 80% 34% / 0.45),
-      inset 0 3px 4px #fff6,
-      0 0 8px hsl(var(--hue) 100% 62% / 0.4);
+      inset 0 -6px 9px hsl(var(--hue) 90% 36% / 0.55),
+      inset 0 0 0 1.5px hsl(var(--hue) 100% 90% / 0.8),
+      0 0 12px hsl(var(--hue) 100% 62% / 0.85),
+      0 0 26px hsl(var(--hue) 100% 60% / 0.5);
+    animation: hub-orb-pulse 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.24s);
   }
-  .hub-lamp img {
-    position: relative;
-    width: 34px;
-    height: 34px;
+  /* glass gloss */
+  .hub-orb::after {
+    content: '';
+    position: absolute;
+    left: 17%;
+    top: 9%;
+    width: 36%;
+    height: 24%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #fffffff0, #fff0);
+    transform: rotate(-28deg);
+  }
+  /* socket cap */
+  .hub-orb::before {
+    content: '';
+    position: absolute;
+    left: 32%;
+    right: 32%;
+    top: -4px;
+    height: 5px;
+    border-radius: 2px 2px 1px 1px;
+    background: linear-gradient(90deg, #4a3a22, #d9b25a, #4a3a22);
+  }
+  .hub-orb img {
+    width: 70%;
+    height: 70%;
     margin-top: 2px;
     object-fit: contain;
-    mix-blend-mode: multiply;
-    filter: saturate(1.15) contrast(1.12) brightness(0.9);
-    opacity: 0.95;
+    filter: drop-shadow(0 1px 1.5px #0007) saturate(1.15);
+    transition:
+      opacity 400ms ease,
+      transform 400ms var(--spring);
   }
-  /* wooden cap */
-  .hub-lamp::before {
-    content: '';
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    top: -3px;
-    height: 4px;
-    border-radius: 2px 2px 1px 1px;
-    background: linear-gradient(90deg, #4a2c24, #8a5a3c, #4a2c24);
+  .hub-orb img[data-hide] {
+    opacity: 0;
+    transform: scale(0.4) rotate(-25deg);
   }
-  /* backlight: light bleeds through the print, rim stays shaded */
-  .hub-lamp::after {
-    content: '';
+  .hub-orb-glow {
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background:
-      radial-gradient(
-        ellipse at 50% 50%,
-        hsl(var(--hue) 100% 92% / 0.5) 0 28%,
-        transparent 62%
-      ),
-      radial-gradient(
-        ellipse at 50% 50%,
-        transparent 52%,
-        hsl(var(--hue) 70% 24% / 0.38) 100%
-      );
-    mix-blend-mode: soft-light;
-    pointer-events: none;
-  }
-  .hub-lamp-halo {
-    position: absolute;
-    left: -10px;
-    top: calc(var(--cord) - 8px);
-    width: 64px;
-    height: 66px;
+    left: -62px;
+    top: calc(var(--cord) - 40px);
+    width: 124px;
+    height: 124px;
     background: radial-gradient(
       closest-side,
-      hsl(var(--hue) 100% 64% / 0.42),
-      hsl(var(--hue) 100% 60% / 0.14) 60%,
+      hsl(var(--hue) 100% 62% / 0.5),
+      hsl(var(--hue) 100% 58% / 0.16) 58%,
       transparent
     );
-    animation: hub-candle-halo var(--fd, 1.7s) linear infinite;
-    animation-delay: calc(var(--i) * -0.37s);
+    mix-blend-mode: screen;
+    animation: hub-orb-chase 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.24s);
   }
-  @keyframes hub-lamp-sway {
+  /* four-point sparkle off each orb */
+  .hub-orb-spark {
+    position: absolute;
+    left: 10px;
+    top: calc(var(--cord) - 4px);
+    width: 16px;
+    height: 16px;
+    background:
+      linear-gradient(90deg, transparent 10%, #fff 50%, transparent 90%) center / 100% 2px no-repeat,
+      linear-gradient(0deg, transparent 10%, #fff 50%, transparent 90%) center / 2px 100% no-repeat,
+      radial-gradient(circle, #fff 0 2px, hsl(var(--hue) 100% 80% / 0.7) 3px, transparent 8px);
+    opacity: 0;
+    animation: hub-twinkle 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.52s);
+  }
+  .hub-bulbs li:nth-child(even) .hub-orb-spark {
+    left: -26px;
+    top: calc(var(--cord) + 24px);
+    width: 12px;
+    height: 12px;
+  }
+  @keyframes hub-orb-sway {
     from {
       transform: rotate(calc(var(--a) * -1));
     }
@@ -428,100 +502,100 @@ export const HubShellStyle = styled.div`
       transform: rotate(var(--a));
     }
   }
-  @keyframes hub-candle-halo {
+  /* the chase: a wave of brightness runs along the string */
+  @keyframes hub-orb-chase {
     0%,
     100% {
-      opacity: 0.95;
-    }
-    8% {
-      opacity: 0.6;
+      opacity: 0.35;
+      scale: 0.85;
     }
     14% {
-      opacity: 0.88;
-    }
-    31% {
-      opacity: 0.5;
-    }
-    38% {
-      opacity: 0.82;
-    }
-    55% {
-      opacity: 0.74;
-    }
-    63% {
-      opacity: 0.46;
-    }
-    71% {
       opacity: 1;
+      scale: 1.12;
     }
-    86% {
+    34% {
+      opacity: 0.5;
+      scale: 0.92;
+    }
+  }
+  @keyframes hub-orb-pulse {
+    0%,
+    100% {
+      filter: brightness(0.9) saturate(1);
+    }
+    14% {
+      filter: brightness(1.28) saturate(1.3);
+    }
+    34% {
+      filter: brightness(0.95) saturate(1.05);
+    }
+  }
+  @keyframes hub-twinkle {
+    0%,
+    55%,
+    100% {
+      opacity: 0;
+      transform: scale(0.3) rotate(0deg);
+    }
+    68% {
+      opacity: 1;
+      transform: scale(1) rotate(45deg);
+    }
+    84% {
+      opacity: 0.3;
+      transform: scale(0.6) rotate(80deg);
+    }
+  }
+  @keyframes hub-wire-run {
+    to {
+      stroke-dashoffset: -20;
+    }
+  }
+  @keyframes hub-wire-hue {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 4px #ff9de2) drop-shadow(0 0 8px #7ff5ff);
+    }
+    33% {
+      filter: drop-shadow(0 0 4px #ffe08a) drop-shadow(0 0 8px #ff8a5c);
+    }
+    66% {
+      filter: drop-shadow(0 0 4px #9dffd2) drop-shadow(0 0 8px #8a9dff);
+    }
+  }
+  @keyframes hub-aurora {
+    from {
+      transform: translateX(-4%) scaleY(0.9);
       opacity: 0.7;
     }
-  }
-  @keyframes hub-candle-lamp {
-    0%,
-    100% {
-      filter: brightness(1.08);
-    }
-    8% {
-      filter: brightness(0.84);
-    }
-    14% {
-      filter: brightness(1.02);
-    }
-    31% {
-      filter: brightness(0.78);
-    }
-    38% {
-      filter: brightness(0.98);
-    }
-    55% {
-      filter: brightness(0.92);
-    }
-    63% {
-      filter: brightness(0.74);
-    }
-    71% {
-      filter: brightness(1.16);
-    }
-    86% {
-      filter: brightness(0.9);
+    to {
+      transform: translateX(4%) scaleY(1.15);
+      opacity: 1;
     }
   }
-  .hub-lamp {
-    animation: hub-candle-lamp var(--fd, 1.7s) linear infinite;
-    animation-delay: calc(var(--i) * -0.37s);
-  }
-  .hub-lamp img {
-    transition:
-      opacity 420ms ease,
-      transform 420ms ease;
-  }
-  .hub-lamp img[data-hide] {
-    opacity: 0;
-    transform: scale(0.82);
-  }
-  &[data-paused] .hub-bulbs li,
-  &[data-paused] .hub-lamp,
-  &[data-paused] .hub-lamp-halo {
+  &[data-paused] .hub-swing,
+  &[data-paused] .hub-orb,
+  &[data-paused] .hub-orb-glow,
+  &[data-paused] .hub-orb-spark,
+  &[data-paused] .hub-wire-run,
+  &[data-paused] .hub-aurora {
     animation-play-state: paused;
   }
 
-  /* entrance: once per session, lanterns drop in left to right */
+  /* entrance: once per session, orbs drop in along the string */
   &[data-reveal] .hub-bulbs li {
-    animation:
-      hub-lamp-in 0.7s var(--ease) backwards,
-      hub-lamp-sway var(--d, 6s) ease-in-out infinite alternate;
-    animation-delay: calc(var(--i) * 90ms), calc(var(--i) * -1.1s);
+    animation: hub-orb-in 0.8s var(--spring) backwards;
+    animation-delay: calc(var(--i) * 70ms);
   }
   &[data-reveal] [data-region] {
     animation: hub-rise 0.52s var(--ease) backwards;
     animation-delay: calc(var(--n, 0) * 80ms + 300ms);
   }
-  @keyframes hub-lamp-in {
+  @keyframes hub-orb-in {
     from {
       opacity: 0;
-      translate: 0 -16px;
+      translate: 0 -40px;
+      scale: 0.4;
     }
   }
   @keyframes hub-rise {
@@ -531,24 +605,22 @@ export const HubShellStyle = styled.div`
     }
   }
 
-  @media (max-width: 420px) {
-    .hub-bulbs li:nth-child(3n) {
+  @media (max-width: 520px) {
+    .hub-bulbs {
+      --sag: 20px;
+      --orb: 36px;
+    }
+    .hub-bulbs li[data-extra] {
       display: none;
     }
-    .hub-bulbs li {
-      flex-basis: 34px;
+    .hub-orb-glow {
+      left: -48px;
+      width: 96px;
+      height: 96px;
+      top: calc(var(--cord) - 30px);
     }
-    .hub-lamp {
-      width: 32px;
-      height: 40px;
-    }
-    .hub-lamp img {
-      width: 26px;
-      height: 26px;
-    }
-    .hub-lamp-halo {
-      left: -12px;
-      width: 56px;
+    .hub-orb-spark {
+      left: 8px;
     }
   }
 
@@ -563,12 +635,25 @@ export const HubShellStyle = styled.div`
     .hub-booths {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+      gap: clamp(18px, 2vw, 30px);
       margin: -14px;
-      padding: 14px;
+      padding: 18px 24px 30px;
       overflow: visible;
+    }
+    .hub-booths {
+      perspective: none;
     }
     .hub-booths > [data-region='booth'] {
       flex: none;
+      margin: 0;
+      scroll-snap-align: none;
+      transform: none;
+      opacity: 1;
+      filter: none;
+      z-index: auto;
+      transition: none;
+      transform-style: flat;
     }
     .hub-dots {
       display: none;
@@ -576,6 +661,9 @@ export const HubShellStyle = styled.div`
   }
   @media (min-width: ${lg}px) {
     ${heights('lg')}
+    .hub-booths {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     --gap: 32px;
     --pad: 40px;
     --booth-width: min(100%, 520px);
@@ -585,15 +673,21 @@ export const HubShellStyle = styled.div`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hub-bulbs li,
-    .hub-lamp-halo,
-    .hub-lamp,
-    .hub-lamp img,
+    .hub-swing,
+    .hub-orb,
+    .hub-orb-glow,
+    .hub-orb-spark,
+    .hub-wire-run,
+    .hub-aurora,
+    .hub-orb img,
     .mq-ch,
     &[data-reveal] .mq-ch,
     &[data-reveal] .hub-bulbs li,
     &[data-reveal] [data-region] {
       animation: none;
+    }
+    .hub-orb-spark {
+      opacity: 0.8;
     }
   }
 `

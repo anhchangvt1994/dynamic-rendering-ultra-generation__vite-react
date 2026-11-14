@@ -15,8 +15,8 @@ export function teamCandidates({ individuals, builds, trainerLevel }) {
       ok: false,
       reason:
         need > MINIGAME.LEVEL_MAX
-          ? 'Cần thân thiết hơn'
-          : `Cần trainer level ${Math.ceil(need)}`,
+          ? 'Cần thân thiết'
+          : `Cần Lv ${Math.ceil(need)}`,
     }
   })
 }

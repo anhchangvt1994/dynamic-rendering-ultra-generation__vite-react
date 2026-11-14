@@ -2,6 +2,7 @@
 // folder, its rules. `levelInfo` and `winText` feed the host's level list and
 // practice result.
 import { MINIGAME } from '../minigame.mjs'
+import { lineGoal } from './block-lab/engine.mjs'
 
 export const GAMES = [
   {
@@ -20,30 +21,30 @@ export const GAMES = [
   },
   {
     id: 'tile-safari',
-    title: 'Pokémon Tile Safari',
-    blurb: 'Tìm và ghép các Pokémon cùng loài đang mở lối trên bàn gạch.',
-    levelInfo: (d) => `${[24, 36, 48][d - 1]} ô Pokémon`,
-    winText: ({ moves } = {}) => `Bạn dọn sạch bàn sau ${moves} lượt ghép.`,
+    title: 'Chọn cặp',
+    blurb: 'Nối hai Pokémon giống nhau bằng đường tối đa 2 lần rẽ. Dọn sạch bàn trước khi hết giờ.',
+    levelInfo: (d) => `${[18, 24, 28][d - 1]} cặp`,
+    winText: ({ moves } = {}) => `Bạn dọn sạch bàn sau ${moves} lần nối.`,
   },
   {
     id: 'block-lab',
-    title: 'Pokémon Block Lab',
-    blurb: 'Đưa Pokémon vào đúng vị trí, hoàn thành hàng để ghi điểm.',
-    levelInfo: (d) => `${[500, 1000, 1500][d - 1]} điểm mục tiêu`,
-    winText: ({ score = 0 } = {}) => `Phòng thí nghiệm đạt ${score} điểm!`,
+    title: 'Xếp khối Pokémon',
+    blurb: 'Khối Pokémon tự rơi: xoay, dịch và xếp kín hàng. Chất cao chạm nóc là thua.',
+    levelInfo: (d) => `${lineGoal(d)} hàng · cấp ${d}`,
+    winText: ({ score = 0 } = {}) => `Bạn dọn đủ hàng và đạt ${score} điểm!`,
   },
   {
     id: 'silhouette-atelier',
-    title: 'Pokémon Silhouette Atelier',
-    blurb: 'Lắp ghép tranh bóng Pokémon rồi đoán danh tính của bé.',
-    levelInfo: (d) => `${[4, 6, 9][d - 1]} mảnh tranh`,
-    winText: ({ guesses = 0 } = {}) => `Bạn đã khám phá Pokémon sau ${guesses} lần đoán.`,
+    title: 'Ghép Pokémon',
+    blurb: 'Kéo các mảnh vào khung, chạm để xoay thẳng hướng và ghép lại tranh Pokémon trước khi hết giờ.',
+    levelInfo: (d) => `${[6, 9, 12][d - 1]} mảnh`,
+    winText: ({ moves = 0 } = {}) => `Bạn ghép xong tranh sau ${moves} thao tác.`,
   },
   {
     id: 'lucky-spin',
-    title: 'Pokémon Lucky Spin',
-    blurb: 'Quay vòng quay Pokémon miễn phí để nhận quà trong lượt chơi.',
-    levelInfo: () => '1 lượt quay',
-    winText: ({ reward = 'một điều bất ngờ' } = {}) => `Vòng quay mang đến ${reward}.`,
+    title: 'Vòng quay may mắn',
+    blurb: 'Máy quay 3 hàng × 5 ô: quay 3 lần, xếp 3 ô liền để ăn điểm, thắng liên tiếp nhân combo. Nhận quà một lần ở cuối.',
+    levelInfo: () => '3 lượt quay · 1 phần quà',
+    winText: ({ reward = 'một điều bất ngờ' } = {}) => `Sau 3 lượt quay, bạn nhận ${reward}.`,
   },
 ]

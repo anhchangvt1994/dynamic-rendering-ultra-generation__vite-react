@@ -49,7 +49,7 @@ export default function HeaderSkeleton() {
           <Pokeball />
           <span>
             poké<span className="brand-light">dex</span>
-            <i>FIELD NOTES</i>
+            <i>JOURNEY</i>
           </span>
         </LinkCustom>
         <nav aria-hidden="true">

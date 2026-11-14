@@ -110,6 +110,12 @@ export const HeaderStyle = styled.header`
     font-size: 13px;
     font-weight: 800;
   }
+  .account-trigger .avatar[data-trainer] {
+    width: 32px;
+    height: 32px;
+    background: none;
+    line-height: 0;
+  }
   .account-trigger:has(.avatar) {
     padding: 0 7px;
   }
